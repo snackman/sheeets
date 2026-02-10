@@ -29,7 +29,7 @@ export function EventApp() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [showItinerary, setShowItinerary] = useState(false);
 
-  const { starred, toggle: toggleStar, isStarred } = useStarred();
+  const { starred, toggle: toggleStar } = useStarred();
   const {
     itinerary,
     toggle: toggleItinerary,
@@ -86,7 +86,7 @@ export function EventApp() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className={viewMode === 'map' ? 'h-screen flex flex-col bg-slate-900' : 'min-h-screen bg-slate-900'}>
       <Header
         viewMode={viewMode}
         onViewChange={setViewMode}
@@ -110,8 +110,8 @@ export function EventApp() {
       />
 
       {/* Main content area */}
-      <main>
-        {viewMode === 'list' ? (
+      {viewMode === 'list' ? (
+        <main>
           <ListView
             events={filteredEvents}
             totalCount={events.length}
@@ -120,18 +120,18 @@ export function EventApp() {
             onStarToggle={toggleStar}
             onItineraryToggle={toggleItinerary}
           />
-        ) : (
-          <div className="h-[calc(100vh-110px)]">
-            <MapViewWrapper
-              events={filteredEvents}
-              starred={starred}
-              itinerary={itinerary}
-              onStarToggle={toggleStar}
-              onItineraryToggle={toggleItinerary}
-            />
-          </div>
-        )}
-      </main>
+        </main>
+      ) : (
+        <main className="flex-1 min-h-0">
+          <MapViewWrapper
+            events={filteredEvents}
+            starred={starred}
+            itinerary={itinerary}
+            onStarToggle={toggleStar}
+            onItineraryToggle={toggleItinerary}
+          />
+        </main>
+      )}
 
       {/* Itinerary panel */}
       <ItineraryPanel

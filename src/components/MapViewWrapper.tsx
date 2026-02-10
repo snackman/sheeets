@@ -33,13 +33,15 @@ export function MapViewWrapper({
   onItineraryToggle,
 }: MapViewWrapperProps) {
   return (
-    <MapView
-      events={events}
-      onEventSelect={onEventSelect}
-      starred={starred}
-      itinerary={itinerary}
-      onStarToggle={onStarToggle}
-      onItineraryToggle={onItineraryToggle}
-    />
+    <div className="w-full h-full">
+      <MapView
+        events={events}
+        onEventSelect={onEventSelect}
+        starred={starred}
+        itinerary={itinerary}
+        onStarToggle={onStarToggle}
+        onItineraryToggle={onItineraryToggle}
+      />
+    </div>
   );
 }
