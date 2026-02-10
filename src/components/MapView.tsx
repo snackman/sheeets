@@ -15,6 +15,10 @@ import type { BBox } from 'geojson';
 interface MapViewProps {
   events: ETHDenverEvent[];
   onEventSelect?: (event: ETHDenverEvent) => void;
+  starred?: Set<string>;
+  itinerary?: Set<string>;
+  onStarToggle?: (eventId: string) => void;
+  onItineraryToggle?: (eventId: string) => void;
 }
 
 interface PointProperties {
@@ -41,7 +45,14 @@ function coordKey(lat: number, lng: number): string {
   return `${lat.toFixed(5)},${lng.toFixed(5)}`;
 }
 
-export function MapView({ events, onEventSelect }: MapViewProps) {
+export function MapView({
+  events,
+  onEventSelect,
+  starred,
+  itinerary,
+  onStarToggle,
+  onItineraryToggle,
+}: MapViewProps) {
   const mapRef = useRef<MapRef>(null);
 
   const [viewState, setViewState] = useState({
@@ -258,6 +269,10 @@ export function MapView({ events, onEventSelect }: MapViewProps) {
           latitude={popupCoords.lat}
           longitude={popupCoords.lng}
           onClose={handlePopupClose}
+          isStarred={starred?.has(popupEvent.id)}
+          isInItinerary={itinerary?.has(popupEvent.id)}
+          onStarToggle={onStarToggle}
+          onItineraryToggle={onItineraryToggle}
         />
       )}
 

@@ -3,19 +3,36 @@
 import { useState } from 'react';
 import { ViewMode } from '@/lib/types';
 import { useEvents } from '@/hooks/useEvents';
+import { useStarred } from '@/hooks/useStarred';
+import { useItinerary } from '@/hooks/useItinerary';
 import { Header } from './Header';
 import { ListView } from './ListView';
 import { MapViewWrapper } from './MapViewWrapper';
 import { Loading } from './Loading';
+import { ItineraryPanel } from './ItineraryPanel';
 
 export function EventApp() {
   const { events, loading, error } = useEvents();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [showItinerary, setShowItinerary] = useState(false);
+
+  const { starred, toggle: toggleStar, isStarred } = useStarred();
+  const {
+    itinerary,
+    toggle: toggleItinerary,
+    clear: clearItinerary,
+    count: itineraryCount,
+  } = useItinerary();
 
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-900">
-        <Header viewMode={viewMode} onViewChange={setViewMode} itineraryCount={0} />
+        <Header
+          viewMode={viewMode}
+          onViewChange={setViewMode}
+          itineraryCount={0}
+          onItineraryOpen={() => setShowItinerary(true)}
+        />
         <Loading />
       </div>
     );
@@ -24,7 +41,12 @@ export function EventApp() {
   if (error) {
     return (
       <div className="min-h-screen bg-slate-900">
-        <Header viewMode={viewMode} onViewChange={setViewMode} itineraryCount={0} />
+        <Header
+          viewMode={viewMode}
+          onViewChange={setViewMode}
+          itineraryCount={0}
+          onItineraryOpen={() => setShowItinerary(true)}
+        />
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-4">
           <div className="text-red-400 text-lg font-medium">Failed to load events</div>
           <p className="text-slate-500 text-sm text-center max-w-md">{error}</p>
@@ -44,7 +66,8 @@ export function EventApp() {
       <Header
         viewMode={viewMode}
         onViewChange={setViewMode}
-        itineraryCount={0}
+        itineraryCount={itineraryCount}
+        onItineraryOpen={() => setShowItinerary(true)}
       />
 
       {/* Event count bar */}
@@ -59,13 +82,38 @@ export function EventApp() {
       {/* Main content area */}
       <main>
         {viewMode === 'list' ? (
-          <ListView events={events} totalCount={events.length} />
+          <ListView
+            events={events}
+            totalCount={events.length}
+            starred={starred}
+            itinerary={itinerary}
+            onStarToggle={toggleStar}
+            onItineraryToggle={toggleItinerary}
+          />
         ) : (
           <div className="h-[calc(100vh-110px)]">
-            <MapViewWrapper events={events} />
+            <MapViewWrapper
+              events={events}
+              starred={starred}
+              itinerary={itinerary}
+              onStarToggle={toggleStar}
+              onItineraryToggle={toggleItinerary}
+            />
           </div>
         )}
       </main>
+
+      {/* Itinerary panel */}
+      <ItineraryPanel
+        isOpen={showItinerary}
+        onClose={() => setShowItinerary(false)}
+        events={events}
+        itinerary={itinerary}
+        starred={starred}
+        onStarToggle={toggleStar}
+        onItineraryToggle={toggleItinerary}
+        onItineraryClear={clearItinerary}
+      />
     </div>
   );
 }

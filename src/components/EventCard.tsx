@@ -1,19 +1,26 @@
 'use client';
 
-import { useState } from 'react';
-import { Star, CalendarPlus, CalendarCheck, MapPin, ExternalLink } from 'lucide-react';
+import { MapPin, ExternalLink } from 'lucide-react';
 import { ETHDenverEvent } from '@/lib/types';
 import { VIBE_COLORS } from '@/lib/constants';
-import clsx from 'clsx';
+import { StarButton } from './StarButton';
+import { ItineraryButton } from './ItineraryButton';
 
 interface EventCardProps {
   event: ETHDenverEvent;
+  isStarred?: boolean;
+  isInItinerary?: boolean;
+  onStarToggle?: (eventId: string) => void;
+  onItineraryToggle?: (eventId: string) => void;
 }
 
-export function EventCard({ event }: EventCardProps) {
-  const [isStarred, setIsStarred] = useState(false);
-  const [isInItinerary, setIsInItinerary] = useState(false);
-
+export function EventCard({
+  event,
+  isStarred = false,
+  isInItinerary = false,
+  onStarToggle,
+  onItineraryToggle,
+}: EventCardProps) {
   const vibeColor = VIBE_COLORS[event.vibe] || VIBE_COLORS['default'];
 
   const timeDisplay = event.isAllDay
@@ -25,21 +32,15 @@ export function EventCard({ event }: EventCardProps) {
       {/* Top row: Star, Name, Itinerary button */}
       <div className="flex items-start gap-2">
         {/* Star button */}
-        <button
-          onClick={() => setIsStarred(!isStarred)}
-          className={clsx(
-            'mt-0.5 shrink-0 transition-colors cursor-pointer',
-            isStarred
-              ? 'text-yellow-400'
-              : 'text-slate-600 hover:text-yellow-400/60'
-          )}
-          aria-label={isStarred ? 'Remove star' : 'Add star'}
-        >
-          <Star
-            className="w-5 h-5"
-            fill={isStarred ? 'currentColor' : 'none'}
+        {onStarToggle ? (
+          <StarButton
+            eventId={event.id}
+            isStarred={isStarred}
+            onToggle={onStarToggle}
           />
-        </button>
+        ) : (
+          <div className="w-5 shrink-0" />
+        )}
 
         {/* Event name */}
         <h3 className="flex-1 font-semibold text-white text-sm sm:text-base leading-tight min-w-0">
@@ -47,24 +48,13 @@ export function EventCard({ event }: EventCardProps) {
         </h3>
 
         {/* Itinerary button */}
-        <button
-          onClick={() => setIsInItinerary(!isInItinerary)}
-          className={clsx(
-            'shrink-0 p-1 rounded transition-colors cursor-pointer',
-            isInItinerary
-              ? 'text-orange-400 bg-orange-500/10'
-              : 'text-slate-600 hover:text-orange-400/60'
-          )}
-          aria-label={
-            isInItinerary ? 'Remove from itinerary' : 'Add to itinerary'
-          }
-        >
-          {isInItinerary ? (
-            <CalendarCheck className="w-5 h-5" />
-          ) : (
-            <CalendarPlus className="w-5 h-5" />
-          )}
-        </button>
+        {onItineraryToggle && (
+          <ItineraryButton
+            eventId={event.id}
+            isInItinerary={isInItinerary}
+            onToggle={onItineraryToggle}
+          />
+        )}
       </div>
 
       {/* Date + Time */}
