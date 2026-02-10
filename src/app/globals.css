@@ -76,3 +76,13 @@ body {
   background-color: #475569;
   border-radius: 2px;
 }
+
+/* Hide scrollbar for filter rows while keeping scroll functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

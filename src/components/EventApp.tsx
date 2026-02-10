@@ -1,16 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ViewMode } from '@/lib/types';
 import { useEvents } from '@/hooks/useEvents';
+import { useFilters } from '@/hooks/useFilters';
+import { applyFilters } from '@/lib/filters';
 import { Header } from './Header';
+import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
 import { MapViewWrapper } from './MapViewWrapper';
 import { Loading } from './Loading';
 
 export function EventApp() {
   const { events, loading, error } = useEvents();
+  const {
+    filters,
+    setFilter,
+    toggleDay,
+    toggleVibe,
+    toggleTimeOfDay,
+    toggleBool,
+    clearFilters,
+    activeFilterCount,
+  } = useFilters();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+
+  const availableVibes = useMemo(
+    () =>
+      [...new Set(events.map((e) => e.vibe).filter(Boolean))].sort(),
+    [events]
+  );
+
+  const filteredEvents = useMemo(
+    () => applyFilters(events, filters),
+    [events, filters]
+  );
 
   if (loading) {
     return (
@@ -47,22 +71,28 @@ export function EventApp() {
         itineraryCount={0}
       />
 
-      {/* Event count bar */}
-      <div className="bg-slate-900 border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 py-2">
-          <p className="text-sm text-slate-400">
-            Showing <span className="text-white font-medium">{events.length}</span> events
-          </p>
-        </div>
-      </div>
+      {/* Filter bar */}
+      <FilterBar
+        filters={filters}
+        onToggleDay={toggleDay}
+        onToggleVibe={toggleVibe}
+        onToggleTimeOfDay={toggleTimeOfDay}
+        onToggleBool={toggleBool}
+        onSearchChange={(query) => setFilter('searchQuery', query)}
+        onClearFilters={clearFilters}
+        activeFilterCount={activeFilterCount}
+        totalEvents={events.length}
+        filteredCount={filteredEvents.length}
+        availableVibes={availableVibes}
+      />
 
       {/* Main content area */}
       <main>
         {viewMode === 'list' ? (
-          <ListView events={events} totalCount={events.length} />
+          <ListView events={filteredEvents} totalCount={events.length} />
         ) : (
           <div className="h-[calc(100vh-110px)]">
-            <MapViewWrapper events={events} />
+            <MapViewWrapper events={filteredEvents} />
           </div>
         )}
       </main>
