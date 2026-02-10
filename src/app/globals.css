@@ -1,8 +1,9 @@
+@import 'mapbox-gl/dist/mapbox-gl.css';
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #111827;
+  --foreground: #f9fafb;
 }
 
 @theme inline {
@@ -12,15 +13,8 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: #111827;
+  color: #f9fafb;
   font-family: Arial, Helvetica, sans-serif;
 }
