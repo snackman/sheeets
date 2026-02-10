@@ -8,6 +8,10 @@ import { EventCard } from './EventCard';
 interface ListViewProps {
   events: ETHDenverEvent[];
   totalCount: number;
+  starred?: Set<string>;
+  itinerary?: Set<string>;
+  onStarToggle?: (eventId: string) => void;
+  onItineraryToggle?: (eventId: string) => void;
 }
 
 interface DateGroup {
@@ -39,7 +43,14 @@ function sortByStartTime(a: ETHDenverEvent, b: ETHDenverEvent): number {
   return timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
 }
 
-export function ListView({ events, totalCount }: ListViewProps) {
+export function ListView({
+  events,
+  totalCount,
+  starred,
+  itinerary,
+  onStarToggle,
+  onItineraryToggle,
+}: ListViewProps) {
   const dateGroups: DateGroup[] = useMemo(() => {
     const groupMap = new Map<string, ETHDenverEvent[]>();
 
@@ -95,7 +106,14 @@ export function ListView({ events, totalCount }: ListViewProps) {
           {/* Event cards */}
           <div className="space-y-3 mt-3">
             {group.events.map((event) => (
-              <EventCard key={event.id} event={event} />
+              <EventCard
+                key={event.id}
+                event={event}
+                isStarred={starred?.has(event.id)}
+                isInItinerary={itinerary?.has(event.id)}
+                onStarToggle={onStarToggle}
+                onItineraryToggle={onItineraryToggle}
+              />
             ))}
           </div>
         </section>

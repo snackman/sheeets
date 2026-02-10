@@ -1,15 +1,21 @@
 'use client';
 
 import { Popup } from 'react-map-gl/mapbox';
-import { X, Star, ClipboardList, ExternalLink } from 'lucide-react';
+import { X, ExternalLink } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { VIBE_COLORS } from '@/lib/constants';
+import { StarButton } from './StarButton';
+import { ItineraryButton } from './ItineraryButton';
 
 interface EventPopupProps {
   event: ETHDenverEvent;
   latitude: number;
   longitude: number;
   onClose: () => void;
+  isStarred?: boolean;
+  isInItinerary?: boolean;
+  onStarToggle?: (eventId: string) => void;
+  onItineraryToggle?: (eventId: string) => void;
 }
 
 interface MultiEventPopupProps {
@@ -23,9 +29,17 @@ interface MultiEventPopupProps {
 function SingleEventContent({
   event,
   onClose,
+  isStarred = false,
+  isInItinerary = false,
+  onStarToggle,
+  onItineraryToggle,
 }: {
   event: ETHDenverEvent;
   onClose: () => void;
+  isStarred?: boolean;
+  isInItinerary?: boolean;
+  onStarToggle?: (eventId: string) => void;
+  onItineraryToggle?: (eventId: string) => void;
 }) {
   const vibeColor = VIBE_COLORS[event.vibe] || VIBE_COLORS['default'];
   const timeDisplay = event.isAllDay
@@ -80,20 +94,22 @@ function SingleEventContent({
             RSVP <ExternalLink size={10} />
           </a>
         )}
-        <button
-          className="p-1 text-slate-400 hover:text-yellow-400 transition-colors"
-          aria-label="Star event"
-          title="Star this event"
-        >
-          <Star size={14} />
-        </button>
-        <button
-          className="p-1 text-slate-400 hover:text-blue-400 transition-colors"
-          aria-label="Add to itinerary"
-          title="Add to itinerary"
-        >
-          <ClipboardList size={14} />
-        </button>
+        {onStarToggle && (
+          <StarButton
+            eventId={event.id}
+            isStarred={isStarred}
+            onToggle={onStarToggle}
+            size="sm"
+          />
+        )}
+        {onItineraryToggle && (
+          <ItineraryButton
+            eventId={event.id}
+            isInItinerary={isInItinerary}
+            onToggle={onItineraryToggle}
+            size="sm"
+          />
+        )}
       </div>
     </div>
   );
@@ -104,6 +120,10 @@ export function EventPopup({
   latitude,
   longitude,
   onClose,
+  isStarred,
+  isInItinerary,
+  onStarToggle,
+  onItineraryToggle,
 }: EventPopupProps) {
   return (
     <Popup
@@ -116,7 +136,14 @@ export function EventPopup({
       offset={16}
       className="map-popup"
     >
-      <SingleEventContent event={event} onClose={onClose} />
+      <SingleEventContent
+        event={event}
+        onClose={onClose}
+        isStarred={isStarred}
+        isInItinerary={isInItinerary}
+        onStarToggle={onStarToggle}
+        onItineraryToggle={onItineraryToggle}
+      />
     </Popup>
   );
 }

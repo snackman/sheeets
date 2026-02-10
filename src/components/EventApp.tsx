@@ -5,11 +5,14 @@ import { ViewMode } from '@/lib/types';
 import { useEvents } from '@/hooks/useEvents';
 import { useFilters } from '@/hooks/useFilters';
 import { applyFilters } from '@/lib/filters';
+import { useStarred } from '@/hooks/useStarred';
+import { useItinerary } from '@/hooks/useItinerary';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
 import { MapViewWrapper } from './MapViewWrapper';
 import { Loading } from './Loading';
+import { ItineraryPanel } from './ItineraryPanel';
 
 export function EventApp() {
   const { events, loading, error } = useEvents();
@@ -24,6 +27,15 @@ export function EventApp() {
     activeFilterCount,
   } = useFilters();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [showItinerary, setShowItinerary] = useState(false);
+
+  const { starred, toggle: toggleStar, isStarred } = useStarred();
+  const {
+    itinerary,
+    toggle: toggleItinerary,
+    clear: clearItinerary,
+    count: itineraryCount,
+  } = useItinerary();
 
   const availableVibes = useMemo(
     () =>
@@ -32,14 +44,19 @@ export function EventApp() {
   );
 
   const filteredEvents = useMemo(
-    () => applyFilters(events, filters),
-    [events, filters]
+    () => applyFilters(events, filters, starred, itinerary),
+    [events, filters, starred, itinerary]
   );
 
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-900">
-        <Header viewMode={viewMode} onViewChange={setViewMode} itineraryCount={0} />
+        <Header
+          viewMode={viewMode}
+          onViewChange={setViewMode}
+          itineraryCount={0}
+          onItineraryOpen={() => setShowItinerary(true)}
+        />
         <Loading />
       </div>
     );
@@ -48,7 +65,12 @@ export function EventApp() {
   if (error) {
     return (
       <div className="min-h-screen bg-slate-900">
-        <Header viewMode={viewMode} onViewChange={setViewMode} itineraryCount={0} />
+        <Header
+          viewMode={viewMode}
+          onViewChange={setViewMode}
+          itineraryCount={0}
+          onItineraryOpen={() => setShowItinerary(true)}
+        />
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-4">
           <div className="text-red-400 text-lg font-medium">Failed to load events</div>
           <p className="text-slate-500 text-sm text-center max-w-md">{error}</p>
@@ -68,7 +90,8 @@ export function EventApp() {
       <Header
         viewMode={viewMode}
         onViewChange={setViewMode}
-        itineraryCount={0}
+        itineraryCount={itineraryCount}
+        onItineraryOpen={() => setShowItinerary(true)}
       />
 
       {/* Filter bar */}
@@ -89,13 +112,38 @@ export function EventApp() {
       {/* Main content area */}
       <main>
         {viewMode === 'list' ? (
-          <ListView events={filteredEvents} totalCount={events.length} />
+          <ListView
+            events={filteredEvents}
+            totalCount={events.length}
+            starred={starred}
+            itinerary={itinerary}
+            onStarToggle={toggleStar}
+            onItineraryToggle={toggleItinerary}
+          />
         ) : (
           <div className="h-[calc(100vh-110px)]">
-            <MapViewWrapper events={filteredEvents} />
+            <MapViewWrapper
+              events={filteredEvents}
+              starred={starred}
+              itinerary={itinerary}
+              onStarToggle={toggleStar}
+              onItineraryToggle={toggleItinerary}
+            />
           </div>
         )}
       </main>
+
+      {/* Itinerary panel */}
+      <ItineraryPanel
+        isOpen={showItinerary}
+        onClose={() => setShowItinerary(false)}
+        events={events}
+        itinerary={itinerary}
+        starred={starred}
+        onStarToggle={toggleStar}
+        onItineraryToggle={toggleItinerary}
+        onItineraryClear={clearItinerary}
+      />
     </div>
   );
 }
