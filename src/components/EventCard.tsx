@@ -42,9 +42,21 @@ export function EventCard({
           <div className="w-5 shrink-0" />
         )}
 
-        {/* Event name */}
+        {/* Event name (links to RSVP if available) */}
         <h3 className="flex-1 font-semibold text-white text-sm sm:text-base leading-tight min-w-0">
-          {event.name}
+          {event.link ? (
+            <a
+              href={event.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-orange-400 transition-colors inline-flex items-center gap-1"
+            >
+              {event.name}
+              <ExternalLink className="w-3 h-3 text-slate-500 flex-shrink-0" />
+            </a>
+          ) : (
+            event.name
+          )}
         </h3>
 
         {/* Itinerary button */}
@@ -57,8 +69,13 @@ export function EventCard({
         )}
       </div>
 
+      {/* Organizer */}
+      {event.organizer && (
+        <p className="text-slate-500 text-xs mt-1 ml-7">By {event.organizer}</p>
+      )}
+
       {/* Date + Time */}
-      <p className="text-slate-400 text-sm mt-2">
+      <p className="text-slate-400 text-sm mt-1 ml-7">
         {event.date} · {timeDisplay}
       </p>
 
@@ -118,29 +135,9 @@ export function EventCard({
         )}
       </div>
 
-      {/* Organizer */}
-      {event.organizer && (
-        <p className="text-slate-500 text-xs mt-2">By: {event.organizer}</p>
-      )}
-
       {/* Note */}
       {event.note && (
         <p className="text-slate-600 text-xs mt-1 italic">{event.note}</p>
-      )}
-
-      {/* RSVP link */}
-      {event.link && (
-        <div className="mt-3 pt-2 border-t border-slate-700/50">
-          <a
-            href={event.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-orange-400 hover:text-orange-300 text-sm font-medium transition-colors"
-          >
-            RSVP
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-        </div>
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { X, AlertTriangle, Trash2, CalendarX } from 'lucide-react';
+import { useMemo, useState, useRef, useCallback } from 'react';
+import { X, AlertTriangle, Trash2, CalendarX, Share2 } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { VIBE_COLORS } from '@/lib/constants';
 import { formatDateLabel } from '@/lib/utils';
@@ -112,6 +112,8 @@ export function ItineraryPanel({
   onItineraryClear,
 }: ItineraryPanelProps) {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const captureRef = useRef<HTMLDivElement>(null);
 
   // Filter to only itinerary events
   const itineraryEvents = useMemo(
@@ -145,6 +147,43 @@ export function ItineraryPanel({
       }));
   }, [itineraryEvents]);
 
+  const handleSharePNG = useCallback(async () => {
+    if (!captureRef.current || itineraryEvents.length === 0) return;
+    setExporting(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(captureRef.current, {
+        backgroundColor: '#0f172a',
+        scale: 2,
+        onclone: (doc) => {
+          doc.querySelectorAll('[data-export-hide]').forEach((el) => el.remove());
+        },
+      });
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/png')
+      );
+      if (!blob) return;
+
+      if (navigator.share && navigator.canShare?.({ files: [new File([blob], 'itinerary.png', { type: 'image/png' })] })) {
+        await navigator.share({
+          files: [new File([blob], 'itinerary.png', { type: 'image/png' })],
+          title: 'My Itinerary',
+        });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'itinerary.png';
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setExporting(false);
+    }
+  }, [itineraryEvents.length]);
+
   const handleClear = () => {
     onItineraryClear();
     setShowClearConfirm(false);
@@ -175,13 +214,26 @@ export function ItineraryPanel({
               {itineraryEvents.length !== 1 ? 's' : ''})
             </span>
           </h2>
-          <button
-            onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
-            aria-label="Close itinerary"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            {itineraryEvents.length > 0 && (
+              <button
+                onClick={handleSharePNG}
+                disabled={exporting}
+                className="p-1.5 text-slate-400 hover:text-orange-400 transition-colors cursor-pointer disabled:opacity-50"
+                aria-label="Share as PNG"
+                title="Share as PNG"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              aria-label="Close itinerary"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -199,106 +251,126 @@ export function ItineraryPanel({
             </div>
           ) : (
             <>
-              {/* Conflict warning */}
-              {conflicts.size > 0 && (
-                <div className="mt-3 mb-1 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-                  <p className="text-amber-400 text-xs">
-                    {conflicts.size} event{conflicts.size !== 1 ? 's' : ''} with
-                    schedule conflicts
-                  </p>
+              {/* Capturable content for PNG export */}
+              <div ref={captureRef} className="bg-slate-900">
+                {/* Branding header (visible in PNG) */}
+                <div className="pt-3 pb-1 px-1 flex items-center gap-2">
+                  <span className="text-base">📅</span>
+                  <span className="text-sm font-bold text-white">sheeets.xyz</span>
+                  <span className="text-xs text-slate-500">— My Itinerary</span>
                 </div>
-              )}
 
-              {/* Date groups */}
-              {dateGroups.map((group) => (
-                <section key={group.dateISO} className="mt-4">
-                  {/* Date header */}
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="h-px flex-1 bg-slate-700" />
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">
-                      {group.label}
-                    </h3>
-                    <div className="h-px flex-1 bg-slate-700" />
+                {/* Conflict warning */}
+                {conflicts.size > 0 && (
+                  <div className="mt-2 mb-1 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <p className="text-amber-400 text-xs">
+                      {conflicts.size} event{conflicts.size !== 1 ? 's' : ''} with
+                      schedule conflicts
+                    </p>
                   </div>
+                )}
 
-                  {/* Event cards */}
-                  <div className="space-y-2">
-                    {group.events.map((event) => {
-                      const hasConflict = conflicts.has(event.id);
-                      const vibeColor =
-                        VIBE_COLORS[event.vibe] || VIBE_COLORS['default'];
-                      const timeDisplay = event.isAllDay
-                        ? 'All Day'
-                        : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
+                {/* Date groups */}
+                {dateGroups.map((group) => (
+                  <section key={group.dateISO} className="mt-4">
+                    {/* Date header */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="h-px flex-1 bg-slate-700" />
+                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                        {group.label}
+                      </h3>
+                      <div className="h-px flex-1 bg-slate-700" />
+                    </div>
 
-                      return (
-                        <div
-                          key={event.id}
-                          className={`bg-slate-800 rounded-lg p-3 border ${
-                            hasConflict
-                              ? 'border-amber-500/40'
-                              : 'border-slate-700'
-                          }`}
-                        >
-                          {/* Conflict warning */}
-                          {hasConflict && (
-                            <div className="flex items-center gap-1.5 mb-2 text-amber-400">
-                              <AlertTriangle className="w-3 h-3" />
-                              <span className="text-[10px] font-medium uppercase tracking-wide">
-                                Schedule conflict
-                              </span>
-                            </div>
-                          )}
+                    {/* Event cards */}
+                    <div className="space-y-2">
+                      {group.events.map((event) => {
+                        const hasConflict = conflicts.has(event.id);
+                        const vibeColor =
+                          VIBE_COLORS[event.vibe] || VIBE_COLORS['default'];
+                        const timeDisplay = event.isAllDay
+                          ? 'All Day'
+                          : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
 
-                          {/* Top row: star, name, remove */}
-                          <div className="flex items-start gap-2">
-                            <StarButton
-                              eventId={event.id}
-                              isStarred={starred.has(event.id)}
-                              onToggle={onStarToggle}
-                              size="sm"
-                            />
-                            <h4 className="flex-1 text-sm font-semibold text-white leading-tight min-w-0 truncate">
-                              {event.name}
-                            </h4>
-                            <button
-                              onClick={() => onItineraryToggle(event.id)}
-                              className="shrink-0 p-1 text-slate-500 hover:text-red-400 transition-colors cursor-pointer"
-                              aria-label="Remove from itinerary"
-                              title="Remove from itinerary"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                        return (
+                          <div
+                            key={event.id}
+                            className={`bg-slate-800 rounded-lg p-3 border ${
+                              hasConflict
+                                ? 'border-amber-500/40'
+                                : 'border-slate-700'
+                            }`}
+                          >
+                            {/* Conflict warning */}
+                            {hasConflict && (
+                              <div className="flex items-center gap-1.5 mb-2 text-amber-400">
+                                <AlertTriangle className="w-3 h-3" />
+                                <span className="text-[10px] font-medium uppercase tracking-wide">
+                                  Schedule conflict
+                                </span>
+                              </div>
+                            )}
 
-                          {/* Time */}
-                          <p className="text-slate-400 text-xs mt-1 ml-5">
-                            {timeDisplay}
-                          </p>
-
-                          {/* Badges */}
-                          <div className="flex items-center gap-1.5 mt-1.5 ml-5">
-                            {event.vibe && (
-                              <span
-                                className="px-1.5 py-0.5 rounded text-[10px] font-semibold text-white"
-                                style={{ backgroundColor: vibeColor }}
+                            {/* Top row: star, name, remove */}
+                            <div className="flex items-start gap-2">
+                              <div data-export-hide>
+                                <StarButton
+                                  eventId={event.id}
+                                  isStarred={starred.has(event.id)}
+                                  onToggle={onStarToggle}
+                                  size="sm"
+                                />
+                              </div>
+                              <h4 className="flex-1 text-sm font-semibold text-white leading-tight min-w-0 truncate">
+                                {event.name}
+                              </h4>
+                              <button
+                                data-export-hide
+                                onClick={() => onItineraryToggle(event.id)}
+                                className="shrink-0 p-1 text-slate-500 hover:text-red-400 transition-colors cursor-pointer"
+                                aria-label="Remove from itinerary"
+                                title="Remove from itinerary"
                               >
-                                {event.vibe}
-                              </span>
-                            )}
-                            {event.isFree && (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/20 text-emerald-400">
-                                FREE
-                              </span>
-                            )}
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            {/* Time */}
+                            <p className="text-slate-400 text-xs mt-1 ml-5">
+                              {timeDisplay}
+                            </p>
+
+                            {/* Badges */}
+                            <div className="flex items-center gap-1.5 mt-1.5 ml-5">
+                              {event.vibe && (
+                                <span
+                                  className="px-1.5 py-0.5 rounded text-[10px] font-semibold text-white"
+                                  style={{ backgroundColor: vibeColor }}
+                                >
+                                  {event.vibe}
+                                </span>
+                              )}
+                              {event.isFree && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/20 text-emerald-400">
+                                  FREE
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              ))}
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
+
+                {/* Footer in PNG */}
+                <div className="pt-3 pb-2 text-center">
+                  <span className="text-[10px] text-slate-600">sheeets.xyz — side event guide</span>
+                </div>
+              </div>
+
+              {/* Interactive controls (outside capture area) */}
 
               {/* Clear all button */}
               <div className="mt-6 pt-4 border-t border-slate-800">

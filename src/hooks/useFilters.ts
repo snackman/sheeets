@@ -4,8 +4,10 @@ import { useState, useCallback, useMemo } from 'react';
 import type { FilterState } from '@/lib/types';
 
 const defaultFilters: FilterState = {
+  conference: 'ETH Denver 2026',
   selectedDays: [],
-  timeOfDay: [],
+  timeStart: 0,
+  timeEnd: 24,
   vibes: [],
   freeOnly: false,
   hasFood: false,
@@ -25,13 +27,19 @@ export function useFilters() {
     []
   );
 
-  const toggleDay = useCallback((day: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      selectedDays: prev.selectedDays.includes(day)
-        ? prev.selectedDays.filter((d) => d !== day)
-        : [...prev.selectedDays, day],
-    }));
+  const setConference = useCallback((conf: string) => {
+    setFilters((prev) => ({ ...prev, conference: conf }));
+  }, []);
+
+  const setDayRange = useCallback((startIdx: number, endIdx: number, allDates: string[]) => {
+    if (startIdx === 0 && endIdx === allDates.length - 1) {
+      setFilters((prev) => ({ ...prev, selectedDays: [] }));
+    } else {
+      setFilters((prev) => ({
+        ...prev,
+        selectedDays: allDates.slice(startIdx, endIdx + 1),
+      }));
+    }
   }, []);
 
   const toggleVibe = useCallback((vibe: string) => {
@@ -43,13 +51,8 @@ export function useFilters() {
     }));
   }, []);
 
-  const toggleTimeOfDay = useCallback((time: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      timeOfDay: prev.timeOfDay.includes(time)
-        ? prev.timeOfDay.filter((t) => t !== time)
-        : [...prev.timeOfDay, time],
-    }));
+  const setTimeRange = useCallback((start: number, end: number) => {
+    setFilters((prev) => ({ ...prev, timeStart: start, timeEnd: end }));
   }, []);
 
   const toggleBool = useCallback(
@@ -70,8 +73,9 @@ export function useFilters() {
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
+    if (filters.conference) count++;
     if (filters.selectedDays.length > 0) count++;
-    if (filters.timeOfDay.length > 0) count++;
+    if (filters.timeStart !== 0 || filters.timeEnd !== 24) count++;
     if (filters.vibes.length > 0) count++;
     if (filters.freeOnly) count++;
     if (filters.hasFood) count++;
@@ -85,9 +89,10 @@ export function useFilters() {
   return {
     filters,
     setFilter,
-    toggleDay,
+    setConference,
+    setDayRange,
     toggleVibe,
-    toggleTimeOfDay,
+    setTimeRange,
     toggleBool,
     clearFilters,
     activeFilterCount,

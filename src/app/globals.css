@@ -26,6 +26,7 @@ body {
 /* Custom scrollbar for dark theme */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {

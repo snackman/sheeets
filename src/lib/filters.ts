@@ -1,5 +1,19 @@
 import type { ETHDenverEvent, FilterState } from './types';
 
+function parseStartHour(t: string): number | null {
+  if (!t) return null;
+  const s = t.toLowerCase().trim();
+  if (s === 'all day' || s === 'tbd') return null;
+  const m = s.match(/(\d{1,2}):?(\d{2})?\s*(am?|pm?)?/i);
+  if (!m) return null;
+  let h = parseInt(m[1]);
+  const isPM = m[3] && m[3].startsWith('p');
+  const isAM = m[3] && m[3].startsWith('a');
+  if (isPM && h !== 12) h += 12;
+  if (isAM && h === 12) h = 0;
+  return h;
+}
+
 export function applyFilters(
   events: ETHDenverEvent[],
   filters: FilterState,
@@ -7,6 +21,11 @@ export function applyFilters(
   itinerary?: Set<string>
 ): ETHDenverEvent[] {
   return events.filter((event) => {
+    // Conference filter
+    if (filters.conference && event.conference !== filters.conference) {
+      return false;
+    }
+
     // Day filter
     if (
       filters.selectedDays.length > 0 &&
@@ -15,16 +34,20 @@ export function applyFilters(
       return false;
     }
 
-    // Time of day filter
-    if (
-      filters.timeOfDay.length > 0 &&
-      !filters.timeOfDay.includes(event.timeOfDay)
-    ) {
-      return false;
+    // Time range filter (continuous hours)
+    if (filters.timeStart !== 0 || filters.timeEnd !== 24) {
+      if (event.isAllDay) {
+        // all-day events always pass time filter
+      } else {
+        const hour = parseStartHour(event.startTime);
+        if (hour !== null && (hour < filters.timeStart || hour >= filters.timeEnd)) {
+          return false;
+        }
+      }
     }
 
-    // Tag filter (matches if any of the event's tags are selected)
-    if (filters.vibes.length > 0 && !event.tags.some(t => filters.vibes.includes(t))) {
+    // Tag filter (event must have ALL selected tags)
+    if (filters.vibes.length > 0 && !filters.vibes.every(t => event.tags.includes(t))) {
       return false;
     }
 

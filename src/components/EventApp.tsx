@@ -20,14 +20,15 @@ export function EventApp() {
   const {
     filters,
     setFilter,
-    toggleDay,
+    setConference,
+    setDayRange,
     toggleVibe,
-    toggleTimeOfDay,
+    setTimeRange,
     toggleBool,
     clearFilters,
     activeFilterCount,
   } = useFilters();
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [showItinerary, setShowItinerary] = useState(false);
 
   const { starred, toggle: toggleStar } = useStarred();
@@ -38,10 +39,20 @@ export function EventApp() {
     count: itineraryCount,
   } = useItinerary();
 
+  const availableConferences = useMemo(
+    () => [...new Set(events.map((e) => e.conference).filter(Boolean))],
+    [events]
+  );
+
   const availableVibes = useMemo(
     () =>
       [...new Set(events.flatMap((e) => e.tags).filter(Boolean))].sort(),
     [events]
+  );
+
+  const conferenceEventCount = useMemo(
+    () => events.filter((e) => !filters.conference || e.conference === filters.conference).length,
+    [events, filters.conference]
   );
 
   const filteredEvents = useMemo(
@@ -98,15 +109,17 @@ export function EventApp() {
       {/* Filter bar */}
       <FilterBar
         filters={filters}
-        onToggleDay={toggleDay}
+        onSetConference={setConference}
+        onSetDayRange={setDayRange}
         onToggleVibe={toggleVibe}
-        onToggleTimeOfDay={toggleTimeOfDay}
+        onSetTimeRange={setTimeRange}
         onToggleBool={toggleBool}
         onSearchChange={(query) => setFilter('searchQuery', query)}
         onClearFilters={clearFilters}
         activeFilterCount={activeFilterCount}
-        totalEvents={events.length}
+        totalEvents={conferenceEventCount}
         filteredCount={filteredEvents.length}
+        availableConferences={availableConferences}
         availableVibes={availableVibes}
       />
 
@@ -125,7 +138,7 @@ export function EventApp() {
         <main>
           <TableView
             events={filteredEvents}
-            totalCount={events.length}
+            totalCount={conferenceEventCount}
             starred={starred}
             itinerary={itinerary}
             onStarToggle={toggleStar}
@@ -136,7 +149,7 @@ export function EventApp() {
         <main>
           <ListView
             events={filteredEvents}
-            totalCount={events.length}
+            totalCount={conferenceEventCount}
             starred={starred}
             itinerary={itinerary}
             onStarToggle={toggleStar}

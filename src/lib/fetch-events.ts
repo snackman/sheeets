@@ -1,21 +1,32 @@
-import { parseGVizResponse, getCellValue, getCellBool } from './gviz';
+import { parseGVizResponse, GVizRow, getCellValue, getCellBool } from './gviz';
 import { ETHDenverEvent } from './types';
 import { SHEET_ID, EVENT_TABS } from './constants';
 import { parseDateToISO, getTimeOfDay, isFreeEvent } from './utils';
-
-const BOGUS_NAMES = new Set([
-  'event', 'event name', 'events', 'start', 'end', 'link', 'count',
-  'time', 'start time', 'end time', 'date', 'organizer', 'vibe',
-  'cost', 'food', 'bar', 'note', 'address', 'header', 'tags',
-]);
-
-function isBogusEvent(name: string): boolean {
-  return BOGUS_NAMES.has(name.toLowerCase().trim());
-}
+import geocodedData from '@/data/geocoded-addresses.json';
 
 function parseTags(raw: string): string[] {
   if (!raw) return [];
   return raw.split(',').map((t) => t.trim()).filter(Boolean);
+}
+
+/** Find the header row index (where col B = "Start Time") */
+function findHeaderIndex(rows: GVizRow[]): number {
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row.c) continue;
+    const colB = getCellValue(row.c[1]).toLowerCase().trim();
+    if (colB === 'start time') return i;
+  }
+  return -1;
+}
+
+/** Check if a row is empty (no meaningful content in event columns) */
+function isEmptyRow(row: GVizRow): boolean {
+  if (!row.c) return true;
+  const name = getCellValue(row.c[4]);
+  const date = getCellValue(row.c[0]);
+  const startTime = getCellValue(row.c[1]);
+  return !name && !date && !startTime;
 }
 
 async function fetchPage(gid: number, offset: number): Promise<string> {
@@ -31,7 +42,7 @@ export async function fetchEvents(): Promise<ETHDenverEvent[]> {
 
   for (const tab of EVENT_TABS) {
     // Paginate to get all rows from this tab
-    let allRows: ReturnType<typeof parseGVizResponse>['rows'] = [];
+    let allRows: GVizRow[] = [];
 
     for (let offset = 0; offset < 5000; offset += 500) {
       const text = await fetchPage(tab.gid, offset);
@@ -41,10 +52,17 @@ export async function fetchEvents(): Promise<ETHDenverEvent[]> {
       if (table.rows.length < 500) break;
     }
 
+    // Find header row, events start right after
+    const headerIdx = findHeaderIndex(allRows);
+    if (headerIdx === -1) continue;
+
     let currentDate = '';
 
-    for (const row of allRows) {
-      if (!row.c) continue;
+    for (let i = headerIdx + 1; i < allRows.length; i++) {
+      const row = allRows[i];
+
+      // Stop at first empty row
+      if (isEmptyRow(row)) break;
 
       // Column A: Date - may be set for first event of a day, then blank for subsequent
       const dateVal = getCellValue(row.c[0]);
@@ -52,17 +70,19 @@ export async function fetchEvents(): Promise<ETHDenverEvent[]> {
 
       // Column E: Event Name - required
       const name = getCellValue(row.c[4]);
-      if (!name || isBogusEvent(name)) continue;
+      if (!name) continue;
 
       const startTime = getCellValue(row.c[1]);
       const endTime = getCellValue(row.c[2]);
       const cost = getCellValue(row.c[6]);
       const isAllDay = !startTime || startTime.toLowerCase().includes('all day');
 
-      // Skip if start time looks like a header value
-      if (startTime.toLowerCase() === 'start time') continue;
-
       const tags = parseTags(getCellValue(row.c[7]));
+
+      const address = getCellValue(row.c[5]);
+      const geo = address
+        ? (geocodedData.addresses as Record<string, { lat: number; lng: number }>)[address.toLowerCase().trim()]
+        : undefined;
 
       events.push({
         id: `event-${eventIndex++}`,
@@ -73,7 +93,7 @@ export async function fetchEvents(): Promise<ETHDenverEvent[]> {
         isAllDay,
         organizer: getCellValue(row.c[3]),
         name,
-        address: getCellValue(row.c[5]),
+        address,
         cost,
         isFree: isFreeEvent(cost),
         vibe: tags[0] || '',
@@ -84,6 +104,8 @@ export async function fetchEvents(): Promise<ETHDenverEvent[]> {
         hasBar: getCellBool(row.c[10]),
         note: getCellValue(row.c[11]),
         timeOfDay: isAllDay ? 'all-day' : getTimeOfDay(startTime),
+        lat: geo?.lat,
+        lng: geo?.lng,
       });
     }
   }

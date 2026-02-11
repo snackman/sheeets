@@ -22,11 +22,11 @@ export function Header({
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
         {/* Left: Branding */}
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-xl" role="img" aria-label="pizza">
-            🍕
+          <span className="text-xl" role="img" aria-label="calendar">
+            📅
           </span>
           <h1 className="text-lg sm:text-xl font-bold text-white truncate">
-            ETHDenver 2025 Side Events
+            sheeets.xyz
           </h1>
         </div>
 
