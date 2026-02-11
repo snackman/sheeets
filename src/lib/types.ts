@@ -20,6 +20,7 @@ export interface ETHDenverEvent {
   lat?: number;
   lng?: number;
   timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' | 'all-day';
+  isDuplicate?: boolean;
 }
 
 export interface FilterState {

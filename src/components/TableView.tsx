@@ -1,6 +1,6 @@
 'use client';
 
-import { ExternalLink, Star, Ticket } from 'lucide-react';
+import { AlertTriangle, Star, Ticket } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { isLumaLink } from '@/lib/utils';
 import { TagBadge } from './TagBadge';
@@ -44,7 +44,8 @@ export function TableView({
               return (
                 <tr
                   key={event.id}
-                  className="bg-slate-900 hover:bg-slate-800/70 transition-colors"
+                  className={`hover:bg-slate-800/70 transition-colors ${event.isDuplicate ? 'bg-red-950/30' : 'bg-slate-900'}`}
+                  title={event.isDuplicate ? 'Possible duplicate — same name, date, and time as another event' : undefined}
                 >
                   {/* Star (toggles itinerary) */}
                   <td className="px-2 py-2">
@@ -77,18 +78,23 @@ export function TableView({
 
                   {/* Event Name */}
                   <td className="px-3 py-2 font-medium text-slate-100 whitespace-nowrap" title={event.name}>
-                    {event.link ? (
-                      <a
-                        href={event.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:text-orange-400 transition-colors"
-                      >
-                        {event.name.length > 25 ? event.name.slice(0, 25) + '…' : event.name}
-                      </a>
-                    ) : (
-                      event.name.length > 25 ? event.name.slice(0, 25) + '…' : event.name
-                    )}
+                    <span className="inline-flex items-center gap-1">
+                      {event.isDuplicate && (
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" title="Duplicate entry in sheet" />
+                      )}
+                      {event.link ? (
+                        <a
+                          href={event.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:text-orange-400 transition-colors"
+                        >
+                          {event.name.length > 25 ? event.name.slice(0, 25) + '…' : event.name}
+                        </a>
+                      ) : (
+                        event.name.length > 25 ? event.name.slice(0, 25) + '…' : event.name
+                      )}
+                    </span>
                   </td>
 
                   {/* RSVP */}
