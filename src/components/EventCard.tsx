@@ -115,7 +115,7 @@ export function EventCard({
       </div>
 
       {/* Right: cover image */}
-      {event.link && <OGImage url={event.link} />}
+      {event.link && <OGImage url={event.link} eventId={event.id} />}
     </div>
   );
 }

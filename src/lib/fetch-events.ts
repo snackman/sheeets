@@ -9,6 +9,23 @@ function parseTags(raw: string): string[] {
   return raw.split(',').map((t) => t.trim()).filter(Boolean);
 }
 
+/**
+ * Generate a stable, deterministic event ID from event properties.
+ * Uses a simple string hash converted to base36 for short, readable IDs.
+ * Format: evt-{hash} e.g. evt-k8f2m9
+ */
+export function generateEventId(conference: string, date: string, startTime: string, name: string): string {
+  const input = `${conference}|${date}|${startTime}|${name}`;
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    const char = input.charCodeAt(i);
+    hash = ((hash << 5) - hash + char) | 0; // Convert to 32-bit integer
+  }
+  // Make positive and convert to base36 for short alphanumeric ID
+  const positiveHash = (hash >>> 0).toString(36);
+  return `evt-${positiveHash}`;
+}
+
 /** Find the header row index (where col B = "Start Time") */
 function findHeaderIndex(rows: GVizRow[]): number {
   for (let i = 0; i < rows.length; i++) {
@@ -38,7 +55,6 @@ async function fetchPage(gid: number, offset: number): Promise<string> {
 
 export async function fetchEvents(): Promise<ETHDenverEvent[]> {
   const events: ETHDenverEvent[] = [];
-  let eventIndex = 0;
 
   for (const tab of EVENT_TABS) {
     // Paginate to get all rows from this tab
@@ -85,7 +101,7 @@ export async function fetchEvents(): Promise<ETHDenverEvent[]> {
         : undefined;
 
       events.push({
-        id: `event-${eventIndex++}`,
+        id: generateEventId(tab.name, currentDate, startTime, name),
         date: currentDate,
         dateISO: parseDateToISO(currentDate),
         startTime: isAllDay ? 'All Day' : startTime,
