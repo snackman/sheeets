@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useRef, useCallback } from 'react';
+import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { X, AlertTriangle, Trash2, CalendarX, Share2, ExternalLink, Download } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
@@ -127,7 +127,10 @@ export function ItineraryPanel({
 
   // Default to the active conference from the main view, fall back to first conference with events
   const [selectedConference, setSelectedConference] = useState('');
-  useMemo(() => {
+  // Sync selectedConference when the active conference or available conferences change.
+  // Using useEffect instead of useMemo to avoid setState during render (which causes
+  // cascading re-renders and was a contributing factor to the row duplication bug).
+  useEffect(() => {
     if (activeConference && conferences.includes(activeConference)) {
       setSelectedConference(activeConference);
     } else if (conferences.length > 0 && !selectedConference) {

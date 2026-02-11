@@ -55,6 +55,9 @@ async function fetchPage(gid: number, offset: number): Promise<string> {
 
 export async function fetchEvents(): Promise<ETHDenverEvent[]> {
   const events: ETHDenverEvent[] = [];
+  // Track seen IDs to detect and resolve collisions.
+  // Duplicate keys cause React reconciliation bugs (ghost rows when switching tabs).
+  const seenIds = new Map<string, number>();
 
   for (const tab of EVENT_TABS) {
     // Paginate to get all rows from this tab
@@ -100,8 +103,16 @@ export async function fetchEvents(): Promise<ETHDenverEvent[]> {
         ? (geocodedData.addresses as Record<string, { lat: number; lng: number }>)[address.toLowerCase().trim()]
         : undefined;
 
+      // Generate ID and resolve any collisions by appending a suffix
+      let id = generateEventId(tab.name, currentDate, startTime, name);
+      const count = seenIds.get(id) ?? 0;
+      seenIds.set(id, count + 1);
+      if (count > 0) {
+        id = `${id}-${count}`;
+      }
+
       events.push({
-        id: generateEventId(tab.name, currentDate, startTime, name),
+        id,
         date: currentDate,
         dateISO: parseDateToISO(currentDate),
         startTime: isAllDay ? 'All Day' : startTime,
