@@ -24,6 +24,8 @@ import {
   Play,
   Diamond,
   Globe,
+  UtensilsCrossed,
+  Drama,
   type LucideIcon,
 } from 'lucide-react';
 import { VIBE_COLORS } from '@/lib/constants';
@@ -56,6 +58,8 @@ export const TAG_ICONS: Record<string, LucideIcon> = {
   'Meetup': Users,
   'Demo Day': Play,
   'Demo': Play,
+  'Dinner': UtensilsCrossed,
+  'Performance': Drama,
 };
 
 interface TagBadgeProps {

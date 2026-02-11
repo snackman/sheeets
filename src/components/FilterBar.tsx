@@ -248,7 +248,7 @@ export function FilterBar({
             {(availableTypes.length > 0 || true) && (
               <div>
                 <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">
-                  Types
+                  Type
                 </div>
                 <div className="overflow-x-auto flex gap-2 pb-1">
                   {availableTypes.map((vibe) => {

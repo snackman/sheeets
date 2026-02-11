@@ -40,6 +40,8 @@ export const VIBE_COLORS: Record<string, string> = {
   'Workshop': '#10B981',
   'Meetup': '#14B8A6',
   'Demo Day': '#EF4444',
+  'Dinner': '#F97316',
+  'Performance': '#A855F7',
   'default': '#6B7280',
 };
 
@@ -55,6 +57,9 @@ export const TYPE_TAGS = [
   'Bar/Pub',
   'Meetup',
   'Demo Day',
+  'Dinner',
+  'Wellness',
+  'Performance',
 ];
 
 export const STORAGE_KEYS = {
