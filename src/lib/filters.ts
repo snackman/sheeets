@@ -15,7 +15,7 @@ function parseStartHour(t: string): number | null {
 }
 
 /** Parse a time string like "12:00p", "6:00 PM", "2:30 AM" to minutes since midnight */
-function parseTimeToMinutes(t: string): number | null {
+export function parseTimeToMinutes(t: string): number | null {
   if (!t) return null;
   const s = t.toLowerCase().trim();
   if (s === 'all day' || s === 'tbd') return null;

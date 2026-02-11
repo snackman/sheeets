@@ -6,6 +6,7 @@ import type { MapRef } from 'react-map-gl/mapbox';
 import { LocateFixed } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { DENVER_CENTER } from '@/lib/constants';
+import { parseTimeToMinutes } from '@/lib/filters';
 import { MapMarker } from './MapMarker';
 import { EventPopup, MultiEventPopup } from './EventPopup';
 
@@ -14,6 +15,7 @@ interface MapViewProps {
   onEventSelect?: (event: ETHDenverEvent) => void;
   itinerary?: Set<string>;
   onItineraryToggle?: (eventId: string) => void;
+  isItineraryView?: boolean;
 }
 
 /**
@@ -29,6 +31,7 @@ export function MapView({
   onEventSelect,
   itinerary,
   onItineraryToggle,
+  isItineraryView = false,
 }: MapViewProps) {
   const mapRef = useRef<MapRef>(null);
 
@@ -94,6 +97,23 @@ export function MapView({
 
     return result;
   }, [events, colocatedMap]);
+
+  // Itinerary ordering: assign 1-based numbers sorted by date then start time
+  const itineraryOrderMap = useMemo(() => {
+    if (!isItineraryView) return new Map<string, number>();
+    const sorted = [...events]
+      .filter((e) => e.lat != null && e.lng != null)
+      .sort((a, b) => {
+        const dateCmp = a.dateISO.localeCompare(b.dateISO);
+        if (dateCmp !== 0) return dateCmp;
+        const aMin = parseTimeToMinutes(a.startTime) ?? 0;
+        const bMin = parseTimeToMinutes(b.startTime) ?? 0;
+        return aMin - bMin;
+      });
+    const map = new Map<string, number>();
+    sorted.forEach((e, i) => map.set(e.id, i + 1));
+    return map;
+  }, [events, isItineraryView]);
 
   const handleMarkerClick = useCallback(
     (event: ETHDenverEvent, lat: number, lng: number) => {
@@ -192,18 +212,40 @@ export function MapView({
         </Marker>
       )}
 
-      {locationMarkers.map(({ event, key, count }) => (
-        <MapMarker
-          key={`loc-${key}`}
-          latitude={event.lat!}
-          longitude={event.lng!}
-          vibe={event.vibe || 'default'}
-          eventCount={count}
-          onClick={() =>
-            handleMarkerClick(event, event.lat!, event.lng!)
+      {locationMarkers.map(({ event, key, count }) => {
+        const colocated = colocatedMap.get(key);
+        // For co-located markers, label shows "N events"; for single, show event name
+        const markerLabel = count > 1 ? `${count} events` : event.name;
+        const markerTime = count > 1 ? undefined : event.startTime;
+        // For itinerary view: single pin gets its number, co-located gets lowest number in group
+        let orderNumber: number | undefined;
+        if (isItineraryView) {
+          if (count === 1) {
+            orderNumber = itineraryOrderMap.get(event.id);
+          } else if (colocated) {
+            const nums = colocated
+              .map((e) => itineraryOrderMap.get(e.id))
+              .filter((n): n is number => n != null);
+            orderNumber = nums.length > 0 ? Math.min(...nums) : undefined;
           }
-        />
-      ))}
+        }
+        return (
+          <MapMarker
+            key={`loc-${key}`}
+            latitude={event.lat!}
+            longitude={event.lng!}
+            vibe={event.vibe || 'default'}
+            eventCount={count}
+            onClick={() =>
+              handleMarkerClick(event, event.lat!, event.lng!)
+            }
+            zoom={viewState.zoom}
+            label={markerLabel}
+            time={markerTime}
+            orderNumber={orderNumber}
+          />
+        );
+      })}
 
       {popupEvent && popupCoords && (
         <EventPopup

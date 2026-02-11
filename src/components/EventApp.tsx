@@ -193,6 +193,7 @@ export function EventApp() {
             events={filteredEvents}
             itinerary={itinerary}
             onItineraryToggle={handleItineraryToggle}
+            isItineraryView={filters.itineraryOnly}
           />
         </main>
       ) : viewMode === 'table' ? (

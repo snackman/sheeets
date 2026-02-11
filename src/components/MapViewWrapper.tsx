@@ -20,6 +20,7 @@ interface MapViewWrapperProps {
   onEventSelect?: (event: ETHDenverEvent) => void;
   itinerary?: Set<string>;
   onItineraryToggle?: (eventId: string) => void;
+  isItineraryView?: boolean;
 }
 
 export function MapViewWrapper({
@@ -27,6 +28,7 @@ export function MapViewWrapper({
   onEventSelect,
   itinerary,
   onItineraryToggle,
+  isItineraryView,
 }: MapViewWrapperProps) {
   return (
     <div className="w-full h-full overflow-hidden">
@@ -35,6 +37,7 @@ export function MapViewWrapper({
         onEventSelect={onEventSelect}
         itinerary={itinerary}
         onItineraryToggle={onItineraryToggle}
+        isItineraryView={isItineraryView}
       />
     </div>
   );
