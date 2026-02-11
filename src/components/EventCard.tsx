@@ -1,8 +1,9 @@
 'use client';
 
-import { MapPin, ExternalLink } from 'lucide-react';
+import { MapPin, Ticket } from 'lucide-react';
 import { ETHDenverEvent } from '@/lib/types';
 import { VIBE_COLORS } from '@/lib/constants';
+import { isLumaLink } from '@/lib/utils';
 import { StarButton } from './StarButton';
 import { OGImage } from './OGImage';
 
@@ -45,10 +46,9 @@ export function EventCard({
                 href={event.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-orange-400 transition-colors inline-flex items-center gap-1"
+                className="hover:text-orange-400 transition-colors"
               >
                 {event.name}
-                <ExternalLink className="w-3 h-3 text-slate-500 flex-shrink-0" />
               </a>
             ) : (
               event.name
@@ -105,6 +105,22 @@ export function EventCard({
             <span className="text-sm" role="img" aria-label="Bar available" title="Bar available">
               🍺
             </span>
+          )}
+
+          {event.link && (
+            <a
+              href={event.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors ml-auto ${
+                isLumaLink(event.link)
+                  ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+                  : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
+              }`}
+            >
+              <Ticket className="w-3 h-3" />
+              {isLumaLink(event.link) ? 'Luma' : 'RSVP'}
+            </a>
           )}
         </div>
 

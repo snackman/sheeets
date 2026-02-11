@@ -5,6 +5,7 @@ import { ViewMode } from '@/lib/types';
 import { useEvents } from '@/hooks/useEvents';
 import { useFilters } from '@/hooks/useFilters';
 import { applyFilters } from '@/lib/filters';
+import { TYPE_TAGS } from '@/lib/constants';
 import { useItinerary } from '@/hooks/useItinerary';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
@@ -51,9 +52,19 @@ export function EventApp() {
     [events]
   );
 
+  const availableTypes = useMemo(
+    () =>
+      [...new Set(events.flatMap((e) => e.tags).filter(Boolean))]
+        .filter((t) => TYPE_TAGS.includes(t))
+        .sort(),
+    [events]
+  );
+
   const availableVibes = useMemo(
     () =>
-      [...new Set(events.flatMap((e) => e.tags).filter(Boolean))].sort(),
+      [...new Set(events.flatMap((e) => e.tags).filter(Boolean))]
+        .filter((t) => !TYPE_TAGS.includes(t))
+        .sort(),
     [events]
   );
 
@@ -134,6 +145,7 @@ export function EventApp() {
         onClearFilters={clearFilters}
         activeFilterCount={activeFilterCount}
         availableConferences={availableConferences}
+        availableTypes={availableTypes}
         availableVibes={availableVibes}
       />
 

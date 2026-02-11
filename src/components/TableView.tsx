@@ -1,7 +1,8 @@
 'use client';
 
-import { ExternalLink, Star } from 'lucide-react';
+import { ExternalLink, Star, Ticket } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
+import { isLumaLink } from '@/lib/utils';
 import { TagBadge } from './TagBadge';
 
 interface TableViewProps {
@@ -18,7 +19,7 @@ export function TableView({
   onItineraryToggle,
 }: TableViewProps) {
   return (
-    <div className="px-4 pb-3">
+    <div className="max-w-7xl mx-auto px-4 pb-3">
       <div className="overflow-auto rounded-lg border border-slate-700" style={{ maxHeight: 'calc(100vh - 220px)' }}>
         <table className="min-w-[900px] text-sm text-left">
           <thead className="text-xs uppercase tracking-wider text-slate-400 bg-slate-800 border-b border-slate-700 sticky top-0 z-10">
@@ -28,6 +29,7 @@ export function TableView({
               <th className="px-3 py-2.5">Time</th>
               <th className="px-3 py-2.5">Organizer</th>
               <th className="px-3 py-2.5">Event</th>
+              <th className="px-3 py-2.5 text-center">RSVP</th>
               <th className="px-3 py-2.5">Tags</th>
               <th className="px-3 py-2.5">Location</th>
               <th className="px-3 py-2.5">Cost</th>
@@ -80,13 +82,31 @@ export function TableView({
                         href={event.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="hover:text-orange-400 transition-colors inline-flex items-center gap-1"
+                        className="hover:text-orange-400 transition-colors"
                       >
                         {event.name.length > 25 ? event.name.slice(0, 25) + '…' : event.name}
-                        <ExternalLink className="w-3 h-3 text-slate-500 flex-shrink-0" />
                       </a>
                     ) : (
                       event.name.length > 25 ? event.name.slice(0, 25) + '…' : event.name
+                    )}
+                  </td>
+
+                  {/* RSVP */}
+                  <td className="px-3 py-2 text-center">
+                    {event.link && (
+                      <a
+                        href={event.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                          isLumaLink(event.link)
+                            ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+                            : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
+                        }`}
+                      >
+                        <Ticket className="w-3 h-3" />
+                        {isLumaLink(event.link) ? 'Luma' : 'RSVP'}
+                      </a>
                     )}
                   </td>
 
