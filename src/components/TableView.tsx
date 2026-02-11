@@ -84,7 +84,7 @@ export function TableView({
                   {/* Time */}
                   <td className="px-3 py-2 text-slate-400 whitespace-nowrap">
                     {event.startTime}
-                    {event.endTime ? ` - ${event.endTime}` : ''}
+                    {event.endTime ? `-${event.endTime}` : ''}
                   </td>
 
                   {/* Organizer */}
