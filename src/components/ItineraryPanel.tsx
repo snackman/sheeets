@@ -113,10 +113,32 @@ export function ItineraryPanel({
   const [exporting, setExporting] = useState(false);
   const captureRef = useRef<HTMLDivElement>(null);
 
-  // Filter to only itinerary events for the active conference
+  // All itinerary events (for badge count)
+  const allItineraryEvents = useMemo(
+    () => events.filter((e) => itinerary.has(e.id)),
+    [events, itinerary]
+  );
+
+  // Conferences that have itinerary events
+  const conferences = useMemo(
+    () => [...new Set(allItineraryEvents.map((e) => e.conference).filter(Boolean))],
+    [allItineraryEvents]
+  );
+
+  // Default to the active conference from the main view, fall back to first conference with events
+  const [selectedConference, setSelectedConference] = useState('');
+  useMemo(() => {
+    if (activeConference && conferences.includes(activeConference)) {
+      setSelectedConference(activeConference);
+    } else if (conferences.length > 0 && !selectedConference) {
+      setSelectedConference(conferences[0]);
+    }
+  }, [activeConference, conferences, selectedConference]);
+
+  // Filter to selected conference
   const itineraryEvents = useMemo(
-    () => events.filter((e) => itinerary.has(e.id) && (!activeConference || e.conference === activeConference)),
-    [events, itinerary, activeConference]
+    () => allItineraryEvents.filter((e) => !selectedConference || e.conference === selectedConference),
+    [allItineraryEvents, selectedConference]
   );
 
   // Detect conflicts
@@ -255,8 +277,27 @@ export function ItineraryPanel({
           </div>
         </div>
 
+        {/* Conference tabs */}
+        {conferences.length > 1 && (
+          <div className="flex border-b border-slate-800 px-4">
+            {conferences.map((conf) => (
+              <button
+                key={conf}
+                onClick={() => setSelectedConference(conf)}
+                className={`px-3 py-2 text-xs font-medium transition-colors cursor-pointer border-b-2 ${
+                  selectedConference === conf
+                    ? 'border-orange-500 text-white'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {conf.replace(/ 2026$/, '')}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Content */}
-        <div className="overflow-y-auto h-[calc(100%-57px)] px-4 pb-4">
+        <div className={`overflow-y-auto ${conferences.length > 1 ? 'h-[calc(100%-95px)]' : 'h-[calc(100%-57px)]'} px-4 pb-4`}>
           {itineraryEvents.length === 0 ? (
             /* Empty state */
             <div className="flex flex-col items-center justify-center py-16 text-center">
