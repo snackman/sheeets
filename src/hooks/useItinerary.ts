@@ -1,11 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { STORAGE_KEYS } from '@/lib/constants';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export function useItinerary() {
+  const { user } = useAuth();
   const [itinerary, setItinerary] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
+  const initialSyncDone = useRef(false);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -20,15 +24,64 @@ export function useItinerary() {
     setLoaded(true);
   }, []);
 
-  // Save to localStorage on change
+  // Sync with Supabase when user logs in
   useEffect(() => {
-    if (loaded) {
-      localStorage.setItem(
-        STORAGE_KEYS.ITINERARY,
-        JSON.stringify([...itinerary])
-      );
+    if (!user || !loaded) return;
+
+    // Reset sync flag when user changes (new login)
+    initialSyncDone.current = false;
+
+    async function syncWithSupabase() {
+      try {
+        const { data } = await supabase
+          .from('itineraries')
+          .select('event_ids')
+          .eq('user_id', user!.id)
+          .maybeSingle();
+
+        if (data?.event_ids) {
+          // Merge server data with local data
+          setItinerary((prev) => {
+            const merged = new Set(prev);
+            for (const id of data.event_ids) merged.add(id);
+            return merged;
+          });
+        }
+      } catch {
+        // Error fetching — proceed with local data only
+      }
+      initialSyncDone.current = true;
     }
-  }, [itinerary, loaded]);
+
+    syncWithSupabase();
+  }, [user, loaded]);
+
+  // Save to localStorage + Supabase on change
+  useEffect(() => {
+    if (!loaded) return;
+
+    localStorage.setItem(
+      STORAGE_KEYS.ITINERARY,
+      JSON.stringify([...itinerary])
+    );
+
+    // Only sync to Supabase after initial merge is complete
+    if (user && initialSyncDone.current) {
+      supabase
+        .from('itineraries')
+        .upsert(
+          {
+            user_id: user.id,
+            event_ids: [...itinerary],
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id' }
+        )
+        .then(({ error }) => {
+          if (error) console.error('Failed to sync itinerary:', error);
+        });
+    }
+  }, [itinerary, loaded, user]);
 
   const add = useCallback((eventId: string) => {
     setItinerary((prev) => {

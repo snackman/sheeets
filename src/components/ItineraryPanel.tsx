@@ -2,10 +2,11 @@
 
 import { useMemo, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { X, AlertTriangle, Trash2, CalendarX, Share2, ExternalLink } from 'lucide-react';
+import { X, AlertTriangle, Trash2, CalendarX, Share2, ExternalLink, Download } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { VIBE_COLORS } from '@/lib/constants';
 import { formatDateLabel } from '@/lib/utils';
+import { downloadICS } from '@/lib/calendar';
 interface ItineraryPanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -223,6 +224,14 @@ export function ItineraryPanel({
                 >
                   <ExternalLink className="w-4 h-4" />
                 </Link>
+                <button
+                  onClick={() => downloadICS(itineraryEvents)}
+                  className="p-1.5 text-slate-400 hover:text-orange-400 transition-colors cursor-pointer"
+                  aria-label="Export to calendar"
+                  title="Export to calendar (.ics)"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
                 <button
                   onClick={handleSharePNG}
                   disabled={exporting}

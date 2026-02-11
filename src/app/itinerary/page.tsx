@@ -2,11 +2,12 @@
 
 import { useMemo, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, AlertTriangle, Trash2, CalendarX, Share2 } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Trash2, CalendarX, Share2, Download } from 'lucide-react';
 import { useEvents } from '@/hooks/useEvents';
 import { useItinerary } from '@/hooks/useItinerary';
 import { VIBE_COLORS } from '@/lib/constants';
 import { formatDateLabel } from '@/lib/utils';
+import { downloadICS } from '@/lib/calendar';
 import type { ETHDenverEvent } from '@/lib/types';
 import { Loading } from '@/components/Loading';
 
@@ -148,15 +149,25 @@ export default function ItineraryPage() {
           </div>
           <div className="flex items-center gap-1">
             {itineraryEvents.length > 0 && (
-              <button
-                onClick={handleSharePNG}
-                disabled={exporting}
-                className="p-1.5 text-slate-400 hover:text-orange-400 transition-colors cursor-pointer disabled:opacity-50"
-                aria-label="Share as PNG"
-                title="Share as PNG"
-              >
-                <Share2 className="w-4 h-4" />
-              </button>
+              <>
+                <button
+                  onClick={() => downloadICS(itineraryEvents)}
+                  className="p-1.5 text-slate-400 hover:text-orange-400 transition-colors cursor-pointer"
+                  aria-label="Export to calendar"
+                  title="Export to calendar (.ics)"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={handleSharePNG}
+                  disabled={exporting}
+                  className="p-1.5 text-slate-400 hover:text-orange-400 transition-colors cursor-pointer disabled:opacity-50"
+                  aria-label="Share as PNG"
+                  title="Share as PNG"
+                >
+                  <Share2 className="w-4 h-4" />
+                </button>
+              </>
             )}
           </div>
         </div>
