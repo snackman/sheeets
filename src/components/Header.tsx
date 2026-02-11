@@ -11,14 +11,16 @@ interface HeaderProps {
   viewMode: ViewMode;
   onViewChange: (mode: ViewMode) => void;
   itineraryCount: number;
-  onItineraryOpen?: () => void;
+  onItineraryToggle: () => void;
+  isItineraryActive: boolean;
 }
 
 export function Header({
   viewMode,
   onViewChange,
   itineraryCount,
-  onItineraryOpen,
+  onItineraryToggle,
+  isItineraryActive,
 }: HeaderProps) {
   const { user, loading } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
@@ -56,17 +58,24 @@ export function Header({
 
             <ViewToggle viewMode={viewMode} onViewChange={onViewChange} />
 
-            {/* Itinerary badge */}
+            {/* Itinerary filter toggle */}
             <button
-              onClick={onItineraryOpen}
-              className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors text-sm cursor-pointer"
+              onClick={onItineraryToggle}
+              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm cursor-pointer transition-colors ${
+                isItineraryActive
+                  ? 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600'
+                  : 'border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+              }`}
               aria-label={`Itinerary: ${itineraryCount} events`}
             >
               <Calendar className="w-4 h-4" />
-              {itineraryCount > 0 && (
+              {itineraryCount > 0 && !isItineraryActive && (
                 <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-orange-500 text-white text-[10px] font-bold rounded-full px-1">
                   {itineraryCount}
                 </span>
+              )}
+              {itineraryCount > 0 && isItineraryActive && (
+                <span className="font-medium">{itineraryCount}</span>
               )}
               {itineraryCount === 0 && (
                 <span className="font-medium">{itineraryCount}</span>
