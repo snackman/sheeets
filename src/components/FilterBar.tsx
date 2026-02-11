@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import clsx from 'clsx';
-import { X } from 'lucide-react';
+import { X, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import type { FilterState } from '@/lib/types';
 import { EVENT_DATES, VIBE_COLORS } from '@/lib/constants';
 import { TAG_ICONS } from './TagBadge';
@@ -40,6 +40,7 @@ export function FilterBar({
   availableConferences,
   availableVibes,
 }: FilterBarProps) {
+  const [expanded, setExpanded] = useState(false);
   const maxIdx = EVENT_DATES.length - 1;
 
   const rangeStart = useMemo(() => {
@@ -57,226 +58,247 @@ export function FilterBar({
   return (
     <div className="bg-slate-900 border-b border-slate-800">
       <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
-        {/* Row 1: Conference selector */}
-        {availableConferences.length > 1 && (
-          <div className="flex rounded-lg border border-slate-700 overflow-hidden">
-            {availableConferences.map((conf) => (
-              <button
-                key={conf}
-                onClick={() => onSetConference(conf)}
-                className={clsx(
-                  'px-4 py-2 text-sm font-semibold transition-colors cursor-pointer',
-                  filters.conference === conf
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
-                )}
-              >
-                {conf}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Top row: Conference tabs + Filter toggle */}
+        <div className="flex items-center gap-3">
+          {/* Conference selector */}
+          {availableConferences.length > 1 && (
+            <div className="flex rounded-lg border border-slate-700 overflow-hidden">
+              {availableConferences.map((conf) => (
+                <button
+                  key={conf}
+                  onClick={() => onSetConference(conf)}
+                  className={clsx(
+                    'px-4 py-2 text-sm font-semibold transition-colors cursor-pointer',
+                    filters.conference === conf
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                  )}
+                >
+                  {conf}
+                </button>
+              ))}
+            </div>
+          )}
 
-        {/* Row 3: Day range slider */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-xs uppercase tracking-wider text-slate-400">
-              Days
-            </div>
-            <div className="text-sm text-slate-300 font-medium">
-              {rangeStart === 0 && rangeEnd === maxIdx
-                ? `${formatDayLabel(EVENT_DATES[0])} — ${formatDayLabel(EVENT_DATES[maxIdx])}`
-                : rangeStart === rangeEnd
-                ? formatDayLabel(EVENT_DATES[rangeStart])
-                : `${formatDayLabel(EVENT_DATES[rangeStart])} — ${formatDayLabel(EVENT_DATES[rangeEnd])}`}
-            </div>
-          </div>
-          <div className="relative h-8 flex items-center">
-            {/* Track background */}
-            <div className="absolute w-full h-1.5 bg-slate-700 rounded-full" />
-            {/* Active range highlight */}
-            <div
-              className="absolute h-1.5 bg-orange-500 rounded-full"
-              style={{
-                left: `${(rangeStart / maxIdx) * 100}%`,
-                right: `${100 - (rangeEnd / maxIdx) * 100}%`,
-              }}
-            />
-            {/* Left handle */}
-            <input
-              type="range"
-              min={0}
-              max={maxIdx}
-              value={rangeStart}
-              onChange={(e) => {
-                const v = Math.min(Number(e.target.value), rangeEnd);
-                onSetDayRange(v, rangeEnd, EVENT_DATES);
-              }}
-              className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-orange-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
-            />
-            {/* Right handle */}
-            <input
-              type="range"
-              min={0}
-              max={maxIdx}
-              value={rangeEnd}
-              onChange={(e) => {
-                const v = Math.max(Number(e.target.value), rangeStart);
-                onSetDayRange(rangeStart, v, EVENT_DATES);
-              }}
-              className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-orange-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
-            />
-          </div>
+          {/* Filter toggle button */}
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className={clsx(
+              'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ml-auto',
+              expanded || activeFilterCount > 0
+                ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
+                : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 border border-slate-700'
+            )}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="bg-orange-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
+                {activeFilterCount}
+              </span>
+            )}
+            <ChevronDown className={clsx('w-3.5 h-3.5 transition-transform', expanded && 'rotate-180')} />
+          </button>
         </div>
 
-        {/* Row 3: Time slider (0-24h) */}
-        {(() => {
-          const formatHour = (h: number) => {
-            const hr = h % 24;
-            if (hr === 0) return '12am';
-            if (hr === 12) return '12pm';
-            return hr < 12 ? `${hr}am` : `${hr - 12}pm`;
-          };
-
-          const tStart = filters.timeStart;
-          const tEnd = filters.timeEnd;
-          const timeLabel = (tStart === 0 && tEnd === 24)
-            ? `${formatHour(0)} — ${formatHour(0)}`
-            : `${formatHour(tStart)} — ${formatHour(tEnd)}`;
-
-          return (
+        {/* Expandable filter content */}
+        {expanded && (
+          <div className="space-y-3 pt-1">
+            {/* Day range slider */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="text-xs uppercase tracking-wider text-slate-400">
-                  Time
+                  Days
                 </div>
                 <div className="text-sm text-slate-300 font-medium">
-                  {timeLabel}
+                  {rangeStart === 0 && rangeEnd === maxIdx
+                    ? `${formatDayLabel(EVENT_DATES[0])} — ${formatDayLabel(EVENT_DATES[maxIdx])}`
+                    : rangeStart === rangeEnd
+                    ? formatDayLabel(EVENT_DATES[rangeStart])
+                    : `${formatDayLabel(EVENT_DATES[rangeStart])} — ${formatDayLabel(EVENT_DATES[rangeEnd])}`}
                 </div>
               </div>
               <div className="relative h-8 flex items-center">
                 <div className="absolute w-full h-1.5 bg-slate-700 rounded-full" />
                 <div
-                  className="absolute h-1.5 bg-blue-500 rounded-full"
+                  className="absolute h-1.5 bg-orange-500 rounded-full"
                   style={{
-                    left: `${(tStart / 24) * 100}%`,
-                    right: `${100 - (tEnd / 24) * 100}%`,
+                    left: `${(rangeStart / maxIdx) * 100}%`,
+                    right: `${100 - (rangeEnd / maxIdx) * 100}%`,
                   }}
                 />
                 <input
                   type="range"
                   min={0}
-                  max={24}
-                  value={tStart}
+                  max={maxIdx}
+                  value={rangeStart}
                   onChange={(e) => {
-                    const v = Math.min(Number(e.target.value), tEnd);
-                    onSetTimeRange(v, tEnd);
+                    const v = Math.min(Number(e.target.value), rangeEnd);
+                    onSetDayRange(v, rangeEnd, EVENT_DATES);
                   }}
-                  className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
+                  className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-orange-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
                 />
                 <input
                   type="range"
                   min={0}
-                  max={24}
-                  value={tEnd}
+                  max={maxIdx}
+                  value={rangeEnd}
                   onChange={(e) => {
-                    const v = Math.max(Number(e.target.value), tStart);
-                    onSetTimeRange(tStart, v);
+                    const v = Math.max(Number(e.target.value), rangeStart);
+                    onSetDayRange(rangeStart, v, EVENT_DATES);
                   }}
-                  className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
+                  className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-orange-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
                 />
               </div>
             </div>
-          );
-        })()}
 
-        {/* Row 4: Vibes */}
-        {availableVibes.length > 0 && (
-          <div>
-            <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">
-              Tags
-            </div>
-            <div className="overflow-x-auto flex gap-2 pb-1">
-              {availableVibes.map((vibe) => {
-                const isActive = filters.vibes.includes(vibe);
-                const vibeColor =
-                  VIBE_COLORS[vibe] || VIBE_COLORS['default'];
-                const Icon = TAG_ICONS[vibe];
-                return (
-                  <button
-                    key={vibe}
-                    onClick={() => onToggleVibe(vibe)}
-                    className={clsx(
-                      'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
-                      isActive
-                        ? 'text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    )}
-                    style={isActive ? { backgroundColor: vibeColor } : undefined}
-                  >
-                    {Icon && <Icon className="w-3.5 h-3.5" />}
-                    {vibe}
-                  </button>
-                );
-              })}
+            {/* Time slider */}
+            {(() => {
+              const formatHour = (h: number) => {
+                const hr = h % 24;
+                if (hr === 0) return '12am';
+                if (hr === 12) return '12pm';
+                return hr < 12 ? `${hr}am` : `${hr - 12}pm`;
+              };
+
+              const tStart = filters.timeStart;
+              const tEnd = filters.timeEnd;
+              const timeLabel = (tStart === 0 && tEnd === 24)
+                ? `${formatHour(0)} — ${formatHour(0)}`
+                : `${formatHour(tStart)} — ${formatHour(tEnd)}`;
+
+              return (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-xs uppercase tracking-wider text-slate-400">
+                      Time
+                    </div>
+                    <div className="text-sm text-slate-300 font-medium">
+                      {timeLabel}
+                    </div>
+                  </div>
+                  <div className="relative h-8 flex items-center">
+                    <div className="absolute w-full h-1.5 bg-slate-700 rounded-full" />
+                    <div
+                      className="absolute h-1.5 bg-blue-500 rounded-full"
+                      style={{
+                        left: `${(tStart / 24) * 100}%`,
+                        right: `${100 - (tEnd / 24) * 100}%`,
+                      }}
+                    />
+                    <input
+                      type="range"
+                      min={0}
+                      max={24}
+                      value={tStart}
+                      onChange={(e) => {
+                        const v = Math.min(Number(e.target.value), tEnd);
+                        onSetTimeRange(v, tEnd);
+                      }}
+                      className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
+                    />
+                    <input
+                      type="range"
+                      min={0}
+                      max={24}
+                      value={tEnd}
+                      onChange={(e) => {
+                        const v = Math.max(Number(e.target.value), tStart);
+                        onSetTimeRange(tStart, v);
+                      }}
+                      className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Tags */}
+            {availableVibes.length > 0 && (
+              <div>
+                <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">
+                  Tags
+                </div>
+                <div className="overflow-x-auto flex gap-2 pb-1">
+                  {availableVibes.map((vibe) => {
+                    const isActive = filters.vibes.includes(vibe);
+                    const vibeColor =
+                      VIBE_COLORS[vibe] || VIBE_COLORS['default'];
+                    const Icon = TAG_ICONS[vibe];
+                    return (
+                      <button
+                        key={vibe}
+                        onClick={() => onToggleVibe(vibe)}
+                        className={clsx(
+                          'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
+                          isActive
+                            ? 'text-white'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        )}
+                        style={isActive ? { backgroundColor: vibeColor } : undefined}
+                      >
+                        {Icon && <Icon className="w-3.5 h-3.5" />}
+                        {vibe}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Quick filters + clear */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onToggleBool('freeOnly')}
+                className={clsx(
+                  'px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
+                  filters.freeOnly
+                    ? 'bg-emerald-500 text-white'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                )}
+              >
+                FREE
+              </button>
+              <button
+                onClick={() => onToggleBool('hasFood')}
+                className={clsx(
+                  'px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
+                  filters.hasFood
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                )}
+              >
+                <span role="img" aria-label="Food">
+                  🍕
+                </span>{' '}
+                Food
+              </button>
+              <button
+                onClick={() => onToggleBool('hasBar')}
+                className={clsx(
+                  'px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
+                  filters.hasBar
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                )}
+              >
+                <span role="img" aria-label="Bar">
+                  🍺
+                </span>{' '}
+                Bar
+              </button>
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={onClearFilters}
+                  className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ml-1"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Clear all
+                </button>
+              )}
             </div>
           </div>
         )}
-
-        {/* Row 5: Quick filters + clear */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onToggleBool('freeOnly')}
-            className={clsx(
-              'px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
-              filters.freeOnly
-                ? 'bg-emerald-500 text-white'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-            )}
-          >
-            FREE
-          </button>
-          <button
-            onClick={() => onToggleBool('hasFood')}
-            className={clsx(
-              'px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
-              filters.hasFood
-                ? 'bg-amber-500 text-white'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-            )}
-          >
-            <span role="img" aria-label="Food">
-              🍕
-            </span>{' '}
-            Food
-          </button>
-          <button
-            onClick={() => onToggleBool('hasBar')}
-            className={clsx(
-              'px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
-              filters.hasBar
-                ? 'bg-amber-500 text-white'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-            )}
-          >
-            <span role="img" aria-label="Bar">
-              🍺
-            </span>{' '}
-            Bar
-          </button>
-          {activeFilterCount > 0 && (
-            <button
-              onClick={onClearFilters}
-              className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ml-1"
-            >
-              <X className="w-3.5 h-3.5" />
-              Clear
-              <span className="bg-orange-500/20 text-orange-400 text-xs font-bold px-1.5 py-0.5 rounded-full">
-                {activeFilterCount}
-              </span>
-            </button>
-          )}
-        </div>
       </div>
     </div>
   );
