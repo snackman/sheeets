@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { ViewMode } from '@/lib/types';
 import { useEvents } from '@/hooks/useEvents';
 import { useFilters } from '@/hooks/useFilters';
 import { applyFilters } from '@/lib/filters';
 import { TYPE_TAGS } from '@/lib/constants';
 import { useItinerary } from '@/hooks/useItinerary';
+import { useAuth } from '@/contexts/AuthContext';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
@@ -14,6 +15,7 @@ import { TableView } from './TableView';
 import { MapViewWrapper } from './MapViewWrapper';
 import { SearchBar } from './SearchBar';
 import { Loading } from './Loading';
+import { AuthModal } from './AuthModal';
 
 export function EventApp() {
   const { events, loading, error } = useEvents();
@@ -30,12 +32,38 @@ export function EventApp() {
     activeFilterCount,
   } = useFilters();
   const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const { user } = useAuth();
 
   const {
     itinerary,
     toggle: toggleItinerary,
     count: itineraryCount,
   } = useItinerary();
+
+  // Auth-gated starring
+  const [showAuthForStar, setShowAuthForStar] = useState(false);
+  const pendingStarRef = useRef<string | null>(null);
+
+  const handleItineraryToggle = useCallback(
+    (eventId: string) => {
+      if (user) {
+        toggleItinerary(eventId);
+      } else {
+        pendingStarRef.current = eventId;
+        setShowAuthForStar(true);
+      }
+    },
+    [user, toggleItinerary]
+  );
+
+  // Complete pending star after successful login
+  useEffect(() => {
+    if (user && pendingStarRef.current) {
+      toggleItinerary(pendingStarRef.current);
+      pendingStarRef.current = null;
+      setShowAuthForStar(false);
+    }
+  }, [user, toggleItinerary]);
 
   // Auto-refresh tick for "Now" mode — bumps every 5 minutes to recalculate filtered events
   const [nowTick, setNowTick] = useState(0);
@@ -164,7 +192,7 @@ export function EventApp() {
           <MapViewWrapper
             events={filteredEvents}
             itinerary={itinerary}
-            onItineraryToggle={toggleItinerary}
+            onItineraryToggle={handleItineraryToggle}
           />
         </main>
       ) : viewMode === 'table' ? (
@@ -173,7 +201,7 @@ export function EventApp() {
             events={filteredEvents}
             totalCount={conferenceEventCount}
             itinerary={itinerary}
-            onItineraryToggle={toggleItinerary}
+            onItineraryToggle={handleItineraryToggle}
           />
         </main>
       ) : (
@@ -182,11 +210,12 @@ export function EventApp() {
             events={filteredEvents}
             totalCount={conferenceEventCount}
             itinerary={itinerary}
-            onItineraryToggle={toggleItinerary}
+            onItineraryToggle={handleItineraryToggle}
           />
         </main>
       )}
 
+      <AuthModal isOpen={showAuthForStar} onClose={() => setShowAuthForStar(false)} />
     </div>
   );
 }
