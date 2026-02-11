@@ -23,24 +23,34 @@ function setLocalUpdatedAt(ts: number) {
 }
 
 export function useItinerary() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [itinerary, setItinerary] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
   const initialSyncDone = useRef(false);
   const skipNextPush = useRef(false);
+  // Track whether a clear is due to logout so we skip persisting the empty set
+  const clearingForLogout = useRef(false);
 
-  // Load from localStorage on mount
+  // Load from localStorage only when a user is authenticated
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.ITINERARY);
-      if (saved) {
-        setItinerary(new Set(JSON.parse(saved)));
+    if (authLoading) return;
+
+    if (user) {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEYS.ITINERARY);
+        if (saved) {
+          setItinerary(new Set(JSON.parse(saved)));
+        }
+      } catch {
+        // Ignore parse errors
       }
-    } catch {
-      // Ignore parse errors
+    } else {
+      // User is logged out — clear displayed itinerary (keep localStorage intact)
+      clearingForLogout.current = true;
+      setItinerary(new Set());
     }
     setLoaded(true);
-  }, []);
+  }, [user, authLoading]);
 
   // Sync with Supabase when user logs in
   useEffect(() => {
@@ -82,6 +92,12 @@ export function useItinerary() {
   // Save to localStorage + Supabase on change
   useEffect(() => {
     if (!loaded) return;
+
+    // Don't overwrite localStorage when clearing due to logout
+    if (clearingForLogout.current) {
+      clearingForLogout.current = false;
+      return;
+    }
 
     localStorage.setItem(
       STORAGE_KEYS.ITINERARY,
