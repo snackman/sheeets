@@ -23,8 +23,8 @@ export function applyFilters(
       return false;
     }
 
-    // Vibe filter
-    if (filters.vibes.length > 0 && !filters.vibes.includes(event.vibe)) {
+    // Tag filter (matches if any of the event's tags are selected)
+    if (filters.vibes.length > 0 && !event.tags.some(t => filters.vibes.includes(t))) {
       return false;
     }
 
@@ -50,7 +50,8 @@ export function applyFilters(
         event.organizer,
         event.address,
         event.note,
-        event.vibe,
+        event.conference,
+        ...event.tags,
       ]
         .filter(Boolean)
         .join(' ')

@@ -1,7 +1,7 @@
 export interface ETHDenverEvent {
   id: string;
-  date: string;          // Raw: "Sat, Feb 22"
-  dateISO: string;       // Parsed: "2025-02-22"
+  date: string;          // Raw: "Tue, Feb 10"
+  dateISO: string;       // Parsed: "2026-02-10"
   startTime: string;     // Raw: "12:00p" or "6:00 PM"
   endTime: string;       // Raw
   isAllDay: boolean;
@@ -10,7 +10,9 @@ export interface ETHDenverEvent {
   address: string;
   cost: string;
   isFree: boolean;
-  vibe: string;
+  vibe: string;          // Primary tag (first tag)
+  tags: string[];        // All tags from comma-separated Tags column
+  conference: string;    // Which tab/conference this event belongs to
   link: string;
   hasFood: boolean;
   hasBar: boolean;
@@ -37,4 +39,4 @@ export interface UserState {
   itinerary: string[];
 }
 
-export type ViewMode = 'map' | 'list';
+export type ViewMode = 'map' | 'list' | 'table';

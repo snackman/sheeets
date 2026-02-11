@@ -10,6 +10,7 @@ import { useItinerary } from '@/hooks/useItinerary';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
+import { TableView } from './TableView';
 import { MapViewWrapper } from './MapViewWrapper';
 import { Loading } from './Loading';
 import { ItineraryPanel } from './ItineraryPanel';
@@ -39,7 +40,7 @@ export function EventApp() {
 
   const availableVibes = useMemo(
     () =>
-      [...new Set(events.map((e) => e.vibe).filter(Boolean))].sort(),
+      [...new Set(events.flatMap((e) => e.tags).filter(Boolean))].sort(),
     [events]
   );
 
@@ -110,9 +111,19 @@ export function EventApp() {
       />
 
       {/* Main content area */}
-      {viewMode === 'list' ? (
+      {viewMode === 'map' ? (
+        <main className="flex-1 min-h-0">
+          <MapViewWrapper
+            events={filteredEvents}
+            starred={starred}
+            itinerary={itinerary}
+            onStarToggle={toggleStar}
+            onItineraryToggle={toggleItinerary}
+          />
+        </main>
+      ) : viewMode === 'table' ? (
         <main>
-          <ListView
+          <TableView
             events={filteredEvents}
             totalCount={events.length}
             starred={starred}
@@ -122,9 +133,10 @@ export function EventApp() {
           />
         </main>
       ) : (
-        <main className="flex-1 min-h-0">
-          <MapViewWrapper
+        <main>
+          <ListView
             events={filteredEvents}
+            totalCount={events.length}
             starred={starred}
             itinerary={itinerary}
             onStarToggle={toggleStar}

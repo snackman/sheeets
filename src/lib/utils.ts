@@ -10,7 +10,7 @@ export function parseDateToISO(dateStr: string): string {
   const month = months[match[1]] || months[dateStr.split(',')[1]?.trim().split(' ')[0]];
   if (!month) return '';
   const day = match[2].padStart(2, '0');
-  return `2025-${month}-${day}`;
+  return `2026-${month}-${day}`;
 }
 
 export function parseTimeToHour(timeStr: string): number | null {

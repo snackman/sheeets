@@ -9,7 +9,7 @@
 
 import { parseGVizResponse, getCellValue } from '../src/lib/gviz';
 import { normalizeAddress } from '../src/lib/utils';
-import { GVIZ_URL } from '../src/lib/constants';
+import { SHEET_ID, EVENT_TABS } from '../src/lib/constants';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -34,18 +34,26 @@ async function main() {
     process.exit(1);
   }
 
-  // 1. Fetch events
+  // 1. Fetch events from all tabs
   console.log('Fetching events from Google Sheet...');
-  const response = await fetch(GVIZ_URL);
-  const text = await response.text();
-  const table = parseGVizResponse(text);
-
-  // 2. Extract unique addresses
   const addresses = new Set<string>();
-  for (const row of table.rows) {
-    if (!row.c) continue;
-    const address = getCellValue(row.c[5]);
-    if (address) addresses.add(address);
+
+  for (const tab of EVENT_TABS) {
+    console.log(`  Fetching ${tab.name} (gid=${tab.gid})...`);
+    for (let offset = 0; offset < 5000; offset += 500) {
+      const tq = encodeURIComponent(`select * limit 500 offset ${offset}`);
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${tab.gid}&headers=1&tq=${tq}`;
+      const response = await fetch(url);
+      const text = await response.text();
+      const table = parseGVizResponse(text);
+      if (table.rows.length === 0) break;
+      for (const row of table.rows) {
+        if (!row.c) continue;
+        const address = getCellValue(row.c[5]);
+        if (address) addresses.add(address);
+      }
+      if (table.rows.length < 500) break;
+    }
   }
 
   console.log(`Found ${addresses.size} unique addresses`);

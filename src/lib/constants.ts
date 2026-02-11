@@ -1,24 +1,45 @@
 export const SHEET_ID = '1xWmIHyEyOmPHfkYuZkucPRlLGWbb9CF6Oqvfl8FUV6k';
-export const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=0`;
+
+export const EVENT_TABS = [
+  { gid: 356217373, name: 'ETH Denver 2026' },
+  { gid: 377806756, name: 'Consensus Hong Kong 2026' },
+];
 
 export const EVENT_DATES = [
-  '2025-02-20', '2025-02-21', '2025-02-22', '2025-02-23',
-  '2025-02-24', '2025-02-25', '2025-02-26', '2025-02-27',
-  '2025-02-28', '2025-03-01', '2025-03-02', '2025-03-03', '2025-03-04',
+  '2026-02-10', '2026-02-11', '2026-02-12', '2026-02-13',
+  '2026-02-14', '2026-02-15', '2026-02-16', '2026-02-17',
+  '2026-02-18', '2026-02-19', '2026-02-20', '2026-02-21',
 ];
 
 export const DENVER_CENTER = { lat: 39.7392, lng: -104.9903 };
 
 export const VIBE_COLORS: Record<string, string> = {
-  'Hack': '#3B82F6',
-  'Contest': '#8B5CF6',
+  'Conference': '#F97316',
+  'Panel/Talk': '#6366F1',
+  'Hackathon': '#3B82F6',
+  'Networking': '#F59E0B',
+  'Devs/Builders': '#10B981',
+  'VCs/Angels': '#8B5CF6',
+  'AI': '#EC4899',
+  'DeFi': '#14B8A6',
+  'DAOs': '#EF4444',
+  'NFTs': '#A855F7',
+  'DePIN': '#06B6D4',
+  'RWA': '#84CC16',
+  'ETH': '#818CF8',
+  'BTC': '#F59E0B',
+  'SOL': '#9333EA',
+  'Gaming': '#22D3EE',
+  'Art': '#F472B6',
+  'Wellness': '#34D399',
+  'Brunch': '#FB923C',
+  'Bar/Pub': '#FBBF24',
+  'Jobs/Hiring': '#2DD4BF',
+  'Memecoins': '#E879F9',
   'Party': '#EC4899',
   'Workshop': '#10B981',
-  'Networking': '#F59E0B',
-  'Panel': '#6366F1',
-  'Demo Day': '#EF4444',
   'Meetup': '#14B8A6',
-  'Conference': '#F97316',
+  'Demo Day': '#EF4444',
   'default': '#6B7280',
 };
 
