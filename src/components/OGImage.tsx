@@ -4,11 +4,12 @@ import { useState, useEffect, useRef } from 'react';
 
 interface OGImageProps {
   url: string;
+  eventId?: string;
 }
 
 const imageCache = new Map<string, string | null>();
 
-export function OGImage({ url }: OGImageProps) {
+export function OGImage({ url, eventId }: OGImageProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(
     imageCache.get(url) ?? null
   );
@@ -28,7 +29,10 @@ export function OGImage({ url }: OGImageProps) {
         if (!entry.isIntersecting) return;
         observer.disconnect();
 
-        fetch(`/api/og?url=${encodeURIComponent(url)}`)
+        const params = new URLSearchParams({ url });
+        if (eventId) params.set('eventId', eventId);
+
+        fetch(`/api/og?${params.toString()}`)
           .then((res) => res.json())
           .then((data) => {
             imageCache.set(url, data.imageUrl);
@@ -45,7 +49,7 @@ export function OGImage({ url }: OGImageProps) {
 
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
-  }, [url]);
+  }, [url, eventId]);
 
   if (loaded && !imageUrl) return null;
   if (error) return null;
