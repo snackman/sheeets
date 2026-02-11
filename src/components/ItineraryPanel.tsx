@@ -151,27 +151,26 @@ export function ItineraryPanel({
     if (!captureRef.current || itineraryEvents.length === 0) return;
     setExporting(true);
     try {
-      const mod = await import('html2canvas');
-      const html2canvas = mod.default || mod;
-      const canvas = await (html2canvas as any)(captureRef.current, {
+      const { toBlob } = await import('html-to-image');
+
+      // Hide interactive elements before capture
+      const hideEls = captureRef.current.querySelectorAll('[data-export-hide]');
+      hideEls.forEach((el) => (el as HTMLElement).style.display = 'none');
+
+      const blob = await toBlob(captureRef.current, {
         backgroundColor: '#0f172a',
-        scale: 2,
-        useCORS: true,
-        onclone: (doc: Document) => {
-          doc.querySelectorAll('[data-export-hide]').forEach((el) => el.remove());
-        },
+        pixelRatio: 2,
       });
-      const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, 'image/png')
-      );
+
+      // Restore hidden elements
+      hideEls.forEach((el) => (el as HTMLElement).style.display = '');
+
       if (!blob) return;
 
-      // Try native share on mobile
       const file = new File([blob], 'itinerary.png', { type: 'image/png' });
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: 'My Itinerary' });
       } else {
-        // Download fallback
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
