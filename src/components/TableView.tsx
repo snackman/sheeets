@@ -78,7 +78,7 @@ export function TableView({
                   <td className="px-3 py-2 font-medium text-slate-100 whitespace-nowrap" title={event.name}>
                     <span className="inline-flex items-center gap-1">
                       {event.isDuplicate && (
-                        <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" title="Duplicate entry in sheet" />
+                        <span title="Duplicate entry in sheet"><AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" /></span>
                       )}
                       {event.link ? (
                         <a
