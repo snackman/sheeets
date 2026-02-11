@@ -244,6 +244,7 @@ NEXT_PUBLIC_MAPBOX_TOKEN=pk.xxx
 - Icons: Edit `src/components/TagBadge.tsx` → `TAG_ICONS` map. Tags without an icon show color pill only.
 
 ### localStorage Keys
-All user data stored under keys prefixed with `ethdenver-2025-`:
-- `ethdenver-2025-starred`
-- `ethdenver-2025-itinerary`
+All user data stored under keys prefixed with `sheeets-`:
+- `sheeets-starred`
+- `sheeets-itinerary`
+- `sheeets-view`

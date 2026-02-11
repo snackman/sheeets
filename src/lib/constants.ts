@@ -44,9 +44,9 @@ export const VIBE_COLORS: Record<string, string> = {
 };
 
 export const STORAGE_KEYS = {
-  STARRED: 'ethdenver-2025-starred',
-  ITINERARY: 'ethdenver-2025-itinerary',
-  VIEW_MODE: 'ethdenver-2025-view',
+  STARRED: 'sheeets-starred',
+  ITINERARY: 'sheeets-itinerary',
+  VIEW_MODE: 'sheeets-view',
 };
 
 export const TIME_RANGES = {
