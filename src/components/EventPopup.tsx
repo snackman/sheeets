@@ -5,16 +5,13 @@ import { X, ExternalLink } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { VIBE_COLORS } from '@/lib/constants';
 import { StarButton } from './StarButton';
-import { ItineraryButton } from './ItineraryButton';
 
 interface EventPopupProps {
   event: ETHDenverEvent;
   latitude: number;
   longitude: number;
   onClose: () => void;
-  isStarred?: boolean;
   isInItinerary?: boolean;
-  onStarToggle?: (eventId: string) => void;
   onItineraryToggle?: (eventId: string) => void;
 }
 
@@ -29,16 +26,12 @@ interface MultiEventPopupProps {
 function SingleEventContent({
   event,
   onClose,
-  isStarred = false,
   isInItinerary = false,
-  onStarToggle,
   onItineraryToggle,
 }: {
   event: ETHDenverEvent;
   onClose: () => void;
-  isStarred?: boolean;
   isInItinerary?: boolean;
-  onStarToggle?: (eventId: string) => void;
   onItineraryToggle?: (eventId: string) => void;
 }) {
   const vibeColor = VIBE_COLORS[event.vibe] || VIBE_COLORS['default'];
@@ -94,18 +87,10 @@ function SingleEventContent({
             RSVP <ExternalLink size={10} />
           </a>
         )}
-        {onStarToggle && (
+        {onItineraryToggle && (
           <StarButton
             eventId={event.id}
-            isStarred={isStarred}
-            onToggle={onStarToggle}
-            size="sm"
-          />
-        )}
-        {onItineraryToggle && (
-          <ItineraryButton
-            eventId={event.id}
-            isInItinerary={isInItinerary}
+            isStarred={isInItinerary}
             onToggle={onItineraryToggle}
             size="sm"
           />
@@ -120,9 +105,7 @@ export function EventPopup({
   latitude,
   longitude,
   onClose,
-  isStarred,
   isInItinerary,
-  onStarToggle,
   onItineraryToggle,
 }: EventPopupProps) {
   return (
@@ -139,9 +122,7 @@ export function EventPopup({
       <SingleEventContent
         event={event}
         onClose={onClose}
-        isStarred={isStarred}
         isInItinerary={isInItinerary}
-        onStarToggle={onStarToggle}
         onItineraryToggle={onItineraryToggle}
       />
     </Popup>

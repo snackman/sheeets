@@ -18,18 +18,14 @@ const MapView = dynamic(
 interface MapViewWrapperProps {
   events: ETHDenverEvent[];
   onEventSelect?: (event: ETHDenverEvent) => void;
-  starred?: Set<string>;
   itinerary?: Set<string>;
-  onStarToggle?: (eventId: string) => void;
   onItineraryToggle?: (eventId: string) => void;
 }
 
 export function MapViewWrapper({
   events,
   onEventSelect,
-  starred,
   itinerary,
-  onStarToggle,
   onItineraryToggle,
 }: MapViewWrapperProps) {
   return (
@@ -37,9 +33,7 @@ export function MapViewWrapper({
       <MapView
         events={events}
         onEventSelect={onEventSelect}
-        starred={starred}
         itinerary={itinerary}
-        onStarToggle={onStarToggle}
         onItineraryToggle={onItineraryToggle}
       />
     </div>

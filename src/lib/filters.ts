@@ -17,7 +17,6 @@ function parseStartHour(t: string): number | null {
 export function applyFilters(
   events: ETHDenverEvent[],
   filters: FilterState,
-  starred?: Set<string>,
   itinerary?: Set<string>
 ): ETHDenverEvent[] {
   return events.filter((event) => {
@@ -57,9 +56,6 @@ export function applyFilters(
     // Amenities
     if (filters.hasFood && !event.hasFood) return false;
     if (filters.hasBar && !event.hasBar) return false;
-
-    // Starred
-    if (filters.starredOnly && starred && !starred.has(event.id)) return false;
 
     // Itinerary
     if (filters.itineraryOnly && itinerary && !itinerary.has(event.id))

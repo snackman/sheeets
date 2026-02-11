@@ -5,15 +5,11 @@ import { X, AlertTriangle, Trash2, CalendarX, Share2 } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { VIBE_COLORS } from '@/lib/constants';
 import { formatDateLabel } from '@/lib/utils';
-import { StarButton } from './StarButton';
-
 interface ItineraryPanelProps {
   isOpen: boolean;
   onClose: () => void;
   events: ETHDenverEvent[];
   itinerary: Set<string>;
-  starred: Set<string>;
-  onStarToggle: (eventId: string) => void;
   onItineraryToggle: (eventId: string) => void;
   onItineraryClear: () => void;
 }
@@ -106,8 +102,6 @@ export function ItineraryPanel({
   onClose,
   events,
   itinerary,
-  starred,
-  onStarToggle,
   onItineraryToggle,
   onItineraryClear,
 }: ItineraryPanelProps) {
@@ -315,16 +309,8 @@ export function ItineraryPanel({
                               </div>
                             )}
 
-                            {/* Top row: star, name, remove */}
+                            {/* Top row: name, remove */}
                             <div className="flex items-start gap-2">
-                              <div data-export-hide>
-                                <StarButton
-                                  eventId={event.id}
-                                  isStarred={starred.has(event.id)}
-                                  onToggle={onStarToggle}
-                                  size="sm"
-                                />
-                              </div>
                               <h4 className="flex-1 text-sm font-semibold text-white leading-tight min-w-0 truncate">
                                 {event.name}
                               </h4>
@@ -340,12 +326,12 @@ export function ItineraryPanel({
                             </div>
 
                             {/* Time */}
-                            <p className="text-slate-400 text-xs mt-1 ml-5">
+                            <p className="text-slate-400 text-xs mt-1">
                               {timeDisplay}
                             </p>
 
                             {/* Badges */}
-                            <div className="flex items-center gap-1.5 mt-1.5 ml-5">
+                            <div className="flex items-center gap-1.5 mt-1.5">
                               {event.vibe && (
                                 <span
                                   className="px-1.5 py-0.5 rounded text-[10px] font-semibold text-white"

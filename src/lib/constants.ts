@@ -44,7 +44,6 @@ export const VIBE_COLORS: Record<string, string> = {
 };
 
 export const STORAGE_KEYS = {
-  STARRED: 'sheeets-starred',
   ITINERARY: 'sheeets-itinerary',
   VIEW_MODE: 'sheeets-view',
 };

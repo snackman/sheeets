@@ -5,7 +5,6 @@ import { ViewMode } from '@/lib/types';
 import { useEvents } from '@/hooks/useEvents';
 import { useFilters } from '@/hooks/useFilters';
 import { applyFilters } from '@/lib/filters';
-import { useStarred } from '@/hooks/useStarred';
 import { useItinerary } from '@/hooks/useItinerary';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
@@ -32,7 +31,6 @@ export function EventApp() {
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [showItinerary, setShowItinerary] = useState(false);
 
-  const { starred, toggle: toggleStar } = useStarred();
   const {
     itinerary,
     toggle: toggleItinerary,
@@ -57,8 +55,8 @@ export function EventApp() {
   );
 
   const filteredEvents = useMemo(
-    () => applyFilters(events, filters, starred, itinerary),
-    [events, filters, starred, itinerary]
+    () => applyFilters(events, filters, itinerary),
+    [events, filters, itinerary]
   );
 
   if (loading) {
@@ -135,9 +133,7 @@ export function EventApp() {
         <main className="flex-1 min-h-0">
           <MapViewWrapper
             events={filteredEvents}
-            starred={starred}
             itinerary={itinerary}
-            onStarToggle={toggleStar}
             onItineraryToggle={toggleItinerary}
           />
         </main>
@@ -146,9 +142,7 @@ export function EventApp() {
           <TableView
             events={filteredEvents}
             totalCount={conferenceEventCount}
-            starred={starred}
             itinerary={itinerary}
-            onStarToggle={toggleStar}
             onItineraryToggle={toggleItinerary}
           />
         </main>
@@ -157,9 +151,7 @@ export function EventApp() {
           <ListView
             events={filteredEvents}
             totalCount={conferenceEventCount}
-            starred={starred}
             itinerary={itinerary}
-            onStarToggle={toggleStar}
             onItineraryToggle={toggleItinerary}
           />
         </main>
@@ -171,8 +163,6 @@ export function EventApp() {
         onClose={() => setShowItinerary(false)}
         events={events}
         itinerary={itinerary}
-        starred={starred}
-        onStarToggle={toggleStar}
         onItineraryToggle={toggleItinerary}
         onItineraryClear={clearItinerary}
       />

@@ -11,9 +11,7 @@ import { EventPopup, MultiEventPopup } from './EventPopup';
 interface MapViewProps {
   events: ETHDenverEvent[];
   onEventSelect?: (event: ETHDenverEvent) => void;
-  starred?: Set<string>;
   itinerary?: Set<string>;
-  onStarToggle?: (eventId: string) => void;
   onItineraryToggle?: (eventId: string) => void;
 }
 
@@ -28,9 +26,7 @@ function coordKey(lat: number, lng: number): string {
 export function MapView({
   events,
   onEventSelect,
-  starred,
   itinerary,
-  onStarToggle,
   onItineraryToggle,
 }: MapViewProps) {
   const mapRef = useRef<MapRef>(null);
@@ -169,9 +165,7 @@ export function MapView({
           latitude={popupCoords.lat}
           longitude={popupCoords.lng}
           onClose={handlePopupClose}
-          isStarred={starred?.has(popupEvent.id)}
           isInItinerary={itinerary?.has(popupEvent.id)}
-          onStarToggle={onStarToggle}
           onItineraryToggle={onItineraryToggle}
         />
       )}

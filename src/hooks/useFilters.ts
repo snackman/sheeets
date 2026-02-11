@@ -12,7 +12,6 @@ const defaultFilters: FilterState = {
   freeOnly: false,
   hasFood: false,
   hasBar: false,
-  starredOnly: false,
   itineraryOnly: false,
   searchQuery: '',
 };
@@ -61,7 +60,6 @@ export function useFilters() {
         | 'freeOnly'
         | 'hasFood'
         | 'hasBar'
-        | 'starredOnly'
         | 'itineraryOnly'
     ) => {
       setFilters((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -80,7 +78,6 @@ export function useFilters() {
     if (filters.freeOnly) count++;
     if (filters.hasFood) count++;
     if (filters.hasBar) count++;
-    if (filters.starredOnly) count++;
     if (filters.itineraryOnly) count++;
     if (filters.searchQuery) count++;
     return count;

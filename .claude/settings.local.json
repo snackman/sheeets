@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(for gid in 0 1 2 3 4 5 6 7 8 9 10)",
+      "Bash(do echo \"=== gid=$gid ===\")",
+      "Bash(done)",
+      "Bash(git push:*)",
+      "Bash(curl:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell -Command \"Get-Process -Id \\(Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue\\).OwningProcess -ErrorAction SilentlyContinue | Stop-Process -Force; Write-Host ''killed''\")",
+      "Bash(powershell -Command \"Remove-Item ''C:\\\\Users\\\\samgo\\\\OneDrive\\\\Documents\\\\PizzaDAO\\\\Code\\\\sheeets\\\\.next\\\\dev\\\\lock'' -Force -ErrorAction SilentlyContinue\")",
+      "Bash(set \"MAPBOX_SECRET_TOKEN=pk.eyJ1Ijoic25hY2ttYW4iLCJhIjoiY21saGtvYTF0MDYzcTNlcHc2bzA1amdjMCJ9.dXGXk7jJkdr7_jZfu4Rs8w\")",
+      "Bash(findstr:*)",
+      "Bash(netstat:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(node test-scroll.mjs:*)",
+      "Bash(vercel ls:*)",
+      "Bash(vercel:*)",
+      "Bash(python:*)",
+      "Bash(npm uninstall:*)"
+    ]
+  }
+}

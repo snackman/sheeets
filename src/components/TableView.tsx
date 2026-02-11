@@ -1,24 +1,20 @@
 'use client';
 
-import { ExternalLink, Star, CalendarCheck } from 'lucide-react';
+import { ExternalLink, Star } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { TagBadge } from './TagBadge';
 
 interface TableViewProps {
   events: ETHDenverEvent[];
   totalCount: number;
-  starred?: Set<string>;
   itinerary?: Set<string>;
-  onStarToggle?: (eventId: string) => void;
   onItineraryToggle?: (eventId: string) => void;
 }
 
 export function TableView({
   events,
   totalCount,
-  starred,
   itinerary,
-  onStarToggle,
   onItineraryToggle,
 }: TableViewProps) {
   return (
@@ -41,7 +37,6 @@ export function TableView({
           </thead>
           <tbody className="divide-y divide-slate-700/50">
             {events.map((event) => {
-              const isStarred = starred?.has(event.id) ?? false;
               const isInItinerary = itinerary?.has(event.id) ?? false;
 
               return (
@@ -49,28 +44,17 @@ export function TableView({
                   key={event.id}
                   className="bg-slate-900 hover:bg-slate-800/70 transition-colors"
                 >
-                  {/* Star + Itinerary */}
+                  {/* Star (toggles itinerary) */}
                   <td className="px-2 py-2">
-                    <div className="flex gap-0.5">
-                      <button
-                        onClick={() => onStarToggle?.(event.id)}
-                        className="cursor-pointer p-0.5"
-                        title={isStarred ? 'Unstar' : 'Star'}
-                      >
-                        <Star
-                          className={`w-3.5 h-3.5 ${isStarred ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600 hover:text-slate-400'}`}
-                        />
-                      </button>
-                      <button
-                        onClick={() => onItineraryToggle?.(event.id)}
-                        className="cursor-pointer p-0.5"
-                        title={isInItinerary ? 'Remove from itinerary' : 'Add to itinerary'}
-                      >
-                        <CalendarCheck
-                          className={`w-3.5 h-3.5 ${isInItinerary ? 'text-orange-400' : 'text-slate-600 hover:text-slate-400'}`}
-                        />
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => onItineraryToggle?.(event.id)}
+                      className="cursor-pointer p-0.5"
+                      title={isInItinerary ? 'Remove from itinerary' : 'Add to itinerary'}
+                    >
+                      <Star
+                        className={`w-3.5 h-3.5 ${isInItinerary ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600 hover:text-slate-400'}`}
+                      />
+                    </button>
                   </td>
 
                   {/* Date */}

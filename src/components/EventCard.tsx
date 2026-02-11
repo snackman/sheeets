@@ -4,21 +4,16 @@ import { MapPin, ExternalLink } from 'lucide-react';
 import { ETHDenverEvent } from '@/lib/types';
 import { VIBE_COLORS } from '@/lib/constants';
 import { StarButton } from './StarButton';
-import { ItineraryButton } from './ItineraryButton';
 
 interface EventCardProps {
   event: ETHDenverEvent;
-  isStarred?: boolean;
   isInItinerary?: boolean;
-  onStarToggle?: (eventId: string) => void;
   onItineraryToggle?: (eventId: string) => void;
 }
 
 export function EventCard({
   event,
-  isStarred = false,
   isInItinerary = false,
-  onStarToggle,
   onItineraryToggle,
 }: EventCardProps) {
   const vibeColor = VIBE_COLORS[event.vibe] || VIBE_COLORS['default'];
@@ -29,14 +24,14 @@ export function EventCard({
 
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 hover:bg-slate-750 hover:border-slate-600 transition-colors group">
-      {/* Top row: Star, Name, Itinerary button */}
+      {/* Top row: Star, Name */}
       <div className="flex items-start gap-2">
-        {/* Star button */}
-        {onStarToggle ? (
+        {/* Star button (toggles itinerary) */}
+        {onItineraryToggle ? (
           <StarButton
             eventId={event.id}
-            isStarred={isStarred}
-            onToggle={onStarToggle}
+            isStarred={isInItinerary}
+            onToggle={onItineraryToggle}
           />
         ) : (
           <div className="w-5 shrink-0" />
@@ -58,15 +53,6 @@ export function EventCard({
             event.name
           )}
         </h3>
-
-        {/* Itinerary button */}
-        {onItineraryToggle && (
-          <ItineraryButton
-            eventId={event.id}
-            isInItinerary={isInItinerary}
-            onToggle={onItineraryToggle}
-          />
-        )}
       </div>
 
       {/* Organizer */}

@@ -31,13 +31,11 @@ export interface FilterState {
   freeOnly: boolean;
   hasFood: boolean;
   hasBar: boolean;
-  starredOnly: boolean;
   itineraryOnly: boolean;
   searchQuery: string;
 }
 
 export interface UserState {
-  starred: string[];
   itinerary: string[];
 }
 
