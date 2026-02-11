@@ -5,7 +5,6 @@ import clsx from 'clsx';
 import { X } from 'lucide-react';
 import type { FilterState } from '@/lib/types';
 import { EVENT_DATES, VIBE_COLORS } from '@/lib/constants';
-import { SearchBar } from './SearchBar';
 import { TAG_ICONS } from './TagBadge';
 
 interface FilterBarProps {
@@ -15,11 +14,8 @@ interface FilterBarProps {
   onToggleVibe: (vibe: string) => void;
   onSetTimeRange: (start: number, end: number) => void;
   onToggleBool: (key: 'freeOnly' | 'hasFood' | 'hasBar') => void;
-  onSearchChange: (query: string) => void;
   onClearFilters: () => void;
   activeFilterCount: number;
-  totalEvents: number;
-  filteredCount: number;
   availableConferences: string[];
   availableVibes: string[];
 }
@@ -39,11 +35,8 @@ export function FilterBar({
   onToggleVibe,
   onSetTimeRange,
   onToggleBool,
-  onSearchChange,
   onClearFilters,
   activeFilterCount,
-  totalEvents,
-  filteredCount,
   availableConferences,
   availableVibes,
 }: FilterBarProps) {
@@ -64,24 +57,7 @@ export function FilterBar({
   return (
     <div className="bg-slate-900 border-b border-slate-800">
       <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
-        {/* Row 1: Search + Clear */}
-        <div className="flex items-center gap-3">
-          <SearchBar value={filters.searchQuery} onChange={onSearchChange} />
-          {activeFilterCount > 0 && (
-            <button
-              onClick={onClearFilters}
-              className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer"
-            >
-              <X className="w-3.5 h-3.5" />
-              Clear
-              <span className="bg-orange-500/20 text-orange-400 text-xs font-bold px-1.5 py-0.5 rounded-full">
-                {activeFilterCount}
-              </span>
-            </button>
-          )}
-        </div>
-
-        {/* Row 2: Conference selector */}
+        {/* Row 1: Conference selector */}
         {availableConferences.length > 1 && (
           <div className="flex rounded-lg border border-slate-700 overflow-hidden">
             {availableConferences.map((conf) => (
@@ -247,55 +223,59 @@ export function FilterBar({
           </div>
         )}
 
-        {/* Row 5: Quick filters + event count */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex gap-2">
+        {/* Row 5: Quick filters + clear */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onToggleBool('freeOnly')}
+            className={clsx(
+              'px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
+              filters.freeOnly
+                ? 'bg-emerald-500 text-white'
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            )}
+          >
+            FREE
+          </button>
+          <button
+            onClick={() => onToggleBool('hasFood')}
+            className={clsx(
+              'px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
+              filters.hasFood
+                ? 'bg-amber-500 text-white'
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            )}
+          >
+            <span role="img" aria-label="Food">
+              🍕
+            </span>{' '}
+            Food
+          </button>
+          <button
+            onClick={() => onToggleBool('hasBar')}
+            className={clsx(
+              'px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
+              filters.hasBar
+                ? 'bg-amber-500 text-white'
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            )}
+          >
+            <span role="img" aria-label="Bar">
+              🍺
+            </span>{' '}
+            Bar
+          </button>
+          {activeFilterCount > 0 && (
             <button
-              onClick={() => onToggleBool('freeOnly')}
-              className={clsx(
-                'px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
-                filters.freeOnly
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              )}
+              onClick={onClearFilters}
+              className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ml-1"
             >
-              FREE
+              <X className="w-3.5 h-3.5" />
+              Clear
+              <span className="bg-orange-500/20 text-orange-400 text-xs font-bold px-1.5 py-0.5 rounded-full">
+                {activeFilterCount}
+              </span>
             </button>
-            <button
-              onClick={() => onToggleBool('hasFood')}
-              className={clsx(
-                'px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
-                filters.hasFood
-                  ? 'bg-amber-500 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              )}
-            >
-              <span role="img" aria-label="Food">
-                🍕
-              </span>{' '}
-              Food
-            </button>
-            <button
-              onClick={() => onToggleBool('hasBar')}
-              className={clsx(
-                'px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
-                filters.hasBar
-                  ? 'bg-amber-500 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              )}
-            >
-              <span role="img" aria-label="Bar">
-                🍺
-              </span>{' '}
-              Bar
-            </button>
-          </div>
-
-          <p className="text-sm text-slate-400 whitespace-nowrap">
-            Showing{' '}
-            <span className="text-white font-medium">{filteredCount}</span> of{' '}
-            {totalEvents} events
-          </p>
+          )}
         </div>
       </div>
     </div>

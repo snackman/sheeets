@@ -83,11 +83,6 @@ export function ListView({
 
   return (
     <div className="max-w-3xl mx-auto px-4 pb-8">
-      {/* Event count */}
-      <div className="py-3 text-sm text-slate-400">
-        Showing {events.length} of {totalCount} events
-      </div>
-
       {/* Date groups */}
       {dateGroups.map((group) => (
         <section key={group.dateISO} className="mb-6">

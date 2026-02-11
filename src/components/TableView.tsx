@@ -22,10 +22,7 @@ export function TableView({
   onItineraryToggle,
 }: TableViewProps) {
   return (
-    <div className="px-4 py-3">
-      <div className="text-sm text-slate-400 mb-3">
-        Showing {events.length} of {totalCount} events
-      </div>
+    <div className="px-4 pb-3">
       <div className="overflow-auto rounded-lg border border-slate-700" style={{ maxHeight: 'calc(100vh - 220px)' }}>
         <table className="min-w-[900px] text-sm text-left">
           <thead className="text-xs uppercase tracking-wider text-slate-400 bg-slate-800 border-b border-slate-700 sticky top-0 z-10">

@@ -12,6 +12,7 @@ import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
 import { TableView } from './TableView';
 import { MapViewWrapper } from './MapViewWrapper';
+import { SearchBar } from './SearchBar';
 import { Loading } from './Loading';
 import { ItineraryPanel } from './ItineraryPanel';
 
@@ -114,14 +115,20 @@ export function EventApp() {
         onToggleVibe={toggleVibe}
         onSetTimeRange={setTimeRange}
         onToggleBool={toggleBool}
-        onSearchChange={(query) => setFilter('searchQuery', query)}
         onClearFilters={clearFilters}
         activeFilterCount={activeFilterCount}
-        totalEvents={conferenceEventCount}
-        filteredCount={filteredEvents.length}
         availableConferences={availableConferences}
         availableVibes={availableVibes}
       />
+
+      {/* Search bar + event count */}
+      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
+        <SearchBar value={filters.searchQuery} onChange={(query) => setFilter('searchQuery', query)} />
+        <p className="text-sm text-slate-400 whitespace-nowrap">
+          <span className="text-white font-medium">{filteredEvents.length}</span> of{' '}
+          {conferenceEventCount} events
+        </p>
+      </div>
 
       {/* Main content area */}
       {viewMode === 'map' ? (
