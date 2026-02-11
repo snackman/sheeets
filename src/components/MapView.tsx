@@ -2,15 +2,11 @@
 
 import { useState, useRef, useMemo, useCallback } from 'react';
 import MapGL, { NavigationControl } from 'react-map-gl/mapbox';
-import useSupercluster from 'use-supercluster';
 import type { MapRef } from 'react-map-gl/mapbox';
 import type { ETHDenverEvent } from '@/lib/types';
 import { DENVER_CENTER } from '@/lib/constants';
-import { ClusterMarker } from './ClusterMarker';
 import { MapMarker } from './MapMarker';
 import { EventPopup, MultiEventPopup } from './EventPopup';
-
-import type { BBox } from 'geojson';
 
 interface MapViewProps {
   events: ETHDenverEvent[];
@@ -20,22 +16,6 @@ interface MapViewProps {
   onStarToggle?: (eventId: string) => void;
   onItineraryToggle?: (eventId: string) => void;
 }
-
-interface PointProperties {
-  cluster: false;
-  eventId: string;
-  event: ETHDenverEvent;
-  vibe: string;
-}
-
-interface ClusterProperties {
-  cluster: true;
-  cluster_id: number;
-  point_count: number;
-  point_count_abbreviated: number | string;
-}
-
-type PointFeature = GeoJSON.Feature<GeoJSON.Point, PointProperties>;
 
 /**
  * Round a coordinate to 5 decimal places for co-location grouping.
@@ -82,11 +62,10 @@ export function MapView({
     return map;
   }, [events]);
 
-  // Convert events to GeoJSON points (one per unique location)
-  // Use the first event at each location as the representative point
-  const points: PointFeature[] = useMemo(() => {
+  // Unique location markers (one per coordinate, with co-location count)
+  const locationMarkers = useMemo(() => {
     const seen = new Set<string>();
-    const result: PointFeature[] = [];
+    const result: { event: ETHDenverEvent; key: string; count: number }[] = [];
 
     for (const event of events) {
       if (event.lat == null || event.lng == null) continue;
@@ -94,60 +73,12 @@ export function MapView({
       if (seen.has(key)) continue;
       seen.add(key);
 
-      result.push({
-        type: 'Feature',
-        properties: {
-          cluster: false,
-          eventId: event.id,
-          event,
-          vibe: event.vibe || 'default',
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: [event.lng, event.lat],
-        },
-      });
+      const colocated = colocatedMap.get(key);
+      result.push({ event, key, count: colocated ? colocated.length : 1 });
     }
 
     return result;
-  }, [events]);
-
-  // Compute map bounds for supercluster
-  const bounds: BBox | undefined = useMemo(() => {
-    const map = mapRef.current?.getMap();
-    if (!map) return undefined;
-    const b = map.getBounds();
-    if (!b) return undefined;
-    return [
-      b.getWest(),
-      b.getSouth(),
-      b.getEast(),
-      b.getNorth(),
-    ] as BBox;
-  }, [viewState]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const { clusters, supercluster } = useSupercluster({
-    points: points as any,
-    bounds: bounds,
-    zoom: viewState.zoom,
-    options: { radius: 75, maxZoom: 16 },
-  });
-
-  const handleClusterClick = useCallback(
-    (clusterId: number, longitude: number, latitude: number) => {
-      if (!supercluster) return;
-      const expansionZoom = Math.min(
-        supercluster.getClusterExpansionZoom(clusterId),
-        20
-      );
-      mapRef.current?.flyTo({
-        center: [longitude, latitude],
-        zoom: expansionZoom,
-        duration: 500,
-      });
-    },
-    [supercluster]
-  );
+  }, [events, colocatedMap]);
 
   const handleMarkerClick = useCallback(
     (event: ETHDenverEvent, lat: number, lng: number) => {
@@ -219,49 +150,18 @@ export function MapView({
     >
       <NavigationControl position="top-right" />
 
-      {clusters.map((cluster) => {
-        const [longitude, latitude] = cluster.geometry.coordinates;
-        const properties = cluster.properties as
-          | ClusterProperties
-          | PointProperties;
-
-        if (properties.cluster) {
-          return (
-            <ClusterMarker
-              key={`cluster-${properties.cluster_id}`}
-              latitude={latitude}
-              longitude={longitude}
-              pointCount={properties.point_count}
-              onClick={() =>
-                handleClusterClick(
-                  properties.cluster_id,
-                  longitude,
-                  latitude
-                )
-              }
-            />
-          );
-        }
-
-        const pointProps = properties as PointProperties;
-        const event = pointProps.event;
-        const key = coordKey(latitude, longitude);
-        const colocated = colocatedMap.get(key);
-        const eventCount = colocated ? colocated.length : 1;
-
-        return (
-          <MapMarker
-            key={`event-${pointProps.eventId}`}
-            latitude={latitude}
-            longitude={longitude}
-            vibe={pointProps.vibe}
-            eventCount={eventCount}
-            onClick={() =>
-              handleMarkerClick(event, latitude, longitude)
-            }
-          />
-        );
-      })}
+      {locationMarkers.map(({ event, key, count }) => (
+        <MapMarker
+          key={`loc-${key}`}
+          latitude={event.lat!}
+          longitude={event.lng!}
+          vibe={event.vibe || 'default'}
+          eventCount={count}
+          onClick={() =>
+            handleMarkerClick(event, event.lat!, event.lng!)
+          }
+        />
+      ))}
 
       {popupEvent && popupCoords && (
         <EventPopup
