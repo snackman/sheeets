@@ -5,11 +5,29 @@ import { STORAGE_KEYS } from '@/lib/constants';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 
+function getLocalUpdatedAt(): number {
+  try {
+    const val = localStorage.getItem(STORAGE_KEYS.ITINERARY_UPDATED);
+    return val ? parseInt(val, 10) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function setLocalUpdatedAt(ts: number) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.ITINERARY_UPDATED, String(ts));
+  } catch {
+    // ignore
+  }
+}
+
 export function useItinerary() {
   const { user } = useAuth();
   const [itinerary, setItinerary] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
   const initialSyncDone = useRef(false);
+  const skipNextPush = useRef(false);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -28,24 +46,29 @@ export function useItinerary() {
   useEffect(() => {
     if (!user || !loaded) return;
 
-    // Reset sync flag when user changes (new login)
     initialSyncDone.current = false;
 
     async function syncWithSupabase() {
       try {
         const { data } = await supabase
           .from('itineraries')
-          .select('event_ids')
+          .select('event_ids, updated_at')
           .eq('user_id', user!.id)
           .maybeSingle();
 
         if (data?.event_ids) {
-          // Merge server data with local data
-          setItinerary((prev) => {
-            const merged = new Set(prev);
-            for (const id of data.event_ids) merged.add(id);
-            return merged;
-          });
+          const serverTime = data.updated_at
+            ? new Date(data.updated_at).getTime()
+            : 0;
+          const localTime = getLocalUpdatedAt();
+
+          if (serverTime >= localTime) {
+            // Server is newer or equal — replace local with server data
+            skipNextPush.current = true;
+            setItinerary(new Set(data.event_ids));
+            setLocalUpdatedAt(serverTime);
+          }
+          // else: local is newer — keep local, will push to server on next save
         }
       } catch {
         // Error fetching — proceed with local data only
@@ -65,15 +88,23 @@ export function useItinerary() {
       JSON.stringify([...itinerary])
     );
 
-    // Only sync to Supabase after initial merge is complete
+    // Skip the push triggered by replacing local with server data
+    if (skipNextPush.current) {
+      skipNextPush.current = false;
+      return;
+    }
+
     if (user && initialSyncDone.current) {
+      const now = new Date().toISOString();
+      setLocalUpdatedAt(new Date(now).getTime());
+
       supabase
         .from('itineraries')
         .upsert(
           {
             user_id: user.id,
             event_ids: [...itinerary],
-            updated_at: new Date().toISOString(),
+            updated_at: now,
           },
           { onConflict: 'user_id' }
         )
