@@ -1,8 +1,7 @@
 'use client';
 
-import { AlertTriangle, Star, Ticket } from 'lucide-react';
+import { AlertTriangle, Star } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
-import { isLumaLink } from '@/lib/utils';
 import { TagBadge } from './TagBadge';
 
 interface TableViewProps {
@@ -29,7 +28,6 @@ export function TableView({
               <th className="px-3 py-2.5">Time</th>
               <th className="px-3 py-2.5">Organizer</th>
               <th className="px-3 py-2.5">Event</th>
-              <th className="px-3 py-2.5 text-center">RSVP</th>
               <th className="px-3 py-2.5">Tags</th>
               <th className="px-3 py-2.5">Location</th>
               <th className="px-3 py-2.5">Cost</th>
@@ -95,25 +93,6 @@ export function TableView({
                         event.name.length > 25 ? event.name.slice(0, 25) + '…' : event.name
                       )}
                     </span>
-                  </td>
-
-                  {/* RSVP */}
-                  <td className="px-3 py-2 text-center">
-                    {event.link && (
-                      <a
-                        href={event.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
-                          isLumaLink(event.link)
-                            ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
-                            : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
-                        }`}
-                      >
-                        <Ticket className="w-3 h-3" />
-                        {isLumaLink(event.link) ? 'Luma' : 'RSVP'}
-                      </a>
-                    )}
                   </td>
 
                   {/* Tags */}

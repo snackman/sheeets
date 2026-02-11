@@ -50,16 +50,6 @@ export function normalizeAddress(address: string): string {
   return address.toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
-export function isLumaLink(url: string): boolean {
-  if (!url) return false;
-  try {
-    const hostname = new URL(url).hostname.toLowerCase();
-    return hostname.includes('lu.ma') || hostname.includes('luma.co');
-  } catch {
-    return url.toLowerCase().includes('lu.ma');
-  }
-}
-
 export function formatDateLabel(isoDate: string): string {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
