@@ -97,9 +97,27 @@ export default function ItineraryPage() {
   const [shareStatus, setShareStatus] = useState<'idle' | 'sharing' | 'copied'>('idle');
   const captureRef = useRef<HTMLDivElement>(null);
 
-  const itineraryEvents = useMemo(
+  // Get conferences that have itinerary events
+  const allItineraryEvents = useMemo(
     () => events.filter((e) => itinerary.has(e.id)),
     [events, itinerary]
+  );
+  const conferences = useMemo(
+    () => [...new Set(allItineraryEvents.map((e) => e.conference).filter(Boolean))],
+    [allItineraryEvents]
+  );
+  const [activeConference, setActiveConference] = useState('');
+
+  // Auto-select first conference when data loads
+  useMemo(() => {
+    if (conferences.length > 0 && !activeConference) {
+      setActiveConference(conferences[0]);
+    }
+  }, [conferences, activeConference]);
+
+  const itineraryEvents = useMemo(
+    () => allItineraryEvents.filter((e) => !activeConference || e.conference === activeConference),
+    [allItineraryEvents, activeConference]
   );
 
   const conflicts = useMemo(() => detectConflicts(itineraryEvents), [itineraryEvents]);
@@ -204,6 +222,25 @@ export default function ItineraryPage() {
               </span>
             </h1>
           </div>
+          {/* Conference tabs */}
+          {conferences.length > 1 && (
+            <div className="flex rounded-lg border border-slate-700 overflow-hidden">
+              {conferences.map((conf) => (
+                <button
+                  key={conf}
+                  onClick={() => setActiveConference(conf)}
+                  className={clsx(
+                    'px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
+                    activeConference === conf
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                  )}
+                >
+                  {conf.replace(/ 2026$/, '')}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex items-center gap-1">
             {itineraryEvents.length > 0 && (
               <>

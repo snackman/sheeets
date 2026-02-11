@@ -14,6 +14,7 @@ interface ItineraryPanelProps {
   itinerary: Set<string>;
   onItineraryToggle: (eventId: string) => void;
   onItineraryClear: () => void;
+  activeConference?: string;
 }
 
 interface DateGroup {
@@ -106,15 +107,16 @@ export function ItineraryPanel({
   itinerary,
   onItineraryToggle,
   onItineraryClear,
+  activeConference,
 }: ItineraryPanelProps) {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [exporting, setExporting] = useState(false);
   const captureRef = useRef<HTMLDivElement>(null);
 
-  // Filter to only itinerary events
+  // Filter to only itinerary events for the active conference
   const itineraryEvents = useMemo(
-    () => events.filter((e) => itinerary.has(e.id)),
-    [events, itinerary]
+    () => events.filter((e) => itinerary.has(e.id) && (!activeConference || e.conference === activeConference)),
+    [events, itinerary, activeConference]
   );
 
   // Detect conflicts

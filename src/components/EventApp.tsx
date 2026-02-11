@@ -178,6 +178,7 @@ export function EventApp() {
         itinerary={itinerary}
         onItineraryToggle={toggleItinerary}
         onItineraryClear={clearItinerary}
+        activeConference={filters.conference}
       />
     </div>
   );
