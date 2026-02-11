@@ -151,11 +151,13 @@ export function ItineraryPanel({
     if (!captureRef.current || itineraryEvents.length === 0) return;
     setExporting(true);
     try {
-      const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(captureRef.current, {
+      const mod = await import('html2canvas');
+      const html2canvas = mod.default || mod;
+      const canvas = await (html2canvas as any)(captureRef.current, {
         backgroundColor: '#0f172a',
         scale: 2,
-        onclone: (doc) => {
+        useCORS: true,
+        onclone: (doc: Document) => {
           doc.querySelectorAll('[data-export-hide]').forEach((el) => el.remove());
         },
       });
@@ -164,21 +166,23 @@ export function ItineraryPanel({
       );
       if (!blob) return;
 
-      if (navigator.share && navigator.canShare?.({ files: [new File([blob], 'itinerary.png', { type: 'image/png' })] })) {
-        await navigator.share({
-          files: [new File([blob], 'itinerary.png', { type: 'image/png' })],
-          title: 'My Itinerary',
-        });
+      // Try native share on mobile
+      const file = new File([blob], 'itinerary.png', { type: 'image/png' });
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'My Itinerary' });
       } else {
+        // Download fallback
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = 'itinerary.png';
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('PNG export failed:', err);
     } finally {
       setExporting(false);
     }
