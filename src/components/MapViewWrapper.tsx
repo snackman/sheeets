@@ -29,7 +29,7 @@ export function MapViewWrapper({
   onItineraryToggle,
 }: MapViewWrapperProps) {
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full overflow-hidden">
       <MapView
         events={events}
         onEventSelect={onEventSelect}
