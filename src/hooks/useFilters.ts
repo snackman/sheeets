@@ -14,6 +14,7 @@ const defaultFilters: FilterState = {
   hasBar: false,
   itineraryOnly: false,
   searchQuery: '',
+  nowMode: false,
 };
 
 export function useFilters() {
@@ -67,6 +68,10 @@ export function useFilters() {
     []
   );
 
+  const toggleNowMode = useCallback(() => {
+    setFilters((prev) => ({ ...prev, nowMode: !prev.nowMode }));
+  }, []);
+
   const clearFilters = useCallback(() => setFilters(defaultFilters), []);
 
   const activeFilterCount = useMemo(() => {
@@ -80,6 +85,7 @@ export function useFilters() {
     if (filters.hasBar) count++;
     if (filters.itineraryOnly) count++;
     if (filters.searchQuery) count++;
+    if (filters.nowMode) count++;
     return count;
   }, [filters]);
 
@@ -91,6 +97,7 @@ export function useFilters() {
     toggleVibe,
     setTimeRange,
     toggleBool,
+    toggleNowMode,
     clearFilters,
     activeFilterCount,
   };

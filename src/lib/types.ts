@@ -33,6 +33,7 @@ export interface FilterState {
   hasBar: boolean;
   itineraryOnly: boolean;
   searchQuery: string;
+  nowMode: boolean;
 }
 
 export interface UserState {

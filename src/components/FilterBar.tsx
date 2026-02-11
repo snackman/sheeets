@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import clsx from 'clsx';
-import { X, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { X, SlidersHorizontal, ChevronDown, Zap } from 'lucide-react';
 import type { FilterState } from '@/lib/types';
 import { EVENT_DATES, VIBE_COLORS } from '@/lib/constants';
 import { TAG_ICONS } from './TagBadge';
@@ -14,6 +14,7 @@ interface FilterBarProps {
   onToggleVibe: (vibe: string) => void;
   onSetTimeRange: (start: number, end: number) => void;
   onToggleBool: (key: 'freeOnly' | 'hasFood' | 'hasBar') => void;
+  onToggleNowMode: () => void;
   onClearFilters: () => void;
   activeFilterCount: number;
   availableConferences: string[];
@@ -35,6 +36,7 @@ export function FilterBar({
   onToggleVibe,
   onSetTimeRange,
   onToggleBool,
+  onToggleNowMode,
   onClearFilters,
   activeFilterCount,
   availableConferences,
@@ -80,6 +82,25 @@ export function FilterBar({
             </div>
           )}
 
+          {/* Now toggle button */}
+          <button
+            onClick={onToggleNowMode}
+            className={clsx(
+              'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer',
+              filters.nowMode
+                ? 'bg-green-500 text-white shadow-[0_0_12px_rgba(34,197,94,0.4)]'
+                : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 border border-slate-700'
+            )}
+          >
+            <span className="relative flex items-center">
+              <Zap className="w-4 h-4" />
+              {filters.nowMode && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-300 rounded-full animate-ping" />
+              )}
+            </span>
+            Now
+          </button>
+
           {/* Filter toggle button */}
           <button
             onClick={() => setExpanded(!expanded)}
@@ -104,8 +125,16 @@ export function FilterBar({
         {/* Expandable filter content */}
         {expanded && (
           <div className="space-y-3 pt-1">
+            {/* Now mode notice */}
+            {filters.nowMode && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
+                <Zap className="w-4 h-4 shrink-0" />
+                <span>Showing events happening now or starting within 1 hour. Day and time filters are overridden.</span>
+              </div>
+            )}
+
             {/* Day range slider */}
-            <div>
+            <div className={clsx(filters.nowMode && 'opacity-30 pointer-events-none')}>
               <div className="flex items-center justify-between mb-2">
                 <div className="text-xs uppercase tracking-wider text-slate-400">
                   Days
@@ -168,7 +197,7 @@ export function FilterBar({
                 : `${formatHour(tStart)} — ${formatHour(tEnd)}`;
 
               return (
-                <div>
+                <div className={clsx(filters.nowMode && 'opacity-30 pointer-events-none')}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="text-xs uppercase tracking-wider text-slate-400">
                       Time

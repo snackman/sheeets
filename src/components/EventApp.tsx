@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ViewMode } from '@/lib/types';
 import { useEvents } from '@/hooks/useEvents';
 import { useFilters } from '@/hooks/useFilters';
@@ -25,6 +25,7 @@ export function EventApp() {
     toggleVibe,
     setTimeRange,
     toggleBool,
+    toggleNowMode,
     clearFilters,
     activeFilterCount,
   } = useFilters();
@@ -37,6 +38,16 @@ export function EventApp() {
     clear: clearItinerary,
     count: itineraryCount,
   } = useItinerary();
+
+  // Auto-refresh tick for "Now" mode — bumps every 5 minutes to recalculate filtered events
+  const [nowTick, setNowTick] = useState(0);
+  useEffect(() => {
+    if (!filters.nowMode) return;
+    const interval = setInterval(() => {
+      setNowTick((t) => t + 1);
+    }, 5 * 60 * 1000); // 5 minutes
+    return () => clearInterval(interval);
+  }, [filters.nowMode]);
 
   const availableConferences = useMemo(
     () => [...new Set(events.map((e) => e.conference).filter(Boolean))],
@@ -55,8 +66,9 @@ export function EventApp() {
   );
 
   const filteredEvents = useMemo(
-    () => applyFilters(events, filters, itinerary),
-    [events, filters, itinerary]
+    () => applyFilters(events, filters, itinerary, filters.nowMode ? Date.now() : undefined),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [events, filters, itinerary, nowTick]
   );
 
   if (loading) {
@@ -113,6 +125,7 @@ export function EventApp() {
         onToggleVibe={toggleVibe}
         onSetTimeRange={setTimeRange}
         onToggleBool={toggleBool}
+        onToggleNowMode={toggleNowMode}
         onClearFilters={clearFilters}
         activeFilterCount={activeFilterCount}
         availableConferences={availableConferences}
