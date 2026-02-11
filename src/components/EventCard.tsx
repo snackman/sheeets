@@ -24,110 +24,97 @@ export function EventCard({
     : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 hover:bg-slate-750 hover:border-slate-600 transition-colors group">
-      {/* Top row: Star, Name */}
-      <div className="flex items-start gap-2">
-        {/* Star button (toggles itinerary) */}
-        {onItineraryToggle ? (
-          <StarButton
-            eventId={event.id}
-            isStarred={isInItinerary}
-            onToggle={onItineraryToggle}
-          />
-        ) : (
-          <div className="w-5 shrink-0" />
-        )}
-
-        {/* Event name (links to RSVP if available) */}
-        <h3 className="flex-1 font-semibold text-white text-sm sm:text-base leading-tight min-w-0">
-          {event.link ? (
-            <a
-              href={event.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-orange-400 transition-colors inline-flex items-center gap-1"
-            >
-              {event.name}
-              <ExternalLink className="w-3 h-3 text-slate-500 flex-shrink-0" />
-            </a>
+    <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 hover:bg-slate-750 hover:border-slate-600 transition-colors group flex gap-4">
+      {/* Left: event details */}
+      <div className="flex-1 min-w-0">
+        {/* Top row: Star, Name */}
+        <div className="flex items-start gap-2">
+          {onItineraryToggle ? (
+            <StarButton
+              eventId={event.id}
+              isStarred={isInItinerary}
+              onToggle={onItineraryToggle}
+            />
           ) : (
-            event.name
+            <div className="w-5 shrink-0" />
           )}
-        </h3>
-      </div>
 
-      {/* Organizer */}
-      {event.organizer && (
-        <p className="text-slate-500 text-xs mt-1 ml-7">By {event.organizer}</p>
-      )}
+          <h3 className="flex-1 font-semibold text-white text-sm sm:text-base leading-tight min-w-0">
+            {event.link ? (
+              <a
+                href={event.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-orange-400 transition-colors inline-flex items-center gap-1"
+              >
+                {event.name}
+                <ExternalLink className="w-3 h-3 text-slate-500 flex-shrink-0" />
+              </a>
+            ) : (
+              event.name
+            )}
+          </h3>
+        </div>
 
-      {/* Date + Time */}
-      <p className="text-slate-400 text-sm mt-1 ml-7">
-        {event.date} · {timeDisplay}
-      </p>
+        {/* Organizer */}
+        {event.organizer && (
+          <p className="text-slate-500 text-xs mt-1 ml-7">By {event.organizer}</p>
+        )}
 
-      {/* Address */}
-      {event.address && (
-        <p className="text-slate-500 text-sm mt-1 flex items-start gap-1">
-          <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-          <span className="truncate">{event.address}</span>
+        {/* Date + Time */}
+        <p className="text-slate-400 text-sm mt-1 ml-7">
+          {event.date} · {timeDisplay}
         </p>
-      )}
 
-      {/* Badges row */}
-      <div className="flex flex-wrap items-center gap-1.5 mt-3">
-        {/* Vibe badge */}
-        {event.vibe && (
-          <span
-            className="px-2 py-0.5 rounded-full text-xs font-medium text-white"
-            style={{ backgroundColor: vibeColor }}
-          >
-            {event.vibe}
-          </span>
+        {/* Address */}
+        {event.address && (
+          <p className="text-slate-500 text-sm mt-1 flex items-start gap-1">
+            <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+            <span className="truncate">{event.address}</span>
+          </p>
         )}
 
-        {/* Cost badge */}
-        {event.isFree ? (
-          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400">
-            FREE
-          </span>
-        ) : event.cost ? (
-          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400">
-            {event.cost}
-          </span>
-        ) : null}
+        {/* Badges row */}
+        <div className="flex flex-wrap items-center gap-1.5 mt-3">
+          {event.vibe && (
+            <span
+              className="px-2 py-0.5 rounded-full text-xs font-medium text-white"
+              style={{ backgroundColor: vibeColor }}
+            >
+              {event.vibe}
+            </span>
+          )}
 
-        {/* Food icon */}
-        {event.hasFood && (
-          <span
-            className="text-sm"
-            role="img"
-            aria-label="Food available"
-            title="Food available"
-          >
-            🍕
-          </span>
-        )}
+          {event.isFree ? (
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400">
+              FREE
+            </span>
+          ) : event.cost ? (
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400">
+              {event.cost}
+            </span>
+          ) : null}
 
-        {/* Bar icon */}
-        {event.hasBar && (
-          <span
-            className="text-sm"
-            role="img"
-            aria-label="Bar available"
-            title="Bar available"
-          >
-            🍺
-          </span>
+          {event.hasFood && (
+            <span className="text-sm" role="img" aria-label="Food available" title="Food available">
+              🍕
+            </span>
+          )}
+
+          {event.hasBar && (
+            <span className="text-sm" role="img" aria-label="Bar available" title="Bar available">
+              🍺
+            </span>
+          )}
+        </div>
+
+        {/* Note */}
+        {event.note && (
+          <p className="text-slate-600 text-xs mt-1 italic">{event.note}</p>
         )}
       </div>
 
-      {/* Note */}
-      {event.note && (
-        <p className="text-slate-600 text-xs mt-1 italic">{event.note}</p>
-      )}
-
-      {/* OG Image preview */}
+      {/* Right: cover image */}
       {event.link && <OGImage url={event.link} />}
     </div>
   );
