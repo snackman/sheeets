@@ -13,7 +13,6 @@ import { TableView } from './TableView';
 import { MapViewWrapper } from './MapViewWrapper';
 import { SearchBar } from './SearchBar';
 import { Loading } from './Loading';
-import { ItineraryPanel } from './ItineraryPanel';
 
 export function EventApp() {
   const { events, loading, error } = useEvents();
@@ -30,12 +29,10 @@ export function EventApp() {
     activeFilterCount,
   } = useFilters();
   const [viewMode, setViewMode] = useState<ViewMode>('table');
-  const [showItinerary, setShowItinerary] = useState(false);
 
   const {
     itinerary,
     toggle: toggleItinerary,
-    clear: clearItinerary,
     count: itineraryCount,
   } = useItinerary();
 
@@ -78,7 +75,8 @@ export function EventApp() {
           viewMode={viewMode}
           onViewChange={setViewMode}
           itineraryCount={0}
-          onItineraryOpen={() => setShowItinerary(true)}
+          onItineraryToggle={() => toggleBool('itineraryOnly')}
+          isItineraryActive={filters.itineraryOnly}
         />
         <Loading />
       </div>
@@ -92,7 +90,8 @@ export function EventApp() {
           viewMode={viewMode}
           onViewChange={setViewMode}
           itineraryCount={0}
-          onItineraryOpen={() => setShowItinerary(true)}
+          onItineraryToggle={() => toggleBool('itineraryOnly')}
+          isItineraryActive={filters.itineraryOnly}
         />
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-4">
           <div className="text-red-400 text-lg font-medium">Failed to load events</div>
@@ -114,7 +113,8 @@ export function EventApp() {
         viewMode={viewMode}
         onViewChange={setViewMode}
         itineraryCount={itineraryCount}
-        onItineraryOpen={() => setShowItinerary(true)}
+        onItineraryToggle={() => toggleBool('itineraryOnly')}
+        isItineraryActive={filters.itineraryOnly}
       />
 
       {/* Filter bar */}
@@ -170,16 +170,6 @@ export function EventApp() {
         </main>
       )}
 
-      {/* Itinerary panel */}
-      <ItineraryPanel
-        isOpen={showItinerary}
-        onClose={() => setShowItinerary(false)}
-        events={events}
-        itinerary={itinerary}
-        onItineraryToggle={toggleItinerary}
-        onItineraryClear={clearItinerary}
-        activeConference={filters.conference}
-      />
     </div>
   );
 }
