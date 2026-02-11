@@ -76,7 +76,6 @@ export function useFilters() {
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (filters.conference) count++;
     if (filters.selectedDays.length > 0) count++;
     if (filters.timeStart !== 0 || filters.timeEnd !== 24) count++;
     if (filters.vibes.length > 0) count++;

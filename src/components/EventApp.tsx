@@ -5,6 +5,7 @@ import { ViewMode } from '@/lib/types';
 import { useEvents } from '@/hooks/useEvents';
 import { useFilters } from '@/hooks/useFilters';
 import { applyFilters } from '@/lib/filters';
+import { TYPE_TAGS } from '@/lib/constants';
 import { useItinerary } from '@/hooks/useItinerary';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
@@ -51,15 +52,30 @@ export function EventApp() {
     [events]
   );
 
+  const availableTypes = useMemo(
+    () =>
+      [...new Set(events.flatMap((e) => e.tags).filter(Boolean))]
+        .filter((t) => TYPE_TAGS.includes(t))
+        .sort(),
+    [events]
+  );
+
   const availableVibes = useMemo(
     () =>
-      [...new Set(events.flatMap((e) => e.tags).filter(Boolean))].sort(),
+      [...new Set(events.flatMap((e) => e.tags).filter(Boolean))]
+        .filter((t) => !TYPE_TAGS.includes(t))
+        .sort(),
     [events]
   );
 
   const conferenceEventCount = useMemo(
     () => events.filter((e) => !filters.conference || e.conference === filters.conference).length,
     [events, filters.conference]
+  );
+
+  const conferenceItineraryCount = useMemo(
+    () => events.filter((e) => itinerary.has(e.id) && (!filters.conference || e.conference === filters.conference)).length,
+    [events, itinerary, filters.conference]
   );
 
   const filteredEvents = useMemo(
@@ -112,7 +128,7 @@ export function EventApp() {
       <Header
         viewMode={viewMode}
         onViewChange={setViewMode}
-        itineraryCount={itineraryCount}
+        itineraryCount={conferenceItineraryCount}
         onItineraryToggle={() => toggleBool('itineraryOnly')}
         isItineraryActive={filters.itineraryOnly}
       />
@@ -129,6 +145,7 @@ export function EventApp() {
         onClearFilters={clearFilters}
         activeFilterCount={activeFilterCount}
         availableConferences={availableConferences}
+        availableTypes={availableTypes}
         availableVibes={availableVibes}
       />
 

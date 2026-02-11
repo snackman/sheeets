@@ -8,7 +8,7 @@ export default defineConfig({
     headless: true,
     viewport: { width: 1280, height: 720 },
     actionTimeout: 10_000,
-    baseURL: 'http://localhost:3099',
+    baseURL: process.env.TEST_URL || 'https://sheeets.vercel.app',
   },
-  reporter: [['list']],
+  reporter: 'list',
 });

@@ -43,6 +43,20 @@ export const VIBE_COLORS: Record<string, string> = {
   'default': '#6B7280',
 };
 
+/** Tags that describe event format/type (vs topic/interest tags) */
+export const TYPE_TAGS = [
+  'Conference',
+  'Panel/Talk',
+  'Hackathon',
+  'Networking',
+  'Workshop',
+  'Party',
+  'Brunch',
+  'Bar/Pub',
+  'Meetup',
+  'Demo Day',
+];
+
 export const STORAGE_KEYS = {
   ITINERARY: 'sheeets-itinerary',
   ITINERARY_UPDATED: 'sheeets-itinerary-updated',

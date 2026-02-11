@@ -18,6 +18,7 @@ interface FilterBarProps {
   onClearFilters: () => void;
   activeFilterCount: number;
   availableConferences: string[];
+  availableTypes: string[];
   availableVibes: string[];
 }
 
@@ -40,6 +41,7 @@ export function FilterBar({
   onClearFilters,
   activeFilterCount,
   availableConferences,
+  availableTypes,
   availableVibes,
 }: FilterBarProps) {
   const [expanded, setExpanded] = useState(false);
@@ -242,7 +244,74 @@ export function FilterBar({
               );
             })()}
 
-            {/* Tags */}
+            {/* Types (event format) + quick filters */}
+            {(availableTypes.length > 0 || true) && (
+              <div>
+                <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">
+                  Types
+                </div>
+                <div className="overflow-x-auto flex gap-2 pb-1">
+                  {availableTypes.map((vibe) => {
+                    const isActive = filters.vibes.includes(vibe);
+                    const vibeColor =
+                      VIBE_COLORS[vibe] || VIBE_COLORS['default'];
+                    const Icon = TAG_ICONS[vibe];
+                    return (
+                      <button
+                        key={vibe}
+                        onClick={() => onToggleVibe(vibe)}
+                        className={clsx(
+                          'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
+                          isActive
+                            ? 'text-white'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        )}
+                        style={isActive ? { backgroundColor: vibeColor } : undefined}
+                      >
+                        {Icon && <Icon className="w-3.5 h-3.5" />}
+                        {vibe}
+                      </button>
+                    );
+                  })}
+                  <span className="w-px bg-slate-700 shrink-0 self-stretch" />
+                  <button
+                    onClick={() => onToggleBool('freeOnly')}
+                    className={clsx(
+                      'shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
+                      filters.freeOnly
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    )}
+                  >
+                    FREE
+                  </button>
+                  <button
+                    onClick={() => onToggleBool('hasFood')}
+                    className={clsx(
+                      'shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
+                      filters.hasFood
+                        ? 'bg-amber-500 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    )}
+                  >
+                    🍕 Food
+                  </button>
+                  <button
+                    onClick={() => onToggleBool('hasBar')}
+                    className={clsx(
+                      'shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
+                      filters.hasBar
+                        ? 'bg-amber-500 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    )}
+                  >
+                    🍺 Bar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Tags (topics/interests) */}
             {availableVibes.length > 0 && (
               <div>
                 <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">
@@ -275,57 +344,18 @@ export function FilterBar({
               </div>
             )}
 
-            {/* Quick filters + clear */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => onToggleBool('freeOnly')}
-                className={clsx(
-                  'px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
-                  filters.freeOnly
-                    ? 'bg-emerald-500 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                )}
-              >
-                FREE
-              </button>
-              <button
-                onClick={() => onToggleBool('hasFood')}
-                className={clsx(
-                  'px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
-                  filters.hasFood
-                    ? 'bg-amber-500 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                )}
-              >
-                <span role="img" aria-label="Food">
-                  🍕
-                </span>{' '}
-                Food
-              </button>
-              <button
-                onClick={() => onToggleBool('hasBar')}
-                className={clsx(
-                  'px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
-                  filters.hasBar
-                    ? 'bg-amber-500 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                )}
-              >
-                <span role="img" aria-label="Bar">
-                  🍺
-                </span>{' '}
-                Bar
-              </button>
-              {activeFilterCount > 0 && (
+            {/* Clear all */}
+            {activeFilterCount > 0 && (
+              <div className="flex items-center">
                 <button
                   onClick={onClearFilters}
-                  className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ml-1"
+                  className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                   Clear all
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
       </div>
