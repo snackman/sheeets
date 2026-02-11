@@ -40,24 +40,22 @@ function SingleEventContent({
     : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
 
   return (
-    <div className="min-w-[240px] max-w-[300px]">
-      <div className="flex items-start justify-between gap-2 mb-1">
-        <h3 className="font-bold text-sm text-white leading-tight">
+    <div className="w-[280px] max-w-[calc(100vw-3rem)]">
+      {/* Row 1: Event name + close button */}
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <h3 className="font-bold text-sm text-white leading-tight line-clamp-2">
           {event.name}
         </h3>
         <button
           onClick={onClose}
-          className="shrink-0 p-0.5 text-slate-400 hover:text-white transition-colors"
+          className="shrink-0 p-1.5 text-slate-400 hover:text-white active:text-white transition-colors"
           aria-label="Close popup"
         >
-          <X size={14} />
+          <X size={16} />
         </button>
       </div>
 
-      <p className="text-xs text-slate-300 mb-1.5">
-        {event.date} &middot; {timeDisplay}
-      </p>
-
+      {/* Row 2: Vibe tag + cost + food/bar indicators */}
       <div className="flex items-center gap-1.5 mb-1.5">
         <span
           className="px-1.5 py-0.5 rounded text-[10px] font-semibold text-white"
@@ -68,21 +66,28 @@ function SingleEventContent({
         <span className="text-xs text-slate-400">
           {event.isFree ? 'Free' : event.cost || 'Paid'}
         </span>
-        {event.hasFood && <span className="text-xs" title="Food available">F</span>}
-        {event.hasBar && <span className="text-xs" title="Bar available">B</span>}
+        {event.hasFood && <span className="text-xs" title="Food available">🍕</span>}
+        {event.hasBar && <span className="text-xs" title="Bar available">🍺</span>}
       </div>
 
+      {/* Row 3: Date + time */}
+      <p className="text-xs text-slate-300 mb-1.5">
+        {event.date} &middot; {timeDisplay}
+      </p>
+
+      {/* Row 4: Organizer */}
       {event.organizer && (
-        <p className="text-xs text-slate-400 mb-2">By: {event.organizer}</p>
+        <p className="text-xs text-slate-500 mb-2">By {event.organizer}</p>
       )}
 
-      <div className="flex items-center gap-1.5">
+      {/* Row 5: Action row — RSVP + star */}
+      <div className="flex items-center gap-2">
         {event.link && (
           <a
             href={event.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 px-2 py-1 bg-orange-500 hover:bg-orange-600 text-white text-xs font-medium rounded transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white text-xs font-medium rounded transition-colors"
           >
             RSVP <ExternalLink size={10} />
           </a>
@@ -92,7 +97,7 @@ function SingleEventContent({
             eventId={event.id}
             isStarred={isInItinerary}
             onToggle={onItineraryToggle}
-            size="sm"
+            size="md"
           />
         )}
       </div>
@@ -147,27 +152,27 @@ export function MultiEventPopup({
       offset={16}
       className="map-popup"
     >
-      <div className="min-w-[260px] max-w-[320px]">
+      <div className="w-[280px] max-w-[calc(100vw-3rem)]">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-bold text-sm text-white">
             {events.length} events at this location
           </h3>
           <button
             onClick={onClose}
-            className="shrink-0 p-0.5 text-slate-400 hover:text-white transition-colors"
+            className="shrink-0 p-1.5 text-slate-400 hover:text-white active:text-white transition-colors"
             aria-label="Close popup"
           >
-            <X size={14} />
+            <X size={16} />
           </button>
         </div>
-        <div className="max-h-[200px] overflow-y-auto space-y-1.5 pr-1">
+        <div className="max-h-[240px] overflow-y-auto space-y-1.5 pr-1">
           {events.map((event) => {
             const vibeColor =
               VIBE_COLORS[event.vibe] || VIBE_COLORS['default'];
             return (
               <button
                 key={event.id}
-                className="w-full text-left p-2 bg-slate-700/50 hover:bg-slate-600/50 rounded transition-colors"
+                className="w-full text-left p-2.5 bg-slate-700/50 hover:bg-slate-600/50 active:bg-slate-600/50 rounded transition-colors"
                 onClick={() => onSelectEvent?.(event)}
               >
                 <p className="text-xs font-semibold text-white leading-tight truncate">
