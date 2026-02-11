@@ -8,9 +8,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "ETHDenver 2025 Side Events",
+  title: "sheeets.xyz",
   description:
-    "Browse and discover ETHDenver 2025 side events. Filter by date, vibe, cost, and more. Built by PizzaDAO.",
+    "Browse and discover crypto conference side events. Filter by date, time, tags, and more. Built by PizzaDAO.",
 };
 
 export default function RootLayout({
