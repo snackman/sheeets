@@ -4,6 +4,7 @@ import { MapPin, ExternalLink } from 'lucide-react';
 import { ETHDenverEvent } from '@/lib/types';
 import { VIBE_COLORS } from '@/lib/constants';
 import { StarButton } from './StarButton';
+import { OGImage } from './OGImage';
 
 interface EventCardProps {
   event: ETHDenverEvent;
@@ -125,6 +126,9 @@ export function EventCard({
       {event.note && (
         <p className="text-slate-600 text-xs mt-1 italic">{event.note}</p>
       )}
+
+      {/* OG Image preview */}
+      {event.link && <OGImage url={event.link} />}
     </div>
   );
 }
