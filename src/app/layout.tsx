@@ -10,7 +10,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "sheeets.xyz",
   description:
-    "Browse and discover crypto conference side events. Filter by date, time, tags, and more. Built by PizzaDAO.",
+    "Browse and discover crypto conference side events. Filter by date, time, tags, and more.",
 };
 
 export default function RootLayout({

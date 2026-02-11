@@ -26,9 +26,9 @@ export function TableView({
       <div className="text-sm text-slate-400 mb-3">
         Showing {events.length} of {totalCount} events
       </div>
-      <div className="overflow-x-scroll rounded-lg border border-slate-700">
+      <div className="overflow-auto rounded-lg border border-slate-700" style={{ maxHeight: 'calc(100vh - 220px)' }}>
         <table className="min-w-[900px] text-sm text-left">
-          <thead className="text-xs uppercase tracking-wider text-slate-400 bg-slate-800 border-b border-slate-700">
+          <thead className="text-xs uppercase tracking-wider text-slate-400 bg-slate-800 border-b border-slate-700 sticky top-0 z-10">
             <tr>
               <th className="px-3 py-2.5 w-8"></th>
               <th className="px-3 py-2.5">Date</th>
