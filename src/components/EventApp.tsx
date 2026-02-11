@@ -62,6 +62,11 @@ export function EventApp() {
     [events, filters.conference]
   );
 
+  const conferenceItineraryCount = useMemo(
+    () => events.filter((e) => itinerary.has(e.id) && (!filters.conference || e.conference === filters.conference)).length,
+    [events, itinerary, filters.conference]
+  );
+
   const filteredEvents = useMemo(
     () => applyFilters(events, filters, itinerary, filters.nowMode ? Date.now() : undefined),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -112,7 +117,7 @@ export function EventApp() {
       <Header
         viewMode={viewMode}
         onViewChange={setViewMode}
-        itineraryCount={itineraryCount}
+        itineraryCount={conferenceItineraryCount}
         onItineraryToggle={() => toggleBool('itineraryOnly')}
         isItineraryActive={filters.itineraryOnly}
       />
