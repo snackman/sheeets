@@ -144,6 +144,14 @@ export function useItinerary() {
     [itinerary]
   );
 
+  const addMany = useCallback((eventIds: string[]) => {
+    setItinerary((prev) => {
+      const next = new Set(prev);
+      for (const id of eventIds) next.add(id);
+      return next;
+    });
+  }, []);
+
   const clear = useCallback(() => {
     setItinerary(new Set());
   }, []);
@@ -151,6 +159,7 @@ export function useItinerary() {
   return {
     itinerary,
     add,
+    addMany,
     remove,
     toggle,
     isInItinerary,
