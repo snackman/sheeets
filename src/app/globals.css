@@ -47,6 +47,11 @@ body {
   background-color: #283548;
 }
 
+/* Ensure popup stays within map bounds */
+.mapboxgl-popup {
+  max-width: calc(100vw - 1rem) !important;
+}
+
 /* Mapbox popup overrides for dark theme */
 .map-popup .mapboxgl-popup-content {
   background-color: #1e293b;
@@ -54,6 +59,7 @@ body {
   border-radius: 8px;
   padding: 12px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  max-width: calc(100vw - 2rem);
 }
 
 .map-popup .mapboxgl-popup-tip {
