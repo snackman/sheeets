@@ -78,12 +78,12 @@ export function ListView({
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 pb-8">
+    <div className="max-w-3xl mx-auto px-2 sm:px-4 pb-8">
       {/* Date groups */}
       {dateGroups.map((group) => (
         <section key={group.dateISO} className="mb-6">
           {/* Sticky date header */}
-          <div className="sticky top-[56px] z-20 bg-slate-900 py-2 -mx-4 px-4 border-b border-slate-800">
+          <div className="sticky top-[56px] z-20 bg-slate-900 py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-slate-800">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-white">
                 {group.label}
