@@ -221,7 +221,7 @@ function DateGroup({
       {/* Date separator row */}
       <tr
         ref={(el) => setSeparatorRef(group.dateISO, el)}
-        className="bg-slate-800/80 sticky top-[37px] z-10"
+        className="bg-slate-800/80"
         data-date={group.dateISO}
       >
         <td
