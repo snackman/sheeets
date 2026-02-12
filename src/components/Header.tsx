@@ -48,7 +48,7 @@ export function Header({
               ) : (
                 <button
                   onClick={() => setShowAuth(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors text-sm cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700 transition-colors text-sm cursor-pointer"
                 >
                   <User className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Sign in</span>
@@ -63,8 +63,8 @@ export function Header({
               onClick={onItineraryToggle}
               className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm cursor-pointer transition-colors ${
                 isItineraryActive
-                  ? 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600'
-                  : 'border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                  ? 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600 active:bg-orange-600'
+                  : 'border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700'
               }`}
               aria-label={`Itinerary: ${itineraryCount} events`}
             >

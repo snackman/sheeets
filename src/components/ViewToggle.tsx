@@ -26,7 +26,7 @@ export function ViewToggle({ viewMode, onViewChange }: ViewToggleProps) {
             'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer',
             viewMode === mode
               ? 'bg-orange-500 text-white'
-              : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+              : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700'
           )}
           aria-label={`${label} view`}
         >

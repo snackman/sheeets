@@ -26,10 +26,10 @@ export function StarButton({
       }}
       className={clsx(
         'shrink-0 transition-colors cursor-pointer',
-        size === 'sm' ? 'p-0.5' : 'mt-0.5',
+        size === 'sm' ? 'p-1.5' : 'p-1',
         isStarred
           ? 'text-yellow-400'
-          : 'text-slate-600 hover:text-yellow-400/60'
+          : 'text-slate-600 hover:text-yellow-400/60 active:text-yellow-400/60'
       )}
       aria-label={isStarred ? 'Remove star' : 'Add star'}
       title={isStarred ? 'Remove star' : 'Star this event'}
