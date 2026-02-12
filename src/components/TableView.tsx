@@ -174,8 +174,8 @@ export function TableView({
                 {currentDateLabel === 'Time' ? (
                   'TIME'
                 ) : (
-                  <span className="normal-case tracking-normal text-orange-400/90 font-semibold">
-                    {currentDateLabel}
+                  <span className="text-orange-400/80 font-semibold">
+                    {currentDateLabel.toUpperCase()}
                   </span>
                 )}
               </th>
