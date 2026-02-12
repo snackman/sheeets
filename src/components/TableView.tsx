@@ -53,13 +53,9 @@ export function TableView({
 
   const groups = useMemo(() => groupByDate(events), [events]);
 
-  // Set initial date label from first group
+  // Reset to "Time" when groups change (e.g. filter change)
   useEffect(() => {
-    if (groups.length > 0) {
-      setCurrentDateLabel(groups[0].label);
-    } else {
-      setCurrentDateLabel('Time');
-    }
+    setCurrentDateLabel('Time');
   }, [groups]);
 
   // Track which date separator is at/near the top using IntersectionObserver
@@ -99,9 +95,9 @@ export function TableView({
 
         if (currentDate) {
           setCurrentDateLabel(formatDateHeader(currentDate));
-        } else if (separators.length > 0) {
-          // All separators are below threshold - show the first group
-          setCurrentDateLabel(formatDateHeader(separators[0].dateISO));
+        } else {
+          // No separator has scrolled past the header yet
+          setCurrentDateLabel('Time');
         }
       },
       {
@@ -145,8 +141,8 @@ export function TableView({
 
     if (currentDate) {
       setCurrentDateLabel(formatDateHeader(currentDate));
-    } else if (separators.length > 0) {
-      setCurrentDateLabel(formatDateHeader(separators[0].dateISO));
+    } else {
+      setCurrentDateLabel('Time');
     }
   }, [groups]);
 
