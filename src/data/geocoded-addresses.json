@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-11T05:27:44.147Z",
+  "generatedAt": "2026-02-12T05:25:15.988Z",
   "addresses": {
     "header highlight - $500": {
       "lat": 40.084736,
@@ -685,6 +685,26 @@
       "lat": 39.741681,
       "lng": -104.986109,
       "matchedAddress": "Denver, Colorado, United States"
+    },
+    "1675 larimer st denver, co 80202, usa": {
+      "lat": 39.750115,
+      "lng": -104.996651,
+      "matchedAddress": "1675 Larimer Street, Denver, Colorado 80202, United States"
+    },
+    "bierstadt lagerhaus 2875 blake st, denver, co 80205, usa": {
+      "lat": 39.762785,
+      "lng": -104.984006,
+      "matchedAddress": "2875 Blake Street, Denver, Colorado 80205, United States"
+    },
+    "craftissimo sheung wan shop d, g/f, tai ping building, 22-24a tai ping shan st, sheung wan, hong kong": {
+      "lat": 22.28394,
+      "lng": 114.15050,
+      "matchedAddress": "22-24A Tai Ping Shan St, Sheung Wan, Hong Kong"
+    },
+    "arcadia restaurant & bar hong kong, causeway bay, tang lung st, 1號, midtown soundwill plaza ii, midtown 30樓": {
+      "lat": 22.28024,
+      "lng": 114.18371,
+      "matchedAddress": "1 Tang Lung St, Causeway Bay, Hong Kong"
     }
   }
 }
