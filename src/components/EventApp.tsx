@@ -114,7 +114,7 @@ export function EventApp() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900">
+      <div className="min-h-screen bg-white dark:bg-slate-900">
         <Header
           viewMode={viewMode}
           onViewChange={setViewMode}
@@ -129,7 +129,7 @@ export function EventApp() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-900">
+      <div className="min-h-screen bg-white dark:bg-slate-900">
         <Header
           viewMode={viewMode}
           onViewChange={setViewMode}
@@ -139,7 +139,7 @@ export function EventApp() {
         />
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-4">
           <div className="text-red-400 text-lg font-medium">Failed to load events</div>
-          <p className="text-slate-500 text-sm text-center max-w-md">{error}</p>
+          <p className="text-gray-400 dark:text-slate-500 text-sm text-center max-w-md">{error}</p>
           <button
             onClick={() => window.location.reload()}
             className="mt-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 active:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
@@ -152,7 +152,7 @@ export function EventApp() {
   }
 
   return (
-    <div className={viewMode === 'map' ? 'h-dvh flex flex-col bg-slate-900' : 'min-h-screen bg-slate-900'}>
+    <div className={viewMode === 'map' ? 'h-dvh flex flex-col bg-white dark:bg-slate-900' : 'min-h-screen bg-white dark:bg-slate-900'}>
       <Header
         viewMode={viewMode}
         onViewChange={setViewMode}

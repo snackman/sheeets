@@ -12,8 +12,8 @@ const MapView = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full bg-slate-900 flex items-center justify-center">
-        <div className="text-slate-400">Loading map...</div>
+      <div className="w-full h-full bg-gray-100 dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-gray-500 dark:text-slate-400">Loading map...</div>
       </div>
     ),
   }
@@ -58,7 +58,7 @@ export function MapViewWrapper({
         <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-col pointer-events-none">
           {/* Scrollable event list */}
           {drawerOpen && (
-            <div className="pointer-events-auto bg-slate-900/95 backdrop-blur-sm border-t border-slate-700 max-h-[45vh] overflow-y-auto">
+            <div className="pointer-events-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-t border-gray-200 dark:border-slate-700 max-h-[45vh] overflow-y-auto">
               <div className="max-w-3xl mx-auto px-3 py-2 space-y-1.5">
                 {noLocationEvents.map((event) => {
                   const vibeColor = VIBE_COLORS[event.vibe] || VIBE_COLORS['default'];
@@ -68,7 +68,7 @@ export function MapViewWrapper({
                   return (
                     <div
                       key={event.id}
-                      className="flex items-center gap-2 px-3 py-2 bg-slate-800/80 rounded-lg"
+                      className="flex items-center gap-2 px-3 py-2 bg-gray-50/80 dark:bg-slate-800/80 rounded-lg"
                     >
                       {onItineraryToggle && (
                         <StarButton
@@ -86,13 +86,13 @@ export function MapViewWrapper({
                           >
                             {event.vibe || 'Event'}
                           </span>
-                          <span className="text-[11px] text-slate-400 shrink-0">{event.date} {timeDisplay}</span>
+                          <span className="text-[11px] text-gray-500 dark:text-slate-400 shrink-0">{event.date} {timeDisplay}</span>
                         </div>
-                        <p className="text-sm text-white font-medium truncate mt-0.5">
+                        <p className="text-sm text-gray-900 dark:text-white font-medium truncate mt-0.5">
                           {event.name}
                         </p>
                         {event.organizer && (
-                          <p className="text-[11px] text-slate-500 truncate">
+                          <p className="text-[11px] text-gray-400 dark:text-slate-500 truncate">
                             {event.organizer}
                           </p>
                         )}
@@ -118,7 +118,7 @@ export function MapViewWrapper({
           {/* Toggle tab */}
           <button
             onClick={() => setDrawerOpen(!drawerOpen)}
-            className="pointer-events-auto self-center mb-2 flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/90 backdrop-blur-sm border border-slate-600 rounded-full text-xs text-slate-300 hover:text-white hover:bg-slate-700 active:bg-slate-700 transition-colors cursor-pointer shadow-lg"
+            className="pointer-events-auto self-center mb-2 flex items-center gap-1.5 px-3 py-1.5 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border border-gray-300 dark:border-slate-600 rounded-full text-xs text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700 active:bg-gray-100 dark:active:bg-slate-700 transition-colors cursor-pointer shadow-lg"
           >
             <MapPinOff className="w-3.5 h-3.5" />
             {count} without location

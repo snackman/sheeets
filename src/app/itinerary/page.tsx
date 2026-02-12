@@ -8,6 +8,7 @@ import clsx from 'clsx';
 import { useEvents } from '@/hooks/useEvents';
 import { useItinerary } from '@/hooks/useItinerary';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import { VIBE_COLORS } from '@/lib/constants';
 import { formatDateLabel } from '@/lib/utils';
@@ -21,8 +22,8 @@ const MapView = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full bg-slate-900 flex items-center justify-center">
-        <div className="text-slate-400">Loading map...</div>
+      <div className="w-full h-full bg-gray-100 dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-gray-500 dark:text-slate-400">Loading map...</div>
       </div>
     ),
   }
@@ -91,6 +92,7 @@ export default function ItineraryPage() {
   const { events, loading } = useEvents();
   const { itinerary, toggle: toggleItinerary, clear: clearItinerary } = useItinerary();
   const { user } = useAuth();
+  const { theme } = useTheme();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [viewMode, setViewMode] = useState<ItineraryViewMode>('list');
@@ -145,7 +147,7 @@ export default function ItineraryPage() {
       const { toBlob } = await import('html-to-image');
       const hideEls = captureRef.current.querySelectorAll('[data-export-hide]');
       hideEls.forEach((el) => ((el as HTMLElement).style.display = 'none'));
-      const blob = await toBlob(captureRef.current, { backgroundColor: '#0f172a', pixelRatio: 2 });
+      const blob = await toBlob(captureRef.current, { backgroundColor: theme === 'dark' ? '#0f172a' : '#FFFFFF', pixelRatio: 2 });
       hideEls.forEach((el) => ((el as HTMLElement).style.display = ''));
       if (!blob) return;
       const file = new File([blob], 'itinerary.png', { type: 'image/png' });
@@ -166,7 +168,7 @@ export default function ItineraryPage() {
     } finally {
       setExporting(false);
     }
-  }, [itineraryEvents.length]);
+  }, [itineraryEvents.length, theme]);
 
   const handleShareLink = useCallback(async () => {
     if (itineraryEvents.length === 0) return;
@@ -196,35 +198,35 @@ export default function ItineraryPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900">
+      <div className="min-h-screen bg-white dark:bg-slate-900">
         <Loading />
       </div>
     );
   }
 
   return (
-    <div className={viewMode === 'map' ? 'h-screen flex flex-col bg-slate-900' : 'min-h-screen bg-slate-900'}>
+    <div className={viewMode === 'map' ? 'h-screen flex flex-col bg-white dark:bg-slate-900' : 'min-h-screen bg-white dark:bg-slate-900'}>
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800">
+      <header className="sticky top-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-slate-800">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="p-1.5 text-slate-400 hover:text-white transition-colors"
+              className="p-1.5 text-gray-400 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors"
               aria-label="Back to events"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <h1 className="text-lg font-bold text-white">
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white">
               My Itinerary{' '}
-              <span className="text-sm font-normal text-slate-400">
+              <span className="text-sm font-normal text-gray-500 dark:text-slate-400">
                 ({itineraryEvents.length} event{itineraryEvents.length !== 1 ? 's' : ''})
               </span>
             </h1>
           </div>
           {/* Conference tabs */}
           {conferences.length > 1 && (
-            <div className="flex rounded-lg border border-slate-700 overflow-hidden">
+            <div className="flex rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
               {conferences.map((conf) => (
                 <button
                   key={conf}
@@ -233,7 +235,7 @@ export default function ItineraryPage() {
                     'px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
                     activeConference === conf
                       ? 'bg-orange-500 text-white'
-                      : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                      : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700'
                   )}
                 >
                   {conf.replace(/ 2026$/, '')}
@@ -245,7 +247,7 @@ export default function ItineraryPage() {
             {itineraryEvents.length > 0 && (
               <>
                 {/* View toggle */}
-                <div className="flex rounded-lg border border-slate-700 overflow-hidden mr-1">
+                <div className="flex rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden mr-1">
                   {([
                     { mode: 'list' as const, icon: List, label: 'List' },
                     { mode: 'map' as const, icon: MapIcon, label: 'Map' },
@@ -257,7 +259,7 @@ export default function ItineraryPage() {
                         'flex items-center gap-1 px-2 py-1 text-xs font-medium transition-colors cursor-pointer',
                         viewMode === mode
                           ? 'bg-orange-500 text-white'
-                          : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                          : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700'
                       )}
                       aria-label={`${label} view`}
                     >
@@ -269,7 +271,7 @@ export default function ItineraryPage() {
 
                 <button
                   onClick={() => downloadICS(itineraryEvents)}
-                  className="p-1.5 text-slate-400 hover:text-orange-400 transition-colors cursor-pointer"
+                  className="p-1.5 text-gray-400 dark:text-slate-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors cursor-pointer"
                   aria-label="Export to calendar"
                   title="Export to calendar (.ics)"
                 >
@@ -278,7 +280,7 @@ export default function ItineraryPage() {
                 <button
                   onClick={handleSharePNG}
                   disabled={exporting}
-                  className="p-1.5 text-slate-400 hover:text-orange-400 transition-colors cursor-pointer disabled:opacity-50"
+                  className="p-1.5 text-gray-400 dark:text-slate-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors cursor-pointer disabled:opacity-50"
                   aria-label="Share as PNG"
                   title="Share as PNG"
                 >
@@ -291,7 +293,7 @@ export default function ItineraryPage() {
                     'px-2 py-1 text-xs font-medium rounded transition-colors cursor-pointer',
                     shareStatus === 'copied'
                       ? 'bg-emerald-500/20 text-emerald-400'
-                      : 'bg-slate-800 border border-slate-700 text-slate-400 hover:text-orange-400 hover:border-slate-600'
+                      : 'bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:text-orange-500 dark:hover:text-orange-400 hover:border-gray-300 dark:hover:border-slate-600'
                   )}
                   title="Share link"
                 >
@@ -306,9 +308,9 @@ export default function ItineraryPage() {
       {/* Content */}
       {itineraryEvents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-          <CalendarX className="w-12 h-12 text-slate-600 mb-4" />
-          <p className="text-slate-400 font-medium mb-2">No events in your itinerary yet</p>
-          <p className="text-slate-500 text-sm max-w-xs mb-4">
+          <CalendarX className="w-12 h-12 text-gray-300 dark:text-slate-600 mb-4" />
+          <p className="text-gray-500 dark:text-slate-400 font-medium mb-2">No events in your itinerary yet</p>
+          <p className="text-gray-400 dark:text-slate-500 text-sm max-w-xs mb-4">
             Star events from the main page to build your schedule!
           </p>
           <Link
@@ -328,11 +330,11 @@ export default function ItineraryPage() {
         </main>
       ) : (
         <div className="max-w-2xl mx-auto px-4 pb-8">
-          <div ref={captureRef} className="bg-slate-900">
+          <div ref={captureRef} className="bg-white dark:bg-slate-900">
             <div className="pt-3 pb-1 px-1 flex items-center gap-2">
               <span className="text-base">📅</span>
-              <span className="text-sm font-bold text-white">sheeets.xyz</span>
-              <span className="text-xs text-slate-500">— My Itinerary</span>
+              <span className="text-sm font-bold text-gray-900 dark:text-white">sheeets.xyz</span>
+              <span className="text-xs text-gray-400 dark:text-slate-500">— My Itinerary</span>
             </div>
 
             {conflicts.size > 0 && (
@@ -347,11 +349,11 @@ export default function ItineraryPage() {
             {dateGroups.map((group) => (
               <section key={group.dateISO} className="mt-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="h-px flex-1 bg-slate-700" />
-                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                  <div className="h-px flex-1 bg-gray-200 dark:bg-slate-700" />
+                  <h3 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
                     {group.label}
                   </h3>
-                  <div className="h-px flex-1 bg-slate-700" />
+                  <div className="h-px flex-1 bg-gray-200 dark:bg-slate-700" />
                 </div>
 
                 <div className="space-y-2">
@@ -365,8 +367,8 @@ export default function ItineraryPage() {
                     return (
                       <div
                         key={event.id}
-                        className={`bg-slate-800 rounded-lg p-3 border ${
-                          hasConflict ? 'border-amber-500/40' : 'border-slate-700'
+                        className={`bg-gray-50 dark:bg-slate-800 rounded-lg p-3 border ${
+                          hasConflict ? 'border-amber-500/40' : 'border-gray-200 dark:border-slate-700'
                         }`}
                       >
                         {hasConflict && (
@@ -379,7 +381,7 @@ export default function ItineraryPage() {
                         )}
 
                         <div className="flex items-start gap-2">
-                          <h4 className="flex-1 text-sm font-semibold text-white leading-tight min-w-0">
+                          <h4 className="flex-1 text-sm font-semibold text-gray-900 dark:text-white leading-tight min-w-0">
                             {event.link ? (
                               <a
                                 href={event.link}
@@ -396,7 +398,7 @@ export default function ItineraryPage() {
                           <button
                             data-export-hide
                             onClick={() => toggleItinerary(event.id)}
-                            className="shrink-0 p-1 text-slate-500 hover:text-red-400 transition-colors cursor-pointer"
+                            className="shrink-0 p-1 text-gray-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors cursor-pointer"
                             aria-label="Remove from itinerary"
                             title="Remove from itinerary"
                           >
@@ -405,13 +407,13 @@ export default function ItineraryPage() {
                         </div>
 
                         {event.organizer && (
-                          <p className="text-slate-500 text-xs mt-0.5">By {event.organizer}</p>
+                          <p className="text-gray-400 dark:text-slate-500 text-xs mt-0.5">By {event.organizer}</p>
                         )}
 
-                        <p className="text-slate-400 text-xs mt-1">{timeDisplay}</p>
+                        <p className="text-gray-500 dark:text-slate-400 text-xs mt-1">{timeDisplay}</p>
 
                         {event.address && (
-                          <p className="text-slate-500 text-xs mt-0.5 truncate">{event.address}</p>
+                          <p className="text-gray-400 dark:text-slate-500 text-xs mt-0.5 truncate">{event.address}</p>
                         )}
 
                         <div className="flex items-center gap-1.5 mt-1.5">
@@ -437,15 +439,15 @@ export default function ItineraryPage() {
             ))}
 
             <div className="pt-3 pb-2 text-center">
-              <span className="text-[10px] text-slate-600">sheeets.xyz — side event guide</span>
+              <span className="text-[10px] text-gray-400 dark:text-slate-600">sheeets.xyz — side event guide</span>
             </div>
           </div>
 
           {/* Clear button */}
-          <div className="mt-6 pt-4 border-t border-slate-800">
+          <div className="mt-6 pt-4 border-t border-gray-200 dark:border-slate-800">
             {showClearConfirm ? (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-400">Clear all events?</span>
+                <span className="text-sm text-gray-500 dark:text-slate-400">Clear all events?</span>
                 <button
                   onClick={() => { clearItinerary(); setShowClearConfirm(false); }}
                   className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded transition-colors cursor-pointer"
@@ -454,7 +456,7 @@ export default function ItineraryPage() {
                 </button>
                 <button
                   onClick={() => setShowClearConfirm(false)}
-                  className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium rounded transition-colors cursor-pointer"
+                  className="px-3 py-1.5 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-300 text-xs font-medium rounded transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -462,7 +464,7 @@ export default function ItineraryPage() {
             ) : (
               <button
                 onClick={() => setShowClearConfirm(true)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-300 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 rounded-lg text-sm font-medium transition-colors cursor-pointer"
               >
                 <Trash2 className="w-4 h-4" />
                 Clear Itinerary

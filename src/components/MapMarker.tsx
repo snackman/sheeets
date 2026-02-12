@@ -85,10 +85,10 @@ export function MapMarker({
 
         {/* Label card (zoom >= 14) */}
         {showLabel && (
-          <div className="mt-0.5 px-1.5 py-0.5 rounded bg-slate-800/90 text-[10px] text-white max-w-[120px] truncate whitespace-nowrap leading-tight pointer-events-none">
+          <div className="mt-0.5 px-1.5 py-0.5 rounded bg-white/90 dark:bg-slate-800/90 text-[10px] text-gray-900 dark:text-white max-w-[120px] truncate whitespace-nowrap leading-tight pointer-events-none">
             {label}
             {showTime && (
-              <span className="ml-1 text-slate-400">{time}</span>
+              <span className="ml-1 text-gray-500 dark:text-slate-400">{time}</span>
             )}
           </div>
         )}

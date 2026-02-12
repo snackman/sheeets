@@ -7,6 +7,7 @@ import { LocateFixed } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { DENVER_CENTER } from '@/lib/constants';
 import { parseTimeToMinutes } from '@/lib/filters';
+import { useTheme } from '@/contexts/ThemeContext';
 import { MapMarker } from './MapMarker';
 import { EventPopup, MultiEventPopup } from './EventPopup';
 
@@ -33,6 +34,10 @@ export function MapView({
   onItineraryToggle,
   isItineraryView = false,
 }: MapViewProps) {
+  const { theme } = useTheme();
+  const mapStyle = theme === 'dark'
+    ? 'mapbox://styles/mapbox/dark-v11'
+    : 'mapbox://styles/mapbox/streets-v12';
   const mapRef = useRef<MapRef>(null);
 
   const [viewState, setViewState] = useState({
@@ -158,12 +163,12 @@ export function MapView({
 
   if (!mapboxToken) {
     return (
-      <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+      <div className="w-full h-full bg-gray-100 dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-slate-400 text-lg mb-2">
+          <p className="text-gray-500 dark:text-slate-400 text-lg mb-2">
             Mapbox token not configured
           </p>
-          <p className="text-slate-500 text-sm">
+          <p className="text-gray-400 dark:text-slate-500 text-sm">
             Set NEXT_PUBLIC_MAPBOX_TOKEN in .env.local
           </p>
         </div>
@@ -177,7 +182,7 @@ export function MapView({
       {...viewState}
       onMove={(evt) => setViewState(evt.viewState)}
       onClick={handleMapClick}
-      mapStyle="mapbox://styles/mapbox/dark-v11"
+      mapStyle={mapStyle}
       mapboxAccessToken={mapboxToken}
       style={{ width: '100%', height: '100%' }}
       maxZoom={20}
@@ -193,7 +198,7 @@ export function MapView({
           className={`p-2 rounded-lg shadow-lg border transition-colors cursor-pointer ${
             userLocation
               ? 'bg-blue-500 border-blue-400 text-white'
-              : 'bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700'
+              : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700'
           } disabled:opacity-50`}
           title="Show my location"
           aria-label="Show my location"

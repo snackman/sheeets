@@ -1,6 +1,8 @@
 @import 'mapbox-gl/dist/mapbox-gl.css';
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Safe area insets for notched devices */
 :root {
   --safe-area-top: env(safe-area-inset-top, 0px);
@@ -9,14 +11,80 @@
   --safe-area-right: env(safe-area-inset-right, 0px);
 }
 
-/* Dark theme base */
+/* ====== LIGHT THEME (default) ====== */
 :root {
+  --background: #FFFFFF;
+  --foreground: #1D1D1D;
+  --card: #F0F4F8;
+  --card-hover: #E2E8F0;
+  --border: #C8D0D8;
+  --border-light: #E2E8F0;
+  --header-bg: #1F3864;
+  --header-text: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-secondary: #F7F9FB;
+  --text-primary: #1D1D1D;
+  --text-secondary: #4A5568;
+  --text-muted: #718096;
+  --text-faint: #A0AEC0;
+  --accent: #f97316;
+  --accent-hover: #fb923c;
+  --input-bg: #FFFFFF;
+  --input-border: #C8D0D8;
+  --input-focus-border: #f97316;
+  --overlay-bg: rgba(0, 0, 0, 0.3);
+  --popup-bg: #FFFFFF;
+  --popup-border: #C8D0D8;
+  --popup-shadow: rgba(0, 0, 0, 0.15);
+  --scrollbar-track: #F0F4F8;
+  --scrollbar-thumb: #C8D0D8;
+  --scrollbar-thumb-hover: #A0AEC0;
+  --table-row-alt: #F0F6FF;
+  --table-header-bg: #1F3864;
+  --table-header-text: #FFFFFF;
+  --slider-track: #C8D0D8;
+  --map-label-bg: rgba(255, 255, 255, 0.9);
+  --map-label-text: #1D1D1D;
+  --badge-inactive-bg: #E2E8F0;
+  --badge-inactive-text: #4A5568;
+}
+
+/* ====== DARK THEME ====== */
+.dark {
   --background: #0f172a;
   --foreground: #f1f5f9;
   --card: #1e293b;
   --card-hover: #334155;
+  --border: #334155;
+  --border-light: #1e293b;
+  --header-bg: rgba(15, 23, 42, 0.95);
+  --header-text: #FFFFFF;
+  --surface: #0f172a;
+  --surface-secondary: #1e293b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-faint: #475569;
   --accent: #f97316;
   --accent-hover: #fb923c;
+  --input-bg: #1e293b;
+  --input-border: #475569;
+  --input-focus-border: #f97316;
+  --overlay-bg: rgba(0, 0, 0, 0.5);
+  --popup-bg: #1e293b;
+  --popup-border: #334155;
+  --popup-shadow: rgba(0, 0, 0, 0.5);
+  --scrollbar-track: #0f172a;
+  --scrollbar-thumb: #334155;
+  --scrollbar-thumb-hover: #475569;
+  --table-row-alt: transparent;
+  --table-header-bg: #1e293b;
+  --table-header-text: #94a3b8;
+  --slider-track: #334155;
+  --map-label-bg: rgba(30, 41, 59, 0.9);
+  --map-label-text: #FFFFFF;
+  --badge-inactive-bg: #334155;
+  --badge-inactive-text: #cbd5e1;
 }
 
 @theme inline {
@@ -38,49 +106,44 @@ input, select, textarea {
   font-size: 16px;
 }
 
-/* Custom scrollbar for dark theme */
+/* Custom scrollbar -- theme-aware */
 ::-webkit-scrollbar {
   width: 8px;
   height: 6px;
 }
-
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: var(--scrollbar-track);
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: var(--scrollbar-thumb-hover);
 }
 
-/* Slate 750 custom shade for card hover (between 700 and 800) */
+/* Card hover custom shade */
 .hover\:bg-slate-750:hover {
   background-color: #283548;
 }
 
-/* Ensure popup stays within map bounds */
+/* Mapbox popup bounds */
 .mapboxgl-popup {
   max-width: calc(100vw - 1rem) !important;
 }
 
-/* Mapbox popup overrides for dark theme */
+/* Mapbox popup overrides -- theme-aware */
 .map-popup .mapboxgl-popup-content {
-  background-color: #1e293b;
-  border: 1px solid #334155;
+  background-color: var(--popup-bg);
+  border: 1px solid var(--popup-border);
   border-radius: 8px;
   padding: 12px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 24px var(--popup-shadow);
   max-width: calc(100vw - 2rem);
 }
-
 .map-popup .mapboxgl-popup-tip {
-  border-top-color: #1e293b;
+  border-top-color: var(--popup-bg);
 }
-
 .map-popup .mapboxgl-popup-close-btn {
   display: none;
 }
@@ -89,22 +152,19 @@ input, select, textarea {
 .map-popup .mapboxgl-popup-content ::-webkit-scrollbar {
   width: 4px;
 }
-
 .map-popup .mapboxgl-popup-content ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 .map-popup .mapboxgl-popup-content ::-webkit-scrollbar-thumb {
-  background-color: #475569;
+  background-color: var(--scrollbar-thumb);
   border-radius: 2px;
 }
 
-/* Hide scrollbar for filter rows while keeping scroll functionality */
+/* Hide scrollbar for filter rows */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }

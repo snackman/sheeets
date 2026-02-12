@@ -19,9 +19,9 @@ export function TableView({
 }: TableViewProps) {
   return (
     <div className="max-w-7xl mx-auto px-4 pb-3">
-      <div className="overflow-auto rounded-lg border border-slate-700" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+      <div className="overflow-auto rounded-lg border border-gray-200 dark:border-slate-700" style={{ maxHeight: 'calc(100vh - 220px)' }}>
         <table className="min-w-[900px] text-sm text-left">
-          <thead className="text-xs uppercase tracking-wider text-slate-400 bg-slate-800 border-b border-slate-700 sticky top-0 z-10">
+          <thead className="text-xs uppercase tracking-wider sticky top-0 z-10 bg-[#1F3864] text-white dark:bg-slate-800 dark:text-slate-400 border-b border-gray-200 dark:border-slate-700">
             <tr>
               <th className="px-3 py-2.5 w-8"></th>
               <th className="px-3 py-2.5">Date</th>
@@ -32,14 +32,18 @@ export function TableView({
               <th className="px-3 py-2.5">Tags</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-700/50">
+          <tbody className="divide-y divide-gray-100 dark:divide-slate-700/50">
             {events.map((event) => {
               const isInItinerary = itinerary?.has(event.id) ?? false;
 
               return (
                 <tr
                   key={event.id}
-                  className={`hover:bg-slate-800/70 transition-colors ${event.isDuplicate ? 'bg-red-950/30' : 'bg-slate-900'}`}
+                  className={`transition-colors ${
+                    event.isDuplicate
+                      ? 'bg-red-50 dark:bg-red-950/30'
+                      : 'bg-white dark:bg-slate-900 even:bg-[#D6E4F0]/30 dark:even:bg-transparent'
+                  } hover:bg-gray-50 dark:hover:bg-slate-800/70`}
                   title={event.isDuplicate ? 'Possible duplicate — same name, date, and time as another event' : undefined}
                 >
                   {/* Star (toggles itinerary) */}
@@ -50,29 +54,29 @@ export function TableView({
                       title={isInItinerary ? 'Remove from itinerary' : 'Add to itinerary'}
                     >
                       <Star
-                        className={`w-3.5 h-3.5 ${isInItinerary ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600 hover:text-slate-400'}`}
+                        className={`w-3.5 h-3.5 ${isInItinerary ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300 dark:text-slate-600 hover:text-gray-500 dark:hover:text-slate-400'}`}
                       />
                     </button>
                   </td>
 
                   {/* Date */}
-                  <td className="px-3 py-2 text-slate-300 whitespace-nowrap">
+                  <td className="px-3 py-2 text-gray-700 dark:text-slate-300 whitespace-nowrap">
                     {event.date}
                   </td>
 
                   {/* Time */}
-                  <td className="px-3 py-2 text-slate-400 whitespace-nowrap">
+                  <td className="px-3 py-2 text-gray-500 dark:text-slate-400 whitespace-nowrap">
                     {event.startTime}
                     {event.endTime ? `-${event.endTime}` : ''}
                   </td>
 
                   {/* Organizer */}
-                  <td className="px-3 py-2 text-slate-400 whitespace-nowrap" title={event.organizer}>
+                  <td className="px-3 py-2 text-gray-500 dark:text-slate-400 whitespace-nowrap" title={event.organizer}>
                     {event.organizer.length > 15 ? event.organizer.slice(0, 15) + '…' : event.organizer}
                   </td>
 
                   {/* Event Name */}
-                  <td className="px-3 py-2 font-medium text-slate-100 whitespace-nowrap" title={event.name}>
+                  <td className="px-3 py-2 font-medium text-gray-900 dark:text-slate-100 whitespace-nowrap" title={event.name}>
                     <span className="inline-flex items-center gap-1">
                       {event.isDuplicate && (
                         <span title="Duplicate entry in sheet"><AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" /></span>
@@ -93,7 +97,7 @@ export function TableView({
                   </td>
 
                   {/* Location */}
-                  <td className="px-3 py-2 text-slate-400 whitespace-nowrap" title={event.address}>
+                  <td className="px-3 py-2 text-gray-500 dark:text-slate-400 whitespace-nowrap" title={event.address}>
                     {event.address ? (
                       <a
                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`}
@@ -113,7 +117,7 @@ export function TableView({
                         <TagBadge key={tag} tag={tag} iconOnly />
                       ))}
                       {event.tags.length > 3 && (
-                        <span className="text-slate-500 text-xs">+{event.tags.length - 3}</span>
+                        <span className="text-gray-400 dark:text-slate-500 text-xs">+{event.tags.length - 3}</span>
                       )}
                     </div>
                   </td>
@@ -125,7 +129,7 @@ export function TableView({
         </table>
       </div>
       {events.length === 0 && (
-        <div className="text-center py-12 text-slate-500">
+        <div className="text-center py-12 text-gray-400 dark:text-slate-500">
           No events match your filters.
         </div>
       )}

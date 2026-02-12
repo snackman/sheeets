@@ -17,7 +17,7 @@ const views: { mode: ViewMode; icon: typeof Map; label: string }[] = [
 
 export function ViewToggle({ viewMode, onViewChange }: ViewToggleProps) {
   return (
-    <div className="flex rounded-lg border border-slate-700 overflow-hidden">
+    <div className="flex rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
       {views.map(({ mode, icon: Icon, label }) => (
         <button
           key={mode}
@@ -26,7 +26,7 @@ export function ViewToggle({ viewMode, onViewChange }: ViewToggleProps) {
             'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer',
             viewMode === mode
               ? 'bg-orange-500 text-white'
-              : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700'
+              : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700 active:text-gray-800 dark:active:text-slate-200 active:bg-gray-200 dark:active:bg-slate-700'
           )}
           aria-label={`${label} view`}
         >

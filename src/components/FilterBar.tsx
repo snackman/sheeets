@@ -60,7 +60,7 @@ export function FilterBar({
   }, [filters.selectedDays, maxIdx]);
 
   return (
-    <div className="relative bg-slate-900 border-b border-slate-800 z-30">
+    <div className="relative bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 z-30">
       <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
         {/* Top row: Conference tabs + Filter toggle */}
         <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
@@ -81,7 +81,7 @@ export function FilterBar({
                   <>
                     <div className="fixed inset-0 z-[60]" onClick={() => setConfOpen(false)} />
                     <div
-                      className="fixed z-[70] bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden min-w-[180px]"
+                      className="fixed z-[70] bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-xl overflow-hidden min-w-[180px]"
                       style={{
                         top: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().bottom + 4 : 0,
                         left: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().left : 16,
@@ -95,7 +95,7 @@ export function FilterBar({
                             'w-full text-left px-4 py-3 text-sm font-semibold transition-colors cursor-pointer',
                             filters.conference === conf
                               ? 'bg-orange-500 text-white'
-                              : 'text-slate-300 hover:bg-slate-700 active:bg-slate-700'
+                              : 'text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 active:bg-gray-100 dark:active:bg-slate-700'
                           )}
                         >
                           {conf}
@@ -107,7 +107,7 @@ export function FilterBar({
               </div>
 
               {/* Desktop: inline tabs */}
-              <div className="hidden sm:flex rounded-lg border border-slate-700 overflow-hidden">
+              <div className="hidden sm:flex rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
                 {availableConferences.map((conf) => (
                   <button
                     key={conf}
@@ -116,7 +116,7 @@ export function FilterBar({
                       'px-4 py-2 text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap',
                       filters.conference === conf
                         ? 'bg-orange-500 text-white'
-                        : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700'
+                        : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700 active:text-gray-800 dark:active:text-slate-200 active:bg-gray-200 dark:active:bg-slate-700'
                     )}
                   >
                     {conf}
@@ -133,7 +133,7 @@ export function FilterBar({
               'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer',
               filters.nowMode
                 ? 'bg-green-500 text-white shadow-[0_0_12px_rgba(34,197,94,0.4)]'
-                : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700 border border-slate-700'
+                : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700 active:text-gray-800 dark:active:text-slate-200 active:bg-gray-200 dark:active:bg-slate-700 border border-gray-200 dark:border-slate-700'
             )}
           >
             <span className="relative flex items-center">
@@ -152,7 +152,7 @@ export function FilterBar({
               'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ml-auto',
               expanded || activeFilterCount > 0
                 ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
-                : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700 border border-slate-700'
+                : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700 active:text-gray-800 dark:active:text-slate-200 active:bg-gray-200 dark:active:bg-slate-700 border border-gray-200 dark:border-slate-700'
             )}
           >
             <SlidersHorizontal className="w-4 h-4" />
@@ -168,7 +168,7 @@ export function FilterBar({
 
         {/* Expandable filter content — overlays map on mobile */}
         {expanded && (
-          <div className="space-y-3 pt-1 sm:relative absolute left-0 right-0 sm:bg-transparent bg-slate-900 sm:px-0 px-4 sm:pb-0 pb-4 sm:shadow-none shadow-lg shadow-black/40">
+          <div className="space-y-3 pt-1 sm:relative absolute left-0 right-0 sm:bg-transparent bg-white dark:bg-slate-900 sm:px-0 px-4 sm:pb-0 pb-4 sm:shadow-none shadow-lg shadow-black/40">
             {/* Now mode notice */}
             {filters.nowMode && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
@@ -180,10 +180,10 @@ export function FilterBar({
             {/* Day range slider */}
             <div className={clsx(filters.nowMode && 'opacity-30 pointer-events-none')}>
               <div className="flex items-center justify-between mb-2">
-                <div className="text-xs uppercase tracking-wider text-slate-400">
+                <div className="text-xs uppercase tracking-wider text-gray-500 dark:text-slate-400">
                   Days
                 </div>
-                <div className="text-sm text-slate-300 font-medium">
+                <div className="text-sm text-gray-700 dark:text-slate-300 font-medium">
                   {rangeStart === 0 && rangeEnd === maxIdx
                     ? `${formatDayLabel(EVENT_DATES[0])} — ${formatDayLabel(EVENT_DATES[maxIdx])}`
                     : rangeStart === rangeEnd
@@ -192,7 +192,7 @@ export function FilterBar({
                 </div>
               </div>
               <div className="relative h-8 flex items-center">
-                <div className="absolute w-full h-1.5 bg-slate-700 rounded-full" />
+                <div className="absolute w-full h-1.5 bg-gray-200 dark:bg-slate-700 rounded-full" />
                 <div
                   className="absolute h-1.5 bg-orange-500 rounded-full"
                   style={{
@@ -245,15 +245,15 @@ export function FilterBar({
               return (
                 <div className={clsx(filters.nowMode && 'opacity-30 pointer-events-none')}>
                   <div className="flex items-center justify-between mb-2">
-                    <div className="text-xs uppercase tracking-wider text-slate-400">
+                    <div className="text-xs uppercase tracking-wider text-gray-500 dark:text-slate-400">
                       Time
                     </div>
-                    <div className="text-sm text-slate-300 font-medium">
+                    <div className="text-sm text-gray-700 dark:text-slate-300 font-medium">
                       {timeLabel}
                     </div>
                   </div>
                   <div className="relative h-8 flex items-center">
-                    <div className="absolute w-full h-1.5 bg-slate-700 rounded-full" />
+                    <div className="absolute w-full h-1.5 bg-gray-200 dark:bg-slate-700 rounded-full" />
                     <div
                       className="absolute h-1.5 bg-blue-500 rounded-full"
                       style={{
@@ -293,7 +293,7 @@ export function FilterBar({
             {/* Types (event format) + quick filters */}
             {(availableTypes.length > 0 || true) && (
               <div>
-                <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">
+                <div className="text-xs uppercase tracking-wider text-gray-500 dark:text-slate-400 mb-1">
                   Type
                 </div>
                 <div className="overflow-x-auto flex gap-2 pb-1">
@@ -310,7 +310,7 @@ export function FilterBar({
                           'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                           isActive
                             ? 'text-white'
-                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600 active:bg-slate-600'
+                            : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600 active:bg-gray-300 dark:active:bg-slate-600'
                         )}
                         style={isActive ? { backgroundColor: vibeColor } : undefined}
                       >
@@ -326,7 +326,7 @@ export function FilterBar({
             {/* Tags (topics/interests) */}
             {availableVibes.length > 0 && (
               <div>
-                <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">
+                <div className="text-xs uppercase tracking-wider text-gray-500 dark:text-slate-400 mb-1">
                   Tags
                 </div>
                 <div className="overflow-x-auto flex gap-2 pb-1">
@@ -343,7 +343,7 @@ export function FilterBar({
                           'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                           isActive
                             ? 'text-white'
-                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600 active:bg-slate-600'
+                            : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600 active:bg-gray-300 dark:active:bg-slate-600'
                         )}
                         style={isActive ? { backgroundColor: vibeColor } : undefined}
                       >

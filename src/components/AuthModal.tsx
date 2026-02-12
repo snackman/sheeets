@@ -108,15 +108,15 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     <>
       <div className="fixed inset-0 z-[80] bg-black/50" onClick={handleClose} />
       <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
-        <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
-            <h2 className="text-base font-bold text-white">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-slate-700">
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">
               {step === 'email' && 'Sign in'}
               {step === 'code' && 'Enter code'}
               {step === 'success' && 'Signed in!'}
             </h2>
-            <button onClick={handleClose} className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer">
+            <button onClick={handleClose} className="p-1 text-gray-400 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -125,17 +125,17 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           <div className="px-4 py-5">
             {step === 'email' && (
               <form onSubmit={handleEmailSubmit}>
-                <p className="text-slate-400 text-sm mb-4">
+                <p className="text-gray-500 dark:text-slate-400 text-sm mb-4">
                   Enter your email to save your itinerary across devices.
                 </p>
-                <div className="flex items-center gap-2 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 focus-within:border-orange-500 transition-colors">
-                  <Mail className="w-4 h-4 text-slate-500 shrink-0" />
+                <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-2.5 focus-within:border-orange-500 transition-colors">
+                  <Mail className="w-4 h-4 text-gray-400 dark:text-slate-500 shrink-0" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="flex-1 bg-transparent text-white text-sm outline-none placeholder:text-slate-500"
+                    className="flex-1 bg-transparent text-gray-900 dark:text-white text-sm outline-none placeholder:text-gray-400 dark:placeholder:text-slate-500"
                     required
                     autoFocus
                   />
@@ -153,8 +153,8 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
             {step === 'code' && (
               <div>
-                <p className="text-slate-400 text-sm mb-4">
-                  We sent a 6-digit code to <span className="text-white font-medium">{email}</span>
+                <p className="text-gray-500 dark:text-slate-400 text-sm mb-4">
+                  We sent a 6-digit code to <span className="text-gray-900 dark:text-white font-medium">{email}</span>
                 </p>
                 <div className="flex justify-center gap-2" onPaste={handlePaste}>
                   {code.map((digit, i) => (
@@ -167,7 +167,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                       value={digit}
                       onChange={(e) => handleCodeChange(i, e.target.value)}
                       onKeyDown={(e) => handleCodeKeyDown(i, e)}
-                      className="w-10 h-12 bg-slate-900 border border-slate-600 rounded-lg text-white text-center text-lg font-bold outline-none focus:border-orange-500 transition-colors"
+                      className="w-10 h-12 bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-900 dark:text-white text-center text-lg font-bold outline-none focus:border-orange-500 transition-colors"
                     />
                   ))}
                 </div>
@@ -175,7 +175,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 {loading && <p className="text-orange-400 text-xs mt-3 text-center">Verifying...</p>}
                 <button
                   onClick={() => { setStep('email'); setError(''); }}
-                  className="w-full mt-4 text-slate-400 hover:text-slate-300 text-xs text-center cursor-pointer"
+                  className="w-full mt-4 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 text-xs text-center cursor-pointer"
                 >
                   Use a different email
                 </button>
@@ -185,8 +185,8 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             {step === 'success' && (
               <div className="text-center py-4">
                 <div className="text-3xl mb-2">✓</div>
-                <p className="text-white font-medium">You&apos;re signed in!</p>
-                <p className="text-slate-400 text-sm mt-1">Your itinerary will sync across devices.</p>
+                <p className="text-gray-900 dark:text-white font-medium">You&apos;re signed in!</p>
+                <p className="text-gray-500 dark:text-slate-400 text-sm mt-1">Your itinerary will sync across devices.</p>
               </div>
             )}
           </div>
@@ -203,12 +203,12 @@ export function UserMenu() {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-slate-400 hidden sm:inline truncate max-w-[120px]">
+      <span className="text-xs text-gray-500 dark:text-slate-400 hidden sm:inline truncate max-w-[120px]">
         {user.email}
       </span>
       <button
         onClick={signOut}
-        className="p-1.5 text-slate-400 hover:text-white transition-colors cursor-pointer"
+        className="p-1.5 text-gray-400 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
         title="Sign out"
       >
         <LogOut className="w-3.5 h-3.5" />

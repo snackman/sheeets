@@ -29,7 +29,7 @@ export function StarButton({
         size === 'sm' ? 'p-1.5' : 'p-1',
         isStarred
           ? 'text-yellow-400'
-          : 'text-slate-600 hover:text-yellow-400/60 active:text-yellow-400/60'
+          : 'text-gray-300 dark:text-slate-600 hover:text-yellow-500/60 dark:hover:text-yellow-400/60 active:text-yellow-500/60 dark:active:text-yellow-400/60'
       )}
       aria-label={isStarred ? 'Remove star' : 'Add star'}
       title={isStarred ? 'Remove star' : 'Star this event'}

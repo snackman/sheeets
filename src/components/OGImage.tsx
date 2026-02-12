@@ -55,18 +55,18 @@ export function OGImage({ url, eventId }: OGImageProps) {
   if (error) return null;
 
   return (
-    <div ref={ref} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden bg-slate-700/30 self-center">
+    <div ref={ref} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden bg-gray-200/30 dark:bg-slate-700/30 self-center">
       {imageUrl && (
         <img
           src={imageUrl}
           alt=""
-          className="w-full h-full object-contain bg-slate-900/50"
+          className="w-full h-full object-contain bg-gray-100/50 dark:bg-slate-900/50"
           loading="lazy"
           onError={() => setError(true)}
         />
       )}
       {!loaded && (
-        <div className="w-full h-full animate-pulse bg-slate-700/50" />
+        <div className="w-full h-full animate-pulse bg-gray-200/50 dark:bg-slate-700/50" />
       )}
     </div>
   );

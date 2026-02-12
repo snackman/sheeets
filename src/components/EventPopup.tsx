@@ -49,17 +49,17 @@ function SingleEventContent({
               href={event.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-bold text-sm text-white leading-tight line-clamp-2 hover:text-orange-300 transition-colors"
+              className="font-bold text-sm text-gray-900 dark:text-white leading-tight line-clamp-2 hover:text-orange-500 dark:hover:text-orange-300 transition-colors"
             >
               {event.name}
             </a>
           ) : (
-            <h3 className="font-bold text-sm text-white leading-tight line-clamp-2">
+            <h3 className="font-bold text-sm text-gray-900 dark:text-white leading-tight line-clamp-2">
               {event.name}
             </h3>
           )}
           {event.organizer && (
-            <p className="text-xs text-slate-500 mt-0.5">{event.organizer}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{event.organizer}</p>
           )}
         </div>
         <div className="flex items-center shrink-0">
@@ -73,7 +73,7 @@ function SingleEventContent({
           )}
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white active:text-white transition-colors"
+            className="p-1.5 text-gray-400 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white active:text-gray-900 dark:active:text-white transition-colors"
             aria-label="Close popup"
           >
             <X size={16} />
@@ -89,13 +89,13 @@ function SingleEventContent({
         >
           {event.vibe || 'Event'}
         </span>
-        <span className="text-xs text-slate-400">
+        <span className="text-xs text-gray-500 dark:text-slate-400">
           {event.isFree ? 'Free' : event.cost || 'Paid'}
         </span>
       </div>
 
       {/* Row 3: Date + time */}
-      <p className="text-xs text-slate-300">
+      <p className="text-xs text-gray-700 dark:text-slate-300">
         {event.date} &middot; {timeDisplay}
       </p>
     </div>
@@ -151,12 +151,12 @@ export function MultiEventPopup({
     >
       <div className="w-[280px] max-w-[calc(100vw-3rem)]">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-bold text-sm text-white">
+          <h3 className="font-bold text-sm text-gray-900 dark:text-white">
             {events.length} events at this location
           </h3>
           <button
             onClick={onClose}
-            className="shrink-0 p-1.5 text-slate-400 hover:text-white active:text-white transition-colors"
+            className="shrink-0 p-1.5 text-gray-400 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white active:text-gray-900 dark:active:text-white transition-colors"
             aria-label="Close popup"
           >
             <X size={16} />
@@ -169,10 +169,10 @@ export function MultiEventPopup({
             return (
               <button
                 key={event.id}
-                className="w-full text-left p-2.5 bg-slate-700/50 hover:bg-slate-600/50 active:bg-slate-600/50 rounded transition-colors"
+                className="w-full text-left p-2.5 bg-gray-100/50 dark:bg-slate-700/50 hover:bg-gray-200/50 dark:hover:bg-slate-600/50 active:bg-gray-200/50 dark:active:bg-slate-600/50 rounded transition-colors"
                 onClick={() => onSelectEvent?.(event)}
               >
-                <p className="text-xs font-semibold text-white leading-tight truncate">
+                <p className="text-xs font-semibold text-gray-900 dark:text-white leading-tight truncate">
                   {event.name}
                 </p>
                 <div className="flex items-center gap-1.5 mt-0.5">
@@ -182,7 +182,7 @@ export function MultiEventPopup({
                   >
                     {event.vibe || 'Event'}
                   </span>
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-[10px] text-gray-500 dark:text-slate-400">
                     {event.startTime}
                   </span>
                 </div>
