@@ -67,26 +67,24 @@ export function TableView({
     // the one that most recently crossed out of view (or is still barely visible)
     // determines the current date.
     const observer = new IntersectionObserver(
-      (entries) => {
-        // Build a list of all separator positions relative to the container
+      () => {
+        // Delegate to the same logic as handleScroll for consistency
+        const hasScrolled = container.scrollTop > 5;
+        if (!hasScrolled) {
+          setCurrentDateLabel('Time');
+          return;
+        }
+
         const separators = Array.from(separatorRefs.current.entries()).map(([dateISO, el]) => {
           const rect = el.getBoundingClientRect();
           const containerRect = container.getBoundingClientRect();
-          return {
-            dateISO,
-            // Position of separator top relative to container top
-            relativeTop: rect.top - containerRect.top,
-          };
+          return { dateISO, relativeTop: rect.top - containerRect.top };
         });
-
-        // Sort by position (top to bottom)
         separators.sort((a, b) => a.relativeTop - b.relativeTop);
 
-        // The "current" date is the last separator that has scrolled to or past the
-        // sticky header area (approx top ~40px to account for the sticky thead)
-        const stickyThreshold = 50; // px below container top
+        // A separator counts as "scrolled past" when it's behind the sticky header (~37px)
+        const stickyThreshold = 40;
         let currentDate: string | null = null;
-
         for (const sep of separators) {
           if (sep.relativeTop <= stickyThreshold) {
             currentDate = sep.dateISO;
@@ -96,7 +94,6 @@ export function TableView({
         if (currentDate) {
           setCurrentDateLabel(formatDateHeader(currentDate));
         } else {
-          // No separator has scrolled past the header yet
           setCurrentDateLabel('Time');
         }
       },
@@ -122,8 +119,14 @@ export function TableView({
     const container = scrollContainerRef.current;
     if (!container || groups.length === 0) return;
 
+    // Only show a date once the user has actually scrolled
+    if (container.scrollTop <= 5) {
+      setCurrentDateLabel('Time');
+      return;
+    }
+
     const containerRect = container.getBoundingClientRect();
-    const stickyThreshold = containerRect.top + 50;
+    const stickyThreshold = containerRect.top + 40;
 
     const separators = Array.from(separatorRefs.current.entries()).map(([dateISO, el]) => ({
       dateISO,
