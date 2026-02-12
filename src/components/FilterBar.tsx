@@ -209,6 +209,7 @@ export function FilterBar({
                     const v = Math.min(Number(e.target.value), rangeEnd);
                     onSetDayRange(v, rangeEnd, EVENT_DATES);
                   }}
+                  style={{ zIndex: rangeStart === rangeEnd && rangeStart > maxIdx / 2 ? 2 : 1 }}
                   className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-orange-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
                 />
                 <input
@@ -220,6 +221,7 @@ export function FilterBar({
                     const v = Math.max(Number(e.target.value), rangeStart);
                     onSetDayRange(rangeStart, v, EVENT_DATES);
                   }}
+                  style={{ zIndex: rangeStart === rangeEnd && rangeStart > maxIdx / 2 ? 1 : 2 }}
                   className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-orange-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
                 />
               </div>
@@ -268,6 +270,7 @@ export function FilterBar({
                         const v = Math.min(Number(e.target.value), tEnd);
                         onSetTimeRange(v, tEnd);
                       }}
+                      style={{ zIndex: tStart === tEnd && tStart > 12 ? 2 : 1 }}
                       className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
                     />
                     <input
@@ -279,6 +282,7 @@ export function FilterBar({
                         const v = Math.max(Number(e.target.value), tStart);
                         onSetTimeRange(tStart, v);
                       }}
+                      style={{ zIndex: tStart === tEnd && tStart > 12 ? 1 : 2 }}
                       className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
                     />
                   </div>
