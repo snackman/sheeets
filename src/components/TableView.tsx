@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
-import { AlertTriangle, Star } from 'lucide-react';
+import { AlertTriangle, Calendar, Star } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { TagBadge } from './TagBadge';
 
@@ -169,7 +169,7 @@ export function TableView({
         <table className="min-w-[900px] text-sm text-left">
           <thead className="text-xs uppercase tracking-wider text-slate-400 bg-slate-800 border-b border-slate-700 sticky top-0 z-20">
             <tr>
-              <th className="px-3 py-2.5 w-8"></th>
+              <th className="px-3 py-2.5 w-8"><Calendar className="w-3.5 h-3.5" /></th>
               <th className="px-3 py-2.5 min-w-[110px]">
                 {currentDateLabel === 'Time' ? (
                   'TIME'
