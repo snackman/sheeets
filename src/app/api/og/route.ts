@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
       if (data) {
         return NextResponse.json(
           { imageUrl: data.image_url },
-          { headers: { 'Cache-Control': 'public, max-age=86400, s-maxage=86400' } }
+          { headers: { 'Cache-Control': 'public, max-age=3600, s-maxage=3600' } }
         );
       }
     } catch {
