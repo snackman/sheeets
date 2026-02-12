@@ -66,7 +66,6 @@ export const TYPE_TAGS = [
   'Meetup',
   'Demo Day',
   'Dinner',
-  'Wellness',
   'Performance',
 ];
 
