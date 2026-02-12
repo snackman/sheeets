@@ -227,8 +227,9 @@ function DateGroup({
         className="bg-slate-800/80"
         data-date={group.dateISO}
       >
+        <td className="border-b border-slate-700/70"></td>
         <td
-          colSpan={COLUMN_COUNT}
+          colSpan={COLUMN_COUNT - 1}
           className="px-3 py-1.5 text-xs font-semibold text-orange-400/80 uppercase tracking-wider border-b border-slate-700/70"
         >
           {group.label}
