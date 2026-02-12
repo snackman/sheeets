@@ -4,9 +4,13 @@ import { SHEET_ID, EVENT_TABS } from './constants';
 import { parseDateToISO, getTimeOfDay, isFreeEvent } from './utils';
 import geocodedData from '@/data/geocoded-addresses.json';
 
+const TAG_ALIASES: Record<string, string> = {
+  'Fitness/Wellness': 'Wellness',
+};
+
 function parseTags(raw: string): string[] {
   if (!raw) return [];
-  return raw.split(',').map((t) => t.trim()).filter(Boolean);
+  return raw.split(',').map((t) => t.trim()).filter(Boolean).map((t) => TAG_ALIASES[t] || t);
 }
 
 /**
