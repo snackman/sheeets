@@ -55,8 +55,8 @@ function SingleEventContent({
         </button>
       </div>
 
-      {/* Row 2: Vibe tag + cost + food/bar indicators */}
-      <div className="flex items-center gap-1.5 mb-1.5">
+      {/* Row 2: Vibe tag + cost */}
+      <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
         <span
           className="px-1.5 py-0.5 rounded text-[10px] font-semibold text-white"
           style={{ backgroundColor: vibeColor }}
@@ -66,8 +66,6 @@ function SingleEventContent({
         <span className="text-xs text-slate-400">
           {event.isFree ? 'Free' : event.cost || 'Paid'}
         </span>
-        {event.hasFood && <span className="text-xs" title="Food available">🍕</span>}
-        {event.hasBar && <span className="text-xs" title="Bar available">🍺</span>}
       </div>
 
       {/* Row 3: Date + time */}

@@ -81,10 +81,10 @@ export function EventApp() {
   );
 
   const availableTypes = useMemo(
-    () =>
-      [...new Set(events.flatMap((e) => e.tags).filter(Boolean))]
-        .filter((t) => TYPE_TAGS.includes(t))
-        .sort(),
+    () => {
+      const present = new Set(events.flatMap((e) => e.tags).filter(Boolean));
+      return TYPE_TAGS.filter((t) => present.has(t));
+    },
     [events]
   );
 
@@ -168,7 +168,6 @@ export function EventApp() {
         onSetDayRange={setDayRange}
         onToggleVibe={toggleVibe}
         onSetTimeRange={setTimeRange}
-        onToggleBool={toggleBool}
         onToggleNowMode={toggleNowMode}
         onClearFilters={clearFilters}
         activeFilterCount={activeFilterCount}

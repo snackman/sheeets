@@ -9,9 +9,6 @@ const defaultFilters: FilterState = {
   timeStart: 0,
   timeEnd: 24,
   vibes: [],
-  freeOnly: false,
-  hasFood: false,
-  hasBar: false,
   itineraryOnly: false,
   searchQuery: '',
   nowMode: false,
@@ -56,13 +53,7 @@ export function useFilters() {
   }, []);
 
   const toggleBool = useCallback(
-    (
-      key:
-        | 'freeOnly'
-        | 'hasFood'
-        | 'hasBar'
-        | 'itineraryOnly'
-    ) => {
+    (key: 'itineraryOnly') => {
       setFilters((prev) => ({ ...prev, [key]: !prev[key] }));
     },
     []
@@ -79,9 +70,6 @@ export function useFilters() {
     if (filters.selectedDays.length > 0) count++;
     if (filters.timeStart !== 0 || filters.timeEnd !== 24) count++;
     if (filters.vibes.length > 0) count++;
-    if (filters.freeOnly) count++;
-    if (filters.hasFood) count++;
-    if (filters.hasBar) count++;
     if (filters.itineraryOnly) count++;
     if (filters.searchQuery) count++;
     if (filters.nowMode) count++;

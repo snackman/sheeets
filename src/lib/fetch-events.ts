@@ -95,7 +95,22 @@ export async function fetchEvents(): Promise<ETHDenverEvent[]> {
       const cost = getCellValue(row.c[6]);
       const isAllDay = !startTime || startTime.toLowerCase().includes('all day');
 
-      const tags = parseTags(getCellValue(row.c[7]));
+      const rawTags = parseTags(getCellValue(row.c[7]));
+      const costVal = getCellValue(row.c[6]);
+      const foodBool = getCellBool(row.c[9]);
+      const barBool = getCellBool(row.c[10]);
+
+      // Build synthetic tags for cost, food, and bar
+      const syntheticTags: string[] = [];
+      if (isFreeEvent(costVal)) {
+        syntheticTags.push('FREE');
+      } else {
+        syntheticTags.push('$$');
+      }
+      if (foodBool) syntheticTags.push('🍕 Food');
+      if (barBool) syntheticTags.push('🍺 Bar');
+
+      const tags = [...rawTags, ...syntheticTags];
 
       const address = getCellValue(row.c[5]);
       const geo = address

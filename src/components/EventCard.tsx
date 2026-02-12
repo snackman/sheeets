@@ -2,8 +2,8 @@
 
 import { MapPin } from 'lucide-react';
 import { ETHDenverEvent } from '@/lib/types';
-import { VIBE_COLORS } from '@/lib/constants';
 import { StarButton } from './StarButton';
+import { TagBadge } from './TagBadge';
 import { OGImage } from './OGImage';
 
 interface EventCardProps {
@@ -17,8 +17,6 @@ export function EventCard({
   isInItinerary = false,
   onItineraryToggle,
 }: EventCardProps) {
-  const vibeColor = VIBE_COLORS[event.vibe] || VIBE_COLORS['default'];
-
   const timeDisplay = event.isAllDay
     ? 'All Day'
     : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
@@ -74,38 +72,13 @@ export function EventCard({
         )}
 
         {/* Badges row */}
-        <div className="flex flex-wrap items-center gap-1.5 mt-3">
-          {event.vibe && (
-            <span
-              className="px-2 py-0.5 rounded-full text-xs font-medium text-white"
-              style={{ backgroundColor: vibeColor }}
-            >
-              {event.vibe}
-            </span>
-          )}
-
-          {event.isFree ? (
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400">
-              FREE
-            </span>
-          ) : event.cost ? (
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400">
-              {event.cost}
-            </span>
-          ) : null}
-
-          {event.hasFood && (
-            <span className="text-sm" role="img" aria-label="Food available" title="Food available">
-              🍕
-            </span>
-          )}
-
-          {event.hasBar && (
-            <span className="text-sm" role="img" aria-label="Bar available" title="Bar available">
-              🍺
-            </span>
-          )}
-        </div>
+        {event.tags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 mt-3">
+            {event.tags.map((tag) => (
+              <TagBadge key={tag} tag={tag} />
+            ))}
+          </div>
+        )}
 
         {/* Note */}
         {event.note && (

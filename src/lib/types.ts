@@ -29,9 +29,6 @@ export interface FilterState {
   timeStart: number;   // 0-24 hour
   timeEnd: number;     // 0-24 hour
   vibes: string[];
-  freeOnly: boolean;
-  hasFood: boolean;
-  hasBar: boolean;
   itineraryOnly: boolean;
   searchQuery: string;
   nowMode: boolean;
