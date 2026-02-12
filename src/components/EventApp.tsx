@@ -158,7 +158,7 @@ export function EventApp() {
   }
 
   return (
-    <div className={viewMode === 'map' ? 'h-dvh flex flex-col bg-slate-900' : 'min-h-screen bg-slate-900'}>
+    <div className={viewMode === 'list' ? 'min-h-screen bg-slate-900' : 'h-dvh flex flex-col bg-slate-900'}>
       <Header
         viewMode={viewMode}
         onViewChange={setViewMode}
@@ -196,7 +196,7 @@ export function EventApp() {
           />
         </main>
       ) : viewMode === 'table' ? (
-        <main>
+        <main className="flex-1 min-h-0 flex flex-col">
           <TableView
             events={filteredEvents}
             totalCount={conferenceEventCount}

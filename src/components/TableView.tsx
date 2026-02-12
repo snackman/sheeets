@@ -150,12 +150,11 @@ export function TableView({
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-4 pb-3">
+    <div className="max-w-7xl mx-auto px-2 sm:px-4 pb-3 flex-1 min-h-0 flex flex-col">
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="overflow-auto rounded-lg border border-slate-700"
-        style={{ maxHeight: 'calc(100vh - 220px)' }}
+        className="overflow-auto rounded-lg border border-slate-700 flex-1"
       >
         <table className="min-w-[900px] text-sm text-left">
           <thead className="text-xs uppercase tracking-wider text-slate-400 bg-slate-800 border-b border-slate-700 sticky top-0 z-20">
