@@ -43,6 +43,7 @@ export function FilterBar({
   availableVibes,
 }: FilterBarProps) {
   const [expanded, setExpanded] = useState(false);
+  const [confOpen, setConfOpen] = useState(false);
   const maxIdx = EVENT_DATES.length - 1;
 
   const rangeStart = useMemo(() => {
@@ -62,24 +63,59 @@ export function FilterBar({
       <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
         {/* Top row: Conference tabs + Filter toggle */}
         <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
-          {/* Conference selector */}
+          {/* Conference selector — dropdown on mobile, inline tabs on desktop */}
           {availableConferences.length > 1 && (
-            <div className="flex rounded-lg border border-slate-700 overflow-hidden">
-              {availableConferences.map((conf) => (
+            <>
+              {/* Mobile: dropdown button */}
+              <div className="relative sm:hidden shrink-0">
                 <button
-                  key={conf}
-                  onClick={() => onSetConference(conf)}
-                  className={clsx(
-                    'px-4 py-2 text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap',
-                    filters.conference === conf
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700'
-                  )}
+                  onClick={() => setConfOpen(!confOpen)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-orange-500 text-white text-sm font-semibold cursor-pointer"
                 >
-                  {conf}
+                  {filters.conference || 'All'}
+                  <ChevronDown className={clsx('w-3.5 h-3.5 transition-transform', confOpen && 'rotate-180')} />
                 </button>
-              ))}
-            </div>
+                {confOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setConfOpen(false)} />
+                    <div className="absolute top-full left-0 mt-1 z-50 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden min-w-[160px]">
+                      {availableConferences.map((conf) => (
+                        <button
+                          key={conf}
+                          onClick={() => { onSetConference(conf); setConfOpen(false); }}
+                          className={clsx(
+                            'w-full text-left px-4 py-3 text-sm font-semibold transition-colors cursor-pointer',
+                            filters.conference === conf
+                              ? 'bg-orange-500 text-white'
+                              : 'text-slate-300 hover:bg-slate-700 active:bg-slate-700'
+                          )}
+                        >
+                          {conf}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Desktop: inline tabs */}
+              <div className="hidden sm:flex rounded-lg border border-slate-700 overflow-hidden">
+                {availableConferences.map((conf) => (
+                  <button
+                    key={conf}
+                    onClick={() => onSetConference(conf)}
+                    className={clsx(
+                      'px-4 py-2 text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap',
+                      filters.conference === conf
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700'
+                    )}
+                  >
+                    {conf}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
 
           {/* Now toggle button */}
