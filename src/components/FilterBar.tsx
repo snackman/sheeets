@@ -7,6 +7,7 @@ import type { FilterState } from '@/lib/types';
 import { EVENT_DATES, VIBE_COLORS } from '@/lib/constants';
 import { TAG_ICONS } from './TagBadge';
 import { SearchBar } from './SearchBar';
+import { DualRangeSlider } from './DualRangeSlider';
 
 interface FilterBarProps {
   filters: FilterState;
@@ -201,40 +202,14 @@ export function FilterBar({
                     : `${formatDayLabel(EVENT_DATES[rangeStart])} — ${formatDayLabel(EVENT_DATES[rangeEnd])}`}
                 </div>
               </div>
-              <div className="relative h-8 flex items-center">
-                <div className="absolute w-full h-1.5 bg-slate-700 rounded-full" />
-                <div
-                  className="absolute h-1.5 bg-orange-500 rounded-full"
-                  style={{
-                    left: `${(rangeStart / maxIdx) * 100}%`,
-                    right: `${100 - (rangeEnd / maxIdx) * 100}%`,
-                  }}
-                />
-                <input
-                  type="range"
-                  min={0}
-                  max={maxIdx}
-                  value={rangeStart}
-                  onChange={(e) => {
-                    const v = Math.min(Number(e.target.value), rangeEnd);
-                    onSetDayRange(v, rangeEnd, EVENT_DATES);
-                  }}
-                  style={{ zIndex: rangeStart === rangeEnd && rangeStart > maxIdx / 2 ? 2 : 1 }}
-                  className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-orange-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
-                />
-                <input
-                  type="range"
-                  min={0}
-                  max={maxIdx}
-                  value={rangeEnd}
-                  onChange={(e) => {
-                    const v = Math.max(Number(e.target.value), rangeStart);
-                    onSetDayRange(rangeStart, v, EVENT_DATES);
-                  }}
-                  style={{ zIndex: rangeStart === rangeEnd && rangeStart > maxIdx / 2 ? 1 : 2 }}
-                  className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-orange-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
-                />
-              </div>
+              <DualRangeSlider
+                min={0}
+                max={maxIdx}
+                start={rangeStart}
+                end={rangeEnd}
+                onChange={(s, e) => onSetDayRange(s, e, EVENT_DATES)}
+                color="orange"
+              />
             </div>
 
             {/* Time slider */}
@@ -262,40 +237,14 @@ export function FilterBar({
                       {timeLabel}
                     </div>
                   </div>
-                  <div className="relative h-8 flex items-center">
-                    <div className="absolute w-full h-1.5 bg-slate-700 rounded-full" />
-                    <div
-                      className="absolute h-1.5 bg-blue-500 rounded-full"
-                      style={{
-                        left: `${(tStart / 24) * 100}%`,
-                        right: `${100 - (tEnd / 24) * 100}%`,
-                      }}
-                    />
-                    <input
-                      type="range"
-                      min={0}
-                      max={24}
-                      value={tStart}
-                      onChange={(e) => {
-                        const v = Math.min(Number(e.target.value), tEnd);
-                        onSetTimeRange(v, tEnd);
-                      }}
-                      style={{ zIndex: tStart === tEnd && tStart > 12 ? 2 : 1 }}
-                      className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
-                    />
-                    <input
-                      type="range"
-                      min={0}
-                      max={24}
-                      value={tEnd}
-                      onChange={(e) => {
-                        const v = Math.max(Number(e.target.value), tStart);
-                        onSetTimeRange(tStart, v);
-                      }}
-                      style={{ zIndex: tStart === tEnd && tStart > 12 ? 1 : 2 }}
-                      className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md"
-                    />
-                  </div>
+                  <DualRangeSlider
+                    min={0}
+                    max={24}
+                    start={tStart}
+                    end={tEnd}
+                    onChange={onSetTimeRange}
+                    color="blue"
+                  />
                 </div>
               );
             })()}
