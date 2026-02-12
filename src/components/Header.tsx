@@ -75,16 +75,14 @@ export function Header({
               aria-label={`Itinerary: ${itineraryCount} events`}
             >
               <Calendar className="w-4 h-4" />
-              {itineraryCount > 0 && !isItineraryActive && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-orange-500 text-white text-[10px] font-bold rounded-full px-1">
+              {itineraryCount > 0 && (
+                <span className={`absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full px-1 ${
+                  isItineraryActive
+                    ? 'bg-slate-800 text-slate-400'
+                    : 'bg-orange-500 text-white'
+                }`}>
                   {itineraryCount}
                 </span>
-              )}
-              {itineraryCount > 0 && isItineraryActive && (
-                <span className="font-medium">{itineraryCount}</span>
-              )}
-              {itineraryCount === 0 && (
-                <span className="font-medium">{itineraryCount}</span>
               )}
             </button>
           </div>
