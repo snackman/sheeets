@@ -41,13 +41,16 @@ function groupByDate(events: ETHDenverEvent[]): { dateISO: string; label: string
 
 const COLUMN_COUNT = 6; // star, time, organizer, event, location, tags
 
+// Height of the sticky app header (px) — must match Header component
+const HEADER_HEIGHT = 57;
+
 export function TableView({
   events,
   totalCount,
   itinerary,
   onItineraryToggle,
 }: TableViewProps) {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const theadRef = useRef<HTMLTableSectionElement>(null);
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
   const [currentDateLabel, setCurrentDateLabel] = useState<string>('Time');
 
@@ -58,86 +61,29 @@ export function TableView({
     setCurrentDateLabel('Time');
   }, [groups]);
 
-  // Track which date separator is at/near the top using IntersectionObserver
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container || groups.length === 0) return;
+  // Track which date separator is at/near the top via window scroll
+  const updateDateLabel = useCallback(() => {
+    const thead = theadRef.current;
+    if (!thead || groups.length === 0) return;
 
-    // We observe each separator row. As separators scroll past the sticky header,
-    // the one that most recently crossed out of view (or is still barely visible)
-    // determines the current date.
-    const observer = new IntersectionObserver(
-      () => {
-        // Delegate to the same logic as handleScroll for consistency
-        const hasScrolled = container.scrollTop > 5;
-        if (!hasScrolled) {
-          setCurrentDateLabel('Time');
-          return;
-        }
+    const theadBottom = thead.getBoundingClientRect().bottom;
+    const theadTop = thead.getBoundingClientRect().top;
+    const isStuck = theadTop <= HEADER_HEIGHT + 2;
 
-        const separators = Array.from(separatorRefs.current.entries()).map(([dateISO, el]) => {
-          const rect = el.getBoundingClientRect();
-          const containerRect = container.getBoundingClientRect();
-          return { dateISO, relativeTop: rect.top - containerRect.top };
-        });
-        separators.sort((a, b) => a.relativeTop - b.relativeTop);
-
-        // A separator counts as "scrolled past" when it's behind the sticky header (~37px)
-        const stickyThreshold = 40;
-        let currentDate: string | null = null;
-        for (const sep of separators) {
-          if (sep.relativeTop <= stickyThreshold) {
-            currentDate = sep.dateISO;
-          }
-        }
-
-        if (currentDate) {
-          setCurrentDateLabel(formatDateHeader(currentDate));
-        } else {
-          setCurrentDateLabel('Time');
-        }
-      },
-      {
-        root: container,
-        // Multiple thresholds for smoother tracking
-        threshold: [0, 0.1, 0.5, 1],
-        // Negative top margin so we detect when separator passes the sticky header
-        rootMargin: '-40px 0px 0px 0px',
-      }
-    );
-
-    // Observe all separator rows
-    for (const el of separatorRefs.current.values()) {
-      observer.observe(el);
-    }
-
-    return () => observer.disconnect();
-  }, [groups]);
-
-  // Also handle scroll events for more precise tracking
-  const handleScroll = useCallback(() => {
-    const container = scrollContainerRef.current;
-    if (!container || groups.length === 0) return;
-
-    // Only show a date once the user has actually scrolled
-    if (container.scrollTop <= 5) {
+    if (!isStuck) {
       setCurrentDateLabel('Time');
       return;
     }
-
-    const containerRect = container.getBoundingClientRect();
-    const stickyThreshold = containerRect.top + 40;
 
     const separators = Array.from(separatorRefs.current.entries()).map(([dateISO, el]) => ({
       dateISO,
       top: el.getBoundingClientRect().top,
     }));
-
     separators.sort((a, b) => a.top - b.top);
 
     let currentDate: string | null = null;
     for (const sep of separators) {
-      if (sep.top <= stickyThreshold) {
+      if (sep.top <= theadBottom) {
         currentDate = sep.dateISO;
       }
     }
@@ -149,6 +95,11 @@ export function TableView({
     }
   }, [groups]);
 
+  useEffect(() => {
+    window.addEventListener('scroll', updateDateLabel, { passive: true });
+    return () => window.removeEventListener('scroll', updateDateLabel);
+  }, [updateDateLabel]);
+
   // Store ref callback for separator rows
   const setSeparatorRef = useCallback((dateISO: string, el: HTMLTableRowElement | null) => {
     if (el) {
@@ -159,15 +110,14 @@ export function TableView({
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 pb-3">
-      <div
-        ref={scrollContainerRef}
-        onScroll={handleScroll}
-        className="overflow-auto rounded-lg border border-slate-700"
-        style={{ maxHeight: 'calc(100vh - 220px)' }}
-      >
+    <div className="max-w-7xl mx-auto px-4">
+      <div className="overflow-x-auto rounded-t-lg border border-b-0 border-slate-700 min-h-[calc(100vh-140px)]">
         <table className="min-w-[900px] text-sm text-left">
-          <thead className="text-xs uppercase tracking-wider text-slate-400 bg-slate-800 border-b border-slate-700 sticky top-0 z-20">
+          <thead
+            ref={theadRef}
+            className="text-xs uppercase tracking-wider text-slate-400 bg-slate-800 border-b border-slate-700 sticky z-30"
+            style={{ top: `${HEADER_HEIGHT}px` }}
+          >
             <tr>
               <th className="px-3 py-2.5 w-8"><Calendar className="w-3.5 h-3.5" /></th>
               <th className="px-3 py-2.5 min-w-[110px]">

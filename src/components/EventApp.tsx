@@ -64,6 +64,13 @@ export function EventApp() {
     }
   }, [user, toggleItinerary]);
 
+  // Turn off itinerary filter if user signs out or auth is dismissed
+  useEffect(() => {
+    if (!user && filters.itineraryOnly) {
+      setFilter('itineraryOnly', false);
+    }
+  }, [user, filters.itineraryOnly, setFilter]);
+
   // Auto-refresh tick for "Now" mode — bumps every 5 minutes to recalculate filtered events
   const [nowTick, setNowTick] = useState(0);
   useEffect(() => {
@@ -208,7 +215,7 @@ export function EventApp() {
         </main>
       )}
 
-      <AuthModal isOpen={showAuthForStar} onClose={() => setShowAuthForStar(false)} />
+      <AuthModal isOpen={showAuthForStar} onClose={() => { pendingStarRef.current = null; setShowAuthForStar(false); }} />
     </div>
   );
 }
