@@ -60,7 +60,13 @@ export function Header({
 
             {/* Itinerary filter toggle */}
             <button
-              onClick={onItineraryToggle}
+              onClick={() => {
+                if (!user) {
+                  setShowAuth(true);
+                  return;
+                }
+                onItineraryToggle();
+              }}
               className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm cursor-pointer transition-colors ${
                 isItineraryActive
                   ? 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600 active:bg-orange-600'
