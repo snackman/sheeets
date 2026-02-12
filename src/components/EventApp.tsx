@@ -176,14 +176,9 @@ export function EventApp() {
         availableVibes={availableVibes}
       />
 
-      {/* Search bar + event count */}
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-2 min-w-0">
-        <SearchBar value={filters.searchQuery} onChange={(query) => setFilter('searchQuery', query)} />
-        <p className="text-sm text-slate-400 shrink-0">
-          <span className="text-white font-medium">{filteredEvents.length}</span>
-          <span className="hidden sm:inline"> of {conferenceEventCount} events</span>
-          <span className="sm:hidden"> events</span>
-        </p>
+      {/* Search bar */}
+      <div className="max-w-7xl mx-auto px-4 py-3">
+        <SearchBar value={filters.searchQuery} onChange={(query) => setFilter('searchQuery', query)} eventCount={filteredEvents.length} />
       </div>
 
       {/* Main content area */}
