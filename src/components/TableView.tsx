@@ -50,7 +50,7 @@ export function TableView({
   itinerary,
   onItineraryToggle,
 }: TableViewProps) {
-  const theadRef = useRef<HTMLTableSectionElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
   const [currentDateLabel, setCurrentDateLabel] = useState<string>('Time');
 
@@ -61,19 +61,18 @@ export function TableView({
     setCurrentDateLabel('Time');
   }, [groups]);
 
-  // Track which date separator is at/near the top via window scroll
-  const updateDateLabel = useCallback(() => {
-    const thead = theadRef.current;
-    if (!thead || groups.length === 0) return;
+  // Track which date separator is at/near the top via container scroll
+  const handleScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container || groups.length === 0) return;
 
-    const theadBottom = thead.getBoundingClientRect().bottom;
-    const theadTop = thead.getBoundingClientRect().top;
-    const isStuck = theadTop <= HEADER_HEIGHT + 2;
-
-    if (!isStuck) {
+    if (container.scrollTop <= 5) {
       setCurrentDateLabel('Time');
       return;
     }
+
+    const containerRect = container.getBoundingClientRect();
+    const stickyThreshold = containerRect.top + 40;
 
     const separators = Array.from(separatorRefs.current.entries()).map(([dateISO, el]) => ({
       dateISO,
@@ -83,7 +82,7 @@ export function TableView({
 
     let currentDate: string | null = null;
     for (const sep of separators) {
-      if (sep.top <= theadBottom) {
+      if (sep.top <= stickyThreshold) {
         currentDate = sep.dateISO;
       }
     }
@@ -95,11 +94,6 @@ export function TableView({
     }
   }, [groups]);
 
-  useEffect(() => {
-    window.addEventListener('scroll', updateDateLabel, { passive: true });
-    return () => window.removeEventListener('scroll', updateDateLabel);
-  }, [updateDateLabel]);
-
   // Store ref callback for separator rows
   const setSeparatorRef = useCallback((dateISO: string, el: HTMLTableRowElement | null) => {
     if (el) {
@@ -110,14 +104,15 @@ export function TableView({
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-4">
-      <div className="overflow-x-auto rounded-t-lg border border-b-0 border-slate-700 min-h-[calc(100vh-140px)]">
+    <div className="max-w-7xl mx-auto px-2 sm:px-4">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="sticky overflow-auto rounded-t-lg border border-b-0 border-slate-700"
+        style={{ top: `${HEADER_HEIGHT}px`, height: `calc(100vh - ${HEADER_HEIGHT}px)` }}
+      >
         <table className="min-w-[900px] text-sm text-left">
-          <thead
-            ref={theadRef}
-            className="text-xs uppercase tracking-wider text-slate-400 bg-slate-800 border-b border-slate-700 sticky z-30"
-            style={{ top: `${HEADER_HEIGHT}px` }}
-          >
+          <thead className="text-xs uppercase tracking-wider text-slate-400 bg-slate-800 border-b border-slate-700 sticky top-0 z-20">
             <tr>
               <th className="px-3 py-2.5 w-8"><Calendar className="w-3.5 h-3.5" /></th>
               <th className="px-3 py-2.5 min-w-[110px]">
