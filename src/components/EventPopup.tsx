@@ -1,7 +1,7 @@
 'use client';
 
 import { Popup } from 'react-map-gl/mapbox';
-import { X, ExternalLink } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { VIBE_COLORS } from '@/lib/constants';
 import { StarButton } from './StarButton';
@@ -41,18 +41,44 @@ function SingleEventContent({
 
   return (
     <div className="w-[280px] max-w-[calc(100vw-3rem)]">
-      {/* Row 1: Event name + close button */}
-      <div className="flex items-start justify-between gap-2 mb-1.5">
-        <h3 className="font-bold text-sm text-white leading-tight line-clamp-2">
-          {event.name}
-        </h3>
-        <button
-          onClick={onClose}
-          className="shrink-0 p-1.5 text-slate-400 hover:text-white active:text-white transition-colors"
-          aria-label="Close popup"
-        >
-          <X size={16} />
-        </button>
+      {/* Row 1: Event name (linked) + star + close */}
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <div className="min-w-0 flex-1">
+          {event.link ? (
+            <a
+              href={event.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-sm text-white leading-tight line-clamp-2 hover:text-orange-300 transition-colors"
+            >
+              {event.name}
+            </a>
+          ) : (
+            <h3 className="font-bold text-sm text-white leading-tight line-clamp-2">
+              {event.name}
+            </h3>
+          )}
+          {event.organizer && (
+            <p className="text-xs text-slate-500 mt-0.5">{event.organizer}</p>
+          )}
+        </div>
+        <div className="flex items-center shrink-0">
+          {onItineraryToggle && (
+            <StarButton
+              eventId={event.id}
+              isStarred={isInItinerary}
+              onToggle={onItineraryToggle}
+              size="sm"
+            />
+          )}
+          <button
+            onClick={onClose}
+            className="p-1.5 text-slate-400 hover:text-white active:text-white transition-colors"
+            aria-label="Close popup"
+          >
+            <X size={16} />
+          </button>
+        </div>
       </div>
 
       {/* Row 2: Vibe tag + cost */}
@@ -69,36 +95,9 @@ function SingleEventContent({
       </div>
 
       {/* Row 3: Date + time */}
-      <p className="text-xs text-slate-300 mb-1.5">
+      <p className="text-xs text-slate-300">
         {event.date} &middot; {timeDisplay}
       </p>
-
-      {/* Row 4: Organizer */}
-      {event.organizer && (
-        <p className="text-xs text-slate-500 mb-2">By {event.organizer}</p>
-      )}
-
-      {/* Row 5: Action row — RSVP + star */}
-      <div className="flex items-center gap-2">
-        {event.link && (
-          <a
-            href={event.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white text-xs font-medium rounded transition-colors"
-          >
-            RSVP <ExternalLink size={10} />
-          </a>
-        )}
-        {onItineraryToggle && (
-          <StarButton
-            eventId={event.id}
-            isStarred={isInItinerary}
-            onToggle={onItineraryToggle}
-            size="md"
-          />
-        )}
-      </div>
     </div>
   );
 }
