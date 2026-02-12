@@ -41,9 +41,6 @@ function groupByDate(events: ETHDenverEvent[]): { dateISO: string; label: string
 
 const COLUMN_COUNT = 6; // star, time, organizer, event, location, tags
 
-// Height of the sticky app header (px) — must match Header component
-const HEADER_HEIGHT = 57;
-
 export function TableView({
   events,
   totalCount,
@@ -61,7 +58,55 @@ export function TableView({
     setCurrentDateLabel('Time');
   }, [groups]);
 
-  // Track which date separator is at/near the top via container scroll
+  // Track which date separator is at/near the top using IntersectionObserver
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || groups.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      () => {
+        const hasScrolled = container.scrollTop > 5;
+        if (!hasScrolled) {
+          setCurrentDateLabel('Time');
+          return;
+        }
+
+        const separators = Array.from(separatorRefs.current.entries()).map(([dateISO, el]) => {
+          const rect = el.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+          return { dateISO, relativeTop: rect.top - containerRect.top };
+        });
+        separators.sort((a, b) => a.relativeTop - b.relativeTop);
+
+        const stickyThreshold = 40;
+        let currentDate: string | null = null;
+        for (const sep of separators) {
+          if (sep.relativeTop <= stickyThreshold) {
+            currentDate = sep.dateISO;
+          }
+        }
+
+        if (currentDate) {
+          setCurrentDateLabel(formatDateHeader(currentDate));
+        } else {
+          setCurrentDateLabel('Time');
+        }
+      },
+      {
+        root: container,
+        threshold: [0, 0.1, 0.5, 1],
+        rootMargin: '-40px 0px 0px 0px',
+      }
+    );
+
+    for (const el of separatorRefs.current.values()) {
+      observer.observe(el);
+    }
+
+    return () => observer.disconnect();
+  }, [groups]);
+
+  // Also handle scroll events for more precise tracking
   const handleScroll = useCallback(() => {
     const container = scrollContainerRef.current;
     if (!container || groups.length === 0) return;
@@ -78,6 +123,7 @@ export function TableView({
       dateISO,
       top: el.getBoundingClientRect().top,
     }));
+
     separators.sort((a, b) => a.top - b.top);
 
     let currentDate: string | null = null;
@@ -104,12 +150,12 @@ export function TableView({
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-4">
+    <div className="max-w-7xl mx-auto px-2 sm:px-4 pb-3">
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="sticky overflow-auto rounded-t-lg border border-b-0 border-slate-700"
-        style={{ top: `${HEADER_HEIGHT}px`, height: `calc(100vh - ${HEADER_HEIGHT}px)` }}
+        className="overflow-auto rounded-lg border border-slate-700"
+        style={{ maxHeight: 'calc(100vh - 220px)' }}
       >
         <table className="min-w-[900px] text-sm text-left">
           <thead className="text-xs uppercase tracking-wider text-slate-400 bg-slate-800 border-b border-slate-700 sticky top-0 z-20">
