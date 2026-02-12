@@ -28,9 +28,8 @@ export function TableView({
               <th className="px-3 py-2.5">Time</th>
               <th className="px-3 py-2.5">Organizer</th>
               <th className="px-3 py-2.5">Event</th>
-              <th className="px-3 py-2.5">Tags</th>
               <th className="px-3 py-2.5">Location</th>
-              <th className="px-3 py-2.5">Cost</th>
+              <th className="px-3 py-2.5">Tags</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-700/50">
@@ -93,18 +92,6 @@ export function TableView({
                     </span>
                   </td>
 
-                  {/* Tags */}
-                  <td className="px-3 py-2">
-                    <div className="flex gap-1 items-center" title={event.tags.join(', ')}>
-                      {event.tags.slice(0, 3).map((tag) => (
-                        <TagBadge key={tag} tag={tag} iconOnly />
-                      ))}
-                      {event.tags.length > 3 && (
-                        <span className="text-slate-500 text-xs">+{event.tags.length - 3}</span>
-                      )}
-                    </div>
-                  </td>
-
                   {/* Location */}
                   <td className="px-3 py-2 text-slate-400 whitespace-nowrap" title={event.address}>
                     {event.address ? (
@@ -119,13 +106,16 @@ export function TableView({
                     ) : null}
                   </td>
 
-                  {/* Cost */}
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    {event.isFree ? (
-                      <span className="text-emerald-400 text-xs font-medium">FREE</span>
-                    ) : (
-                      <span className="text-amber-400 text-xs">{event.cost}</span>
-                    )}
+                  {/* Tags */}
+                  <td className="px-3 py-2">
+                    <div className="flex gap-1 items-center" title={event.tags.join(', ')}>
+                      {event.tags.slice(0, 3).map((tag) => (
+                        <TagBadge key={tag} tag={tag} iconOnly />
+                      ))}
+                      {event.tags.length > 3 && (
+                        <span className="text-slate-500 text-xs">+{event.tags.length - 3}</span>
+                      )}
+                    </div>
                   </td>
 
                 </tr>
