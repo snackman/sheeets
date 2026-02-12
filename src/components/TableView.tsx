@@ -172,7 +172,7 @@ export function TableView({
               <th className="px-3 py-2.5 w-8"><Calendar className="w-3.5 h-3.5" /></th>
               <th className="px-3 py-2.5 min-w-[110px]">
                 {currentDateLabel === 'Time' ? (
-                  'TIME'
+                  'WHEN'
                 ) : (
                   <span className="text-orange-400/80 font-semibold">
                     {currentDateLabel.toUpperCase()}
@@ -181,7 +181,7 @@ export function TableView({
               </th>
               <th className="px-3 py-2.5">Organizer</th>
               <th className="px-3 py-2.5">Event</th>
-              <th className="px-3 py-2.5">Location</th>
+              <th className="px-3 py-2.5">Where</th>
               <th className="px-3 py-2.5">Tags</th>
             </tr>
           </thead>
