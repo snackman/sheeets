@@ -171,9 +171,13 @@ export function TableView({
             <tr>
               <th className="px-3 py-2.5 w-8"></th>
               <th className="px-3 py-2.5 min-w-[110px]">
-                <span className="normal-case tracking-normal text-orange-400/90 font-semibold">
-                  {currentDateLabel}
-                </span>
+                {currentDateLabel === 'Time' ? (
+                  'TIME'
+                ) : (
+                  <span className="normal-case tracking-normal text-orange-400/90 font-semibold">
+                    {currentDateLabel}
+                  </span>
+                )}
               </th>
               <th className="px-3 py-2.5">Organizer</th>
               <th className="px-3 py-2.5">Event</th>
