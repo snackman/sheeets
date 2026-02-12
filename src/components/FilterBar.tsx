@@ -6,6 +6,7 @@ import { X, SlidersHorizontal, ChevronDown, Zap } from 'lucide-react';
 import type { FilterState } from '@/lib/types';
 import { EVENT_DATES, VIBE_COLORS } from '@/lib/constants';
 import { TAG_ICONS } from './TagBadge';
+import { SearchBar } from './SearchBar';
 
 interface FilterBarProps {
   filters: FilterState;
@@ -19,6 +20,9 @@ interface FilterBarProps {
   availableConferences: string[];
   availableTypes: string[];
   availableVibes: string[];
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  eventCount: number;
 }
 
 /** Format an ISO date string to "Mon Feb 10" style label */
@@ -41,6 +45,9 @@ export function FilterBar({
   availableConferences,
   availableTypes,
   availableVibes,
+  searchQuery,
+  onSearchChange,
+  eventCount,
 }: FilterBarProps) {
   const [expanded, setExpanded] = useState(false);
   const [confOpen, setConfOpen] = useState(false);
@@ -165,6 +172,9 @@ export function FilterBar({
             <ChevronDown className={clsx('w-3.5 h-3.5 transition-transform', expanded && 'rotate-180')} />
           </button>
         </div>
+
+        {/* Search bar */}
+        <SearchBar value={searchQuery} onChange={onSearchChange} eventCount={eventCount} />
 
         {/* Expandable filter content — overlays map on mobile */}
         {expanded && (

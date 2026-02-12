@@ -13,7 +13,6 @@ import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
 import { TableView } from './TableView';
 import { MapViewWrapper } from './MapViewWrapper';
-import { SearchBar } from './SearchBar';
 import { Loading } from './Loading';
 import { AuthModal } from './AuthModal';
 
@@ -174,12 +173,10 @@ export function EventApp() {
         availableConferences={availableConferences}
         availableTypes={availableTypes}
         availableVibes={availableVibes}
+        searchQuery={filters.searchQuery}
+        onSearchChange={(query) => setFilter('searchQuery', query)}
+        eventCount={filteredEvents.length}
       />
-
-      {/* Search bar */}
-      <div className="max-w-7xl mx-auto px-4 py-3">
-        <SearchBar value={filters.searchQuery} onChange={(query) => setFilter('searchQuery', query)} eventCount={filteredEvents.length} />
-      </div>
 
       {/* Main content area */}
       {viewMode === 'map' ? (
