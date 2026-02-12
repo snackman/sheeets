@@ -71,16 +71,25 @@ interface TagBadgeProps {
 export function TagBadge({ tag, size = 'sm', iconOnly = false }: TagBadgeProps) {
   const Icon = TAG_ICONS[tag];
   const color = VIBE_COLORS[tag] || VIBE_COLORS['default'];
-  const iconSize = size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5';
+  const iconSize = iconOnly
+    ? 'w-5 h-5'
+    : size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
+
+  if (iconOnly) {
+    return Icon ? (
+      <span title={tag} className="inline-flex items-center justify-center">
+        <Icon className={`${iconSize} flex-shrink-0`} style={{ color }} />
+      </span>
+    ) : null;
+  }
 
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full text-xs font-medium text-white ${iconOnly ? 'w-6 h-6' : 'gap-1 px-2 py-0.5'}`}
-      style={{ backgroundColor: color }}
+      className="inline-flex items-center gap-1.5 text-xs font-medium"
       title={tag}
     >
-      {Icon && <Icon className={`${iconSize} flex-shrink-0`} />}
-      {!iconOnly && tag}
+      {Icon && <Icon className={`${iconSize} flex-shrink-0`} style={{ color }} />}
+      <span className="text-slate-300">{tag}</span>
     </span>
   );
 }
