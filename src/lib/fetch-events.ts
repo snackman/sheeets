@@ -1,7 +1,7 @@
 import { parseGVizResponse, GVizRow, getCellValue, getCellBool } from './gviz';
 import { ETHDenverEvent } from './types';
 import { SHEET_ID, EVENT_TABS } from './constants';
-import { parseDateToISO, getTimeOfDay, isFreeEvent } from './utils';
+import { parseDateToISO, getTimeOfDay, isFreeEvent, normalizeAddress } from './utils';
 import geocodedData from '@/data/geocoded-addresses.json';
 
 const TAG_ALIASES: Record<string, string> = {
@@ -118,7 +118,7 @@ export async function fetchEvents(): Promise<ETHDenverEvent[]> {
 
       const address = getCellValue(row.c[5]);
       const geo = address
-        ? (geocodedData.addresses as Record<string, { lat: number; lng: number }>)[address.toLowerCase().trim()]
+        ? (geocodedData.addresses as Record<string, { lat: number; lng: number }>)[normalizeAddress(address)]
         : undefined;
 
       // Generate ID and flag duplicates (same name/date/time = data error)

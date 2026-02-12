@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-12T05:25:15.988Z",
+  "generatedAt": "2026-02-12T07:41:00.394Z",
   "addresses": {
     "header highlight - $500": {
       "lat": 40.084736,
@@ -346,130 +346,30 @@
       "lng": -104.986109,
       "matchedAddress": "Denver, Colorado, United States"
     },
-    "repulse bay beach hong kong": {
-      "lat": 39.74168,
-      "lng": -104.98611,
-      "matchedAddress": "Denver County, Colorado, United States"
-    },
-    "asap alternate sauna and plunge 2/f, 11 stanley st, central, hong kong": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
-    },
     "the reunification monument 海濱花園旁, wan chai, hong kong": {
       "lat": 22.27925,
       "lng": 114.17325,
       "matchedAddress": "Wanzai Qu, Hong Kong"
-    },
-    "powerhouse barbell club lg/f, silver fortune plaza, 1 wellington st, central, hong kong": {
-      "lat": 5.322596,
-      "lng": -4.374264,
-      "matchedAddress": "Lagunes, Côte d'Ivoire"
     },
     "harbour station hung hing rd, causeway bay, hong kong": {
       "lat": 22.279356,
       "lng": 114.16255,
       "matchedAddress": "Hong Kong"
     },
-    "hong kong convention and exhibition centre 1號 expo dr, wan chai, hong kong": {
-      "lat": 39.74168,
-      "lng": -104.98611,
-      "matchedAddress": "Denver County, Colorado, United States"
-    },
-    "fireside 5th floor, h code (the steps, 45 pottinger st, central, hong kong": {
-      "lat": 9.148681,
-      "lng": -4.610648,
-      "matchedAddress": "Kong, Savanes, Côte d'Ivoire"
-    },
-    "cyberport 3 core f 28 bel-air ave, telegraph bay, hong kong": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
-    },
-    "st. joan of arc secondary school, hong kong 55號 braemar hill rd, hong kong": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
-    },
-    "runnovation - 潤維創坊 causeway centre block b, 28 harbour rd, wan chai, hong kong": {
-      "lat": 39.74168,
-      "lng": -104.98611,
-      "matchedAddress": "Denver County, Colorado, United States"
-    },
-    "international commerce centre (icc) 1 austin rd w, west kowloon, hong kong": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
-    },
-    "aws hong kong tower 535, 535 jaffe rd, causeway bay, hong kong": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
-    },
     "soho house hong kong 33 des voeux rd w, sheung wan, hong kong": {
       "lat": 22.287889,
       "lng": 114.146606,
       "matchedAddress": "德輔道西 Des Voeux Road West 33, Zhongxi Qu, Hong Kong"
-    },
-    "26/f, qre plaza, 202 queen's road east, wan chai, hong kong": {
-      "lat": 9.148681,
-      "lng": -4.610648,
-      "matchedAddress": "Kong, Savanes, Côte d'Ivoire"
-    },
-    "central hong kong": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
-    },
-    "energy plaza 92 granville rd, tsim sha tsui east, hong kong": {
-      "lat": 9.148681,
-      "lng": -4.610648,
-      "matchedAddress": "Kong, Savanes, Côte d'Ivoire"
     },
     "central pier no.10 central, hong kong": {
       "lat": 22.279356,
       "lng": 114.16255,
       "matchedAddress": "Hong Kong"
     },
-    "hong kong hong kong": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
-    },
-    "hong kong convention & exhibition centre": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
-    },
-    "the harbourview 2/f, the harbourview, 4 harbour rd, wan chai, hong kong": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
-    },
     "swiss cafe 號地下, 12 li yuen st w, central, hong kong": {
       "lat": 22.283009,
       "lng": 114.156046,
       "matchedAddress": "利源西街 Li Yuen Street West 12, Zhongxi Qu, Hong Kong"
-    },
-    "ping pong 129 129 second street l/g nam cheong house, sai ying pun, hong kong": {
-      "lat": 39.74168,
-      "lng": -104.98611,
-      "matchedAddress": "Denver County, Colorado, United States"
-    },
-    "four seasons hotel hong kong 8 finance st, central, hong kong": {
-      "lat": 9.148681,
-      "lng": -4.610648,
-      "matchedAddress": "Kong, Savanes, Côte d'Ivoire"
-    },
-    "the trilogy 26/f, h code, 45 pottinger st, central, hong kong": {
-      "lat": 9.148681,
-      "lng": -4.610648,
-      "matchedAddress": "Kong, Savanes, Côte d'Ivoire"
-    },
-    "fini's 49 elgin st, central, hong kong": {
-      "lat": 37.416684,
-      "lng": -113.62449,
-      "matchedAddress": "Central, Utah, United States"
     },
     "wan chai hong kong": {
       "lat": 22.27925,
@@ -486,185 +386,50 @@
       "lng": 114.188827,
       "matchedAddress": "興發街 Hing Fat Street 1, Wanzai Qu, Hong Kong"
     },
-    "tower 535 535 jaffe rd, causeway bay, hong kong": {
-      "lat": 39.74168,
-      "lng": -104.98611,
-      "matchedAddress": "Denver County, Colorado, United States"
-    },
-    "space club hong kong, central, wyndham st, 60號, the centrium, 地下2號舖": {
-      "lat": 9.148681,
-      "lng": -4.610648,
-      "matchedAddress": "Kong, Savanes, Côte d'Ivoire"
-    },
-    "spaces lee garden 3 1 sunning road 4-6/f, 20, 21/f, causeway bay, hong kong": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
-    },
     "exhibition centre station harbour rd, wan chai, hong kong": {
       "lat": 22.279356,
       "lng": 114.16255,
       "matchedAddress": "Hong Kong"
-    },
-    "dragon i ug/f, the centrium, 60 wyndham st, central, hong kong": {
-      "lat": 9.148681,
-      "lng": -4.610648,
-      "matchedAddress": "Kong, Savanes, Côte d'Ivoire"
-    },
-    "hopewell hotel 15 kennedy rd, wan chai, hong kong": {
-      "lat": 39.74168,
-      "lng": -104.98611,
-      "matchedAddress": "Denver County, Colorado, United States"
-    },
-    "tsim sha tsui hong kong": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
-    },
-    "cardinal point 43-45/f, forty-five, gloucester tower, landmark, 15 queen's road central, central, hong kong": {
-      "lat": 39.74168,
-      "lng": -104.98611,
-      "matchedAddress": "Denver County, Colorado, United States"
     },
     "v point 18 tang lung st, causeway bay, hong kong": {
       "lat": 22.279109,
       "lng": 114.18164,
       "matchedAddress": "登龍街 Tang Lung Street 18, Wanzai Qu, Hong Kong"
     },
-    "happy valley racecourse; wong nai chung road happy valley, hong kong": {
-      "lat": 39.74168,
-      "lng": -104.98611,
-      "matchedAddress": "Denver County, Colorado, United States"
-    },
     "cosco tower 183 queen's road central, sheung wan, hong kong": {
       "lat": 22.279356,
       "lng": 114.16255,
       "matchedAddress": "Hong Kong"
-    },
-    "boomerang • the illusionist shop 1 &, 2, lg/f, lkf tower, 55 d'aguilar st, central, hong kong": {
-      "lat": 5.322596,
-      "lng": -4.374264,
-      "matchedAddress": "Lagunes, Côte d'Ivoire"
     },
     "aoao 14/f, 38-48 queen's road central, central, hong kong": {
       "lat": 22.283285,
       "lng": 114.155323,
       "matchedAddress": "皇后大道中 Queen's Road Central, Zhongxi Qu, Hong Kong"
     },
-    "99 queen's road central, central, 48th floor, central tower, hong kong": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
-    },
-    "fayy 25-26/f, california tower, 30-32 d'aguilar st, central, hong kong": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
-    },
-    "vsing central 2/f whole, silver fortune plaza, 1 wellington st, central, hong kong": {
-      "lat": 59.712914,
-      "lng": 15.139446,
-      "matchedAddress": "Storå, Örebro, Sweden"
-    },
-    "the upper housegreenroom · 49/fpacific place88 queenswayadmiralty, hong kong sar": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
-    },
     "rayson huang theatre pok fu lam rd, lung fu shan, hong kong": {
       "lat": 22.279356,
       "lng": 114.16255,
       "matchedAddress": "Hong Kong"
-    },
-    "cyberport 3 core e telegraph bay, hong kong": {
-      "lat": 39.74168,
-      "lng": -104.98611,
-      "matchedAddress": "Denver County, Colorado, United States"
-    },
-    "g/f & 1/f, cai building, 54-58 electric road, tin hau, hong kong": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
     },
     "wlab area a, block a-d, 1/f, 196-198 tsat tsz mui rd, quarry bay, hong kong": {
       "lat": 22.291356,
       "lng": 114.20424,
       "matchedAddress": "七姊妹道 Tsat Tsz Mui Road, Dong Qu, Hong Kong"
     },
-    "hong kong university of science and technology (hkust) clear water bay, hong kong": {
-      "lat": 26.413329,
-      "lng": 62.134002,
-      "matchedAddress": "Hong, Sarbaz, Sistan and Baluchestan, Iran"
-    },
-    "hong kong zoological and botanical gardens albany rd, hong kong": {
-      "lat": -26.269378,
-      "lng": 28.117706,
-      "matchedAddress": "Albany Road, Alberton, Gauteng 1449, South Africa"
-    },
-    "latham & watkins llp hong kong, central, 交易廣場一期18樓": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
-    },
-    "dram good whisky shop hong kong 15th floor, unit 1506, 18 - 20 lyndhurst terrace, central, hong kong": {
-      "lat": 39.74168,
-      "lng": -104.98611,
-      "matchedAddress": "Denver County, Colorado, United States"
-    },
-    "the optimist 239號地下至, 2樓, 239 hennessy rd, wan chai, hong kong": {
-      "lat": 9.148681,
-      "lng": -4.610648,
-      "matchedAddress": "Kong, Savanes, Côte d'Ivoire"
-    },
     "aia carnival 9 lung wo road, central, hki hong kong": {
       "lat": 22.279356,
       "lng": 114.16255,
       "matchedAddress": "Hong Kong"
-    },
-    "central pier no.10 hong kong, central, 中環": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
     },
     "14th floor, three exchange square, 8 connaught place, central, hong kong": {
       "lat": 22.279356,
       "lng": 114.16255,
       "matchedAddress": "Hong Kong"
     },
-    "amante house hong kong, central, d'aguilar st, 一號蘭桂坊地下": {
-      "lat": 39.74168,
-      "lng": -104.98611,
-      "matchedAddress": "Denver County, Colorado, United States"
-    },
-    "cassio social club hong kong, central, wyndham st, 33號, 33 wyndham street (formerly lkf tower), 2/f": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
-    },
-    "pier 1929 hong kong, 灣仔灣仔渡輪碼頭2/f": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
-    },
-    "listed company office 26/f, cofco tower, no. 262 gloucester road, causeway bay, hong kong": {
-      "lat": 59.6696,
-      "lng": 9.650892,
-      "matchedAddress": "Kongsberg, Buskerud, Norway"
-    },
     "bar leone 11-15 bridges st, central, hong kong": {
       "lat": 22.279356,
       "lng": 114.16255,
       "matchedAddress": "Hong Kong"
-    },
-    "hong kong observation wheel 33 man kwong st, central, hong kong": {
-      "lat": 9.148681,
-      "lng": -4.610648,
-      "matchedAddress": "Kong, Savanes, Côte d'Ivoire"
-    },
-    "lung fu shan morning trail 5 hatton rd, lung fu shan, hong kong": {
-      "lat": 39.741681,
-      "lng": -104.986109,
-      "matchedAddress": "Denver, Colorado, United States"
     },
     "elephant grounds 8 wing fung st, wan chai, hong kong": {
       "lat": 22.27682,
@@ -698,13 +463,138 @@
     },
     "craftissimo sheung wan shop d, g/f, tai ping building, 22-24a tai ping shan st, sheung wan, hong kong": {
       "lat": 22.28394,
-      "lng": 114.15050,
+      "lng": 114.1505,
       "matchedAddress": "22-24A Tai Ping Shan St, Sheung Wan, Hong Kong"
     },
     "arcadia restaurant & bar hong kong, causeway bay, tang lung st, 1號, midtown soundwill plaza ii, midtown 30樓": {
       "lat": 22.28024,
       "lng": 114.18371,
       "matchedAddress": "1 Tang Lung St, Causeway Bay, Hong Kong"
+    },
+    "asap alternate sauna and plunge 2/f, 11 stanley st, central, hong kong": {
+      "lat": 22.279356,
+      "lng": 114.16255,
+      "matchedAddress": "Hong Kong"
+    },
+    "powerhouse barbell club lg/f, silver fortune plaza, 1 wellington st, central, hong kong": {
+      "lat": 22.279356,
+      "lng": 114.16255,
+      "matchedAddress": "Hong Kong"
+    },
+    "cyberport 3 core e telegraph bay, hong kong": {
+      "lat": 22.2617,
+      "lng": 114.1301,
+      "matchedAddress": "Cyberport 3, Telegraph Bay, Hong Kong"
+    },
+    "hopewell hotel 15 kennedy rd, wan chai, hong kong": {
+      "lat": 22.27474,
+      "lng": 114.16996,
+      "matchedAddress": "堅尼地道 Kennedy Road 15, Wanzai Qu, Hong Kong"
+    },
+    "tower 535 535 jaffe rd, causeway bay, hong kong": {
+      "lat": 22.28136,
+      "lng": 114.183883,
+      "matchedAddress": "謝斐道 Jaffe Road 535, Wanzai Qu, Hong Kong"
+    },
+    "g/f & 1/f, cai building, 54-58 electric road, tin hau, hong kong": {
+      "lat": 22.279356,
+      "lng": 114.16255,
+      "matchedAddress": "Hong Kong"
+    },
+    "aws hong kong tower 535, 535 jaffe rd, causeway bay, hong kong": {
+      "lat": 22.279356,
+      "lng": 114.16255,
+      "matchedAddress": "Hong Kong"
+    },
+    "hong kong university of science and technology (hkust) clear water bay, hong kong": {
+      "lat": 22.279356,
+      "lng": 114.16255,
+      "matchedAddress": "Hong Kong"
+    },
+    "hong kong zoological and botanical gardens albany rd, hong kong": {
+      "lat": 22.277379,
+      "lng": 114.154993,
+      "matchedAddress": "雅賓利道 Albany Road, Zhongxi Qu, Hong Kong"
+    },
+    "four seasons hotel hong kong 8 finance st, central, hong kong": {
+      "lat": 22.286619,
+      "lng": 114.156661,
+      "matchedAddress": "金融街 Finance Street 8, Zhongxi Qu, Hong Kong"
+    },
+    "latham & watkins llp hong kong, central, 交易廣場一期18樓": {
+      "lat": 22.374333,
+      "lng": 114.114255,
+      "matchedAddress": "西樓角路 Sai Lau Kok Road 18, Quanwan Qu, Hong Kong"
+    },
+    "dram good whisky shop hong kong 15th floor, unit 1506, 18 - 20 lyndhurst terrace, central, hong kong": {
+      "lat": 22.279356,
+      "lng": 114.16255,
+      "matchedAddress": "Hong Kong"
+    },
+    "the optimist 239號地下至, 2樓, 239 hennessy rd, wan chai, hong kong": {
+      "lat": 22.278089,
+      "lng": 114.175926,
+      "matchedAddress": "軒尼詩道 Hennessy Road 239, Wanzai Qu, Hong Kong"
+    },
+    "hong kong convention & exhibition centre": {
+      "lat": 22.2823,
+      "lng": 114.1752,
+      "matchedAddress": "Hong Kong Convention & Exhibition Centre, Wan Chai, Hong Kong"
+    },
+    "hong kong": {
+      "lat": 22.279356,
+      "lng": 114.16255,
+      "matchedAddress": "Hong Kong"
+    },
+    "central pier no.10 hong kong, central, 中環": {
+      "lat": 22.279356,
+      "lng": 114.16255,
+      "matchedAddress": "Hong Kong"
+    },
+    "amante house hong kong, central, d'aguilar st, 一號蘭桂坊地下": {
+      "lat": 22.279356,
+      "lng": 114.16255,
+      "matchedAddress": "Hong Kong"
+    },
+    "cassio social club hong kong, central, wyndham st, 33號, 33 wyndham street (formerly lkf tower), 2/f": {
+      "lat": 22.2812,
+      "lng": 114.1554,
+      "matchedAddress": "33 Wyndham Street, Central, Hong Kong"
+    },
+    "pier 1929 hong kong, 灣仔灣仔渡輪碼頭2/f": {
+      "lat": 22.278115,
+      "lng": 114.170389,
+      "matchedAddress": "分域街 Fenwick Street 2, Wanzai Qu, Hong Kong"
+    },
+    "listed company office 26/f, cofco tower, no. 262 gloucester road, causeway bay, hong kong": {
+      "lat": 22.2795,
+      "lng": 114.1834,
+      "matchedAddress": "COFCO Tower, 262 Gloucester Road, Causeway Bay, Hong Kong"
+    },
+    "boomerang • the illusionist shop 1 &, 2, lg/f, lkf tower, 55 d'aguilar st, central, hong kong": {
+      "lat": 22.2812,
+      "lng": 114.1554,
+      "matchedAddress": "55 D'Aguilar Street, Central, Hong Kong"
+    },
+    "hong kong observation wheel 33 man kwong st, central, hong kong": {
+      "lat": 22.285499,
+      "lng": 114.161819,
+      "matchedAddress": "民光街 Man Kwong Street 33, Zhongxi Qu, Hong Kong"
+    },
+    "lung fu shan morning trail 5 hatton rd, lung fu shan, hong kong": {
+      "lat": 22.279356,
+      "lng": 114.16255,
+      "matchedAddress": "Hong Kong"
+    },
+    "hong kong observation wheel central, hong kong": {
+      "lat": 22.279356,
+      "lng": 114.16255,
+      "matchedAddress": "Hong Kong"
+    },
+    "hong kong hong kong": {
+      "lat": 22.258137,
+      "lng": 114.173723,
+      "matchedAddress": "港島徑第4段 Hong Kong Trail Section 4, Wanzai Qu, Hong Kong"
     }
   }
 }

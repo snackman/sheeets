@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useMemo, useCallback } from 'react';
+import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import MapGL, { NavigationControl, Marker } from 'react-map-gl/mapbox';
 import type { MapRef } from 'react-map-gl/mapbox';
 import { LocateFixed } from 'lucide-react';
@@ -34,12 +34,30 @@ export function MapView({
   isItineraryView = false,
 }: MapViewProps) {
   const mapRef = useRef<MapRef>(null);
+  const hasFittedRef = useRef(false);
+
+  // Compute center from events with coordinates, fallback to Denver
+  const eventsCenter = useMemo(() => {
+    const located = events.filter((e) => e.lat != null && e.lng != null);
+    if (located.length === 0) return DENVER_CENTER;
+    const avgLat = located.reduce((s, e) => s + e.lat!, 0) / located.length;
+    const avgLng = located.reduce((s, e) => s + e.lng!, 0) / located.length;
+    return { lat: avgLat, lng: avgLng };
+  }, [events]);
 
   const [viewState, setViewState] = useState({
-    latitude: DENVER_CENTER.lat,
-    longitude: DENVER_CENTER.lng,
+    latitude: eventsCenter.lat,
+    longitude: eventsCenter.lng,
     zoom: 12,
   });
+
+  // Re-center when the events center changes significantly (e.g. switching conferences)
+  useEffect(() => {
+    const dist = Math.abs(viewState.latitude - eventsCenter.lat) + Math.abs(viewState.longitude - eventsCenter.lng);
+    if (dist > 1) {
+      setViewState((prev) => ({ ...prev, latitude: eventsCenter.lat, longitude: eventsCenter.lng }));
+    }
+  }, [eventsCenter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
