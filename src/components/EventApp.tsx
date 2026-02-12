@@ -159,7 +159,7 @@ export function EventApp() {
   }
 
   return (
-    <div className={viewMode === 'list' ? 'min-h-screen bg-slate-900' : 'h-dvh flex flex-col bg-slate-900 overflow-x-hidden'}>
+    <div className={viewMode === 'list' ? 'min-h-screen bg-slate-900' : 'h-dvh flex flex-col bg-slate-900 overflow-hidden'}>
       <Header
         viewMode={viewMode}
         onViewChange={setViewMode}
