@@ -61,7 +61,7 @@ export function FilterBar({
     <div className="bg-slate-900 border-b border-slate-800">
       <div className="max-w-7xl mx-auto px-4 py-3 space-y-3">
         {/* Top row: Conference tabs + Filter toggle */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
           {/* Conference selector */}
           {availableConferences.length > 1 && (
             <div className="flex rounded-lg border border-slate-700 overflow-hidden">
@@ -70,10 +70,10 @@ export function FilterBar({
                   key={conf}
                   onClick={() => onSetConference(conf)}
                   className={clsx(
-                    'px-4 py-2 text-sm font-semibold transition-colors cursor-pointer',
+                    'px-4 py-2 text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap',
                     filters.conference === conf
                       ? 'bg-orange-500 text-white'
-                      : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                      : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700'
                   )}
                 >
                   {conf}
@@ -86,10 +86,10 @@ export function FilterBar({
           <button
             onClick={onToggleNowMode}
             className={clsx(
-              'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer',
+              'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer',
               filters.nowMode
                 ? 'bg-green-500 text-white shadow-[0_0_12px_rgba(34,197,94,0.4)]'
-                : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 border border-slate-700'
+                : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700 border border-slate-700'
             )}
           >
             <span className="relative flex items-center">
@@ -105,10 +105,10 @@ export function FilterBar({
           <button
             onClick={() => setExpanded(!expanded)}
             className={clsx(
-              'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ml-auto',
+              'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ml-auto',
               expanded || activeFilterCount > 0
                 ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
-                : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 border border-slate-700'
+                : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700 border border-slate-700'
             )}
           >
             <SlidersHorizontal className="w-4 h-4" />
@@ -262,7 +262,7 @@ export function FilterBar({
                           'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                           isActive
                             ? 'text-white'
-                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600 active:bg-slate-600'
                         )}
                         style={isActive ? { backgroundColor: vibeColor } : undefined}
                       >
@@ -295,7 +295,7 @@ export function FilterBar({
                           'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                           isActive
                             ? 'text-white'
-                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600 active:bg-slate-600'
                         )}
                         style={isActive ? { backgroundColor: vibeColor } : undefined}
                       >
@@ -313,7 +313,7 @@ export function FilterBar({
               <div className="flex items-center">
                 <button
                   onClick={onClearFilters}
-                  className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 active:text-orange-300 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                   Clear all

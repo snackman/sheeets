@@ -142,7 +142,7 @@ export function EventApp() {
           <p className="text-slate-500 text-sm text-center max-w-md">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
+            className="mt-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 active:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
           >
             Retry
           </button>
@@ -152,7 +152,7 @@ export function EventApp() {
   }
 
   return (
-    <div className={viewMode === 'map' ? 'h-screen flex flex-col bg-slate-900' : 'min-h-screen bg-slate-900'}>
+    <div className={viewMode === 'map' ? 'h-dvh flex flex-col bg-slate-900' : 'min-h-screen bg-slate-900'}>
       <Header
         viewMode={viewMode}
         onViewChange={setViewMode}
@@ -177,11 +177,12 @@ export function EventApp() {
       />
 
       {/* Search bar + event count */}
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
+      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-2 min-w-0">
         <SearchBar value={filters.searchQuery} onChange={(query) => setFilter('searchQuery', query)} />
-        <p className="text-sm text-slate-400 whitespace-nowrap">
-          <span className="text-white font-medium">{filteredEvents.length}</span> of{' '}
-          {conferenceEventCount} events
+        <p className="text-sm text-slate-400 shrink-0">
+          <span className="text-white font-medium">{filteredEvents.length}</span>
+          <span className="hidden sm:inline"> of {conferenceEventCount} events</span>
+          <span className="sm:hidden"> events</span>
         </p>
       </div>
 

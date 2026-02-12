@@ -44,7 +44,7 @@ export function MapMarker({
   return (
     <Marker latitude={latitude} longitude={longitude}>
       <button
-        className="relative flex flex-col items-center cursor-pointer transition-transform hover:scale-110 focus:outline-none"
+        className="relative flex flex-col items-center cursor-pointer transition-transform hover:scale-110 active:scale-95 focus:outline-none p-2"
         onClick={handleClick}
         aria-label={`${vibe} event${eventCount > 1 ? ` (${eventCount} events)` : ''}`}
       >

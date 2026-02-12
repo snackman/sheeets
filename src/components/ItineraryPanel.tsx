@@ -227,7 +227,7 @@ export function ItineraryPanel({
 
       {/* Panel */}
       <div
-        className={`fixed top-0 right-0 z-[70] h-full w-full max-w-md bg-slate-900 border-l border-slate-700 shadow-2xl transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 z-[70] h-full w-full max-w-md bg-slate-900 border-l border-slate-700 shadow-2xl transition-transform duration-300 ease-in-out pt-[var(--safe-area-top)] ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -245,7 +245,7 @@ export function ItineraryPanel({
               <>
                 <Link
                   href="/itinerary"
-                  className="p-1.5 text-slate-400 hover:text-orange-400 transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-orange-400 active:text-orange-400 transition-colors"
                   aria-label="Open full page"
                   title="Open full page"
                 >
@@ -253,7 +253,7 @@ export function ItineraryPanel({
                 </Link>
                 <button
                   onClick={() => downloadICS(itineraryEvents)}
-                  className="p-1.5 text-slate-400 hover:text-orange-400 transition-colors cursor-pointer"
+                  className="p-1.5 text-slate-400 hover:text-orange-400 active:text-orange-400 transition-colors cursor-pointer"
                   aria-label="Export to calendar"
                   title="Export to calendar (.ics)"
                 >
@@ -262,7 +262,7 @@ export function ItineraryPanel({
                 <button
                   onClick={handleSharePNG}
                   disabled={exporting}
-                  className="p-1.5 text-slate-400 hover:text-orange-400 transition-colors cursor-pointer disabled:opacity-50"
+                  className="p-1.5 text-slate-400 hover:text-orange-400 active:text-orange-400 transition-colors cursor-pointer disabled:opacity-50"
                   aria-label="Share as PNG"
                   title="Share as PNG"
                 >
@@ -272,7 +272,7 @@ export function ItineraryPanel({
             )}
             <button
               onClick={onClose}
-              className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1 text-slate-400 hover:text-white active:text-white transition-colors cursor-pointer"
               aria-label="Close itinerary"
             >
               <X className="w-5 h-5" />
@@ -290,7 +290,7 @@ export function ItineraryPanel({
                 className={`px-3 py-2 text-xs font-medium transition-colors cursor-pointer border-b-2 ${
                   selectedConference === conf
                     ? 'border-orange-500 text-white'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                    : 'border-transparent text-slate-400 hover:text-slate-200 active:text-slate-200'
                 }`}
               >
                 {conf.replace(/ 2026$/, '')}
@@ -383,7 +383,7 @@ export function ItineraryPanel({
                               <button
                                 data-export-hide
                                 onClick={() => onItineraryToggle(event.id)}
-                                className="shrink-0 p-1 text-slate-500 hover:text-red-400 transition-colors cursor-pointer"
+                                className="shrink-0 p-1 text-slate-500 hover:text-red-400 active:text-red-400 transition-colors cursor-pointer"
                                 aria-label="Remove from itinerary"
                                 title="Remove from itinerary"
                               >
@@ -436,13 +436,13 @@ export function ItineraryPanel({
                     </span>
                     <button
                       onClick={handleClear}
-                      className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded transition-colors cursor-pointer"
+                      className="px-3 py-1.5 bg-red-500 hover:bg-red-600 active:bg-red-600 text-white text-xs font-medium rounded transition-colors cursor-pointer"
                     >
                       Yes, clear
                     </button>
                     <button
                       onClick={() => setShowClearConfirm(false)}
-                      className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium rounded transition-colors cursor-pointer"
+                      className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 active:bg-slate-600 text-slate-300 text-xs font-medium rounded transition-colors cursor-pointer"
                     >
                       Cancel
                     </button>
@@ -450,7 +450,7 @@ export function ItineraryPanel({
                 ) : (
                   <button
                     onClick={() => setShowClearConfirm(true)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-300 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-300 active:text-slate-300 rounded-lg text-sm font-medium transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                     Clear Itinerary
