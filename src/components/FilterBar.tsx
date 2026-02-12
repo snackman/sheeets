@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import clsx from 'clsx';
 import { X, SlidersHorizontal, ChevronDown, Zap } from 'lucide-react';
 import type { FilterState } from '@/lib/types';
@@ -44,6 +44,7 @@ export function FilterBar({
 }: FilterBarProps) {
   const [expanded, setExpanded] = useState(false);
   const [confOpen, setConfOpen] = useState(false);
+  const confBtnRef = useRef<HTMLButtonElement | null>(null);
   const maxIdx = EVENT_DATES.length - 1;
 
   const rangeStart = useMemo(() => {
@@ -67,18 +68,25 @@ export function FilterBar({
           {availableConferences.length > 1 && (
             <>
               {/* Mobile: dropdown button */}
-              <div className="relative sm:hidden shrink-0">
+              <div className="sm:hidden shrink-0">
                 <button
+                  ref={(el) => { confBtnRef.current = el; }}
                   onClick={() => setConfOpen(!confOpen)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-orange-500 text-white text-sm font-semibold cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-orange-500 text-white text-sm font-semibold cursor-pointer max-w-[120px]"
                 >
-                  {filters.conference || 'All'}
-                  <ChevronDown className={clsx('w-3.5 h-3.5 transition-transform', confOpen && 'rotate-180')} />
+                  <span className="truncate">{filters.conference || 'All'}</span>
+                  <ChevronDown className={clsx('w-3.5 h-3.5 shrink-0 transition-transform', confOpen && 'rotate-180')} />
                 </button>
                 {confOpen && (
                   <>
-                    <div className="fixed inset-0 z-40" onClick={() => setConfOpen(false)} />
-                    <div className="absolute top-full left-0 mt-1 z-50 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden min-w-[160px]">
+                    <div className="fixed inset-0 z-[60]" onClick={() => setConfOpen(false)} />
+                    <div
+                      className="fixed z-[70] bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden min-w-[180px]"
+                      style={{
+                        top: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().bottom + 4 : 0,
+                        left: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().left : 16,
+                      }}
+                    >
                       {availableConferences.map((conf) => (
                         <button
                           key={conf}
