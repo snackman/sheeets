@@ -10,6 +10,7 @@ interface TableViewProps {
   totalCount: number;
   itinerary?: Set<string>;
   onItineraryToggle?: (eventId: string) => void;
+  onScrolledChange?: (scrolled: boolean) => void;
 }
 
 /** Format a dateISO string like "2026-02-10" into "Mon Feb 10" */
@@ -46,10 +47,12 @@ export function TableView({
   totalCount,
   itinerary,
   onItineraryToggle,
+  onScrolledChange,
 }: TableViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
   const [currentDateLabel, setCurrentDateLabel] = useState<string>('Time');
+  const lastScrolledRef = useRef(false);
 
   const groups = useMemo(() => groupByDate(events), [events]);
 
@@ -111,6 +114,13 @@ export function TableView({
     const container = scrollContainerRef.current;
     if (!container || groups.length === 0) return;
 
+    // Notify parent whether we've scrolled away from top
+    const scrolled = container.scrollTop > 5;
+    if (scrolled !== lastScrolledRef.current) {
+      lastScrolledRef.current = scrolled;
+      onScrolledChange?.(scrolled);
+    }
+
     if (container.scrollTop <= 5) {
       setCurrentDateLabel('Time');
       return;
@@ -138,7 +148,7 @@ export function TableView({
     } else {
       setCurrentDateLabel('Time');
     }
-  }, [groups]);
+  }, [groups, onScrolledChange]);
 
   // Store ref callback for separator rows
   const setSeparatorRef = useCallback((dateISO: string, el: HTMLTableRowElement | null) => {

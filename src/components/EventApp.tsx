@@ -31,6 +31,7 @@ export function EventApp() {
     activeFilterCount,
   } = useFilters();
   const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const [tableScrolled, setTableScrolled] = useState(false);
   const { user } = useAuth();
 
   const {
@@ -167,8 +168,12 @@ export function EventApp() {
         isItineraryActive={filters.itineraryOnly}
       />
 
-      {/* Filter bar — hidden in table view to maximize table height */}
-      {viewMode !== 'table' && (
+      {/* Filter bar — collapses on table scroll to maximize table height */}
+      <div className={
+        viewMode === 'table'
+          ? `overflow-hidden transition-all duration-200 ${tableScrolled ? 'max-h-0' : 'max-h-60'}`
+          : ''
+      }>
         <FilterBar
           filters={filters}
           onSetConference={setConference}
@@ -185,7 +190,7 @@ export function EventApp() {
           onSearchChange={(query) => setFilter('searchQuery', query)}
           eventCount={filteredEvents.length}
         />
-      )}
+      </div>
 
       {/* Main content area */}
       {viewMode === 'map' ? (
@@ -204,6 +209,7 @@ export function EventApp() {
             totalCount={conferenceEventCount}
             itinerary={itinerary}
             onItineraryToggle={handleItineraryToggle}
+            onScrolledChange={setTableScrolled}
           />
         </main>
       ) : (
