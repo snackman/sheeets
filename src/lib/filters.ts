@@ -112,13 +112,6 @@ export function applyFilters(
       return false;
     }
 
-    // Cost filter
-    if (filters.freeOnly && !event.isFree) return false;
-
-    // Amenities
-    if (filters.hasFood && !event.hasFood) return false;
-    if (filters.hasBar && !event.hasBar) return false;
-
     // Itinerary
     if (filters.itineraryOnly && itinerary && !itinerary.has(event.id))
       return false;

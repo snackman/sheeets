@@ -14,6 +14,10 @@ export const EVENT_DATES = [
 export const DENVER_CENTER = { lat: 39.7392, lng: -104.9903 };
 
 export const VIBE_COLORS: Record<string, string> = {
+  'FREE': '#10B981',
+  '$$': '#F59E0B',
+  '🍕 Food': '#F97316',
+  '🍺 Bar': '#FBBF24',
   'Conference': '#F97316',
   'Panel/Talk': '#6366F1',
   'Hackathon': '#3B82F6',
@@ -47,6 +51,10 @@ export const VIBE_COLORS: Record<string, string> = {
 
 /** Tags that describe event format/type (vs topic/interest tags) */
 export const TYPE_TAGS = [
+  'FREE',
+  '$$',
+  '🍕 Food',
+  '🍺 Bar',
   'Conference',
   'Panel/Talk',
   'Hackathon',

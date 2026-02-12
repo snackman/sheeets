@@ -13,7 +13,6 @@ interface FilterBarProps {
   onSetDayRange: (startIdx: number, endIdx: number, allDates: string[]) => void;
   onToggleVibe: (vibe: string) => void;
   onSetTimeRange: (start: number, end: number) => void;
-  onToggleBool: (key: 'freeOnly' | 'hasFood' | 'hasBar') => void;
   onToggleNowMode: () => void;
   onClearFilters: () => void;
   activeFilterCount: number;
@@ -36,7 +35,6 @@ export function FilterBar({
   onSetDayRange,
   onToggleVibe,
   onSetTimeRange,
-  onToggleBool,
   onToggleNowMode,
   onClearFilters,
   activeFilterCount,
@@ -273,40 +271,6 @@ export function FilterBar({
                       </button>
                     );
                   })}
-                  <span className="w-px bg-slate-700 shrink-0 self-stretch" />
-                  <button
-                    onClick={() => onToggleBool('freeOnly')}
-                    className={clsx(
-                      'shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
-                      filters.freeOnly
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    )}
-                  >
-                    FREE
-                  </button>
-                  <button
-                    onClick={() => onToggleBool('hasFood')}
-                    className={clsx(
-                      'shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
-                      filters.hasFood
-                        ? 'bg-amber-500 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    )}
-                  >
-                    🍕 Food
-                  </button>
-                  <button
-                    onClick={() => onToggleBool('hasBar')}
-                    className={clsx(
-                      'shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer',
-                      filters.hasBar
-                        ? 'bg-amber-500 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    )}
-                  >
-                    🍺 Bar
-                  </button>
                 </div>
               </div>
             )}

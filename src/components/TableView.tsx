@@ -31,8 +31,6 @@ export function TableView({
               <th className="px-3 py-2.5">Tags</th>
               <th className="px-3 py-2.5">Location</th>
               <th className="px-3 py-2.5">Cost</th>
-              <th className="px-3 py-2.5 text-center" title="Food">F</th>
-              <th className="px-3 py-2.5 text-center" title="Bar">B</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-700/50">
@@ -128,16 +126,6 @@ export function TableView({
                     ) : (
                       <span className="text-amber-400 text-xs">{event.cost}</span>
                     )}
-                  </td>
-
-                  {/* Food */}
-                  <td className="px-3 py-2 text-center">
-                    {event.hasFood && <span title="Has food">🍕</span>}
-                  </td>
-
-                  {/* Bar */}
-                  <td className="px-3 py-2 text-center">
-                    {event.hasBar && <span title="Has bar">🍺</span>}
                   </td>
 
                 </tr>
