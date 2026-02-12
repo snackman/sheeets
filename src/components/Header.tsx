@@ -35,7 +35,7 @@ export function Header({
               📅
             </span>
             <h1 className="text-lg sm:text-xl font-bold text-white truncate">
-              sheeets.xyz
+              sheeets
             </h1>
           </div>
 
