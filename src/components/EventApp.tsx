@@ -158,7 +158,7 @@ export function EventApp() {
   }
 
   return (
-    <div className={viewMode === 'list' ? 'min-h-screen bg-slate-900' : 'h-dvh flex flex-col bg-slate-900'}>
+    <div className={viewMode === 'list' ? 'min-h-screen bg-slate-900' : 'h-dvh flex flex-col bg-slate-900 overflow-x-hidden'}>
       <Header
         viewMode={viewMode}
         onViewChange={setViewMode}
@@ -167,23 +167,25 @@ export function EventApp() {
         isItineraryActive={filters.itineraryOnly}
       />
 
-      {/* Filter bar */}
-      <FilterBar
-        filters={filters}
-        onSetConference={setConference}
-        onSetDayRange={setDayRange}
-        onToggleVibe={toggleVibe}
-        onSetTimeRange={setTimeRange}
-        onToggleNowMode={toggleNowMode}
-        onClearFilters={clearFilters}
-        activeFilterCount={activeFilterCount}
-        availableConferences={availableConferences}
-        availableTypes={availableTypes}
-        availableVibes={availableVibes}
-        searchQuery={filters.searchQuery}
-        onSearchChange={(query) => setFilter('searchQuery', query)}
-        eventCount={filteredEvents.length}
-      />
+      {/* Filter bar — hidden in table view to maximize table height */}
+      {viewMode !== 'table' && (
+        <FilterBar
+          filters={filters}
+          onSetConference={setConference}
+          onSetDayRange={setDayRange}
+          onToggleVibe={toggleVibe}
+          onSetTimeRange={setTimeRange}
+          onToggleNowMode={toggleNowMode}
+          onClearFilters={clearFilters}
+          activeFilterCount={activeFilterCount}
+          availableConferences={availableConferences}
+          availableTypes={availableTypes}
+          availableVibes={availableVibes}
+          searchQuery={filters.searchQuery}
+          onSearchChange={(query) => setFilter('searchQuery', query)}
+          eventCount={filteredEvents.length}
+        />
+      )}
 
       {/* Main content area */}
       {viewMode === 'map' ? (
