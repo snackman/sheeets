@@ -22,7 +22,7 @@ import {
   House,
   UtensilsCrossed,
   Drama,
-  IdCard,
+  IdCardLanyard,
   Vote,
   PartyPopper,
   type LucideIcon,
@@ -61,7 +61,7 @@ function SolIcon(props: React.SVGProps<SVGSVGElement>) {
 type IconComponent = LucideIcon | ((props: React.SVGProps<SVGSVGElement>) => React.ReactNode);
 
 export const TAG_ICONS: Record<string, IconComponent> = {
-  'Conference': IdCard,
+  'Conference': IdCardLanyard,
   'Panel/Talk': Mic,
   'Hackathon': Code,
   'Networking': Handshake,
