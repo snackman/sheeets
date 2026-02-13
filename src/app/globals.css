@@ -108,3 +108,13 @@ input, select, textarea {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Sponsors ticker horizontal scroll */
+.sponsors-scroll {
+  animation: sponsors-scroll-left 20s linear infinite;
+}
+
+@keyframes sponsors-scroll-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
