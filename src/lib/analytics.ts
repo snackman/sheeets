@@ -67,3 +67,9 @@ export const trackLocateMe = () =>
 // Clear filters
 export const trackClearFilters = () =>
   track('clear_filters');
+
+// Social / Friends
+export const trackProfileUpdate = () => track('profile_update');
+export const trackFriendCodeGenerate = () => track('friend_code_generate');
+export const trackFriendCodeCopy = () => track('friend_code_copy');
+export const trackFriendAdded = () => track('friend_added');

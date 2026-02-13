@@ -1,5 +1,10 @@
+import { Suspense } from 'react';
 import { EventApp } from '@/components/EventApp';
 
 export default function Home() {
-  return <EventApp />;
+  return (
+    <Suspense>
+      <EventApp />
+    </Suspense>
+  );
 }

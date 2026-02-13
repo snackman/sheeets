@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
-import { X, Mail, LogOut, User, MapPin, Check, Loader2 } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { X, Mail, LogOut, User, MapPin, Check, Loader2, Copy, Users } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { trackAuthSuccess, trackSignOut } from '@/lib/analytics';
+import { trackAuthSuccess, trackSignOut, trackFriendCodeCopy } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 import { distanceMeters } from '@/lib/geo';
 import { passesNowFilter } from '@/lib/filters';
+import { useProfile } from '@/hooks/useProfile';
+import { useFriends } from '@/hooks/useFriends';
 import type { ETHDenverEvent } from '@/lib/types';
 
 interface AuthModalProps {
@@ -209,6 +211,8 @@ interface UserMenuProps {
 
 export function UserMenu({ events, itinerary }: UserMenuProps) {
   const { user, signOut } = useAuth();
+  const { profile, updateProfile } = useProfile();
+  const { friendCode, friendCount, generateCode } = useFriends();
   const [open, setOpen] = useState(false);
   const [checking, setChecking] = useState(false);
   const [checkResult, setCheckResult] = useState<{
@@ -216,7 +220,69 @@ export function UserMenu({ events, itinerary }: UserMenuProps) {
     message: string;
   } | null>(null);
 
+  // Profile form state
+  const [displayName, setDisplayName] = useState('');
+  const [xHandle, setXHandle] = useState('');
+  const [farcasterUsername, setFarcasterUsername] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
+
+  // Friend link state
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [generatingCode, setGeneratingCode] = useState(false);
+
+  // Sync form state when profile loads
+  useEffect(() => {
+    if (profile) {
+      setDisplayName(profile.display_name ?? '');
+      setXHandle(profile.x_handle ?? '');
+      setFarcasterUsername(profile.farcaster_username ?? '');
+    }
+  }, [profile]);
+
+  // Generate friend code when modal opens (if user doesn't have one)
+  useEffect(() => {
+    if (open && user && !friendCode && !generatingCode) {
+      setGeneratingCode(true);
+      generateCode().finally(() => setGeneratingCode(false));
+    }
+  }, [open, user, friendCode, generateCode, generatingCode]);
+
   if (!user) return null;
+
+  async function handleSaveProfile() {
+    setSaving(true);
+    await updateProfile({
+      display_name: displayName.trim() || null,
+      x_handle: xHandle.trim() || null,
+      farcaster_username: farcasterUsername.trim() || null,
+    });
+    setSaving(false);
+    setSaveStatus('saved');
+    setTimeout(() => setSaveStatus('idle'), 2000);
+  }
+
+  async function handleCopyLink() {
+    if (!friendCode) return;
+    const url = `${window.location.origin}?friend=${friendCode}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      trackFriendCodeCopy();
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      // Fallback for older browsers
+      const input = document.createElement('input');
+      input.value = url;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+      trackFriendCodeCopy();
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    }
+  }
 
   async function handleCheckIn() {
     setChecking(true);
@@ -284,10 +350,16 @@ export function UserMenu({ events, itinerary }: UserMenuProps) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="p-1.5 text-slate-400 hover:text-white transition-colors cursor-pointer"
+        className="p-1.5 text-slate-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1"
         title="Profile"
       >
-        <User className="w-4 h-4" />
+        {profile?.display_name ? (
+          <span className="text-xs font-medium truncate max-w-[80px]">
+            {profile.display_name.split(' ')[0]}
+          </span>
+        ) : (
+          <User className="w-4 h-4" />
+        )}
       </button>
 
       {open && (
@@ -309,60 +381,155 @@ export function UserMenu({ events, itinerary }: UserMenuProps) {
                 </button>
               </div>
 
-              {/* Content */}
-              <div className="px-4 py-5 space-y-4">
+              {/* Scrollable Content */}
+              <div className="max-h-[80vh] overflow-y-auto px-4 py-5 space-y-4">
+                {/* Email */}
                 <div>
                   <p className="text-xs text-slate-500 uppercase tracking-wide">Email</p>
                   <p className="text-sm text-white mt-0.5">{user.email}</p>
                 </div>
 
-                {/* Check In */}
-                <button
-                  onClick={handleCheckIn}
-                  disabled={checking}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white transition-colors cursor-pointer"
-                >
-                  {checking ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Checking in…
-                    </>
-                  ) : (
-                    <>
-                      <MapPin className="w-4 h-4" />
-                      Check In
-                    </>
-                  )}
-                </button>
-
-                {checkResult && (
-                  <div
-                    className={`flex items-start gap-2 text-sm rounded-lg px-3 py-2 ${
-                      checkResult.ok
-                        ? 'bg-green-900/40 text-green-300'
-                        : 'bg-slate-700/60 text-slate-300'
-                    }`}
-                  >
-                    {checkResult.ok ? (
-                      <Check className="w-4 h-4 mt-0.5 shrink-0" />
-                    ) : (
-                      <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
-                    )}
-                    <span>{checkResult.message}</span>
+                {/* Profile Fields */}
+                <div className="border-t border-slate-700 pt-4 space-y-3">
+                  <div>
+                    <label className="text-xs text-slate-500 uppercase tracking-wide block mb-1">Display Name</label>
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Your name"
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-slate-500"
+                    />
                   </div>
-                )}
 
-                <button
-                  onClick={() => {
-                    trackSignOut();
-                    signOut();
-                    setOpen(false);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-600 hover:border-red-500/50 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded-lg text-sm transition-colors cursor-pointer"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  Sign out
-                </button>
+                  <div>
+                    <label className="text-xs text-slate-500 uppercase tracking-wide block mb-1">X (Twitter)</label>
+                    <div className="flex items-center bg-slate-900 border border-slate-600 rounded-lg focus-within:border-orange-500">
+                      <span className="text-slate-500 text-sm pl-3 select-none">@</span>
+                      <input
+                        type="text"
+                        value={xHandle}
+                        onChange={(e) => setXHandle(e.target.value.replace(/^@/, ''))}
+                        placeholder="handle"
+                        className="flex-1 bg-transparent text-white text-sm px-2 py-2 focus:outline-none placeholder:text-slate-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-500 uppercase tracking-wide block mb-1">Farcaster</label>
+                    <div className="flex items-center bg-slate-900 border border-slate-600 rounded-lg focus-within:border-orange-500">
+                      <span className="text-slate-500 text-sm pl-3 select-none">@</span>
+                      <input
+                        type="text"
+                        value={farcasterUsername}
+                        onChange={(e) => setFarcasterUsername(e.target.value.replace(/^@/, ''))}
+                        placeholder="username"
+                        className="flex-1 bg-transparent text-white text-sm px-2 py-2 focus:outline-none placeholder:text-slate-500"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleSaveProfile}
+                    disabled={saving}
+                    className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                  >
+                    {saving ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : 'Save'}
+                  </button>
+                </div>
+
+                {/* Check In */}
+                <div className="border-t border-slate-700 pt-4 space-y-3">
+                  <button
+                    onClick={handleCheckIn}
+                    disabled={checking}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white transition-colors cursor-pointer"
+                  >
+                    {checking ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Checking in...
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="w-4 h-4" />
+                        Check In
+                      </>
+                    )}
+                  </button>
+
+                  {checkResult && (
+                    <div
+                      className={`flex items-start gap-2 text-sm rounded-lg px-3 py-2 ${
+                        checkResult.ok
+                          ? 'bg-green-900/40 text-green-300'
+                          : 'bg-slate-700/60 text-slate-300'
+                      }`}
+                    >
+                      {checkResult.ok ? (
+                        <Check className="w-4 h-4 mt-0.5 shrink-0" />
+                      ) : (
+                        <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
+                      )}
+                      <span>{checkResult.message}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Friends */}
+                <div className="border-t border-slate-700 pt-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-slate-400" />
+                    <p className="text-xs text-slate-500 uppercase tracking-wide">Friends</p>
+                  </div>
+
+                  {friendCode ? (
+                    <div>
+                      <p className="text-xs text-slate-400 mb-1.5">Your friend link</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-300 truncate select-all">
+                          {typeof window !== 'undefined'
+                            ? `${window.location.origin}?friend=${friendCode}`
+                            : `?friend=${friendCode}`}
+                        </div>
+                        <button
+                          onClick={handleCopyLink}
+                          className="shrink-0 flex items-center gap-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium px-3 py-2 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          {linkCopied ? 'Copied!' : 'Copy'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Generating your friend link...
+                    </div>
+                  )}
+
+                  <p className="text-xs text-slate-500">
+                    {friendCount === 0
+                      ? 'Share your link to connect with friends'
+                      : `${friendCount} friend${friendCount !== 1 ? 's' : ''}`}
+                  </p>
+                </div>
+
+                {/* Sign Out */}
+                <div className="border-t border-slate-700 pt-4">
+                  <button
+                    onClick={() => {
+                      trackSignOut();
+                      signOut();
+                      setOpen(false);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-600 hover:border-red-500/50 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded-lg text-sm transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Sign out
+                  </button>
+                </div>
               </div>
             </div>
           </div>
