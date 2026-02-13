@@ -163,6 +163,124 @@ export function MapView({
     return map;
   }, [events, isItineraryView]);
 
+  // Compute label placements to avoid overlap using greedy algorithm
+  const labelPlacements = useMemo(() => {
+    const placements = new Map<string, { offsetX: number; offsetY: number; leader: boolean }>();
+    const map = mapRef.current;
+    if (!map || locationMarkers.length === 0) return placements;
+
+    const PIN_R = 15;      // pin half-size + tap padding
+    const LABEL_W = 144;   // max-w-[140px] + horizontal padding
+    const LABEL_H = 28;    // approximate label height (name + organizer)
+    const GAP = 4;
+    const LEADER_GAP = 50;
+
+    // Project all markers to screen pixel coordinates
+    const projected: { key: string; sx: number; sy: number }[] = [];
+    for (const { event, key } of locationMarkers) {
+      try {
+        const pt = map.project([event.lng!, event.lat!]);
+        projected.push({ key, sx: pt.x, sy: pt.y });
+      } catch {
+        projected.push({ key, sx: -9999, sy: -9999 });
+      }
+    }
+
+    // Candidate offsets: [dx, dy] relative to pin center
+    // dx = label center offset, dy = label top offset
+    const near: [number, number][] = [
+      [0, PIN_R + GAP],                                  // below
+      [0, -(PIN_R + GAP + LABEL_H)],                     // above
+      [LABEL_W / 2 + PIN_R + GAP, -LABEL_H / 2],        // right
+      [-(LABEL_W / 2 + PIN_R + GAP), -LABEL_H / 2],     // left
+      [LABEL_W / 3, PIN_R + GAP],                        // below-right
+      [-LABEL_W / 3, PIN_R + GAP],                       // below-left
+      [LABEL_W / 3, -(PIN_R + GAP + LABEL_H)],           // above-right
+      [-LABEL_W / 3, -(PIN_R + GAP + LABEL_H)],          // above-left
+    ];
+
+    const far: [number, number][] = [
+      [0, PIN_R + LEADER_GAP],
+      [0, -(PIN_R + LEADER_GAP + LABEL_H)],
+      [LABEL_W / 2 + PIN_R + LEADER_GAP, -LABEL_H / 2],
+      [-(LABEL_W / 2 + PIN_R + LEADER_GAP), -LABEL_H / 2],
+      [LABEL_W / 2 + LEADER_GAP, PIN_R + LEADER_GAP],
+      [-(LABEL_W / 2 + LEADER_GAP), PIN_R + LEADER_GAP],
+    ];
+
+    // Pin bounding boxes (other pins are obstacles)
+    const pinBoxes = projected.map(({ sx, sy }) => ({
+      l: sx - PIN_R, t: sy - PIN_R, r: sx + PIN_R, b: sy + PIN_R,
+    }));
+
+    // Already-placed label bounding boxes
+    const labelBoxes: { l: number; t: number; r: number; b: number }[] = [];
+
+    const PAD = 3; // collision padding between labels
+    function overlaps(cx: number, top: number, skipPinIdx: number): boolean {
+      const l = cx - LABEL_W / 2 - PAD;
+      const r = cx + LABEL_W / 2 + PAD;
+      const t = top - PAD;
+      const b = top + LABEL_H + PAD;
+      // Check against other pins
+      for (let i = 0; i < pinBoxes.length; i++) {
+        if (i === skipPinIdx) continue;
+        const box = pinBoxes[i];
+        if (l < box.r && r > box.l && t < box.b && b > box.t) return true;
+      }
+      // Check against already-placed labels
+      for (const box of labelBoxes) {
+        if (l < box.r && r > box.l && t < box.b && b > box.t) return true;
+      }
+      return false;
+    }
+
+    for (let idx = 0; idx < projected.length; idx++) {
+      const { key, sx, sy } = projected[idx];
+      let bestDx = 0;
+      let bestDy = PIN_R + GAP;
+      let leader = false;
+      let found = false;
+
+      // Try near positions first
+      for (const [dx, dy] of near) {
+        if (!overlaps(sx + dx, sy + dy, idx)) {
+          bestDx = dx;
+          bestDy = dy;
+          found = true;
+          break;
+        }
+      }
+
+      // Fall back to far positions with leader line
+      if (!found) {
+        for (const [dx, dy] of far) {
+          if (!overlaps(sx + dx, sy + dy, idx)) {
+            bestDx = dx;
+            bestDy = dy;
+            leader = true;
+            found = true;
+            break;
+          }
+        }
+      }
+
+      // Register this label's bounding box
+      labelBoxes.push({
+        l: sx + bestDx - LABEL_W / 2,
+        t: sy + bestDy,
+        r: sx + bestDx + LABEL_W / 2,
+        b: sy + bestDy + LABEL_H,
+      });
+
+      placements.set(key, { offsetX: bestDx, offsetY: bestDy, leader });
+    }
+
+    return placements;
+  // Recalculate on zoom changes (relative positions are stable during pan)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationMarkers, viewState.zoom]);
+
   const handleMarkerClick = useCallback(
     (event: ETHDenverEvent, lat: number, lng: number) => {
       const key = coordKey(lat, lng);
@@ -262,10 +380,10 @@ export function MapView({
 
       {locationMarkers.map(({ event, key, count }) => {
         const colocated = colocatedMap.get(key);
-        // For co-located markers, label shows "N events"; for single, show event name
-        const markerLabel = count > 1 ? `${count} events` : event.name;
-        const markerOrganizer = count > 1 ? undefined : event.organizer;
-        const markerTags = count > 1 ? undefined : event.tags;
+        // Always show the first event's details on the pin label
+        const markerLabel = event.name;
+        const markerOrganizer = event.organizer;
+        const markerTags = event.tags;
         // For itinerary view: single pin gets its number, co-located gets lowest number in group
         let orderNumber: number | undefined;
         if (isItineraryView) {
@@ -278,6 +396,7 @@ export function MapView({
             orderNumber = nums.length > 0 ? Math.min(...nums) : undefined;
           }
         }
+        const placement = labelPlacements.get(key);
         return (
           <MapMarker
             key={`loc-${key}`}
@@ -295,6 +414,9 @@ export function MapView({
             organizer={markerOrganizer}
             tags={markerTags}
             orderNumber={orderNumber}
+            labelOffsetX={placement?.offsetX}
+            labelOffsetY={placement?.offsetY}
+            showLeaderLine={placement?.leader}
           />
         );
       })}

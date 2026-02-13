@@ -17,6 +17,9 @@ interface MapMarkerProps {
   organizer?: string;
   tags?: string[];
   orderNumber?: number;
+  labelOffsetX?: number;
+  labelOffsetY?: number;
+  showLeaderLine?: boolean;
 }
 
 /** Get pin color based on start hour: yellow (morning), orange (afternoon), purple (evening) */
@@ -99,6 +102,9 @@ export function MapMarker({
   organizer,
   tags,
   orderNumber,
+  labelOffsetX = 0,
+  labelOffsetY = 15,
+  showLeaderLine = false,
 }: MapMarkerProps) {
   const color = getPinColor(startMinutes);
 
@@ -112,59 +118,91 @@ export function MapMarker({
 
   const showLabel = !!label;
   const isNumbered = orderNumber != null;
+  const showTagIcons = zoom >= 15;
 
   return (
     <Marker latitude={latitude} longitude={longitude}>
-      <button
-        className="relative flex flex-col items-center cursor-pointer transition-transform hover:scale-110 active:scale-95 focus:outline-none p-2"
-        onClick={handleClick}
-        aria-label={`Event${eventCount > 1 ? ` (${eventCount} events)` : ''}`}
-      >
-        <div className="relative flex items-center justify-center">
-          {/* Clock-face pin */}
-          <div style={{ boxShadow: `0 0 6px ${color}80` }} className="rounded-full">
-            <ClockPin
-              startMinutes={startMinutes}
-              endMinutes={endMinutes}
-              isAllDay={isAllDay}
-              size={22}
-            />
+      {/* Zero-size anchor at lat/lng; everything positioned absolutely from here */}
+      <div className="relative" style={{ width: 0, height: 0 }}>
+        {/* Clickable pin */}
+        <button
+          className="absolute cursor-pointer transition-transform hover:scale-110 active:scale-95 focus:outline-none p-2"
+          style={{ transform: 'translate(-50%, -50%)' }}
+          onClick={handleClick}
+          aria-label={`Event${eventCount > 1 ? ` (${eventCount} events)` : ''}`}
+        >
+          <div className="relative flex items-center justify-center">
+            {/* Clock-face pin */}
+            <div style={{ boxShadow: `0 0 6px ${color}80` }} className="rounded-full">
+              <ClockPin
+                startMinutes={startMinutes}
+                endMinutes={endMinutes}
+                isAllDay={isAllDay}
+                size={22}
+              />
+            </div>
+            {/* Badge: itinerary stop number or multi-event count */}
+            {isNumbered ? (
+              <span
+                className="absolute -top-1.5 -right-3 bg-white text-gray-900 text-[9px] font-bold rounded-full flex items-center justify-center"
+                style={{ minWidth: 20, height: 18, padding: '0 3px' }}
+              >
+                #{orderNumber}
+              </span>
+            ) : eventCount > 1 ? (
+              <span
+                className="absolute -top-1 -right-2 bg-white text-gray-900 text-[9px] font-bold rounded-full flex items-center justify-center"
+                style={{ width: 16, height: 16 }}
+              >
+                {eventCount}
+              </span>
+            ) : null}
           </div>
-          {/* Badge: itinerary stop number or multi-event count */}
-          {isNumbered ? (
-            <span
-              className="absolute -top-1.5 -right-3 bg-white text-gray-900 text-[9px] font-bold rounded-full flex items-center justify-center"
-              style={{ minWidth: 20, height: 18, padding: '0 3px' }}
-            >
-              #{orderNumber}
-            </span>
-          ) : eventCount > 1 ? (
-            <span
-              className="absolute -top-1 -right-2 bg-white text-gray-900 text-[9px] font-bold rounded-full flex items-center justify-center"
-              style={{ width: 16, height: 16 }}
-            >
-              {eventCount}
-            </span>
-          ) : null}
-        </div>
+        </button>
+
+        {/* Leader line from pin center to label */}
+        {showLabel && showLeaderLine && (
+          <svg
+            className="absolute overflow-visible pointer-events-none"
+            style={{ left: 0, top: 0, width: 0, height: 0 }}
+          >
+            <line
+              x1={0}
+              y1={0}
+              x2={labelOffsetX}
+              y2={labelOffsetY}
+              stroke="rgba(255,255,255,0.35)"
+              strokeWidth={1}
+            />
+          </svg>
+        )}
 
         {/* Label card */}
         {showLabel && (
-          <div className="mt-0.5 px-1.5 py-0.5 rounded bg-slate-800/90 text-[10px] text-white max-w-[140px] leading-tight pointer-events-none">
-            <div className="truncate whitespace-nowrap">{label}</div>
-            {organizer && (
-              <div className="truncate whitespace-nowrap text-slate-400">{organizer}</div>
-            )}
-            {tags && tags.length > 0 && (
-              <div className="flex items-center gap-0.5 mt-0.5">
-                {tags.map((tag) => (
-                  <TagBadge key={tag} tag={tag} iconOnly />
-                ))}
-              </div>
-            )}
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              left: labelOffsetX,
+              top: labelOffsetY,
+              transform: 'translateX(-50%)',
+            }}
+          >
+            <div className="px-1.5 py-0.5 rounded bg-slate-800/90 text-[10px] text-white max-w-[140px] leading-tight">
+              <div className="truncate whitespace-nowrap">{label}</div>
+              {organizer && (
+                <div className="truncate whitespace-nowrap text-slate-400">{organizer}</div>
+              )}
+              {showTagIcons && tags && tags.length > 0 && (
+                <div className="flex items-center justify-center gap-0.5 mt-0.5">
+                  {tags.map((tag) => (
+                    <TagBadge key={tag} tag={tag} iconOnly />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
-      </button>
+      </div>
     </Marker>
   );
 }
