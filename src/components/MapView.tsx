@@ -315,6 +315,8 @@ export function MapView({
           longitude={popupCoords.lng}
           onClose={handlePopupClose}
           onSelectEvent={handleMultiEventSelect}
+          itinerary={itinerary}
+          onItineraryToggle={onItineraryToggle}
         />
       )}
     </MapGL>

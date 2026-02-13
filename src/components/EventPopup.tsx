@@ -23,6 +23,8 @@ interface MultiEventPopupProps {
   longitude: number;
   onClose: () => void;
   onSelectEvent?: (event: ETHDenverEvent) => void;
+  itinerary?: Set<string>;
+  onItineraryToggle?: (eventId: string) => void;
 }
 
 function SingleEventContent({
@@ -92,11 +94,11 @@ function SingleEventContent({
           <span>{event.date} · {timeDisplay}</span>
         </p>
 
-        {/* Tags row */}
+        {/* Tags row (icons only) */}
         {event.tags.length > 0 && (
           <div className="flex flex-wrap items-center gap-1 mt-2">
             {event.tags.map((tag) => (
-              <TagBadge key={tag} tag={tag} />
+              <TagBadge key={tag} tag={tag} iconOnly />
             ))}
           </div>
         )}
@@ -145,6 +147,8 @@ export function MultiEventPopup({
   longitude,
   onClose,
   onSelectEvent,
+  itinerary,
+  onItineraryToggle,
 }: MultiEventPopupProps) {
   return (
     <Popup
@@ -170,32 +174,54 @@ export function MultiEventPopup({
             <X size={14} />
           </button>
         </div>
-        <div className="max-h-[260px] overflow-y-auto space-y-1.5 pr-1">
+        <div className="max-h-[260px] overflow-y-auto space-y-2 pr-1">
           {events.map((event) => {
             const timeDisplay = event.isAllDay
               ? 'All Day'
-              : event.startTime;
+              : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
+            const isInItinerary = itinerary?.has(event.id) ?? false;
             return (
-              <button
+              <div
                 key={event.id}
-                className="w-full text-left p-2.5 bg-slate-700/50 hover:bg-slate-600/50 active:bg-slate-600/50 rounded-lg transition-colors"
+                className="flex gap-2.5 p-2 bg-slate-700/50 hover:bg-slate-600/50 active:bg-slate-600/50 rounded-lg transition-colors cursor-pointer"
                 onClick={() => onSelectEvent?.(event)}
               >
-                <p className="text-xs font-semibold text-white leading-tight truncate">
-                  {event.name}
-                </p>
-                {event.organizer && (
-                  <p className="text-[10px] text-slate-500 mt-0.5 truncate">{event.organizer}</p>
-                )}
-                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                  <span className="text-[10px] text-slate-400">
-                    {timeDisplay}
-                  </span>
-                  {event.tags.slice(0, 3).map((tag) => (
-                    <TagBadge key={tag} tag={tag} iconOnly />
-                  ))}
+                {/* Cover image */}
+                {event.link && <OGImage key={event.id} url={event.link} eventId={event.id} />}
+
+                {/* Details */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start gap-1">
+                    {onItineraryToggle && (
+                      <StarButton
+                        eventId={event.id}
+                        isStarred={isInItinerary}
+                        onToggle={onItineraryToggle}
+                        size="sm"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-white leading-tight truncate">
+                        {event.name}
+                      </p>
+                      {event.organizer && (
+                        <p className="text-[10px] text-slate-500 mt-0.5 truncate">{event.organizer}</p>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-slate-400 text-[10px] mt-1 flex items-center gap-1">
+                    <Calendar className="w-2.5 h-2.5 shrink-0" />
+                    <span>{event.date} · {timeDisplay}</span>
+                  </p>
+                  {event.tags.length > 0 && (
+                    <div className="flex items-center gap-1 mt-1">
+                      {event.tags.map((tag) => (
+                        <TagBadge key={tag} tag={tag} iconOnly />
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>
