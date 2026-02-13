@@ -239,7 +239,6 @@ export function MapView({
       const { key, sx, sy } = projected[idx];
       let bestDx = LABEL_W / 2 + PIN_R + GAP;
       let bestDy = -LABEL_H / 2;
-      let leader = false;
       let found = false;
 
       // Try near positions first
@@ -252,18 +251,22 @@ export function MapView({
         }
       }
 
-      // Fall back to far positions with leader line
+      // Fall back to far positions
       if (!found) {
         for (const [dx, dy] of far) {
           if (!overlaps(sx + dx, sy + dy, idx)) {
             bestDx = dx;
             bestDy = dy;
-            leader = true;
             found = true;
             break;
           }
         }
       }
+
+      // Draw leader line if label center is more than 2 pin diameters away
+      const PIN_DIAM = 22;
+      const labelCenterDist = Math.sqrt(bestDx * bestDx + (bestDy + LABEL_H / 2) * (bestDy + LABEL_H / 2));
+      const leader = labelCenterDist > PIN_DIAM * 2;
 
       // Register this label's bounding box
       labelBoxes.push({
