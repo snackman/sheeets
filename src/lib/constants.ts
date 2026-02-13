@@ -30,7 +30,7 @@ export const VIBE_COLORS: Record<string, string> = {
   'Performance': '#34D399',
   'Art': '#34D399',
   'FREE': '#A855F7',
-  '$$': '#34D399',
+  '$$': '#A855F7',
   '🍕 Food': '#34D399',
   '🍺 Bar': '#34D399',
   // Blue group — builders & business
