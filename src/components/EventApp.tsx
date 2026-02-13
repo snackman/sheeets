@@ -134,6 +134,8 @@ export function EventApp() {
           itineraryCount={0}
           onItineraryToggle={() => toggleBool('itineraryOnly')}
           isItineraryActive={filters.itineraryOnly}
+          events={events}
+          itinerary={itinerary}
         />
         <Loading />
       </div>
@@ -149,6 +151,8 @@ export function EventApp() {
           itineraryCount={0}
           onItineraryToggle={() => toggleBool('itineraryOnly')}
           isItineraryActive={filters.itineraryOnly}
+          events={events}
+          itinerary={itinerary}
         />
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-4">
           <div className="text-red-400 text-lg font-medium">Failed to load events</div>
@@ -172,6 +176,8 @@ export function EventApp() {
         itineraryCount={conferenceItineraryCount}
         onItineraryToggle={() => toggleBool('itineraryOnly')}
         isItineraryActive={filters.itineraryOnly}
+        events={events}
+        itinerary={itinerary}
       />
 
       <SponsorsTicker />

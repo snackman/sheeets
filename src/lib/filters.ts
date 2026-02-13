@@ -31,7 +31,7 @@ export function parseTimeToMinutes(t: string): number | null {
 }
 
 /** Check if an event passes the "Now" filter (happening now or starting within 60 minutes) */
-function passesNowFilter(event: ETHDenverEvent, now: Date): boolean {
+export function passesNowFilter(event: ETHDenverEvent, now: Date): boolean {
   // Check if event date matches today
   const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   if (event.dateISO !== todayISO) return false;

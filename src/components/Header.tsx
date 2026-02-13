@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Calendar, User } from 'lucide-react';
 import { trackAuthPrompt } from '@/lib/analytics';
-import { ViewMode } from '@/lib/types';
+import { ViewMode, ETHDenverEvent } from '@/lib/types';
 import { ViewToggle } from './ViewToggle';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthModal, UserMenu } from './AuthModal';
@@ -14,6 +14,8 @@ interface HeaderProps {
   itineraryCount: number;
   onItineraryToggle: () => void;
   isItineraryActive: boolean;
+  events: ETHDenverEvent[];
+  itinerary: Set<string>;
 }
 
 export function Header({
@@ -22,6 +24,8 @@ export function Header({
   itineraryCount,
   onItineraryToggle,
   isItineraryActive,
+  events,
+  itinerary,
 }: HeaderProps) {
   const { user, loading } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
@@ -45,7 +49,7 @@ export function Header({
             {/* Auth */}
             {!loading && (
               user ? (
-                <UserMenu />
+                <UserMenu events={events} itinerary={itinerary} />
               ) : (
                 <button
                   onClick={() => { trackAuthPrompt('sign_in_button'); setShowAuth(true); }}
