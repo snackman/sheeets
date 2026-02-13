@@ -196,7 +196,7 @@ export function MapMarker({
               {showTagIcons && tags && tags.length > 0 && (
                 <div className="flex flex-wrap items-center gap-0.5 mt-0.5">
                   {tags.map((tag) => (
-                    <TagBadge key={tag} tag={tag} iconOnly />
+                    <TagBadge key={tag} tag={tag} iconOnly iconClassName="w-[15px] h-[15px]" />
                   ))}
                 </div>
               )}

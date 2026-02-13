@@ -98,14 +98,17 @@ interface TagBadgeProps {
   tag: string;
   size?: 'sm' | 'md';
   iconOnly?: boolean;
+  iconClassName?: string;
 }
 
-export function TagBadge({ tag, size = 'sm', iconOnly = false }: TagBadgeProps) {
+export function TagBadge({ tag, size = 'sm', iconOnly = false, iconClassName }: TagBadgeProps) {
   const Icon = TAG_ICONS[tag];
   const color = VIBE_COLORS[tag] || VIBE_COLORS['default'];
-  const iconSize = iconOnly
-    ? 'w-[15px] h-[15px]'
-    : size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
+  const iconSize = iconClassName
+    ? iconClassName
+    : iconOnly
+      ? 'w-5 h-5'
+      : size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
 
   if (iconOnly) {
     return Icon ? (
