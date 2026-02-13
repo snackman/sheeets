@@ -24,7 +24,10 @@ export function EventCard({
 
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 hover:bg-slate-750 hover:border-slate-600 active:bg-slate-750 active:border-slate-600 transition-colors group flex gap-4">
-      {/* Left: event details */}
+      {/* Left: cover image */}
+      {event.link && <OGImage url={event.link} eventId={event.id} />}
+
+      {/* Right: event details */}
       <div className="flex-1 min-w-0">
         {/* Top row: Star, Name */}
         <div className="flex items-start gap-2">
@@ -87,9 +90,6 @@ export function EventCard({
           <p className="text-slate-600 text-xs mt-1 italic">{event.note}</p>
         )}
       </div>
-
-      {/* Right: cover image */}
-      {event.link && <OGImage url={event.link} eventId={event.id} />}
     </div>
   );
 }
