@@ -167,7 +167,7 @@ export function TableView({
         onScroll={handleScroll}
         className="overflow-auto rounded-lg border border-slate-700 flex-1 min-h-0 min-w-0"
       >
-        <table className="w-full min-w-[900px] text-sm text-left table-fixed">
+        <table className="w-full min-w-[640px] sm:min-w-[900px] text-sm text-left table-fixed">
           <colgroup>
             <col className="w-8" />           {/* star */}
             <col className="w-[110px]" />     {/* when */}
@@ -188,7 +188,7 @@ export function TableView({
                   </span>
                 )}
               </th>
-              <th className="px-3 py-2.5">Organizer</th>
+              <th className="px-3 py-2.5 hidden sm:table-cell">Organizer</th>
               <th className="px-3 py-2.5">Event</th>
               <th className="px-3 py-2.5">Where</th>
               <th className="px-3 py-2.5">Tags</th>
@@ -274,14 +274,14 @@ function DateGroup({
               {event.endTime ? `-${event.endTime}` : ''}
             </td>
 
-            {/* Organizer */}
-            <td className="px-3 py-2 text-slate-400 truncate" title={event.organizer}>
+            {/* Organizer (hidden on mobile portrait — shown inside Event cell instead) */}
+            <td className="px-3 py-2 text-slate-400 truncate hidden sm:table-cell" title={event.organizer}>
               {event.organizer}
             </td>
 
-            {/* Event Name */}
-            <td className="px-3 py-2 font-medium text-slate-100 truncate" title={event.name}>
-              <span className="inline-flex items-center gap-1 max-w-full">
+            {/* Event Name (+ organizer on mobile portrait) */}
+            <td className="px-3 py-2 font-medium text-slate-100 overflow-hidden sm:truncate" title={event.name}>
+              <span className="inline-flex items-center gap-1 max-w-full truncate">
                 {event.isDuplicate && (
                   <span title="Duplicate entry in sheet"><AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" /></span>
                 )}
@@ -299,6 +299,11 @@ function DateGroup({
                   <span className="truncate">{event.name}</span>
                 )}
               </span>
+              {event.organizer && (
+                <div className="sm:hidden text-slate-400 text-xs font-normal truncate mt-0.5">
+                  {event.organizer}
+                </div>
+              )}
             </td>
 
             {/* Location */}
