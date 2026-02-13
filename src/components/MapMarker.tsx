@@ -116,7 +116,7 @@ export function MapMarker({
     [onClick]
   );
 
-  const showLabel = !!label && zoom > 13;
+  const showLabel = !!label && zoom >= 11.5;
   const isNumbered = orderNumber != null;
   const showOrganizer = zoom >= 14.4;
   const showTagIcons = zoom >= 15;
