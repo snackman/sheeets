@@ -166,11 +166,19 @@ export function TableView({
         onScroll={handleScroll}
         className="overflow-auto rounded-lg border border-slate-700 flex-1 min-h-0 min-w-0"
       >
-        <table className="min-w-[900px] text-sm text-left">
+        <table className="w-full min-w-[900px] text-sm text-left table-fixed">
+          <colgroup>
+            <col className="w-8" />           {/* star */}
+            <col className="w-[110px]" />     {/* when */}
+            <col className="w-[120px]" />     {/* organizer */}
+            <col style={{ width: '25%' }} />  {/* event — second priority to expand */}
+            <col style={{ width: '20%' }} />  {/* where — third priority to expand */}
+            <col style={{ width: '30%' }} />  {/* tags — first priority to expand */}
+          </colgroup>
           <thead className="text-xs uppercase tracking-wider text-slate-400 bg-slate-800 border-b border-slate-700 sticky top-0 z-20">
             <tr>
-              <th className="px-3 py-2.5 w-8"><Calendar className="w-3.5 h-3.5" /></th>
-              <th className="px-3 py-2.5 min-w-[110px]">
+              <th className="px-3 py-2.5"><Calendar className="w-3.5 h-3.5" /></th>
+              <th className="px-3 py-2.5">
                 {currentDateLabel === 'Time' ? (
                   'WHEN'
                 ) : (
@@ -266,13 +274,13 @@ function DateGroup({
             </td>
 
             {/* Organizer */}
-            <td className="px-3 py-2 text-slate-400 whitespace-nowrap" title={event.organizer}>
-              {event.organizer.length > 15 ? event.organizer.slice(0, 15) + '\u2026' : event.organizer}
+            <td className="px-3 py-2 text-slate-400 truncate" title={event.organizer}>
+              {event.organizer}
             </td>
 
             {/* Event Name */}
-            <td className="px-3 py-2 font-medium text-slate-100 whitespace-nowrap" title={event.name}>
-              <span className="inline-flex items-center gap-1">
+            <td className="px-3 py-2 font-medium text-slate-100 truncate" title={event.name}>
+              <span className="inline-flex items-center gap-1 max-w-full">
                 {event.isDuplicate && (
                   <span title="Duplicate entry in sheet"><AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" /></span>
                 )}
@@ -281,18 +289,18 @@ function DateGroup({
                     href={event.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:text-orange-400 transition-colors"
+                    className="hover:text-orange-400 transition-colors truncate"
                   >
-                    {event.name.length > 25 ? event.name.slice(0, 25) + '\u2026' : event.name}
+                    {event.name}
                   </a>
                 ) : (
-                  event.name.length > 25 ? event.name.slice(0, 25) + '\u2026' : event.name
+                  <span className="truncate">{event.name}</span>
                 )}
               </span>
             </td>
 
             {/* Location */}
-            <td className="px-3 py-2 text-slate-400 whitespace-nowrap" title={event.address}>
+            <td className="px-3 py-2 text-slate-400 truncate" title={event.address}>
               {event.address ? (
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`}
@@ -300,20 +308,17 @@ function DateGroup({
                   rel="noopener noreferrer"
                   className="hover:text-orange-400 transition-colors"
                 >
-                  {event.address.length > 20 ? event.address.slice(0, 20) + '\u2026' : event.address}
+                  {event.address}
                 </a>
               ) : null}
             </td>
 
             {/* Tags */}
             <td className="px-3 py-2">
-              <div className="flex gap-1 items-center" title={event.tags.join(', ')}>
-                {event.tags.slice(0, 3).map((tag) => (
+              <div className="flex flex-wrap gap-1 items-center" title={event.tags.join(', ')}>
+                {event.tags.map((tag) => (
                   <TagBadge key={tag} tag={tag} iconOnly />
                 ))}
-                {event.tags.length > 3 && (
-                  <span className="text-slate-500 text-xs">+{event.tags.length - 3}</span>
-                )}
               </div>
             </td>
           </tr>
