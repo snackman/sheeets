@@ -29,7 +29,7 @@ export const VIBE_COLORS: Record<string, string> = {
   'Wellness': '#34D399',
   'Performance': '#34D399',
   'Art': '#34D399',
-  'FREE': '#34D399',
+  'FREE': '#A855F7',
   '$$': '#34D399',
   '🍕 Food': '#34D399',
   '🍺 Bar': '#34D399',
