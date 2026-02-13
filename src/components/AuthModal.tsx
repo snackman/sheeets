@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { X, Mail, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { trackAuthSuccess, trackSignOut } from '@/lib/analytics';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -97,6 +98,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
       setCode(['', '', '', '', '', '']);
       setTimeout(() => inputRefs.current[0]?.focus(), 100);
     } else {
+      trackAuthSuccess();
       setStep('success');
       setTimeout(() => handleClose(), 1500);
     }
@@ -207,7 +209,7 @@ export function UserMenu() {
         {user.email}
       </span>
       <button
-        onClick={signOut}
+        onClick={() => { trackSignOut(); signOut(); }}
         className="p-1.5 text-slate-400 hover:text-white transition-colors cursor-pointer"
         title="Sign out"
       >

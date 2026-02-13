@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { AlertTriangle, Calendar, Star } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
+import { trackEventClick } from '@/lib/analytics';
 import { TagBadge } from './TagBadge';
 
 interface TableViewProps {
@@ -290,6 +291,7 @@ function DateGroup({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:text-orange-400 transition-colors truncate"
+                    onClick={() => trackEventClick(event.name, event.link!)}
                   >
                     {event.name}
                   </a>

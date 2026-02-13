@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Search, X } from 'lucide-react';
+import { trackSearch } from '@/lib/analytics';
 
 interface SearchBarProps {
   value: string;
@@ -27,6 +28,7 @@ export function SearchBar({ value, onChange, eventCount }: SearchBarProps) {
 
     debounceRef.current = setTimeout(() => {
       onChange(newValue);
+      if (newValue.length >= 2) trackSearch(newValue);
     }, 300);
   };
 

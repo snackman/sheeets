@@ -3,6 +3,7 @@
 import { Popup } from 'react-map-gl/mapbox';
 import { X } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
+import { trackEventClick } from '@/lib/analytics';
 import { VIBE_COLORS } from '@/lib/constants';
 import { StarButton } from './StarButton';
 
@@ -50,6 +51,7 @@ function SingleEventContent({
               target="_blank"
               rel="noopener noreferrer"
               className="font-bold text-sm text-white leading-tight line-clamp-2 hover:text-orange-300 transition-colors"
+              onClick={() => trackEventClick(event.name, event.link!)}
             >
               {event.name}
             </a>

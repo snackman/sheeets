@@ -8,6 +8,7 @@ import { applyFilters } from '@/lib/filters';
 import { TYPE_TAGS } from '@/lib/constants';
 import { useItinerary } from '@/hooks/useItinerary';
 import { useAuth } from '@/contexts/AuthContext';
+import { trackItinerary, trackAuthPrompt } from '@/lib/analytics';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
@@ -47,13 +48,16 @@ export function EventApp() {
   const handleItineraryToggle = useCallback(
     (eventId: string) => {
       if (user) {
+        const action = itinerary.has(eventId) ? 'remove' : 'add';
+        trackItinerary(eventId, action);
         toggleItinerary(eventId);
       } else {
+        trackAuthPrompt('star');
         pendingStarRef.current = eventId;
         setShowAuthForStar(true);
       }
     },
-    [user, toggleItinerary]
+    [user, toggleItinerary, itinerary]
   );
 
   // Complete pending star after successful login

@@ -2,6 +2,7 @@
 
 import { MapPin } from 'lucide-react';
 import { ETHDenverEvent } from '@/lib/types';
+import { trackEventClick } from '@/lib/analytics';
 import { StarButton } from './StarButton';
 import { TagBadge } from './TagBadge';
 import { OGImage } from './OGImage';
@@ -44,6 +45,7 @@ export function EventCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-orange-400 active:text-orange-400 transition-colors"
+                onClick={() => trackEventClick(event.name, event.link!)}
               >
                 {event.name}
               </a>

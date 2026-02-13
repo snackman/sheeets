@@ -7,6 +7,7 @@ import { LocateFixed } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { DENVER_CENTER } from '@/lib/constants';
 import { parseTimeToMinutes } from '@/lib/filters';
+import { trackLocateMe } from '@/lib/analytics';
 import { MapMarker } from './MapMarker';
 import { EventPopup, MultiEventPopup } from './EventPopup';
 
@@ -89,6 +90,7 @@ export function MapView({
 
   const handleLocateMe = useCallback(() => {
     if (!navigator.geolocation) return;
+    trackLocateMe();
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {

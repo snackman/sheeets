@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Calendar, User } from 'lucide-react';
+import { trackAuthPrompt } from '@/lib/analytics';
 import { ViewMode } from '@/lib/types';
 import { ViewToggle } from './ViewToggle';
 import { useAuth } from '@/contexts/AuthContext';
@@ -47,7 +48,7 @@ export function Header({
                 <UserMenu />
               ) : (
                 <button
-                  onClick={() => setShowAuth(true)}
+                  onClick={() => { trackAuthPrompt('sign_in_button'); setShowAuth(true); }}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700 transition-colors text-sm cursor-pointer"
                 >
                   <User className="w-3.5 h-3.5" />
@@ -62,6 +63,7 @@ export function Header({
             <button
               onClick={() => {
                 if (!user) {
+                  trackAuthPrompt('itinerary_button');
                   setShowAuth(true);
                   return;
                 }

@@ -8,6 +8,7 @@ import { EVENT_DATES, VIBE_COLORS } from '@/lib/constants';
 import { TAG_ICONS } from './TagBadge';
 import { SearchBar } from './SearchBar';
 import { DualRangeSlider } from './DualRangeSlider';
+import { trackConferenceSelect, trackTagToggle, trackDayRange, trackTimeRange, trackNowMode, trackClearFilters } from '@/lib/analytics';
 
 interface FilterBarProps {
   filters: FilterState;
@@ -98,7 +99,7 @@ export function FilterBar({
                       {availableConferences.map((conf) => (
                         <button
                           key={conf}
-                          onClick={() => { onSetConference(conf); setConfOpen(false); }}
+                          onClick={() => { trackConferenceSelect(conf); onSetConference(conf); setConfOpen(false); }}
                           className={clsx(
                             'w-full text-left px-4 py-3 text-sm font-semibold transition-colors cursor-pointer',
                             filters.conference === conf
@@ -119,7 +120,7 @@ export function FilterBar({
                 {availableConferences.map((conf) => (
                   <button
                     key={conf}
-                    onClick={() => onSetConference(conf)}
+                    onClick={() => { trackConferenceSelect(conf); onSetConference(conf); }}
                     className={clsx(
                       'px-4 py-2 text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap',
                       filters.conference === conf
@@ -136,7 +137,7 @@ export function FilterBar({
 
           {/* Now toggle button */}
           <button
-            onClick={onToggleNowMode}
+            onClick={() => { trackNowMode(!filters.nowMode); onToggleNowMode(); }}
             className={clsx(
               'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer',
               filters.nowMode
@@ -207,7 +208,7 @@ export function FilterBar({
                 max={maxIdx}
                 start={rangeStart}
                 end={rangeEnd}
-                onChange={(s, e) => onSetDayRange(s, e, EVENT_DATES)}
+                onChange={(s, e) => { trackDayRange(EVENT_DATES[s], EVENT_DATES[e]); onSetDayRange(s, e, EVENT_DATES); }}
                 color="orange"
               />
             </div>
@@ -242,7 +243,7 @@ export function FilterBar({
                     max={24}
                     start={tStart}
                     end={tEnd}
-                    onChange={onSetTimeRange}
+                    onChange={(s, e) => { trackTimeRange(s, e); onSetTimeRange(s, e); }}
                     color="blue"
                   />
                 </div>
@@ -264,7 +265,7 @@ export function FilterBar({
                     return (
                       <button
                         key={vibe}
-                        onClick={() => onToggleVibe(vibe)}
+                        onClick={() => { trackTagToggle(vibe, !filters.vibes.includes(vibe)); onToggleVibe(vibe); }}
                         className={clsx(
                           'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                           isActive
@@ -297,7 +298,7 @@ export function FilterBar({
                     return (
                       <button
                         key={vibe}
-                        onClick={() => onToggleVibe(vibe)}
+                        onClick={() => { trackTagToggle(vibe, !filters.vibes.includes(vibe)); onToggleVibe(vibe); }}
                         className={clsx(
                           'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                           isActive
@@ -319,7 +320,7 @@ export function FilterBar({
             {activeFilterCount > 0 && (
               <div className="flex items-center">
                 <button
-                  onClick={onClearFilters}
+                  onClick={() => { trackClearFilters(); onClearFilters(); }}
                   className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 active:text-orange-300 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
