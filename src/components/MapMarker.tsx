@@ -119,39 +119,31 @@ export function MapMarker({
         aria-label={`Event${eventCount > 1 ? ` (${eventCount} events)` : ''}`}
       >
         <div className="relative flex items-center justify-center">
+          {/* Clock-face pin */}
+          <div style={{ boxShadow: `0 0 6px ${color}80` }} className="rounded-full">
+            <ClockPin
+              startMinutes={startMinutes}
+              endMinutes={endMinutes}
+              isAllDay={isAllDay}
+              size={22}
+            />
+          </div>
+          {/* Badge: itinerary stop number or multi-event count */}
           {isNumbered ? (
-            /* Itinerary mode: numbered circle with time-based color */
-            <div
-              className="rounded-full border-2 border-white/80 flex items-center justify-center text-white font-bold text-[10px] leading-none"
-              style={{
-                width: 22,
-                height: 22,
-                backgroundColor: color,
-                boxShadow: `0 0 6px ${color}80`,
-              }}
+            <span
+              className="absolute -top-1.5 -right-3 bg-white text-gray-900 text-[9px] font-bold rounded-full flex items-center justify-center"
+              style={{ minWidth: 20, height: 18, padding: '0 3px' }}
             >
-              {orderNumber}
-            </div>
-          ) : (
-            /* Clock-face pin */
-            <div style={{ boxShadow: `0 0 6px ${color}80` }} className="rounded-full">
-              <ClockPin
-                startMinutes={startMinutes}
-                endMinutes={endMinutes}
-                isAllDay={isAllDay}
-                size={22}
-              />
-            </div>
-          )}
-          {/* Event count badge for multi-event locations */}
-          {!isNumbered && eventCount > 1 && (
+              #{orderNumber}
+            </span>
+          ) : eventCount > 1 ? (
             <span
               className="absolute -top-1 -right-2 bg-white text-gray-900 text-[9px] font-bold rounded-full flex items-center justify-center"
               style={{ width: 16, height: 16 }}
             >
               {eventCount}
             </span>
-          )}
+          ) : null}
         </div>
 
         {/* Label card (zoom >= 14) */}
