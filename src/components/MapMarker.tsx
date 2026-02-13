@@ -102,8 +102,8 @@ export function MapMarker({
   organizer,
   tags,
   orderNumber,
-  labelOffsetX = 0,
-  labelOffsetY = 15,
+  labelOffsetX = 91,
+  labelOffsetY = -14,
   showLeaderLine = false,
 }: MapMarkerProps) {
   const color = getPinColor(startMinutes);

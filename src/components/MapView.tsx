@@ -189,10 +189,10 @@ export function MapView({
     // Candidate offsets: [dx, dy] relative to pin center
     // dx = label center offset, dy = label top offset
     const near: [number, number][] = [
+      [LABEL_W / 2 + PIN_R + GAP, -LABEL_H / 2],        // right (default)
+      [-(LABEL_W / 2 + PIN_R + GAP), -LABEL_H / 2],     // left
       [0, PIN_R + GAP],                                  // below
       [0, -(PIN_R + GAP + LABEL_H)],                     // above
-      [LABEL_W / 2 + PIN_R + GAP, -LABEL_H / 2],        // right
-      [-(LABEL_W / 2 + PIN_R + GAP), -LABEL_H / 2],     // left
       [LABEL_W / 3, PIN_R + GAP],                        // below-right
       [-LABEL_W / 3, PIN_R + GAP],                       // below-left
       [LABEL_W / 3, -(PIN_R + GAP + LABEL_H)],           // above-right
@@ -200,10 +200,10 @@ export function MapView({
     ];
 
     const far: [number, number][] = [
-      [0, PIN_R + LEADER_GAP],
-      [0, -(PIN_R + LEADER_GAP + LABEL_H)],
       [LABEL_W / 2 + PIN_R + LEADER_GAP, -LABEL_H / 2],
       [-(LABEL_W / 2 + PIN_R + LEADER_GAP), -LABEL_H / 2],
+      [0, PIN_R + LEADER_GAP],
+      [0, -(PIN_R + LEADER_GAP + LABEL_H)],
       [LABEL_W / 2 + LEADER_GAP, PIN_R + LEADER_GAP],
       [-(LABEL_W / 2 + LEADER_GAP), PIN_R + LEADER_GAP],
     ];
@@ -237,8 +237,8 @@ export function MapView({
 
     for (let idx = 0; idx < projected.length; idx++) {
       const { key, sx, sy } = projected[idx];
-      let bestDx = 0;
-      let bestDy = PIN_R + GAP;
+      let bestDx = LABEL_W / 2 + PIN_R + GAP;
+      let bestDy = -LABEL_H / 2;
       let leader = false;
       let found = false;
 
