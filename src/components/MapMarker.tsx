@@ -118,6 +118,7 @@ export function MapMarker({
 
   const showLabel = !!label;
   const isNumbered = orderNumber != null;
+  const showOrganizer = zoom >= 13;
   const showTagIcons = zoom >= 15;
 
   return (
@@ -189,7 +190,7 @@ export function MapMarker({
           >
             <div className="px-1.5 py-0.5 rounded bg-slate-800/90 text-[10px] text-white max-w-[140px] leading-tight">
               <div className="truncate whitespace-nowrap">{label}</div>
-              {organizer && (
+              {showOrganizer && organizer && (
                 <div className="truncate whitespace-nowrap text-slate-400">{organizer}</div>
               )}
               {showTagIcons && tags && tags.length > 0 && (
