@@ -170,10 +170,10 @@ export function TableView({
           <colgroup>
             <col className="w-8" />           {/* star */}
             <col className="w-[110px]" />     {/* when */}
-            <col style={{ width: '20%' }} />  {/* organizer — second priority to expand */}
-            <col style={{ width: '20%' }} />  {/* event — third priority to expand */}
-            <col style={{ width: '18%' }} />  {/* where — fourth priority to expand */}
-            <col style={{ width: '30%' }} />  {/* tags — first priority to expand */}
+            <col style={{ width: '30%' }} />  {/* organizer — first priority to expand */}
+            <col style={{ width: '18%' }} />  {/* event — third priority to expand */}
+            <col style={{ width: '15%' }} />  {/* where — fourth priority to expand */}
+            <col style={{ width: '25%' }} />  {/* tags — second priority to expand */}
           </colgroup>
           <thead className="text-xs uppercase tracking-wider text-slate-400 bg-slate-800 border-b border-slate-700 sticky top-0 z-20">
             <tr>
