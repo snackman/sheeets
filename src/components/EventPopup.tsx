@@ -43,7 +43,7 @@ function SingleEventContent({
   return (
     <div className="w-[300px] max-w-[calc(100vw-3rem)] flex gap-3">
       {/* Left: cover image */}
-      {event.link && <OGImage url={event.link} eventId={event.id} />}
+      {event.link && <OGImage key={event.id} url={event.link} eventId={event.id} />}
 
       {/* Right: event details */}
       <div className="flex-1 min-w-0">
