@@ -25,7 +25,7 @@ export function SponsorsTicker() {
 
   const item = (
     <span className="inline-flex items-center">
-      <span>{text}</span>
+      <span className="mr-1">{text}</span>
       {renderSponsors()}
       <span>. Join the Fight for Sensible Crypto Policy!</span>
       <span className="mx-6 text-slate-600">&#10022;</span>

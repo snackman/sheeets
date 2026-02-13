@@ -363,12 +363,10 @@ export function UserMenu({ events, itinerary }: UserMenuProps) {
       </button>
 
       {open && (
-        <>
-          <div className="fixed inset-0 z-[80] bg-black/50" onClick={() => {
+          <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-4" onClick={() => {
             setOpen(false);
             setCheckResult(null);
-          }} />
-          <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+          }}>
             <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
@@ -533,7 +531,6 @@ export function UserMenu({ events, itinerary }: UserMenuProps) {
               </div>
             </div>
           </div>
-        </>
       )}
     </>
   );
