@@ -41,27 +41,27 @@ export function EventCard({
             <div className="w-5 shrink-0" />
           )}
 
-          <h3 className="flex-1 font-semibold text-white text-sm sm:text-base leading-tight min-w-0">
-            {event.link ? (
-              <a
-                href={event.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-orange-400 active:text-orange-400 transition-colors"
-                onClick={() => trackEventClick(event.name, event.link!)}
-              >
-                {event.name}
-              </a>
-            ) : (
-              event.name
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-white text-sm sm:text-base leading-tight">
+              {event.link ? (
+                <a
+                  href={event.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-orange-400 active:text-orange-400 transition-colors"
+                  onClick={() => trackEventClick(event.name, event.link!)}
+                >
+                  {event.name}
+                </a>
+              ) : (
+                event.name
+              )}
+            </h3>
+            {event.organizer && (
+              <p className="text-slate-500 text-xs mt-0.5">{event.organizer}</p>
             )}
-          </h3>
+          </div>
         </div>
-
-        {/* Organizer */}
-        {event.organizer && (
-          <p className="text-slate-500 text-xs mt-1 ml-7">By {event.organizer}</p>
-        )}
 
         {/* Date + Time */}
         <p className="text-slate-400 text-sm mt-1 ml-7">
