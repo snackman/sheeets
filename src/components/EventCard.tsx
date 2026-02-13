@@ -1,6 +1,6 @@
 'use client';
 
-import { MapPin } from 'lucide-react';
+import { MapPin, Calendar } from 'lucide-react';
 import { ETHDenverEvent } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
 import { StarButton } from './StarButton';
@@ -64,8 +64,9 @@ export function EventCard({
         </div>
 
         {/* Date + Time */}
-        <p className="text-slate-400 text-sm mt-1 ml-7">
-          {event.date} · {timeDisplay}
+        <p className="text-slate-400 text-sm mt-1 flex items-start gap-1">
+          <Calendar className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+          <span>{event.date} · {timeDisplay}</span>
         </p>
 
         {/* Address */}
