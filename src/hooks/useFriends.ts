@@ -18,17 +18,15 @@ function makeCode(): string {
 
 export function useFriends() {
   const { user, loading: authLoading } = useAuth();
-  const [friendCode, setFriendCode] = useState<string | null>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const initialFetchDone = useRef(false);
 
-  // Fetch friend code and friends list when user is available
+  // Fetch friends list when user is available
   useEffect(() => {
     if (authLoading) return;
 
     if (!user) {
-      setFriendCode(null);
       setFriends([]);
       setLoading(false);
       initialFetchDone.current = false;
@@ -39,18 +37,6 @@ export function useFriends() {
 
     async function fetchFriendData() {
       try {
-        // Fetch existing friend code
-        const { data: codeData } = await supabase
-          .from('friend_codes')
-          .select('code')
-          .eq('user_id', user!.id)
-          .maybeSingle();
-
-        if (codeData) {
-          setFriendCode(codeData.code);
-        }
-
-        // Fetch friends list
         await refreshFriends();
       } catch (err) {
         console.error('Failed to fetch friend data:', err);
@@ -66,7 +52,6 @@ export function useFriends() {
   const refreshFriends = useCallback(async () => {
     if (!user) return;
 
-    // Get all friendships where this user is involved
     const { data: friendshipsA } = await supabase
       .from('friendships')
       .select('user_b')
@@ -86,7 +71,6 @@ export function useFriends() {
       return;
     }
 
-    // Batch-fetch profiles for friend IDs
     const { data: profiles } = await supabase
       .from('profiles')
       .select('user_id, display_name, x_handle, farcaster_username')
@@ -102,24 +86,10 @@ export function useFriends() {
     );
   }, [user]);
 
+  /** Generate a new single-use friend code */
   const generateCode = useCallback(async (): Promise<string | null> => {
     if (!user) return null;
 
-    // Check if user already has a code
-    if (friendCode) return friendCode;
-
-    const { data: existing } = await supabase
-      .from('friend_codes')
-      .select('code')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (existing) {
-      setFriendCode(existing.code);
-      return existing.code;
-    }
-
-    // Generate and insert a new code (retry on collision)
     for (let attempt = 0; attempt < 5; attempt++) {
       const code = makeCode();
       const { error } = await supabase
@@ -127,59 +97,50 @@ export function useFriends() {
         .insert({ user_id: user.id, code });
 
       if (!error) {
-        setFriendCode(code);
         trackFriendCodeGenerate();
         return code;
       }
 
-      // If unique constraint violation on user_id, someone else may have raced
-      // If unique constraint violation on code, try a new code
-      if (error.code === '23505' && error.message?.includes('user_id')) {
-        // User already has a code — fetch it
-        const { data } = await supabase
-          .from('friend_codes')
-          .select('code')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        if (data) {
-          setFriendCode(data.code);
-          return data.code;
-        }
-      }
-      // Otherwise retry with new code
+      // Unique constraint on code — retry with a new code
+      if (error.code === '23505') continue;
+
+      console.error('Failed to insert friend code:', error);
+      return null;
     }
 
     console.error('Failed to generate friend code after retries');
     return null;
-  }, [user, friendCode]);
+  }, [user]);
 
   const addFriend = useCallback(
     async (code: string): Promise<{ ok: boolean; message: string }> => {
       if (!user) return { ok: false, message: 'Not signed in' };
 
-      // Look up the code
+      const trimmedCode = code.toLowerCase().trim();
+
+      // Look up the code (only unused codes)
       const { data: codeData, error: lookupError } = await supabase
         .from('friend_codes')
-        .select('user_id')
-        .eq('code', code.toLowerCase().trim())
+        .select('id, user_id')
+        .eq('code', trimmedCode)
+        .is('used_at', null)
         .maybeSingle();
 
       if (lookupError || !codeData) {
-        return { ok: false, message: 'Friend code not found' };
+        return { ok: false, message: 'Friend code not found or already used' };
       }
 
       const targetUserId = codeData.user_id;
 
-      // Self-friend check
       if (targetUserId === user.id) {
         return { ok: false, message: "That's your own code!" };
       }
 
-      // Order UUIDs for consistent storage
+      // Order UUIDs
       const userA = user.id < targetUserId ? user.id : targetUserId;
       const userB = user.id < targetUserId ? targetUserId : user.id;
 
-      // Upsert friendship
+      // Create friendship
       const { error: upsertError } = await supabase
         .from('friendships')
         .upsert({ user_a: userA, user_b: userB }, { onConflict: 'user_a,user_b' });
@@ -189,6 +150,12 @@ export function useFriends() {
         return { ok: false, message: 'Failed to add friend' };
       }
 
+      // Mark code as used
+      await supabase
+        .from('friend_codes')
+        .update({ used_at: new Date().toISOString() })
+        .eq('id', codeData.id);
+
       trackFriendAdded();
       await refreshFriends();
       return { ok: true, message: 'Friend added!' };
@@ -197,7 +164,6 @@ export function useFriends() {
   );
 
   return {
-    friendCode,
     friends,
     friendCount: friends.length,
     loading,

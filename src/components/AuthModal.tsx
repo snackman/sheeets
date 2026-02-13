@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { X, Mail, LogOut, User, MapPin, Check, Loader2, Copy, Users } from 'lucide-react';
+import { X, Mail, LogOut, User, MapPin, Check, Loader2, Copy, Users, Link2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAuthSuccess, trackSignOut, trackFriendCodeCopy } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
@@ -212,7 +212,7 @@ interface UserMenuProps {
 export function UserMenu({ events, itinerary }: UserMenuProps) {
   const { user, signOut } = useAuth();
   const { profile, updateProfile } = useProfile();
-  const { friendCode, friendCount, generateCode } = useFriends();
+  const { friendCount, generateCode } = useFriends();
   const [open, setOpen] = useState(false);
   const [checking, setChecking] = useState(false);
   const [checkResult, setCheckResult] = useState<{
@@ -227,9 +227,11 @@ export function UserMenu({ events, itinerary }: UserMenuProps) {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
 
-  // Friend link state
+  // Friend link state — single-use codes
+  const [friendLink, setFriendLink] = useState<string | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [generatingCode, setGeneratingCode] = useState(false);
+  const [emailTo, setEmailTo] = useState('');
 
   // Sync form state when profile loads
   useEffect(() => {
@@ -239,14 +241,6 @@ export function UserMenu({ events, itinerary }: UserMenuProps) {
       setFarcasterUsername(profile.farcaster_username ?? '');
     }
   }, [profile]);
-
-  // Generate friend code when modal opens (if user doesn't have one)
-  useEffect(() => {
-    if (open && user && !friendCode && !generatingCode) {
-      setGeneratingCode(true);
-      generateCode().finally(() => setGeneratingCode(false));
-    }
-  }, [open, user, friendCode, generateCode, generatingCode]);
 
   if (!user) return null;
 
@@ -262,26 +256,35 @@ export function UserMenu({ events, itinerary }: UserMenuProps) {
     setTimeout(() => setSaveStatus('idle'), 2000);
   }
 
-  async function handleCopyLink() {
-    if (!friendCode) return;
-    const url = `${window.location.origin}?friend=${friendCode}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      trackFriendCodeCopy();
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
-    } catch {
-      // Fallback for older browsers
-      const input = document.createElement('input');
-      input.value = url;
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand('copy');
-      document.body.removeChild(input);
-      trackFriendCodeCopy();
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
+  async function handleGenerateLink() {
+    setGeneratingCode(true);
+    setLinkCopied(false);
+    const code = await generateCode();
+    if (code) {
+      const url = `${window.location.origin}?friend=${code}`;
+      setFriendLink(url);
+      try {
+        await navigator.clipboard.writeText(url);
+        trackFriendCodeCopy();
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
+      } catch {
+        // clipboard failed silently — link still shown for manual copy
+      }
     }
+    setGeneratingCode(false);
+  }
+
+  function handleEmailFriend() {
+    if (!friendLink) return;
+    const name = profile?.display_name || 'Someone';
+    const subject = encodeURIComponent(`${name} wants to connect on sheeets`);
+    const body = encodeURIComponent(
+      `Hey! I'm using sheeets to find events at ETH Denver. Add me as a friend:\n\n${friendLink}\n\nSee you there!`
+    );
+    const mailto = `mailto:${encodeURIComponent(emailTo)}?subject=${subject}&body=${body}`;
+    window.open(mailto, '_blank');
+    setEmailTo('');
   }
 
   async function handleCheckIn() {
@@ -477,41 +480,87 @@ export function UserMenu({ events, itinerary }: UserMenuProps) {
 
                 {/* Friends */}
                 <div className="border-t border-slate-700 pt-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-slate-400" />
-                    <p className="text-xs text-slate-500 uppercase tracking-wide">Friends</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-slate-400" />
+                      <p className="text-xs text-slate-500 uppercase tracking-wide">Friends</p>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      {friendCount > 0 && `${friendCount} friend${friendCount !== 1 ? 's' : ''}`}
+                    </p>
                   </div>
 
-                  {friendCode ? (
-                    <div>
-                      <p className="text-xs text-slate-400 mb-1.5">Your friend link</p>
+                  {/* Generate single-use link */}
+                  <button
+                    onClick={handleGenerateLink}
+                    disabled={generatingCode}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white transition-colors cursor-pointer"
+                  >
+                    {generatingCode ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Link2 className="w-4 h-4" />
+                        {linkCopied ? 'Link Copied!' : 'New Friend Link'}
+                      </>
+                    )}
+                  </button>
+
+                  {/* Show generated link + email option */}
+                  {friendLink && (
+                    <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <div className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-300 truncate select-all">
-                          {typeof window !== 'undefined'
-                            ? `${window.location.origin}?friend=${friendCode}`
-                            : `?friend=${friendCode}`}
+                          {friendLink}
                         </div>
                         <button
-                          onClick={handleCopyLink}
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(friendLink);
+                              trackFriendCodeCopy();
+                              setLinkCopied(true);
+                              setTimeout(() => setLinkCopied(false), 2000);
+                            } catch { /* noop */ }
+                          }}
                           className="shrink-0 flex items-center gap-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium px-3 py-2 rounded-lg transition-colors cursor-pointer"
                         >
                           <Copy className="w-3.5 h-3.5" />
                           {linkCopied ? 'Copied!' : 'Copy'}
                         </button>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Generating your friend link...
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="email"
+                          value={emailTo}
+                          onChange={(e) => setEmailTo(e.target.value)}
+                          placeholder="friend@email.com"
+                          className="flex-1 bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-slate-500"
+                        />
+                        <button
+                          onClick={handleEmailFriend}
+                          disabled={!emailTo.trim()}
+                          className="shrink-0 flex items-center gap-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-slate-300 text-xs font-medium px-3 py-2 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                          Email
+                        </button>
+                      </div>
+
+                      <p className="text-xs text-slate-500">
+                        This link is single-use. Generate a new one for each friend.
+                      </p>
                     </div>
                   )}
 
-                  <p className="text-xs text-slate-500">
-                    {friendCount === 0
-                      ? 'Share your link to connect with friends'
-                      : `${friendCount} friend${friendCount !== 1 ? 's' : ''}`}
-                  </p>
+                  {!friendLink && friendCount === 0 && (
+                    <p className="text-xs text-slate-500">
+                      Generate a link to connect with friends
+                    </p>
+                  )}
                 </div>
 
                 {/* Sign Out */}
