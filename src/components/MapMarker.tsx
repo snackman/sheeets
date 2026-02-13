@@ -194,7 +194,7 @@ export function MapMarker({
                 <div className="truncate whitespace-nowrap text-slate-400">{organizer}</div>
               )}
               {showTagIcons && tags && tags.length > 0 && (
-                <div className="flex flex-wrap items-center justify-center gap-0.5 mt-0.5">
+                <div className="flex flex-wrap items-center gap-0.5 mt-0.5">
                   {tags.map((tag) => (
                     <TagBadge key={tag} tag={tag} iconOnly />
                   ))}
