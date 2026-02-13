@@ -351,6 +351,11 @@ export function MapView({
     >
       <NavigationControl position="top-right" />
 
+      {/* Zoom level indicator */}
+      <div className="absolute top-[90px] right-2.5 z-10 bg-slate-800/80 text-slate-300 text-[10px] font-mono px-1.5 py-0.5 rounded">
+        z{viewState.zoom.toFixed(1)}
+      </div>
+
       {/* Locate me button */}
       <div className="absolute top-2 left-2 z-10">
         <button
