@@ -26,6 +26,7 @@ export function useItinerary() {
   const { user, loading: authLoading } = useAuth();
   const [itinerary, setItinerary] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
+  const [ready, setReady] = useState(false);
   const initialSyncDone = useRef(false);
   const skipNextPush = useRef(false);
   // Track whether a clear is due to logout so we skip persisting the empty set
@@ -36,6 +37,7 @@ export function useItinerary() {
     if (authLoading) return;
 
     if (user) {
+      setReady(false); // Wait for Supabase sync before ready
       try {
         const saved = localStorage.getItem(STORAGE_KEYS.ITINERARY);
         if (saved) {
@@ -48,6 +50,7 @@ export function useItinerary() {
       // User is logged out — clear displayed itinerary (keep localStorage intact)
       clearingForLogout.current = true;
       setItinerary(new Set());
+      setReady(true);
     }
     setLoaded(true);
   }, [user, authLoading]);
@@ -84,6 +87,7 @@ export function useItinerary() {
         // Error fetching — proceed with local data only
       }
       initialSyncDone.current = true;
+      setReady(true);
     }
 
     syncWithSupabase();
@@ -181,5 +185,6 @@ export function useItinerary() {
     isInItinerary,
     clear,
     count: itinerary.size,
+    ready,
   };
 }

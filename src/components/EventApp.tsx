@@ -39,6 +39,7 @@ export function EventApp() {
     itinerary,
     toggle: toggleItinerary,
     count: itineraryCount,
+    ready: itineraryReady,
   } = useItinerary();
 
   // Auth-gated starring
@@ -60,14 +61,14 @@ export function EventApp() {
     [user, toggleItinerary, itinerary]
   );
 
-  // Complete pending star after successful login
+  // Complete pending star after successful login + sync
   useEffect(() => {
-    if (user && pendingStarRef.current) {
+    if (user && itineraryReady && pendingStarRef.current) {
       toggleItinerary(pendingStarRef.current);
       pendingStarRef.current = null;
       setShowAuthForStar(false);
     }
-  }, [user, toggleItinerary]);
+  }, [user, itineraryReady, toggleItinerary]);
 
   // Turn off itinerary filter if user signs out or auth is dismissed
   useEffect(() => {
