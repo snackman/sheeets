@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react';
 import { Marker } from 'react-map-gl/mapbox';
+import { TagBadge } from './TagBadge';
 
 interface MapMarkerProps {
   latitude: number;
@@ -14,7 +15,7 @@ interface MapMarkerProps {
   zoom?: number;
   label?: string;
   organizer?: string;
-  time?: string;
+  tags?: string[];
   orderNumber?: number;
 }
 
@@ -96,7 +97,7 @@ export function MapMarker({
   zoom = 12,
   label,
   organizer,
-  time,
+  tags,
   orderNumber,
 }: MapMarkerProps) {
   const color = getPinColor(startMinutes);
@@ -110,7 +111,6 @@ export function MapMarker({
   );
 
   const showLabel = !!label;
-  const showTime = zoom >= 15 && time;
   const isNumbered = orderNumber != null;
 
   return (
@@ -151,14 +151,16 @@ export function MapMarker({
         {/* Label card */}
         {showLabel && (
           <div className="mt-0.5 px-1.5 py-0.5 rounded bg-slate-800/90 text-[10px] text-white max-w-[140px] leading-tight pointer-events-none">
-            <div className="truncate whitespace-nowrap">
-              {label}
-              {showTime && (
-                <span className="ml-1 text-slate-400">{time}</span>
-              )}
-            </div>
+            <div className="truncate whitespace-nowrap">{label}</div>
             {organizer && (
               <div className="truncate whitespace-nowrap text-slate-400">{organizer}</div>
+            )}
+            {tags && tags.length > 0 && (
+              <div className="flex items-center gap-0.5 mt-0.5">
+                {tags.map((tag) => (
+                  <TagBadge key={tag} tag={tag} iconOnly />
+                ))}
+              </div>
             )}
           </div>
         )}
