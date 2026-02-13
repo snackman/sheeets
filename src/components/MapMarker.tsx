@@ -118,7 +118,7 @@ export function MapMarker({
 
   const showLabel = !!label;
   const isNumbered = orderNumber != null;
-  const showOrganizer = zoom >= 13;
+  const showOrganizer = zoom >= 11;
   const showTagIcons = zoom >= 15;
 
   return (

@@ -104,7 +104,7 @@ export function TagBadge({ tag, size = 'sm', iconOnly = false }: TagBadgeProps) 
   const Icon = TAG_ICONS[tag];
   const color = VIBE_COLORS[tag] || VIBE_COLORS['default'];
   const iconSize = iconOnly
-    ? 'w-5 h-5'
+    ? 'w-[15px] h-[15px]'
     : size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
 
   if (iconOnly) {
