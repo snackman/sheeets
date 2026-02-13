@@ -58,9 +58,19 @@ function SolIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+function FreeIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" {...props}>
+      <path d="M100,20 C112,20 115,35 127,38 C139,41 150,32 159,41 C168,50 159,61 162,73 C165,85 180,88 180,100 C180,112 165,115 162,127 C159,139 168,150 159,159 C150,168 139,159 127,162 C115,165 112,180 100,180 C88,180 85,165 73,162 C61,159 50,168 41,159 C32,150 41,139 38,127 C35,115 20,112 20,100 C20,88 35,85 38,73 C41,61 32,50 41,41 C50,32 61,41 73,38 C85,35 88,20 100,20Z" />
+      <text x="100" y="105" dominantBaseline="middle" textAnchor="middle" fontFamily="Arial Black, sans-serif" fontSize="40" fill="currentColor" stroke="none" transform="rotate(-30, 100, 105)">FREE</text>
+    </svg>
+  );
+}
+
 type IconComponent = LucideIcon | ((props: React.SVGProps<SVGSVGElement>) => React.ReactNode);
 
 export const TAG_ICONS: Record<string, IconComponent> = {
+  'FREE': FreeIcon,
   'Conference': IdCardLanyard,
   'Panel/Talk': Mic,
   'Hackathon': Trophy,
