@@ -37,10 +37,11 @@ export function MapView({
   const mapRef = useRef<MapRef>(null);
   const hasFittedRef = useRef(false);
 
-  // Compute center from events with coordinates, excluding outliers, fallback to Denver
+  // Compute center from events with coordinates, excluding outliers
+  // Returns null when no located events (e.g. "Now" filters everything out)
   const eventsCenter = useMemo(() => {
     const located = events.filter((e) => e.lat != null && e.lng != null);
-    if (located.length === 0) return DENVER_CENTER;
+    if (located.length === 0) return null;
     if (located.length <= 3) {
       const avgLat = located.reduce((s, e) => s + e.lat!, 0) / located.length;
       const avgLng = located.reduce((s, e) => s + e.lng!, 0) / located.length;
@@ -72,13 +73,15 @@ export function MapView({
   }, [events]);
 
   const [viewState, setViewState] = useState({
-    latitude: eventsCenter.lat,
-    longitude: eventsCenter.lng,
+    latitude: eventsCenter?.lat ?? DENVER_CENTER.lat,
+    longitude: eventsCenter?.lng ?? DENVER_CENTER.lng,
     zoom: 12,
   });
 
   // Re-center when the events center changes significantly (e.g. switching conferences)
+  // Skip if no located events (e.g. "Now" mode filters everything out)
   useEffect(() => {
+    if (!eventsCenter) return;
     const dist = Math.abs(viewState.latitude - eventsCenter.lat) + Math.abs(viewState.longitude - eventsCenter.lng);
     if (dist > 1) {
       setViewState((prev) => ({ ...prev, latitude: eventsCenter.lat, longitude: eventsCenter.lng }));
