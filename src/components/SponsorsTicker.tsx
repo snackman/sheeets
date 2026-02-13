@@ -27,6 +27,7 @@ export function SponsorsTicker() {
     <span className="inline-flex items-center gap-1 mx-8">
       <span>{text}</span>
       {renderSponsors()}
+      <span>. Join the Fight for Sensible Crypto Policy!</span>
       <span className="mx-8 text-slate-600">&#10022;</span>
     </span>
   );
