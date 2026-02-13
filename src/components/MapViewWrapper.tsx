@@ -2,10 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { ChevronUp, ChevronDown, MapPinOff, ExternalLink } from 'lucide-react';
+import { ChevronUp, ChevronDown, MapPinOff } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
-import { VIBE_COLORS } from '@/lib/constants';
-import { StarButton } from './StarButton';
+import { EventCard } from './EventCard';
 
 const MapView = dynamic(
   () => import('./MapView').then((mod) => ({ default: mod.MapView })),
@@ -59,58 +58,15 @@ export function MapViewWrapper({
           {/* Scrollable event list */}
           {drawerOpen && (
             <div className="pointer-events-auto bg-slate-900/95 backdrop-blur-sm border-t border-slate-700 max-h-[45vh] overflow-y-auto">
-              <div className="max-w-3xl mx-auto px-3 py-2 space-y-1.5">
-                {noLocationEvents.map((event) => {
-                  const vibeColor = VIBE_COLORS[event.vibe] || VIBE_COLORS['default'];
-                  const timeDisplay = event.isAllDay
-                    ? 'All Day'
-                    : event.startTime || '';
-                  return (
-                    <div
-                      key={event.id}
-                      className="flex items-center gap-2 px-3 py-2 bg-slate-800/80 rounded-lg"
-                    >
-                      {onItineraryToggle && (
-                        <StarButton
-                          eventId={event.id}
-                          isStarred={itinerary?.has(event.id) ?? false}
-                          onToggle={onItineraryToggle}
-                          size="sm"
-                        />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-semibold text-white"
-                            style={{ backgroundColor: vibeColor }}
-                          >
-                            {event.vibe || 'Event'}
-                          </span>
-                          <span className="text-[11px] text-slate-400 shrink-0">{event.date} {timeDisplay}</span>
-                        </div>
-                        <p className="text-sm text-white font-medium truncate mt-0.5">
-                          {event.name}
-                        </p>
-                        {event.organizer && (
-                          <p className="text-[11px] text-slate-500 truncate">
-                            {event.organizer}
-                          </p>
-                        )}
-                      </div>
-                      {event.link && (
-                        <a
-                          href={event.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="shrink-0 p-2 text-orange-400 hover:text-orange-300 active:text-orange-300 transition-colors"
-                          aria-label="Open event link"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      )}
-                    </div>
-                  );
-                })}
+              <div className="max-w-3xl mx-auto px-3 py-2 space-y-2">
+                {noLocationEvents.map((event) => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    isInItinerary={itinerary?.has(event.id) ?? false}
+                    onItineraryToggle={onItineraryToggle}
+                  />
+                ))}
               </div>
             </div>
           )}
