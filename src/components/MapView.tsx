@@ -279,7 +279,9 @@ export function MapView({
             key={`loc-${key}`}
             latitude={event.lat!}
             longitude={event.lng!}
-            vibe={event.vibe || 'default'}
+            startMinutes={parseTimeToMinutes(event.startTime)}
+            endMinutes={parseTimeToMinutes(event.endTime)}
+            isAllDay={event.isAllDay}
             eventCount={count}
             onClick={() =>
               handleMarkerClick(event, event.lat!, event.lng!)

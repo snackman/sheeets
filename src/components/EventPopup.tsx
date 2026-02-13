@@ -1,11 +1,12 @@
 'use client';
 
 import { Popup } from 'react-map-gl/mapbox';
-import { X } from 'lucide-react';
+import { X, Calendar } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
-import { VIBE_COLORS } from '@/lib/constants';
 import { StarButton } from './StarButton';
+import { TagBadge } from './TagBadge';
+import { OGImage } from './OGImage';
 
 interface EventPopupProps {
   event: ETHDenverEvent;
@@ -35,36 +36,19 @@ function SingleEventContent({
   isInItinerary?: boolean;
   onItineraryToggle?: (eventId: string) => void;
 }) {
-  const vibeColor = VIBE_COLORS[event.vibe] || VIBE_COLORS['default'];
   const timeDisplay = event.isAllDay
     ? 'All Day'
     : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
 
   return (
-    <div className="w-[280px] max-w-[calc(100vw-3rem)]">
-      {/* Row 1: Event name (linked) + star + close */}
-      <div className="flex items-start justify-between gap-2 mb-1">
-        <div className="min-w-0 flex-1">
-          {event.link ? (
-            <a
-              href={event.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-bold text-sm text-white leading-tight line-clamp-2 hover:text-orange-300 transition-colors"
-              onClick={() => trackEventClick(event.name, event.link!)}
-            >
-              {event.name}
-            </a>
-          ) : (
-            <h3 className="font-bold text-sm text-white leading-tight line-clamp-2">
-              {event.name}
-            </h3>
-          )}
-          {event.organizer && (
-            <p className="text-xs text-slate-500 mt-0.5">{event.organizer}</p>
-          )}
-        </div>
-        <div className="flex items-center shrink-0">
+    <div className="w-[300px] max-w-[calc(100vw-3rem)] flex gap-3">
+      {/* Left: cover image */}
+      {event.link && <OGImage url={event.link} eventId={event.id} />}
+
+      {/* Right: event details */}
+      <div className="flex-1 min-w-0">
+        {/* Top row: Star + Name + Close */}
+        <div className="flex items-start gap-1">
           {onItineraryToggle && (
             <StarButton
               eventId={event.id}
@@ -73,33 +57,55 @@ function SingleEventContent({
               size="sm"
             />
           )}
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm text-white leading-tight line-clamp-2">
+              {event.link ? (
+                <a
+                  href={event.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-orange-400 transition-colors"
+                  onClick={() => trackEventClick(event.name, event.link!)}
+                >
+                  {event.name}
+                </a>
+              ) : (
+                event.name
+              )}
+            </h3>
+            {event.organizer && (
+              <p className="text-xs text-slate-500 mt-0.5">{event.organizer}</p>
+            )}
+          </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white active:text-white transition-colors"
+            className="shrink-0 p-1 text-slate-400 hover:text-white active:text-white transition-colors"
             aria-label="Close popup"
           >
-            <X size={16} />
+            <X size={14} />
           </button>
         </div>
-      </div>
 
-      {/* Row 2: Vibe tag + cost */}
-      <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-        <span
-          className="px-1.5 py-0.5 rounded text-[10px] font-semibold text-white"
-          style={{ backgroundColor: vibeColor }}
-        >
-          {event.vibe || 'Event'}
-        </span>
-        <span className="text-xs text-slate-400">
-          {event.isFree ? 'Free' : event.cost || 'Paid'}
-        </span>
-      </div>
+        {/* Date + Time */}
+        <p className="text-slate-400 text-xs mt-1.5 flex items-center gap-1">
+          <Calendar className="w-3 h-3 shrink-0" />
+          <span>{event.date} · {timeDisplay}</span>
+        </p>
 
-      {/* Row 3: Date + time */}
-      <p className="text-xs text-slate-300">
-        {event.date} &middot; {timeDisplay}
-      </p>
+        {/* Tags row */}
+        {event.tags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1 mt-2">
+            {event.tags.map((tag) => (
+              <TagBadge key={tag} tag={tag} />
+            ))}
+          </div>
+        )}
+
+        {/* Note */}
+        {event.note && (
+          <p className="text-slate-600 text-xs mt-1 italic line-clamp-2">{event.note}</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -151,42 +157,43 @@ export function MultiEventPopup({
       offset={16}
       className="map-popup"
     >
-      <div className="w-[280px] max-w-[calc(100vw-3rem)]">
+      <div className="w-[300px] max-w-[calc(100vw-3rem)]">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-bold text-sm text-white">
             {events.length} events at this location
           </h3>
           <button
             onClick={onClose}
-            className="shrink-0 p-1.5 text-slate-400 hover:text-white active:text-white transition-colors"
+            className="shrink-0 p-1 text-slate-400 hover:text-white active:text-white transition-colors"
             aria-label="Close popup"
           >
-            <X size={16} />
+            <X size={14} />
           </button>
         </div>
-        <div className="max-h-[240px] overflow-y-auto space-y-1.5 pr-1">
+        <div className="max-h-[260px] overflow-y-auto space-y-1.5 pr-1">
           {events.map((event) => {
-            const vibeColor =
-              VIBE_COLORS[event.vibe] || VIBE_COLORS['default'];
+            const timeDisplay = event.isAllDay
+              ? 'All Day'
+              : event.startTime;
             return (
               <button
                 key={event.id}
-                className="w-full text-left p-2.5 bg-slate-700/50 hover:bg-slate-600/50 active:bg-slate-600/50 rounded transition-colors"
+                className="w-full text-left p-2.5 bg-slate-700/50 hover:bg-slate-600/50 active:bg-slate-600/50 rounded-lg transition-colors"
                 onClick={() => onSelectEvent?.(event)}
               >
                 <p className="text-xs font-semibold text-white leading-tight truncate">
                   {event.name}
                 </p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span
-                    className="px-1 py-0.5 rounded text-[9px] font-semibold text-white"
-                    style={{ backgroundColor: vibeColor }}
-                  >
-                    {event.vibe || 'Event'}
-                  </span>
+                {event.organizer && (
+                  <p className="text-[10px] text-slate-500 mt-0.5 truncate">{event.organizer}</p>
+                )}
+                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                   <span className="text-[10px] text-slate-400">
-                    {event.startTime}
+                    {timeDisplay}
                   </span>
+                  {event.tags.slice(0, 3).map((tag) => (
+                    <TagBadge key={tag} tag={tag} iconOnly />
+                  ))}
                 </div>
               </button>
             );
