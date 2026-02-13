@@ -77,8 +77,8 @@ function ClockPin({
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={cx} cy={cy} r={ir} fill={color} />
-      <path d={wedgePath} fill="black" fillOpacity={0.6} />
+      <circle cx={cx} cy={cy} r={ir} fill="#1e293b" />
+      <path d={wedgePath} fill={color} />
       <circle cx={cx} cy={cy} r={ir} fill="none" stroke="white" strokeWidth={1.5} strokeOpacity={0.8} />
     </svg>
   );
