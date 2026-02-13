@@ -96,10 +96,15 @@ function SingleEventContent({
 
         {/* Address */}
         {event.address && (
-          <p className="text-slate-500 text-xs mt-1 flex items-center gap-1">
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-slate-500 hover:text-slate-300 text-xs mt-1 flex items-center gap-1 transition-colors"
+          >
             <MapPin className="w-3 h-3 shrink-0" />
             <span className="truncate">{event.address}</span>
-          </p>
+          </a>
         )}
 
         {/* Tags row (icons only) */}
@@ -222,10 +227,16 @@ export function MultiEventPopup({
                     <span>{event.date} · {timeDisplay}</span>
                   </p>
                   {event.address && (
-                    <p className="text-slate-500 text-[10px] mt-0.5 flex items-center gap-1">
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-slate-500 hover:text-slate-300 text-[10px] mt-0.5 flex items-center gap-1 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <MapPin className="w-2.5 h-2.5 shrink-0" />
                       <span className="truncate">{event.address}</span>
-                    </p>
+                    </a>
                   )}
                   {event.tags.length > 0 && (
                     <div className="flex items-center gap-1 mt-1">

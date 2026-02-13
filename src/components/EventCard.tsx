@@ -71,10 +71,15 @@ export function EventCard({
 
         {/* Address */}
         {event.address && (
-          <p className="text-slate-500 text-sm mt-1 flex items-start gap-1">
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-slate-500 hover:text-slate-300 text-sm mt-1 flex items-start gap-1 transition-colors"
+          >
             <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
             <span className="truncate">{event.address}</span>
-          </p>
+          </a>
         )}
 
         {/* Badges row */}
