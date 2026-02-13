@@ -2,7 +2,7 @@
 
 import {
   Mic,
-  Code,
+  Trophy,
   Handshake,
   Wrench,
   CircleDollarSign,
@@ -63,7 +63,7 @@ type IconComponent = LucideIcon | ((props: React.SVGProps<SVGSVGElement>) => Rea
 export const TAG_ICONS: Record<string, IconComponent> = {
   'Conference': IdCardLanyard,
   'Panel/Talk': Mic,
-  'Hackathon': Code,
+  'Hackathon': Trophy,
   'Networking': Handshake,
   'Devs/Builders': Wrench,
   'VCs/Angels': CircleDollarSign,
