@@ -36,12 +36,37 @@ export function MapView({
   const mapRef = useRef<MapRef>(null);
   const hasFittedRef = useRef(false);
 
-  // Compute center from events with coordinates, fallback to Denver
+  // Compute center from events with coordinates, excluding outliers, fallback to Denver
   const eventsCenter = useMemo(() => {
     const located = events.filter((e) => e.lat != null && e.lng != null);
     if (located.length === 0) return DENVER_CENTER;
-    const avgLat = located.reduce((s, e) => s + e.lat!, 0) / located.length;
-    const avgLng = located.reduce((s, e) => s + e.lng!, 0) / located.length;
+    if (located.length <= 3) {
+      const avgLat = located.reduce((s, e) => s + e.lat!, 0) / located.length;
+      const avgLng = located.reduce((s, e) => s + e.lng!, 0) / located.length;
+      return { lat: avgLat, lng: avgLng };
+    }
+
+    // Use IQR to exclude geographic outliers
+    const lats = located.map((e) => e.lat!).sort((a, b) => a - b);
+    const lngs = located.map((e) => e.lng!).sort((a, b) => a - b);
+
+    const q1 = (arr: number[]) => arr[Math.floor(arr.length * 0.25)];
+    const q3 = (arr: number[]) => arr[Math.floor(arr.length * 0.75)];
+
+    const latQ1 = q1(lats), latQ3 = q3(lats), latIQR = latQ3 - latQ1;
+    const lngQ1 = q1(lngs), lngQ3 = q3(lngs), lngIQR = lngQ3 - lngQ1;
+
+    const margin = 1.5;
+    const inliers = located.filter((e) =>
+      e.lat! >= latQ1 - margin * latIQR &&
+      e.lat! <= latQ3 + margin * latIQR &&
+      e.lng! >= lngQ1 - margin * lngIQR &&
+      e.lng! <= lngQ3 + margin * lngIQR
+    );
+
+    const pool = inliers.length > 0 ? inliers : located;
+    const avgLat = pool.reduce((s, e) => s + e.lat!, 0) / pool.length;
+    const avgLng = pool.reduce((s, e) => s + e.lng!, 0) / pool.length;
     return { lat: avgLat, lng: avgLng };
   }, [events]);
 
