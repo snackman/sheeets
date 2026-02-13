@@ -1,7 +1,7 @@
 'use client';
 
 import { Popup } from 'react-map-gl/mapbox';
-import { X, Calendar } from 'lucide-react';
+import { X, Calendar, MapPin } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
 import { StarButton } from './StarButton';
@@ -93,6 +93,14 @@ function SingleEventContent({
           <Calendar className="w-3 h-3 shrink-0" />
           <span>{event.date} · {timeDisplay}</span>
         </p>
+
+        {/* Address */}
+        {event.address && (
+          <p className="text-slate-500 text-xs mt-1 flex items-center gap-1">
+            <MapPin className="w-3 h-3 shrink-0" />
+            <span className="truncate">{event.address}</span>
+          </p>
+        )}
 
         {/* Tags row (icons only) */}
         {event.tags.length > 0 && (
@@ -213,6 +221,12 @@ export function MultiEventPopup({
                     <Calendar className="w-2.5 h-2.5 shrink-0" />
                     <span>{event.date} · {timeDisplay}</span>
                   </p>
+                  {event.address && (
+                    <p className="text-slate-500 text-[10px] mt-0.5 flex items-center gap-1">
+                      <MapPin className="w-2.5 h-2.5 shrink-0" />
+                      <span className="truncate">{event.address}</span>
+                    </p>
+                  )}
                   {event.tags.length > 0 && (
                     <div className="flex items-center gap-1 mt-1">
                       {event.tags.map((tag) => (
