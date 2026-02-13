@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { X, Mail, LogOut } from 'lucide-react';
+import { X, Mail, LogOut, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAuthSuccess, trackSignOut } from '@/lib/analytics';
 
@@ -200,21 +200,52 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
 export function UserMenu() {
   const { user, signOut } = useAuth();
+  const [open, setOpen] = useState(false);
 
   if (!user) return null;
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-slate-400 hidden sm:inline truncate max-w-[120px]">
-        {user.email}
-      </span>
+    <>
       <button
-        onClick={() => { trackSignOut(); signOut(); }}
+        onClick={() => setOpen(true)}
         className="p-1.5 text-slate-400 hover:text-white transition-colors cursor-pointer"
-        title="Sign out"
+        title="Profile"
       >
-        <LogOut className="w-3.5 h-3.5" />
+        <User className="w-4 h-4" />
       </button>
-    </div>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-[80] bg-black/50" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+            <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+                <h2 className="text-base font-bold text-white">Profile</h2>
+                <button onClick={() => setOpen(false)} className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="px-4 py-5 space-y-4">
+                <div>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide">Email</p>
+                  <p className="text-sm text-white mt-0.5">{user.email}</p>
+                </div>
+
+                <button
+                  onClick={() => { trackSignOut(); signOut(); setOpen(false); }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-600 hover:border-red-500/50 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded-lg text-sm transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  Sign out
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </>
   );
 }
