@@ -13,6 +13,7 @@ interface MapMarkerProps {
   onClick: () => void;
   zoom?: number;
   label?: string;
+  organizer?: string;
   time?: string;
   orderNumber?: number;
 }
@@ -94,6 +95,7 @@ export function MapMarker({
   onClick,
   zoom = 12,
   label,
+  organizer,
   time,
   orderNumber,
 }: MapMarkerProps) {
@@ -107,8 +109,8 @@ export function MapMarker({
     [onClick]
   );
 
-  const showLabel = zoom >= 14 && label;
-  const showTime = zoom >= 16 && time;
+  const showLabel = !!label;
+  const showTime = zoom >= 15 && time;
   const isNumbered = orderNumber != null;
 
   return (
@@ -146,12 +148,17 @@ export function MapMarker({
           ) : null}
         </div>
 
-        {/* Label card (zoom >= 14) */}
+        {/* Label card */}
         {showLabel && (
-          <div className="mt-0.5 px-1.5 py-0.5 rounded bg-slate-800/90 text-[10px] text-white max-w-[120px] truncate whitespace-nowrap leading-tight pointer-events-none">
-            {label}
-            {showTime && (
-              <span className="ml-1 text-slate-400">{time}</span>
+          <div className="mt-0.5 px-1.5 py-0.5 rounded bg-slate-800/90 text-[10px] text-white max-w-[140px] leading-tight pointer-events-none">
+            <div className="truncate whitespace-nowrap">
+              {label}
+              {showTime && (
+                <span className="ml-1 text-slate-400">{time}</span>
+              )}
+            </div>
+            {organizer && (
+              <div className="truncate whitespace-nowrap text-slate-400">{organizer}</div>
             )}
           </div>
         )}

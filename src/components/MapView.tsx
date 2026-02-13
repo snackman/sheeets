@@ -264,6 +264,7 @@ export function MapView({
         const colocated = colocatedMap.get(key);
         // For co-located markers, label shows "N events"; for single, show event name
         const markerLabel = count > 1 ? `${count} events` : event.name;
+        const markerOrganizer = count > 1 ? undefined : event.organizer;
         const markerTime = count > 1 ? undefined : event.startTime;
         // For itinerary view: single pin gets its number, co-located gets lowest number in group
         let orderNumber: number | undefined;
@@ -291,6 +292,7 @@ export function MapView({
             }
             zoom={viewState.zoom}
             label={markerLabel}
+            organizer={markerOrganizer}
             time={markerTime}
             orderNumber={orderNumber}
           />
