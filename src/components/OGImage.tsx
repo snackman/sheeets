@@ -55,7 +55,7 @@ export function OGImage({ url, eventId }: OGImageProps) {
   if (error) return null;
 
   return (
-    <div ref={ref} className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden bg-slate-700/30 self-center">
+    <div ref={ref} className="shrink-0 w-[88px] h-[88px] sm:w-[106px] sm:h-[106px] rounded-lg overflow-hidden bg-slate-700/30 self-center">
       {imageUrl && (
         <img
           src={imageUrl}
