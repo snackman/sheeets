@@ -16,6 +16,7 @@ import { TableView } from './TableView';
 import { MapViewWrapper } from './MapViewWrapper';
 import { Loading } from './Loading';
 import { AuthModal } from './AuthModal';
+import { SponsorsTicker } from './SponsorsTicker';
 
 export function EventApp() {
   const { events, loading, error } = useEvents();
@@ -178,6 +179,8 @@ export function EventApp() {
         events={events}
         itinerary={itinerary}
       />
+
+      <SponsorsTicker />
 
       {/* Filter bar — collapses on table scroll to maximize table height */}
       <div className={
