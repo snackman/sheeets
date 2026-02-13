@@ -171,7 +171,7 @@ export function EventApp() {
       {/* Filter bar — collapses on table scroll to maximize table height */}
       <div className={
         viewMode === 'table'
-          ? `shrink-0 transition-all duration-200 ${tableScrolled ? 'overflow-hidden max-h-0' : ''}`
+          ? `shrink-0 transition-all duration-200 ${tableScrolled ? 'sm:overflow-visible sm:max-h-none overflow-hidden max-h-0' : ''}`
           : 'shrink-0'
       }>
         <FilterBar
