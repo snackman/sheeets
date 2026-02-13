@@ -1,17 +1,15 @@
 'use client';
 
 import {
-  Landmark,
   Mic,
   Code,
-  Users,
+  Handshake,
   Wrench,
-  TrendingUp,
+  CircleDollarSign,
   Bot,
   Coins,
   Image,
   Cpu,
-  Sun,
   Gamepad2,
   Palette,
   Heart,
@@ -19,33 +17,65 @@ import {
   Beer,
   Briefcase,
   Smile,
-  Music,
   GraduationCap,
   Play,
-  Diamond,
-  Globe,
+  House,
   UtensilsCrossed,
   Drama,
+  IdCard,
+  Vote,
+  PartyPopper,
   type LucideIcon,
 } from 'lucide-react';
 import { VIBE_COLORS } from '@/lib/constants';
 
-export const TAG_ICONS: Record<string, LucideIcon> = {
-  'Conference': Landmark,
+/** Custom crypto logo SVG icons matching LucideIcon interface */
+function EthIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M12 1.5l-7 10.17L12 15l7-3.33z" />
+      <path d="M5 11.67L12 22.5l7-10.83L12 15z" />
+    </svg>
+  );
+}
+
+function BtcIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M9 5V3m4 2V3M9 21v-2m4 2v-2" />
+      <path d="M7 7h7a3 3 0 010 6H7zm0 6h8a3 3 0 010 6H7z" />
+    </svg>
+  );
+}
+
+function SolIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M4 6h14l2 2H4z" />
+      <path d="M4 16h14l2 2H4z" />
+      <path d="M20 11H6l-2-2h16z" />
+    </svg>
+  );
+}
+
+type IconComponent = LucideIcon | ((props: React.SVGProps<SVGSVGElement>) => React.ReactNode);
+
+export const TAG_ICONS: Record<string, IconComponent> = {
+  'Conference': IdCard,
   'Panel/Talk': Mic,
   'Hackathon': Code,
-  'Networking': Users,
+  'Networking': Handshake,
   'Devs/Builders': Wrench,
-  'VCs/Angels': TrendingUp,
+  'VCs/Angels': CircleDollarSign,
   'AI': Bot,
   'DeFi': Coins,
-  'DAOs': Users,
+  'DAOs': Vote,
   'NFTs': Image,
   'DePIN': Cpu,
-  'RWA': Globe,
-  'ETH': Diamond,
-  'BTC': Coins,
-  'SOL': Sun,
+  'RWA': House,
+  'ETH': EthIcon,
+  'BTC': BtcIcon,
+  'SOL': SolIcon,
   'Gaming': Gamepad2,
   'Art': Palette,
   'Wellness': Heart,
@@ -53,9 +83,9 @@ export const TAG_ICONS: Record<string, LucideIcon> = {
   'Bar/Pub': Beer,
   'Jobs/Hiring': Briefcase,
   'Memecoins': Smile,
-  'Party': Music,
+  'Party': PartyPopper,
   'Workshop': GraduationCap,
-  'Meetup': Users,
+  'Meetup': Handshake,
   'Demo Day': Play,
   'Demo': Play,
   'Dinner': UtensilsCrossed,
