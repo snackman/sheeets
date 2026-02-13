@@ -29,7 +29,6 @@ export const VIBE_COLORS: Record<string, string> = {
   'Wellness': '#34D399',
   'Performance': '#34D399',
   'Art': '#34D399',
-  'FREE': '#A855F7',
   '$$': '#A855F7',
   '🍕 Food': '#34D399',
   '🍺 Bar': '#34D399',
@@ -55,7 +54,6 @@ export const VIBE_COLORS: Record<string, string> = {
 
 /** Tags that describe event format/type (vs topic/interest tags) */
 export const TYPE_TAGS = [
-  'FREE',
   '$$',
   '🍕 Food',
   '🍺 Bar',

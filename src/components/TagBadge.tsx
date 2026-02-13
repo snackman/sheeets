@@ -25,6 +25,7 @@ import {
   IdCardLanyard,
   Vote,
   PartyPopper,
+  Ticket,
   type LucideIcon,
 } from 'lucide-react';
 import { VIBE_COLORS } from '@/lib/constants';
@@ -61,6 +62,7 @@ function SolIcon(props: React.SVGProps<SVGSVGElement>) {
 type IconComponent = LucideIcon | ((props: React.SVGProps<SVGSVGElement>) => React.ReactNode);
 
 export const TAG_ICONS: Record<string, IconComponent> = {
+  '$$': Ticket,
   'Conference': IdCardLanyard,
   'Panel/Talk': Mic,
   'Hackathon': Trophy,
