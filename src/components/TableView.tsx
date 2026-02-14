@@ -61,6 +61,7 @@ export function TableView({
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
   const [currentDateLabel, setCurrentDateLabel] = useState<string>('Time');
   const lastScrolledRef = useRef(false);
+  const lastScrollTopRef = useRef(0);
   const [selectedEvent, setSelectedEvent] = useState<ETHDenverEvent | null>(null);
 
   const groups = useMemo(() => groupByDate(events), [events]);
@@ -133,11 +134,22 @@ export function TableView({
     const container = scrollContainerRef.current;
     if (!container || groups.length === 0) return;
 
-    // Notify parent whether we've scrolled away from top
-    const scrolled = container.scrollTop > 5;
-    if (scrolled !== lastScrolledRef.current) {
-      lastScrolledRef.current = scrolled;
-      onScrolledChange?.(scrolled);
+    // Notify parent: hide filter on scroll down, show on scroll up or at top
+    const scrollTop = container.scrollTop;
+    const atTop = scrollTop <= 5;
+    const scrollingDown = scrollTop > lastScrollTopRef.current + 2;
+    const scrollingUp = scrollTop < lastScrollTopRef.current - 2;
+    lastScrollTopRef.current = scrollTop;
+
+    const shouldHide = !atTop && scrollingDown;
+    const shouldShow = atTop || scrollingUp;
+
+    if (shouldHide && !lastScrolledRef.current) {
+      lastScrolledRef.current = true;
+      onScrolledChange?.(true);
+    } else if (shouldShow && lastScrolledRef.current) {
+      lastScrolledRef.current = false;
+      onScrolledChange?.(false);
     }
 
     if (container.scrollTop <= 5) {
