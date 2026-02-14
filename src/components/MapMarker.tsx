@@ -106,8 +106,6 @@ export function MapMarker({
   labelOffsetY = -14,
   showLeaderLine = false,
 }: MapMarkerProps) {
-  const color = getPinColor(startMinutes);
-
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -134,12 +132,12 @@ export function MapMarker({
         >
           <div className="relative flex items-center justify-center">
             {/* Clock-face pin */}
-            <div style={{ boxShadow: `0 0 6px ${color}80` }} className="rounded-full">
+            <div className="rounded-full">
               <ClockPin
                 startMinutes={startMinutes}
                 endMinutes={endMinutes}
                 isAllDay={isAllDay}
-                size={22}
+                size={19}
               />
             </div>
             {/* Badge: itinerary stop number or multi-event count */}
