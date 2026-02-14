@@ -39,3 +39,17 @@ export interface UserState {
 }
 
 export type ViewMode = 'map' | 'list' | 'table';
+
+export interface UserProfile {
+  user_id: string;
+  display_name: string | null;
+  x_handle: string | null;
+  farcaster_username: string | null;
+}
+
+export interface Friend {
+  user_id: string;
+  display_name: string | null;
+  x_handle: string | null;
+  farcaster_username: string | null;
+}

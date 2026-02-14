@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ViewMode } from '@/lib/types';
 import { useEvents } from '@/hooks/useEvents';
 import { useFilters } from '@/hooks/useFilters';
@@ -8,6 +9,7 @@ import { applyFilters } from '@/lib/filters';
 import { TYPE_TAGS } from '@/lib/constants';
 import { useItinerary } from '@/hooks/useItinerary';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFriends } from '@/hooks/useFriends';
 import { trackItinerary, trackAuthPrompt } from '@/lib/analytics';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
@@ -17,6 +19,8 @@ import { MapViewWrapper } from './MapViewWrapper';
 import { Loading } from './Loading';
 import { AuthModal } from './AuthModal';
 import { SponsorsTicker } from './SponsorsTicker';
+
+const PENDING_FRIEND_KEY = 'sheeets-pending-friend-code';
 
 export function EventApp() {
   const { events, loading, error } = useEvents();
@@ -35,6 +39,7 @@ export function EventApp() {
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [tableScrolled, setTableScrolled] = useState(false);
   const { user } = useAuth();
+  const searchParams = useSearchParams();
 
   const {
     itinerary,
@@ -43,9 +48,61 @@ export function EventApp() {
     ready: itineraryReady,
   } = useItinerary();
 
+  const { addFriend } = useFriends();
+
   // Auth-gated starring
   const [showAuthForStar, setShowAuthForStar] = useState(false);
   const pendingStarRef = useRef<string | null>(null);
+
+  // Friend link handling
+  const [showAuthForFriend, setShowAuthForFriend] = useState(false);
+  const friendLinkProcessed = useRef(false);
+
+  // Process ?friend=CODE param
+  useEffect(() => {
+    if (friendLinkProcessed.current) return;
+    const friendCode = searchParams.get('friend');
+    if (!friendCode) return;
+
+    if (user) {
+      // User is logged in — process immediately
+      friendLinkProcessed.current = true;
+      addFriend(friendCode).then(() => {
+        // Remove the param from URL
+        const url = new URL(window.location.href);
+        url.searchParams.delete('friend');
+        window.history.replaceState({}, '', url.toString());
+      });
+    } else {
+      // User not logged in — store code and prompt auth
+      try {
+        sessionStorage.setItem(PENDING_FRIEND_KEY, friendCode);
+      } catch {
+        // sessionStorage may be unavailable
+      }
+      setShowAuthForFriend(true);
+    }
+  }, [searchParams, user, addFriend]);
+
+  // After auth succeeds, check sessionStorage for pending friend code
+  useEffect(() => {
+    if (!user) return;
+    try {
+      const pendingCode = sessionStorage.getItem(PENDING_FRIEND_KEY);
+      if (pendingCode) {
+        sessionStorage.removeItem(PENDING_FRIEND_KEY);
+        setShowAuthForFriend(false);
+        addFriend(pendingCode).then(() => {
+          // Remove the param from URL if still there
+          const url = new URL(window.location.href);
+          url.searchParams.delete('friend');
+          window.history.replaceState({}, '', url.toString());
+        });
+      }
+    } catch {
+      // sessionStorage may be unavailable
+    }
+  }, [user, addFriend]);
 
   const handleItineraryToggle = useCallback(
     (eventId: string) => {
@@ -238,6 +295,7 @@ export function EventApp() {
       )}
 
       <AuthModal isOpen={showAuthForStar} onClose={() => { pendingStarRef.current = null; setShowAuthForStar(false); }} />
+      <AuthModal isOpen={showAuthForFriend} onClose={() => setShowAuthForFriend(false)} />
     </div>
   );
 }
