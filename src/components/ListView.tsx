@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { ETHDenverEvent } from '@/lib/types';
+import type { RsvpStatus } from '@/hooks/useRsvp';
 import { formatDateLabel } from '@/lib/utils';
 import { EventCard } from './EventCard';
 
@@ -12,6 +13,8 @@ interface ListViewProps {
   onItineraryToggle?: (eventId: string) => void;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  getRsvpState?: (eventId: string) => { status: RsvpStatus };
+  onRsvp?: (eventId: string, eventUrl: string) => void;
 }
 
 interface DateGroup {
@@ -50,6 +53,8 @@ export function ListView({
   onItineraryToggle,
   friendsCountByEvent,
   friendsByEvent,
+  getRsvpState,
+  onRsvp,
 }: ListViewProps) {
   const dateGroups: DateGroup[] = useMemo(() => {
     const groupMap = new Map<string, ETHDenverEvent[]>();
@@ -108,6 +113,8 @@ export function ListView({
                 onItineraryToggle={onItineraryToggle}
                 friendsCount={friendsCountByEvent?.get(event.id)}
                 friendsGoing={friendsByEvent?.get(event.id)}
+                rsvpStatus={getRsvpState?.(event.id)?.status}
+                onRsvp={onRsvp}
               />
             ))}
           </div>

@@ -81,3 +81,7 @@ export const trackFriendSearch = (searchType: string) => track('friend_search', 
 export const trackFriendRequestSent = () => track('friend_request_sent');
 export const trackFriendRequestAccepted = () => track('friend_request_accepted');
 export const trackFriendRequestRejected = () => track('friend_request_rejected');
+
+// RSVP
+export const trackRsvp = (eventId: string, action: string) =>
+  track('rsvp', { event_id: eventId, action });
