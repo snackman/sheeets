@@ -246,7 +246,7 @@ export function FilterBar({
                         trackDayRange(EVENT_DATES[s], EVENT_DATES[end]);
                         onSetDayRange(s, end, EVENT_DATES);
                       }}
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-[10px] sm:text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
+                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-sm px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
                     >
                       {EVENT_DATES.map((date, i) => (
                         <option key={date} value={i}>{dayLabel(date)}</option>
@@ -264,7 +264,7 @@ export function FilterBar({
                         trackDayRange(EVENT_DATES[start], EVENT_DATES[end]);
                         onSetDayRange(start, end, EVENT_DATES);
                       }}
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-[10px] sm:text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
+                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-sm px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
                     >
                       {EVENT_DATES.map((date, i) => (
                         <option key={date} value={i}>{dayLabel(date)}</option>
@@ -288,7 +288,7 @@ export function FilterBar({
                         trackTimeRange(s, end);
                         onSetTimeRange(s, end);
                       }}
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-[10px] sm:text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
+                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-sm px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
                     >
                       {timeOptions.filter((o) => o.value < 24).map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
@@ -306,7 +306,7 @@ export function FilterBar({
                         trackTimeRange(start, end);
                         onSetTimeRange(start, end);
                       }}
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-[10px] sm:text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
+                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-sm px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
                     >
                       {timeOptions.filter((o) => o.value > 0).map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>

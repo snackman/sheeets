@@ -4,6 +4,7 @@ import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, Calendar, Star, X } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
+import { TYPE_TAGS } from '@/lib/constants';
 import { trackEventClick } from '@/lib/analytics';
 import { TagBadge } from './TagBadge';
 import { EventCard } from './EventCard';
@@ -418,12 +419,31 @@ function DateGroup({
               ) : null}
             </td>
 
-            {/* Tags */}
+            {/* Tags — type row on top, topic tags on bottom, max 2 rows */}
             <td className="px-3 py-2">
-              <div className="flex flex-wrap gap-1 items-center" title={event.tags.join(', ')}>
-                {event.tags.map((tag) => (
-                  <TagBadge key={tag} tag={tag} iconOnly />
-                ))}
+              <div className="flex flex-col gap-0.5" title={event.tags.join(', ')}>
+                {(() => {
+                  const types = event.tags.filter((t) => TYPE_TAGS.includes(t));
+                  const topics = event.tags.filter((t) => !TYPE_TAGS.includes(t));
+                  return (
+                    <>
+                      {types.length > 0 && (
+                        <div className="flex flex-wrap gap-1 items-center">
+                          {types.map((tag) => (
+                            <TagBadge key={tag} tag={tag} iconOnly />
+                          ))}
+                        </div>
+                      )}
+                      {topics.length > 0 && (
+                        <div className="flex flex-wrap gap-1 items-center">
+                          {topics.map((tag) => (
+                            <TagBadge key={tag} tag={tag} iconOnly />
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </td>
           </tr>
