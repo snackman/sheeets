@@ -56,3 +56,22 @@ export interface Friend {
   x_handle: string | null;
   farcaster_username: string | null;
 }
+
+export interface FriendRequest {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  created_at: string;
+  sender_profile?: { display_name: string | null; email: string | null; x_handle: string | null };
+  receiver_profile?: { display_name: string | null; email: string | null; x_handle: string | null };
+}
+
+export interface UserSearchResult {
+  user_id: string;
+  display_name: string | null;
+  x_handle: string | null;
+  email: string | null;
+  farcaster_username: string | null;
+  request_status: 'pending_outgoing' | 'pending_incoming' | null;
+}

@@ -2,15 +2,16 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, LogOut, User, MapPin, Check, Loader2, Copy, Users, Link2 } from 'lucide-react';
+import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus, Clock, XCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { trackAuthSuccess, trackSignOut, trackFriendCodeCopy } from '@/lib/analytics';
+import { trackAuthSuccess, trackSignOut } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 import { distanceMeters } from '@/lib/geo';
 import { passesNowFilter } from '@/lib/filters';
 import { useProfile } from '@/hooks/useProfile';
 import { useFriends } from '@/hooks/useFriends';
-import type { ETHDenverEvent } from '@/lib/types';
+import { useFriendRequests } from '@/hooks/useFriendRequests';
+import type { ETHDenverEvent, UserSearchResult, FriendRequest } from '@/lib/types';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -205,16 +206,188 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   );
 }
 
+// --- Search result row ---
+function SearchResultRow({
+  result,
+  onSend,
+  onAccept,
+  sending,
+}: {
+  result: UserSearchResult;
+  onSend: (userId: string) => void;
+  onAccept: (userId: string) => void;
+  sending: string | null;
+}) {
+  const displayName = result.display_name || result.email || 'Anonymous';
+  const secondary = result.x_handle
+    ? `@${result.x_handle}`
+    : result.email
+      ? result.email
+      : result.farcaster_username
+        ? `@${result.farcaster_username}`
+        : null;
+
+  return (
+    <div className="flex items-center gap-3 py-2">
+      <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
+        <span className="text-sm font-medium text-slate-300">
+          {(result.display_name || result.email || '?')[0].toUpperCase()}
+        </span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-white truncate">{displayName}</p>
+        {secondary && result.display_name && (
+          <p className="text-xs text-slate-500 truncate">{secondary}</p>
+        )}
+      </div>
+      {result.request_status === 'pending_outgoing' ? (
+        <span className="flex items-center gap-1 text-xs text-slate-500 bg-slate-700 px-2.5 py-1.5 rounded-lg">
+          <Clock className="w-3 h-3" />
+          Pending
+        </span>
+      ) : result.request_status === 'pending_incoming' ? (
+        <button
+          onClick={() => onAccept(result.user_id)}
+          disabled={sending === result.user_id}
+          className="flex items-center gap-1 text-xs font-medium bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+        >
+          <Check className="w-3 h-3" />
+          Accept
+        </button>
+      ) : (
+        <button
+          onClick={() => onSend(result.user_id)}
+          disabled={sending === result.user_id}
+          className="flex items-center gap-1 text-xs font-medium bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+        >
+          {sending === result.user_id ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : (
+            <UserPlus className="w-3 h-3" />
+          )}
+          Add Friend
+        </button>
+      )}
+    </div>
+  );
+}
+
+// --- Incoming request row ---
+function IncomingRequestRow({
+  request,
+  onAccept,
+  onReject,
+  responding,
+}: {
+  request: FriendRequest;
+  onAccept: () => void;
+  onReject: () => void;
+  responding: boolean;
+}) {
+  const profile = request.sender_profile;
+  const displayName = profile?.display_name || profile?.email || 'Anonymous';
+
+  return (
+    <div className="flex items-center gap-3 py-2">
+      <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
+        <span className="text-sm font-medium text-slate-300">
+          {(profile?.display_name || profile?.email || '?')[0].toUpperCase()}
+        </span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-white truncate">{displayName}</p>
+        {profile?.display_name && profile?.email && (
+          <p className="text-xs text-slate-500 truncate">{profile.email}</p>
+        )}
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          onClick={onAccept}
+          disabled={responding}
+          className="flex items-center gap-1 text-xs font-medium bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+        >
+          <Check className="w-3 h-3" />
+          Accept
+        </button>
+        <button
+          onClick={onReject}
+          disabled={responding}
+          className="flex items-center gap-1 text-xs font-medium border border-slate-600 hover:border-red-500/50 hover:bg-red-500/10 text-slate-400 hover:text-red-400 disabled:opacity-50 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+        >
+          <X className="w-3 h-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// --- Outgoing request row ---
+function OutgoingRequestRow({
+  request,
+  onCancel,
+  cancelling,
+}: {
+  request: FriendRequest;
+  onCancel: () => void;
+  cancelling: boolean;
+}) {
+  const profile = request.receiver_profile;
+  const displayName = profile?.display_name || profile?.email || 'Anonymous';
+
+  return (
+    <div className="flex items-center gap-3 py-2">
+      <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
+        <span className="text-sm font-medium text-slate-300">
+          {(profile?.display_name || profile?.email || '?')[0].toUpperCase()}
+        </span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-white truncate">{displayName}</p>
+        {profile?.display_name && profile?.email && (
+          <p className="text-xs text-slate-500 truncate">{profile.email}</p>
+        )}
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="text-xs text-slate-500 flex items-center gap-1">
+          <Clock className="w-3 h-3" />
+          Pending
+        </span>
+        <button
+          onClick={onCancel}
+          disabled={cancelling}
+          className="p-1 text-slate-500 hover:text-red-400 disabled:opacity-50 transition-colors cursor-pointer"
+          title="Cancel request"
+        >
+          <XCircle className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 interface UserMenuProps {
   events: ETHDenverEvent[];
   itinerary: Set<string>;
   onOpenFriends: () => void;
+  pendingIncomingCount?: number;
 }
 
-export function UserMenu({ events, itinerary, onOpenFriends }: UserMenuProps) {
+export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCount: externalCount }: UserMenuProps) {
   const { user, signOut } = useAuth();
   const { profile, updateProfile } = useProfile();
-  const { friendCount, generateCode } = useFriends();
+  const { friendCount, refreshFriends } = useFriends();
+  const {
+    incomingRequests,
+    outgoingRequests,
+    pendingIncomingCount,
+    searchResults,
+    searchLoading,
+    searchUsers,
+    sendRequest,
+    respondToRequest,
+    cancelRequest,
+  } = useFriendRequests({ refreshFriends });
+
   const [open, setOpen] = useState(false);
   const [checking, setChecking] = useState(false);
   const [checkResult, setCheckResult] = useState<{
@@ -229,11 +402,15 @@ export function UserMenu({ events, itinerary, onOpenFriends }: UserMenuProps) {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
 
-  // Friend link state — single-use codes
-  const [friendLink, setFriendLink] = useState<string | null>(null);
-  const [linkCopied, setLinkCopied] = useState(false);
-  const [generatingCode, setGeneratingCode] = useState(false);
-  const [emailTo, setEmailTo] = useState('');
+  // Friend search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sendingTo, setSendingTo] = useState<string | null>(null);
+  const [respondingTo, setRespondingTo] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [showOutgoing, setShowOutgoing] = useState(false);
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const badgeCount = externalCount ?? pendingIncomingCount;
 
   // Sync form state when profile loads
   useEffect(() => {
@@ -243,6 +420,20 @@ export function UserMenu({ events, itinerary, onOpenFriends }: UserMenuProps) {
       setFarcasterUsername(profile.farcaster_username ?? '');
     }
   }, [profile]);
+
+  // Debounced search
+  useEffect(() => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    if (!searchQuery.trim()) {
+      return;
+    }
+    searchTimeout.current = setTimeout(() => {
+      searchUsers(searchQuery);
+    }, 400);
+    return () => {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    };
+  }, [searchQuery, searchUsers]);
 
   if (!user) return null;
 
@@ -258,35 +449,37 @@ export function UserMenu({ events, itinerary, onOpenFriends }: UserMenuProps) {
     setTimeout(() => setSaveStatus('idle'), 2000);
   }
 
-  async function handleGenerateLink() {
-    setGeneratingCode(true);
-    setLinkCopied(false);
-    const code = await generateCode();
-    if (code) {
-      const url = `${window.location.origin}?friend=${code}`;
-      setFriendLink(url);
-      try {
-        await navigator.clipboard.writeText(url);
-        trackFriendCodeCopy();
-        setLinkCopied(true);
-        setTimeout(() => setLinkCopied(false), 2000);
-      } catch {
-        // clipboard failed silently — link still shown for manual copy
-      }
-    }
-    setGeneratingCode(false);
+  async function handleSendRequest(receiverId: string) {
+    setSendingTo(receiverId);
+    await sendRequest(receiverId);
+    setSendingTo(null);
   }
 
-  function handleEmailFriend() {
-    if (!friendLink) return;
-    const name = profile?.display_name || 'Someone';
-    const subject = encodeURIComponent(`${name} wants to connect on sheeets`);
-    const body = encodeURIComponent(
-      `Hey! I'm using sheeets to find events at ETH Denver. Add me as a friend:\n\n${friendLink}\n\nSee you there!`
-    );
-    const mailto = `mailto:${encodeURIComponent(emailTo)}?subject=${subject}&body=${body}`;
-    window.open(mailto, '_blank');
-    setEmailTo('');
+  async function handleAcceptFromSearch(userId: string) {
+    // Find the incoming request for this user
+    const req = incomingRequests.find((r) => r.sender_id === userId);
+    if (req) {
+      setSendingTo(userId);
+      await respondToRequest(req.id, true);
+      setSendingTo(null);
+      // Re-search to update results
+      if (searchQuery.trim()) searchUsers(searchQuery);
+    } else {
+      // Fallback: send a request (will auto-accept via RPC if reverse exists)
+      await handleSendRequest(userId);
+    }
+  }
+
+  async function handleRespondToRequest(requestId: string, accept: boolean) {
+    setRespondingTo(requestId);
+    await respondToRequest(requestId, accept);
+    setRespondingTo(null);
+  }
+
+  async function handleCancelRequest(requestId: string) {
+    setCancellingId(requestId);
+    await cancelRequest(requestId);
+    setCancellingId(null);
   }
 
   async function handleCheckIn() {
@@ -355,7 +548,7 @@ export function UserMenu({ events, itinerary, onOpenFriends }: UserMenuProps) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="p-1.5 text-slate-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1"
+        className="relative p-1.5 text-slate-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1"
         title="Profile"
       >
         {profile?.display_name ? (
@@ -365,12 +558,18 @@ export function UserMenu({ events, itinerary, onOpenFriends }: UserMenuProps) {
         ) : (
           <User className="w-4 h-4" />
         )}
+        {badgeCount > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center text-[9px] font-bold rounded-full bg-orange-500 text-white px-0.5">
+            {badgeCount}
+          </span>
+        )}
       </button>
 
       {open && createPortal(
           <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-4" onClick={() => {
             setOpen(false);
             setCheckResult(null);
+            setSearchQuery('');
           }}>
             <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
               {/* Header */}
@@ -379,6 +578,7 @@ export function UserMenu({ events, itinerary, onOpenFriends }: UserMenuProps) {
                 <button onClick={() => {
                   setOpen(false);
                   setCheckResult(null);
+                  setSearchQuery('');
                 }} className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
@@ -503,75 +703,87 @@ export function UserMenu({ events, itinerary, onOpenFriends }: UserMenuProps) {
                     </button>
                   )}
 
-                  {/* Generate single-use link */}
-                  <button
-                    onClick={handleGenerateLink}
-                    disabled={generatingCode}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white transition-colors cursor-pointer"
-                  >
-                    {generatingCode ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Link2 className="w-4 h-4" />
-                        {linkCopied ? 'Link Copied!' : 'New Friend Link'}
-                      </>
-                    )}
-                  </button>
-
-                  {/* Show generated link + email option */}
-                  {friendLink && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-300 truncate select-all">
-                          {friendLink}
-                        </div>
-                        <button
-                          onClick={async () => {
-                            try {
-                              await navigator.clipboard.writeText(friendLink);
-                              trackFriendCodeCopy();
-                              setLinkCopied(true);
-                              setTimeout(() => setLinkCopied(false), 2000);
-                            } catch { /* noop */ }
-                          }}
-                          className="shrink-0 flex items-center gap-1 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium px-3 py-2 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                          {linkCopied ? 'Copied!' : 'Copy'}
-                        </button>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="email"
-                          value={emailTo}
-                          onChange={(e) => setEmailTo(e.target.value)}
-                          placeholder="friend@email.com"
-                          className="flex-1 bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-slate-500"
-                        />
-                        <button
-                          onClick={handleEmailFriend}
-                          disabled={!emailTo.trim()}
-                          className="shrink-0 flex items-center gap-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-slate-300 text-xs font-medium px-3 py-2 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Mail className="w-3.5 h-3.5" />
-                          Email
-                        </button>
-                      </div>
-
-                      <p className="text-xs text-slate-500">
-                        This link is single-use. Generate a new one for each friend.
+                  {/* Incoming friend requests */}
+                  {incomingRequests.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-orange-400 uppercase tracking-wide">
+                        Friend Requests ({incomingRequests.length})
                       </p>
+                      <div className="space-y-0.5">
+                        {incomingRequests.map((req) => (
+                          <IncomingRequestRow
+                            key={req.id}
+                            request={req}
+                            onAccept={() => handleRespondToRequest(req.id, true)}
+                            onReject={() => handleRespondToRequest(req.id, false)}
+                            responding={respondingTo === req.id}
+                          />
+                        ))}
+                      </div>
                     </div>
                   )}
 
-                  {!friendLink && friendCount === 0 && (
+                  {/* Search for friends */}
+                  <div className="flex items-center gap-2 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 focus-within:border-orange-500 transition-colors">
+                    <Search className="w-4 h-4 text-slate-500 shrink-0" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search by email, name, or @twitter..."
+                      className="flex-1 bg-transparent text-white text-sm outline-none placeholder:text-slate-500"
+                    />
+                    {searchLoading && <Loader2 className="w-4 h-4 text-slate-500 animate-spin shrink-0" />}
+                  </div>
+
+                  {/* Search results */}
+                  {searchQuery.trim() && searchResults.length > 0 && (
+                    <div className="space-y-0.5">
+                      {searchResults.map((result) => (
+                        <SearchResultRow
+                          key={result.user_id}
+                          result={result}
+                          onSend={handleSendRequest}
+                          onAccept={handleAcceptFromSearch}
+                          sending={sendingTo}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {searchQuery.trim() && !searchLoading && searchResults.length === 0 && (
+                    <p className="text-xs text-slate-500 text-center py-2">
+                      No users found
+                    </p>
+                  )}
+
+                  {/* Outgoing requests (collapsible) */}
+                  {outgoingRequests.length > 0 && (
+                    <div>
+                      <button
+                        onClick={() => setShowOutgoing(!showOutgoing)}
+                        className="text-xs text-slate-500 hover:text-slate-400 transition-colors cursor-pointer"
+                      >
+                        {showOutgoing ? 'Hide' : 'Show'} sent requests ({outgoingRequests.length})
+                      </button>
+                      {showOutgoing && (
+                        <div className="space-y-0.5 mt-1">
+                          {outgoingRequests.map((req) => (
+                            <OutgoingRequestRow
+                              key={req.id}
+                              request={req}
+                              onCancel={() => handleCancelRequest(req.id)}
+                              cancelling={cancellingId === req.id}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {friendCount === 0 && incomingRequests.length === 0 && !searchQuery.trim() && (
                     <p className="text-xs text-slate-500">
-                      Generate a link to connect with friends
+                      Search by email, name, or @handle to find friends
                     </p>
                   )}
                 </div>
