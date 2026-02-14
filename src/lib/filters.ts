@@ -94,14 +94,17 @@ export function applyFilters(
         return false;
       }
 
-      // Time range filter (continuous hours)
+      // Time range filter (half-hour precision)
       if (filters.timeStart !== 0 || filters.timeEnd !== 24) {
         if (event.isAllDay) {
           // all-day events always pass time filter
         } else {
-          const hour = parseStartHour(event.startTime);
-          if (hour !== null && (hour < filters.timeStart || hour >= filters.timeEnd)) {
-            return false;
+          const minutes = parseTimeToMinutes(event.startTime);
+          if (minutes !== null) {
+            const fractionalHour = minutes / 60;
+            if (fractionalHour < filters.timeStart || fractionalHour >= filters.timeEnd) {
+              return false;
+            }
           }
         }
       }
