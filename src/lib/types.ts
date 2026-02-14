@@ -26,8 +26,8 @@ export interface ETHDenverEvent {
 export interface FilterState {
   conference: string;
   selectedDays: string[];
-  timeStart: number;   // 0-24 hour
-  timeEnd: number;     // 0-24 hour
+  timeStart: number;   // 0-24 in 0.5 increments (e.g. 6, 6.5, 7, ...)
+  timeEnd: number;     // 0-24 in 0.5 increments
   vibes: string[];
   itineraryOnly: boolean;
   searchQuery: string;

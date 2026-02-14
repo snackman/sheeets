@@ -7,7 +7,6 @@ import type { FilterState } from '@/lib/types';
 import { EVENT_DATES, VIBE_COLORS } from '@/lib/constants';
 import { TAG_ICONS } from './TagBadge';
 import { SearchBar } from './SearchBar';
-import { DualRangeSlider } from './DualRangeSlider';
 import { trackConferenceSelect, trackTagToggle, trackDayRange, trackTimeRange, trackNowMode, trackClearFilters } from '@/lib/analytics';
 
 interface FilterBarProps {
@@ -33,6 +32,23 @@ function formatDayLabel(isoDate: string): string {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const d = new Date(isoDate + 'T12:00:00');
   return `${days[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()}`;
+}
+
+/** Format a fractional hour (0-24 in 0.5 increments) to "12:00 AM" style */
+function formatTimeLabel(fractionalHour: number): string {
+  const h = Math.floor(fractionalHour) % 24;
+  const m = fractionalHour % 1 === 0.5 ? '30' : '00';
+  const period = h < 12 || h === 24 ? 'AM' : 'PM';
+  const displayH = h === 0 || h === 24 ? 12 : h > 12 ? h - 12 : h;
+  // Special case: value 24 means "12:00 AM" (end of day / midnight)
+  if (fractionalHour === 24) return '12:00 AM';
+  return `${displayH}:${m} ${period}`;
+}
+
+/** Generate time options: 0, 0.5, 1, ... 24 */
+const TIME_OPTIONS: { value: number; label: string }[] = [];
+for (let v = 0; v <= 24; v += 0.5) {
+  TIME_OPTIONS.push({ value: v, label: formatTimeLabel(v) });
 }
 
 export function FilterBar({
@@ -189,66 +205,92 @@ export function FilterBar({
               </div>
             )}
 
-            {/* Day range slider */}
-            <div className={clsx(filters.nowMode && 'opacity-30 pointer-events-none')}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-xs uppercase tracking-wider text-slate-400">
-                  Days
-                </div>
-                <div className="text-sm text-slate-300 font-medium">
-                  {rangeStart === 0 && rangeEnd === maxIdx
-                    ? `${formatDayLabel(EVENT_DATES[0])} — ${formatDayLabel(EVENT_DATES[maxIdx])}`
-                    : rangeStart === rangeEnd
-                    ? formatDayLabel(EVENT_DATES[rangeStart])
-                    : `${formatDayLabel(EVENT_DATES[rangeStart])} — ${formatDayLabel(EVENT_DATES[rangeEnd])}`}
+            {/* Day + Time range selectors — single row */}
+            <div className={clsx('flex gap-4', filters.nowMode && 'opacity-30 pointer-events-none')}>
+              {/* Days */}
+              <div className="flex-1 min-w-0">
+                <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Days</div>
+                <div className="flex items-center gap-1.5">
+                  <div className="relative flex-1 min-w-0">
+                    <select
+                      value={rangeStart}
+                      onChange={(e) => {
+                        const s = Number(e.target.value);
+                        const end = Math.max(s, rangeEnd);
+                        trackDayRange(EVENT_DATES[s], EVENT_DATES[end]);
+                        onSetDayRange(s, end, EVENT_DATES);
+                      }}
+                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
+                    >
+                      {EVENT_DATES.map((date, i) => (
+                        <option key={date} value={i}>{formatDayLabel(date)}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                  </div>
+                  <span className="text-slate-500 text-xs shrink-0">&mdash;</span>
+                  <div className="relative flex-1 min-w-0">
+                    <select
+                      value={rangeEnd}
+                      onChange={(e) => {
+                        const end = Number(e.target.value);
+                        const start = Math.min(rangeStart, end);
+                        trackDayRange(EVENT_DATES[start], EVENT_DATES[end]);
+                        onSetDayRange(start, end, EVENT_DATES);
+                      }}
+                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
+                    >
+                      {EVENT_DATES.map((date, i) => (
+                        <option key={date} value={i}>{formatDayLabel(date)}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                  </div>
                 </div>
               </div>
-              <DualRangeSlider
-                min={0}
-                max={maxIdx}
-                start={rangeStart}
-                end={rangeEnd}
-                onChange={(s, e) => { trackDayRange(EVENT_DATES[s], EVENT_DATES[e]); onSetDayRange(s, e, EVENT_DATES); }}
-                color="orange"
-              />
-            </div>
 
-            {/* Time slider */}
-            {(() => {
-              const formatHour = (h: number) => {
-                const hr = h % 24;
-                if (hr === 0) return '12am';
-                if (hr === 12) return '12pm';
-                return hr < 12 ? `${hr}am` : `${hr - 12}pm`;
-              };
-
-              const tStart = filters.timeStart;
-              const tEnd = filters.timeEnd;
-              const timeLabel = (tStart === 0 && tEnd === 24)
-                ? `${formatHour(0)} — ${formatHour(0)}`
-                : `${formatHour(tStart)} — ${formatHour(tEnd)}`;
-
-              return (
-                <div className={clsx(filters.nowMode && 'opacity-30 pointer-events-none')}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="text-xs uppercase tracking-wider text-slate-400">
-                      Time
-                    </div>
-                    <div className="text-sm text-slate-300 font-medium">
-                      {timeLabel}
-                    </div>
+              {/* Time */}
+              <div className="flex-1 min-w-0">
+                <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Time</div>
+                <div className="flex items-center gap-1.5">
+                  <div className="relative flex-1 min-w-0">
+                    <select
+                      value={filters.timeStart}
+                      onChange={(e) => {
+                        const s = Number(e.target.value);
+                        const end = Math.max(s, filters.timeEnd);
+                        trackTimeRange(s, end);
+                        onSetTimeRange(s, end);
+                      }}
+                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
+                    >
+                      {TIME_OPTIONS.filter((o) => o.value < 24).map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
                   </div>
-                  <DualRangeSlider
-                    min={0}
-                    max={24}
-                    start={tStart}
-                    end={tEnd}
-                    onChange={(s, e) => { trackTimeRange(s, e); onSetTimeRange(s, e); }}
-                    color="blue"
-                  />
+                  <span className="text-slate-500 text-xs shrink-0">&mdash;</span>
+                  <div className="relative flex-1 min-w-0">
+                    <select
+                      value={filters.timeEnd}
+                      onChange={(e) => {
+                        const end = Number(e.target.value);
+                        const start = Math.min(filters.timeStart, end);
+                        trackTimeRange(start, end);
+                        onSetTimeRange(start, end);
+                      }}
+                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
+                    >
+                      {TIME_OPTIONS.filter((o) => o.value > 0).map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                  </div>
                 </div>
-              );
-            })()}
+              </div>
+            </div>
 
             {/* Types (event format) + quick filters */}
             {(availableTypes.length > 0 || true) && (
