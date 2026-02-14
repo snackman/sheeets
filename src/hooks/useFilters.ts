@@ -9,6 +9,7 @@ const defaultFilters: FilterState = {
   timeStart: 0,
   timeEnd: 24,
   vibes: [],
+  selectedFriends: [],
   itineraryOnly: false,
   searchQuery: '',
   nowMode: false,
@@ -48,6 +49,15 @@ export function useFilters() {
     }));
   }, []);
 
+  const toggleFriend = useCallback((friendId: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      selectedFriends: prev.selectedFriends.includes(friendId)
+        ? prev.selectedFriends.filter((f) => f !== friendId)
+        : [...prev.selectedFriends, friendId],
+    }));
+  }, []);
+
   const setTimeRange = useCallback((start: number, end: number) => {
     setFilters((prev) => ({ ...prev, timeStart: start, timeEnd: end }));
   }, []);
@@ -70,6 +80,7 @@ export function useFilters() {
     if (filters.selectedDays.length > 0) count++;
     if (filters.timeStart !== 0 || filters.timeEnd !== 24) count++;
     if (filters.vibes.length > 0) count++;
+    if (filters.selectedFriends.length > 0) count++;
     if (filters.searchQuery) count++;
     if (filters.nowMode) count++;
     return count;
@@ -81,6 +92,7 @@ export function useFilters() {
     setConference,
     setDayRange,
     toggleVibe,
+    toggleFriend,
     setTimeRange,
     toggleBool,
     toggleNowMode,

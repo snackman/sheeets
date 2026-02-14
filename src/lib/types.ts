@@ -29,6 +29,7 @@ export interface FilterState {
   timeStart: number;   // 0-24 in 0.5 increments (e.g. 6, 6.5, 7, ...)
   timeEnd: number;     // 0-24 in 0.5 increments
   vibes: string[];
+  selectedFriends: string[];
   itineraryOnly: boolean;
   searchQuery: string;
   nowMode: boolean;

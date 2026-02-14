@@ -73,3 +73,5 @@ export const trackProfileUpdate = () => track('profile_update');
 export const trackFriendCodeGenerate = () => track('friend_code_generate');
 export const trackFriendCodeCopy = () => track('friend_code_copy');
 export const trackFriendAdded = () => track('friend_added');
+export const trackFriendFilter = (friendName: string, active: boolean) =>
+  track('friend_filter', { friend_name: friendName, active });

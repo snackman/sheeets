@@ -10,6 +10,7 @@ import { TYPE_TAGS } from '@/lib/constants';
 import { useItinerary } from '@/hooks/useItinerary';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFriends } from '@/hooks/useFriends';
+import { useFriendsItineraries } from '@/hooks/useFriendsItineraries';
 import { trackItinerary, trackAuthPrompt } from '@/lib/analytics';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
@@ -31,6 +32,7 @@ export function EventApp() {
     setConference,
     setDayRange,
     toggleVibe,
+    toggleFriend,
     setTimeRange,
     toggleBool,
     toggleNowMode,
@@ -50,6 +52,7 @@ export function EventApp() {
   } = useItinerary();
 
   const { friends, addFriend, removeFriend } = useFriends();
+  const { friendItineraries } = useFriendsItineraries(friends);
 
   // Friends panel
   const [showFriends, setShowFriends] = useState(false);
@@ -180,10 +183,58 @@ export function EventApp() {
     [events, itinerary, filters.conference]
   );
 
+  // Friends filter: only show friends whose events overlap with current conference events
+  const conferenceEventIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const e of events) {
+      if (!filters.conference || e.conference === filters.conference) {
+        ids.add(e.id);
+      }
+    }
+    return ids;
+  }, [events, filters.conference]);
+
+  const friendsForFilter = useMemo(
+    () =>
+      friendItineraries
+        .filter((fi) => {
+          for (const eid of fi.eventIds) {
+            if (conferenceEventIds.has(eid)) return true;
+          }
+          return false;
+        })
+        .map((fi) => ({ userId: fi.userId, displayName: fi.displayName })),
+    [friendItineraries, conferenceEventIds]
+  );
+
+  // Union of event IDs from selected friends only
+  const selectedFriendEventIds = useMemo(() => {
+    if (filters.selectedFriends.length === 0) return undefined;
+    const ids = new Set<string>();
+    for (const fi of friendItineraries) {
+      if (filters.selectedFriends.includes(fi.userId)) {
+        for (const eid of fi.eventIds) {
+          ids.add(eid);
+        }
+      }
+    }
+    return ids;
+  }, [filters.selectedFriends, friendItineraries]);
+
+  // Clear selected friends if they're removed from the friends list
+  useEffect(() => {
+    if (filters.selectedFriends.length === 0) return;
+    const friendIds = new Set(friends.map((f) => f.user_id));
+    const stale = filters.selectedFriends.filter((id) => !friendIds.has(id));
+    if (stale.length > 0) {
+      setFilter('selectedFriends', filters.selectedFriends.filter((id) => friendIds.has(id)));
+    }
+  }, [friends, filters.selectedFriends, setFilter]);
+
   const filteredEvents = useMemo(
-    () => applyFilters(events, filters, itinerary, filters.nowMode ? Date.now() : undefined),
+    () => applyFilters(events, filters, itinerary, filters.nowMode ? Date.now() : undefined, selectedFriendEventIds),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [events, filters, itinerary, nowTick]
+    [events, filters, itinerary, nowTick, selectedFriendEventIds]
   );
 
   if (loading) {
@@ -264,6 +315,9 @@ export function EventApp() {
           availableConferences={availableConferences}
           availableTypes={availableTypes}
           availableVibes={availableVibes}
+          friendsForFilter={friendsForFilter}
+          selectedFriends={filters.selectedFriends}
+          onToggleFriend={toggleFriend}
           searchQuery={filters.searchQuery}
           onSearchChange={(query) => setFilter('searchQuery', query)}
           eventCount={filteredEvents.length}
