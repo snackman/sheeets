@@ -205,90 +205,89 @@ export function FilterBar({
               </div>
             )}
 
-            {/* Day range selectors */}
-            <div className={clsx(filters.nowMode && 'opacity-30 pointer-events-none')}>
-              <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">
-                Days
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <select
-                    value={rangeStart}
-                    onChange={(e) => {
-                      const s = Number(e.target.value);
-                      const end = Math.max(s, rangeEnd);
-                      trackDayRange(EVENT_DATES[s], EVENT_DATES[end]);
-                      onSetDayRange(s, end, EVENT_DATES);
-                    }}
-                    className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-7"
-                  >
-                    {EVENT_DATES.map((date, i) => (
-                      <option key={date} value={i}>{formatDayLabel(date)}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            {/* Day + Time range selectors — single row */}
+            <div className={clsx('flex gap-4', filters.nowMode && 'opacity-30 pointer-events-none')}>
+              {/* Days */}
+              <div className="flex-1 min-w-0">
+                <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Days</div>
+                <div className="flex items-center gap-1.5">
+                  <div className="relative flex-1 min-w-0">
+                    <select
+                      value={rangeStart}
+                      onChange={(e) => {
+                        const s = Number(e.target.value);
+                        const end = Math.max(s, rangeEnd);
+                        trackDayRange(EVENT_DATES[s], EVENT_DATES[end]);
+                        onSetDayRange(s, end, EVENT_DATES);
+                      }}
+                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
+                    >
+                      {EVENT_DATES.map((date, i) => (
+                        <option key={date} value={i}>{formatDayLabel(date)}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                  </div>
+                  <span className="text-slate-500 text-xs shrink-0">&mdash;</span>
+                  <div className="relative flex-1 min-w-0">
+                    <select
+                      value={rangeEnd}
+                      onChange={(e) => {
+                        const end = Number(e.target.value);
+                        const start = Math.min(rangeStart, end);
+                        trackDayRange(EVENT_DATES[start], EVENT_DATES[end]);
+                        onSetDayRange(start, end, EVENT_DATES);
+                      }}
+                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
+                    >
+                      {EVENT_DATES.map((date, i) => (
+                        <option key={date} value={i}>{formatDayLabel(date)}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                  </div>
                 </div>
-                <span className="text-slate-500 text-xs shrink-0">&mdash;</span>
-                <div className="relative flex-1">
-                  <select
-                    value={rangeEnd}
-                    onChange={(e) => {
-                      const end = Number(e.target.value);
-                      const start = Math.min(rangeStart, end);
-                      trackDayRange(EVENT_DATES[start], EVENT_DATES[end]);
-                      onSetDayRange(start, end, EVENT_DATES);
-                    }}
-                    className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-7"
-                  >
-                    {EVENT_DATES.map((date, i) => (
-                      <option key={date} value={i}>{formatDayLabel(date)}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                </div>
               </div>
-            </div>
 
-            {/* Time range selectors */}
-            <div className={clsx(filters.nowMode && 'opacity-30 pointer-events-none')}>
-              <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">
-                Time
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <select
-                    value={filters.timeStart}
-                    onChange={(e) => {
-                      const s = Number(e.target.value);
-                      const end = Math.max(s, filters.timeEnd);
-                      trackTimeRange(s, end);
-                      onSetTimeRange(s, end);
-                    }}
-                    className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-7"
-                  >
-                    {TIME_OPTIONS.filter((o) => o.value < 24).map((o) => (
-                      <option key={o.value} value={o.value}>{o.label}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                </div>
-                <span className="text-slate-500 text-xs shrink-0">&mdash;</span>
-                <div className="relative flex-1">
-                  <select
-                    value={filters.timeEnd}
-                    onChange={(e) => {
-                      const end = Number(e.target.value);
-                      const start = Math.min(filters.timeStart, end);
-                      trackTimeRange(start, end);
-                      onSetTimeRange(start, end);
-                    }}
-                    className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-7"
-                  >
-                    {TIME_OPTIONS.filter((o) => o.value > 0).map((o) => (
-                      <option key={o.value} value={o.value}>{o.label}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              {/* Time */}
+              <div className="flex-1 min-w-0">
+                <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Time</div>
+                <div className="flex items-center gap-1.5">
+                  <div className="relative flex-1 min-w-0">
+                    <select
+                      value={filters.timeStart}
+                      onChange={(e) => {
+                        const s = Number(e.target.value);
+                        const end = Math.max(s, filters.timeEnd);
+                        trackTimeRange(s, end);
+                        onSetTimeRange(s, end);
+                      }}
+                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
+                    >
+                      {TIME_OPTIONS.filter((o) => o.value < 24).map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                  </div>
+                  <span className="text-slate-500 text-xs shrink-0">&mdash;</span>
+                  <div className="relative flex-1 min-w-0">
+                    <select
+                      value={filters.timeEnd}
+                      onChange={(e) => {
+                        const end = Number(e.target.value);
+                        const start = Math.min(filters.timeStart, end);
+                        trackTimeRange(start, end);
+                        onSetTimeRange(start, end);
+                      }}
+                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
+                    >
+                      {TIME_OPTIONS.filter((o) => o.value > 0).map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                  </div>
                 </div>
               </div>
             </div>
