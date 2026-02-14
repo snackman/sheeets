@@ -302,6 +302,7 @@ export function EventApp() {
             onItineraryToggle={handleItineraryToggle}
             isItineraryView={filters.itineraryOnly}
             friendsCountByEvent={friendsCountByEvent}
+            friendsByEvent={friendsByEvent}
           />
         </main>
       ) : viewMode === 'table' ? (
@@ -313,6 +314,7 @@ export function EventApp() {
             onItineraryToggle={handleItineraryToggle}
             onScrolledChange={setTableScrolled}
             friendsCountByEvent={friendsCountByEvent}
+            friendsByEvent={friendsByEvent}
           />
         </main>
       ) : (

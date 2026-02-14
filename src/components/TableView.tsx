@@ -15,6 +15,7 @@ interface TableViewProps {
   onItineraryToggle?: (eventId: string) => void;
   onScrolledChange?: (scrolled: boolean) => void;
   friendsCountByEvent?: Map<string, number>;
+  friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
 }
 
 /** Format a dateISO string like "2026-02-10" into "Mon Feb 10" */
@@ -53,6 +54,7 @@ export function TableView({
   onItineraryToggle,
   onScrolledChange,
   friendsCountByEvent,
+  friendsByEvent,
 }: TableViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
@@ -235,6 +237,7 @@ export function TableView({
           isInItinerary={itinerary?.has(selectedEvent.id) ?? false}
           onItineraryToggle={onItineraryToggle}
           friendsCount={friendsCountByEvent?.get(selectedEvent.id) ?? 0}
+          friendsGoing={friendsByEvent?.get(selectedEvent.id)}
           onClose={() => setSelectedEvent(null)}
         />,
         document.body
@@ -249,12 +252,14 @@ function EventDetailModal({
   isInItinerary,
   onItineraryToggle,
   friendsCount,
+  friendsGoing,
   onClose,
 }: {
   event: ETHDenverEvent;
   isInItinerary: boolean;
   onItineraryToggle?: (eventId: string) => void;
   friendsCount: number;
+  friendsGoing?: { userId: string; displayName: string }[];
   onClose: () => void;
 }) {
   return (
@@ -269,6 +274,7 @@ function EventDetailModal({
             isInItinerary={isInItinerary}
             onItineraryToggle={onItineraryToggle}
             friendsCount={friendsCount}
+            friendsGoing={friendsGoing}
           />
           <button
             onClick={onClose}
@@ -348,10 +354,10 @@ function DateGroup({
                     }
                   >
                     <Star
-                      className={`w-3.5 h-3.5 ${isInItinerary ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600 hover:text-slate-400'}`}
+                      className={`w-4 h-4 ${isInItinerary ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600 hover:text-slate-400'}`}
                     />
                     {fc > 0 && (
-                      <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-blue-500 text-white text-[8px] font-bold px-0.5 pointer-events-none">
+                      <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-orange-500 text-white text-[8px] font-bold px-0.5 pointer-events-none">
                         {fc}
                       </span>
                     )}

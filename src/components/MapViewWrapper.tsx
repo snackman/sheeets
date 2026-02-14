@@ -25,6 +25,7 @@ interface MapViewWrapperProps {
   onItineraryToggle?: (eventId: string) => void;
   isItineraryView?: boolean;
   friendsCountByEvent?: Map<string, number>;
+  friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
 }
 
 export function MapViewWrapper({
@@ -34,6 +35,7 @@ export function MapViewWrapper({
   onItineraryToggle,
   isItineraryView,
   friendsCountByEvent,
+  friendsByEvent,
 }: MapViewWrapperProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -53,6 +55,7 @@ export function MapViewWrapper({
         onItineraryToggle={onItineraryToggle}
         isItineraryView={isItineraryView}
         friendsCountByEvent={friendsCountByEvent}
+        friendsByEvent={friendsByEvent}
       />
 
       {/* No-location drawer */}
@@ -69,6 +72,7 @@ export function MapViewWrapper({
                     isInItinerary={itinerary?.has(event.id) ?? false}
                     onItineraryToggle={onItineraryToggle}
                     friendsCount={friendsCountByEvent?.get(event.id)}
+                    friendsGoing={friendsByEvent?.get(event.id)}
                   />
                 ))}
               </div>

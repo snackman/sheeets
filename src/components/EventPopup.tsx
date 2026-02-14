@@ -1,12 +1,17 @@
 'use client';
 
 import { Popup } from 'react-map-gl/mapbox';
-import { X, Calendar, MapPin } from 'lucide-react';
+import { X, Calendar, MapPin, Users } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
 import { StarButton } from './StarButton';
 import { TagBadge } from './TagBadge';
 import { OGImage } from './OGImage';
+
+interface FriendInfo {
+  userId: string;
+  displayName: string;
+}
 
 interface EventPopupProps {
   event: ETHDenverEvent;
@@ -16,6 +21,7 @@ interface EventPopupProps {
   isInItinerary?: boolean;
   onItineraryToggle?: (eventId: string) => void;
   friendsCount?: number;
+  friendsGoing?: FriendInfo[];
 }
 
 interface MultiEventPopupProps {
@@ -27,6 +33,26 @@ interface MultiEventPopupProps {
   itinerary?: Set<string>;
   onItineraryToggle?: (eventId: string) => void;
   friendsCountByEvent?: Map<string, number>;
+  friendsByEvent?: Map<string, FriendInfo[]>;
+}
+
+function formatFriendsText(friends: FriendInfo[]): string {
+  const names = friends.map((f) => f.displayName.split(' ')[0]);
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} & ${names[1]}`;
+  return `${names[0]}, ${names[1]} +${names.length - 2} more`;
+}
+
+function FriendsRow({ friends }: { friends: FriendInfo[] }) {
+  if (!friends || friends.length === 0) return null;
+  return (
+    <div className="flex items-center gap-1 mt-1.5">
+      <Users className="w-2.5 h-2.5 text-blue-400 shrink-0" />
+      <span className="text-[10px] text-blue-400/80 truncate">
+        {formatFriendsText(friends)}
+      </span>
+    </div>
+  );
 }
 
 function SingleEventContent({
@@ -35,12 +61,14 @@ function SingleEventContent({
   isInItinerary = false,
   onItineraryToggle,
   friendsCount,
+  friendsGoing,
 }: {
   event: ETHDenverEvent;
   onClose: () => void;
   isInItinerary?: boolean;
   onItineraryToggle?: (eventId: string) => void;
   friendsCount?: number;
+  friendsGoing?: FriendInfo[];
 }) {
   const timeDisplay = event.isAllDay
     ? 'All Day'
@@ -121,6 +149,9 @@ function SingleEventContent({
           </div>
         )}
 
+        {/* Friends going */}
+        {friendsGoing && <FriendsRow friends={friendsGoing} />}
+
         {/* Note */}
         {event.note && (
           <p className="text-slate-600 text-xs mt-1 italic line-clamp-2">{event.note}</p>
@@ -138,6 +169,7 @@ export function EventPopup({
   isInItinerary,
   onItineraryToggle,
   friendsCount,
+  friendsGoing,
 }: EventPopupProps) {
   return (
     <Popup
@@ -156,6 +188,7 @@ export function EventPopup({
         isInItinerary={isInItinerary}
         onItineraryToggle={onItineraryToggle}
         friendsCount={friendsCount}
+        friendsGoing={friendsGoing}
       />
     </Popup>
   );
@@ -170,6 +203,7 @@ export function MultiEventPopup({
   itinerary,
   onItineraryToggle,
   friendsCountByEvent,
+  friendsByEvent,
 }: MultiEventPopupProps) {
   return (
     <Popup
@@ -201,6 +235,7 @@ export function MultiEventPopup({
               ? 'All Day'
               : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
             const isInItinerary = itinerary?.has(event.id) ?? false;
+            const eventFriends = friendsByEvent?.get(event.id);
             return (
               <div
                 key={event.id}
@@ -254,6 +289,7 @@ export function MultiEventPopup({
                       ))}
                     </div>
                   )}
+                  {eventFriends && <FriendsRow friends={eventFriends} />}
                 </div>
               </div>
             );

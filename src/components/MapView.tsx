@@ -18,6 +18,7 @@ interface MapViewProps {
   onItineraryToggle?: (eventId: string) => void;
   isItineraryView?: boolean;
   friendsCountByEvent?: Map<string, number>;
+  friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
 }
 
 /**
@@ -35,6 +36,7 @@ export function MapView({
   onItineraryToggle,
   isItineraryView = false,
   friendsCountByEvent,
+  friendsByEvent,
 }: MapViewProps) {
   const mapRef = useRef<MapRef>(null);
   const hasFittedRef = useRef(false);
@@ -440,6 +442,7 @@ export function MapView({
           isInItinerary={itinerary?.has(popupEvent.id)}
           onItineraryToggle={onItineraryToggle}
           friendsCount={friendsCountByEvent?.get(popupEvent.id)}
+          friendsGoing={friendsByEvent?.get(popupEvent.id)}
         />
       )}
 
@@ -453,6 +456,7 @@ export function MapView({
           itinerary={itinerary}
           onItineraryToggle={onItineraryToggle}
           friendsCountByEvent={friendsCountByEvent}
+          friendsByEvent={friendsByEvent}
         />
       )}
     </MapGL>
