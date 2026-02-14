@@ -15,6 +15,7 @@ interface EventPopupProps {
   onClose: () => void;
   isInItinerary?: boolean;
   onItineraryToggle?: (eventId: string) => void;
+  friendsCount?: number;
 }
 
 interface MultiEventPopupProps {
@@ -25,6 +26,7 @@ interface MultiEventPopupProps {
   onSelectEvent?: (event: ETHDenverEvent) => void;
   itinerary?: Set<string>;
   onItineraryToggle?: (eventId: string) => void;
+  friendsCountByEvent?: Map<string, number>;
 }
 
 function SingleEventContent({
@@ -32,11 +34,13 @@ function SingleEventContent({
   onClose,
   isInItinerary = false,
   onItineraryToggle,
+  friendsCount,
 }: {
   event: ETHDenverEvent;
   onClose: () => void;
   isInItinerary?: boolean;
   onItineraryToggle?: (eventId: string) => void;
+  friendsCount?: number;
 }) {
   const timeDisplay = event.isAllDay
     ? 'All Day'
@@ -57,6 +61,7 @@ function SingleEventContent({
               isStarred={isInItinerary}
               onToggle={onItineraryToggle}
               size="sm"
+              friendsCount={friendsCount}
             />
           )}
           <div className="flex-1 min-w-0">
@@ -132,6 +137,7 @@ export function EventPopup({
   onClose,
   isInItinerary,
   onItineraryToggle,
+  friendsCount,
 }: EventPopupProps) {
   return (
     <Popup
@@ -149,6 +155,7 @@ export function EventPopup({
         onClose={onClose}
         isInItinerary={isInItinerary}
         onItineraryToggle={onItineraryToggle}
+        friendsCount={friendsCount}
       />
     </Popup>
   );
@@ -162,6 +169,7 @@ export function MultiEventPopup({
   onSelectEvent,
   itinerary,
   onItineraryToggle,
+  friendsCountByEvent,
 }: MultiEventPopupProps) {
   return (
     <Popup
@@ -211,6 +219,7 @@ export function MultiEventPopup({
                         isStarred={isInItinerary}
                         onToggle={onItineraryToggle}
                         size="sm"
+                        friendsCount={friendsCountByEvent?.get(event.id)}
                       />
                     )}
                     <div className="flex-1 min-w-0">

@@ -231,6 +231,17 @@ export function EventApp() {
     }
   }, [friends, filters.selectedFriends, setFilter]);
 
+  // Count how many friends have each event on their itinerary
+  const friendsCountByEvent = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const fi of friendItineraries) {
+      for (const eid of fi.eventIds) {
+        counts.set(eid, (counts.get(eid) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [friendItineraries]);
+
   const filteredEvents = useMemo(
     () => applyFilters(events, filters, itinerary, filters.nowMode ? Date.now() : undefined, selectedFriendEventIds),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -332,6 +343,7 @@ export function EventApp() {
             itinerary={itinerary}
             onItineraryToggle={handleItineraryToggle}
             isItineraryView={filters.itineraryOnly}
+            friendsCountByEvent={friendsCountByEvent}
           />
         </main>
       ) : viewMode === 'table' ? (
@@ -342,6 +354,7 @@ export function EventApp() {
             itinerary={itinerary}
             onItineraryToggle={handleItineraryToggle}
             onScrolledChange={setTableScrolled}
+            friendsCountByEvent={friendsCountByEvent}
           />
         </main>
       ) : (
@@ -351,6 +364,7 @@ export function EventApp() {
             totalCount={conferenceEventCount}
             itinerary={itinerary}
             onItineraryToggle={handleItineraryToggle}
+            friendsCountByEvent={friendsCountByEvent}
           />
         </main>
       )}

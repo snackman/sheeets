@@ -17,6 +17,7 @@ interface MapViewProps {
   itinerary?: Set<string>;
   onItineraryToggle?: (eventId: string) => void;
   isItineraryView?: boolean;
+  friendsCountByEvent?: Map<string, number>;
 }
 
 /**
@@ -33,6 +34,7 @@ export function MapView({
   itinerary,
   onItineraryToggle,
   isItineraryView = false,
+  friendsCountByEvent,
 }: MapViewProps) {
   const mapRef = useRef<MapRef>(null);
   const hasFittedRef = useRef(false);
@@ -437,6 +439,7 @@ export function MapView({
           onClose={handlePopupClose}
           isInItinerary={itinerary?.has(popupEvent.id)}
           onItineraryToggle={onItineraryToggle}
+          friendsCount={friendsCountByEvent?.get(popupEvent.id)}
         />
       )}
 
@@ -449,6 +452,7 @@ export function MapView({
           onSelectEvent={handleMultiEventSelect}
           itinerary={itinerary}
           onItineraryToggle={onItineraryToggle}
+          friendsCountByEvent={friendsCountByEvent}
         />
       )}
     </MapGL>
