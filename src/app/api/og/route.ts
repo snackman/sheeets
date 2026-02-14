@@ -3,9 +3,16 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-function getSupabase() {
+/** Read-only client using anon key (respects RLS) */
+function getSupabaseReader() {
   return createClient(supabaseUrl, supabaseAnonKey);
+}
+
+/** Write client using service role key (bypasses RLS) */
+function getSupabaseWriter() {
+  return createClient(supabaseUrl, supabaseServiceKey);
 }
 
 /** In-memory fallback cache for when Supabase is unavailable */
@@ -121,7 +128,7 @@ export async function GET(request: NextRequest) {
   // 1. Check Supabase cache (if eventId provided)
   if (eventId && supabaseUrl && supabaseAnonKey) {
     try {
-      const supabase = getSupabase();
+      const supabase = getSupabaseReader();
       const { data } = await supabase
         .from('event_images')
         .select('image_url')
@@ -149,9 +156,9 @@ export async function GET(request: NextRequest) {
   const imageUrl = await resolveImageUrl(url);
 
   // 4. Store in Supabase cache (if eventId provided)
-  if (eventId && supabaseUrl && supabaseAnonKey) {
+  if (eventId && supabaseUrl && supabaseServiceKey) {
     try {
-      const supabase = getSupabase();
+      const supabase = getSupabaseWriter();
       await supabase
         .from('event_images')
         .upsert(
@@ -194,7 +201,7 @@ export async function POST(request: NextRequest) {
 
     if (supabaseUrl && supabaseAnonKey) {
       try {
-        const supabase = getSupabase();
+        const supabase = getSupabaseReader();
         const { data } = await supabase
           .from('event_images')
           .select('event_id, image_url')
@@ -235,9 +242,9 @@ export async function POST(request: NextRequest) {
       }
 
       // Batch upsert to Supabase
-      if (supabaseUrl && supabaseAnonKey) {
+      if (supabaseUrl && supabaseServiceKey) {
         try {
-          const supabase = getSupabase();
+          const supabase = getSupabaseWriter();
           await supabase.from('event_images').upsert(
             resolved.map((r) => ({
               event_id: r.eventId,
