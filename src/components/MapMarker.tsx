@@ -22,13 +22,13 @@ interface MapMarkerProps {
   showLeaderLine?: boolean;
 }
 
-/** Get pin color based on start hour: yellow (morning), orange (afternoon), purple (evening) */
+/** Get pin color based on start hour: white (morning/afternoon), transparent white (evening) */
 function getPinColor(startMinutes: number | null | undefined): string {
-  if (startMinutes == null) return '#F97316'; // default orange
+  if (startMinutes == null) return '#FFFFFF'; // default white
   const hour = startMinutes / 60;
-  if (hour < 12) return '#FBBF24'; // yellow — morning
-  if (hour < 18) return '#F97316'; // orange — afternoon
-  return '#A855F7'; // purple — evening
+  if (hour < 12) return '#FFFFFF'; // white — morning
+  if (hour < 18) return '#FFFFFF'; // white — afternoon
+  return 'rgba(255,255,255,0.4)'; // transparent white — evening
 }
 
 /** SVG clock-face pin with a black wedge representing the event time */
