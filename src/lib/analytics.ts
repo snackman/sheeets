@@ -75,3 +75,9 @@ export const trackFriendCodeCopy = () => track('friend_code_copy');
 export const trackFriendAdded = () => track('friend_added');
 export const trackFriendFilter = (friendName: string, active: boolean) =>
   track('friend_filter', { friend_name: friendName, active });
+
+// Friend Requests
+export const trackFriendSearch = (searchType: string) => track('friend_search', { search_type: searchType });
+export const trackFriendRequestSent = () => track('friend_request_sent');
+export const trackFriendRequestAccepted = () => track('friend_request_accepted');
+export const trackFriendRequestRejected = () => track('friend_request_rejected');
