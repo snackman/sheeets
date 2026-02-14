@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Mail, LogOut, User, MapPin, Check, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAuthSuccess, trackSignOut } from '@/lib/analytics';
@@ -290,7 +291,7 @@ export function UserMenu({ events, itinerary }: UserMenuProps) {
         <User className="w-4 h-4" />
       </button>
 
-      {open && (
+      {open && createPortal(
           <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-4" onClick={() => {
             setOpen(false);
             setCheckResult(null);
@@ -363,7 +364,8 @@ export function UserMenu({ events, itinerary }: UserMenuProps) {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
       )}
     </>
   );
