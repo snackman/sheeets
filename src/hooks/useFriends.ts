@@ -163,11 +163,26 @@ export function useFriends() {
     [user, refreshFriends]
   );
 
+  const removeFriend = useCallback(async (targetUserId: string) => {
+    if (!user) return;
+    const userA = user.id < targetUserId ? user.id : targetUserId;
+    const userB = user.id < targetUserId ? targetUserId : user.id;
+
+    await supabase
+      .from('friendships')
+      .delete()
+      .eq('user_a', userA)
+      .eq('user_b', userB);
+
+    await refreshFriends();
+  }, [user, refreshFriends]);
+
   return {
     friends,
     friendCount: friends.length,
     loading,
     generateCode,
     addFriend,
+    removeFriend,
   };
 }

@@ -18,6 +18,7 @@ import { TableView } from './TableView';
 import { MapViewWrapper } from './MapViewWrapper';
 import { Loading } from './Loading';
 import { AuthModal } from './AuthModal';
+import { FriendsPanel } from './FriendsPanel';
 import { SponsorsTicker } from './SponsorsTicker';
 
 const PENDING_FRIEND_KEY = 'sheeets-pending-friend-code';
@@ -48,7 +49,10 @@ export function EventApp() {
     ready: itineraryReady,
   } = useItinerary();
 
-  const { addFriend } = useFriends();
+  const { friends, addFriend, removeFriend } = useFriends();
+
+  // Friends panel
+  const [showFriends, setShowFriends] = useState(false);
 
   // Auth-gated starring
   const [showAuthForStar, setShowAuthForStar] = useState(false);
@@ -193,6 +197,7 @@ export function EventApp() {
           isItineraryActive={filters.itineraryOnly}
           events={events}
           itinerary={itinerary}
+          onOpenFriends={() => setShowFriends(true)}
         />
         <Loading />
       </div>
@@ -210,6 +215,7 @@ export function EventApp() {
           isItineraryActive={filters.itineraryOnly}
           events={events}
           itinerary={itinerary}
+          onOpenFriends={() => setShowFriends(true)}
         />
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-4">
           <div className="text-red-400 text-lg font-medium">Failed to load events</div>
@@ -235,6 +241,7 @@ export function EventApp() {
         isItineraryActive={filters.itineraryOnly}
         events={events}
         itinerary={itinerary}
+        onOpenFriends={() => setShowFriends(true)}
       />
 
       <SponsorsTicker />
@@ -296,6 +303,12 @@ export function EventApp() {
 
       <AuthModal isOpen={showAuthForStar} onClose={() => { pendingStarRef.current = null; setShowAuthForStar(false); }} />
       <AuthModal isOpen={showAuthForFriend} onClose={() => setShowAuthForFriend(false)} />
+      <FriendsPanel
+        isOpen={showFriends}
+        onClose={() => setShowFriends(false)}
+        friends={friends}
+        onRemoveFriend={removeFriend}
+      />
     </div>
   );
 }
