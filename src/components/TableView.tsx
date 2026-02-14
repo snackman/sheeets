@@ -1,10 +1,12 @@
 'use client';
 
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
-import { AlertTriangle, Calendar, Star } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { AlertTriangle, Calendar, Star, X } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
 import { TagBadge } from './TagBadge';
+import { EventCard } from './EventCard';
 
 interface TableViewProps {
   events: ETHDenverEvent[];
@@ -56,8 +58,19 @@ export function TableView({
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
   const [currentDateLabel, setCurrentDateLabel] = useState<string>('Time');
   const lastScrolledRef = useRef(false);
+  const [selectedEvent, setSelectedEvent] = useState<ETHDenverEvent | null>(null);
 
   const groups = useMemo(() => groupByDate(events), [events]);
+
+  // Close modal on Escape key
+  useEffect(() => {
+    if (!selectedEvent) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedEvent(null);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedEvent]);
 
   // Reset to "Time" when groups change (e.g. filter change)
   useEffect(() => {
@@ -205,6 +218,7 @@ export function TableView({
                 onItineraryToggle={onItineraryToggle}
                 setSeparatorRef={setSeparatorRef}
                 friendsCountByEvent={friendsCountByEvent}
+                onSelectEvent={setSelectedEvent}
               />
             ))}
           </tbody>
@@ -215,7 +229,57 @@ export function TableView({
           No events match your filters.
         </div>
       )}
+      {selectedEvent && createPortal(
+        <EventDetailModal
+          event={selectedEvent}
+          isInItinerary={itinerary?.has(selectedEvent.id) ?? false}
+          onItineraryToggle={onItineraryToggle}
+          friendsCount={friendsCountByEvent?.get(selectedEvent.id) ?? 0}
+          onClose={() => setSelectedEvent(null)}
+        />,
+        document.body
+      )}
     </div>
+  );
+}
+
+/** Modal overlay showing full EventCard for a selected table row */
+function EventDetailModal({
+  event,
+  isInItinerary,
+  onItineraryToggle,
+  friendsCount,
+  onClose,
+}: {
+  event: ETHDenverEvent;
+  isInItinerary: boolean;
+  onItineraryToggle?: (eventId: string) => void;
+  friendsCount: number;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 z-[50] bg-black/50" onClick={onClose} />
+      {/* Modal container */}
+      <div className="fixed inset-0 z-[55] flex items-center justify-center p-4 pointer-events-none">
+        <div className="relative w-full max-w-lg pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+          <EventCard
+            event={event}
+            isInItinerary={isInItinerary}
+            onItineraryToggle={onItineraryToggle}
+            friendsCount={friendsCount}
+          />
+          <button
+            onClick={onClose}
+            className="absolute top-2 right-2 p-1.5 rounded-full bg-slate-700/80 hover:bg-slate-600 text-slate-300 hover:text-white transition-colors cursor-pointer z-10"
+            aria-label="Close"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -226,12 +290,14 @@ function DateGroup({
   onItineraryToggle,
   setSeparatorRef,
   friendsCountByEvent,
+  onSelectEvent,
 }: {
   group: { dateISO: string; label: string; events: ETHDenverEvent[] };
   itinerary?: Set<string>;
   onItineraryToggle?: (eventId: string) => void;
   setSeparatorRef: (dateISO: string, el: HTMLTableRowElement | null) => void;
   friendsCountByEvent?: Map<string, number>;
+  onSelectEvent: (event: ETHDenverEvent) => void;
 }) {
   return (
     <>
@@ -257,8 +323,13 @@ function DateGroup({
         return (
           <tr
             key={event.id}
-            className={`hover:bg-slate-800/70 transition-colors ${event.isDuplicate ? 'bg-red-950/30' : 'bg-slate-900'}`}
+            className={`hover:bg-slate-800/70 transition-colors cursor-pointer ${event.isDuplicate ? 'bg-red-950/30' : 'bg-slate-900'}`}
             title={event.isDuplicate ? 'Possible duplicate — same name, date, and time as another event' : undefined}
+            onClick={(e) => {
+              const target = e.target as HTMLElement;
+              if (target.closest('a, button')) return;
+              onSelectEvent(event);
+            }}
           >
             {/* Star (toggles itinerary) */}
             <td className="px-2 py-2">
