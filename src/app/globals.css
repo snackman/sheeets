@@ -111,10 +111,16 @@ input, select, textarea {
 
 /* Sponsors ticker horizontal scroll */
 .sponsors-scroll {
-  animation: sponsors-scroll-left 20s linear infinite;
+  animation: sponsors-scroll-left 40s linear infinite;
 }
 
 @keyframes sponsors-scroll-left {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+}
+
+/* Shrink Mapbox logo */
+.mapboxgl-ctrl-logo {
+  transform: scale(0.65);
+  transform-origin: bottom left;
 }

@@ -189,18 +189,6 @@ export function EventCard({
             className="flex items-center gap-2 mt-2 px-2 py-1.5 -mx-1 rounded-lg hover:bg-slate-700/50 transition-colors cursor-pointer group/friends w-fit"
           >
             <Users className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-            <div className="flex items-center -space-x-1">
-              {friendsGoing.slice(0, 3).map((friend) => (
-                <div
-                  key={friend.userId}
-                  className="w-5 h-5 rounded-full bg-blue-500/20 border border-slate-800 flex items-center justify-center"
-                >
-                  <span className="text-[10px] font-medium text-blue-400">
-                    {friend.displayName[0]?.toUpperCase() ?? '?'}
-                  </span>
-                </div>
-              ))}
-            </div>
             <span className="text-xs text-blue-400 group-hover/friends:text-blue-300 transition-colors">
               {formatFriendsText(friendsGoing)}
             </span>

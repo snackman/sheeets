@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 import { X, SlidersHorizontal, ChevronDown, Zap, Users } from 'lucide-react';
 import type { FilterState } from '@/lib/types';
@@ -29,7 +29,7 @@ interface FilterBarProps {
   eventCount: number;
 }
 
-/** Format an ISO date string to "Mon Feb 10" style label */
+/** Format an ISO date string to "Mon Feb 10" style label (desktop) */
 function formatDayLabel(isoDate: string): string {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -37,21 +37,30 @@ function formatDayLabel(isoDate: string): string {
   return `${days[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()}`;
 }
 
+/** Format an ISO date string to "Mo 2/17" style label (mobile) */
+function formatDayLabelShort(isoDate: string): string {
+  const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+  const d = new Date(isoDate + 'T12:00:00');
+  return `${days[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}`;
+}
+
 /** Format a fractional hour (0-24 in 0.5 increments) to "12:00 AM" style */
-function formatTimeLabel(fractionalHour: number): string {
+function formatTimeLabel(fractionalHour: number, short = false): string {
   const h = Math.floor(fractionalHour) % 24;
   const m = fractionalHour % 1 === 0.5 ? '30' : '00';
-  const period = h < 12 || h === 24 ? 'AM' : 'PM';
+  const period = h < 12 || h === 24 ? (short ? 'a' : 'AM') : (short ? 'p' : 'PM');
   const displayH = h === 0 || h === 24 ? 12 : h > 12 ? h - 12 : h;
-  // Special case: value 24 means "12:00 AM" (end of day / midnight)
-  if (fractionalHour === 24) return '12:00 AM';
-  return `${displayH}:${m} ${period}`;
+  if (fractionalHour === 24) return short ? '12:00a' : '12:00 AM';
+  return short ? `${displayH}:${m}${period}` : `${displayH}:${m} ${period}`;
 }
 
 /** Generate time options: 0, 0.5, 1, ... 24 */
-const TIME_OPTIONS: { value: number; label: string }[] = [];
-for (let v = 0; v <= 24; v += 0.5) {
-  TIME_OPTIONS.push({ value: v, label: formatTimeLabel(v) });
+function buildTimeOptions(short: boolean) {
+  const opts: { value: number; label: string }[] = [];
+  for (let v = 0; v <= 24; v += 0.5) {
+    opts.push({ value: v, label: formatTimeLabel(v, short) });
+  }
+  return opts;
 }
 
 export function FilterBar({
@@ -77,6 +86,17 @@ export function FilterBar({
   const [confOpen, setConfOpen] = useState(false);
   const confBtnRef = useRef<HTMLButtonElement | null>(null);
   const maxIdx = EVENT_DATES.length - 1;
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  const timeOptions = useMemo(() => buildTimeOptions(isMobile), [isMobile]);
+  const dayLabel = isMobile ? formatDayLabelShort : formatDayLabel;
 
   const rangeStart = useMemo(() => {
     if (filters.selectedDays.length === 0) return 0;
@@ -226,10 +246,10 @@ export function FilterBar({
                         trackDayRange(EVENT_DATES[s], EVENT_DATES[end]);
                         onSetDayRange(s, end, EVENT_DATES);
                       }}
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
+                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-[10px] sm:text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
                     >
                       {EVENT_DATES.map((date, i) => (
-                        <option key={date} value={i}>{formatDayLabel(date)}</option>
+                        <option key={date} value={i}>{dayLabel(date)}</option>
                       ))}
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
@@ -244,10 +264,10 @@ export function FilterBar({
                         trackDayRange(EVENT_DATES[start], EVENT_DATES[end]);
                         onSetDayRange(start, end, EVENT_DATES);
                       }}
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
+                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-[10px] sm:text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
                     >
                       {EVENT_DATES.map((date, i) => (
-                        <option key={date} value={i}>{formatDayLabel(date)}</option>
+                        <option key={date} value={i}>{dayLabel(date)}</option>
                       ))}
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
@@ -268,9 +288,9 @@ export function FilterBar({
                         trackTimeRange(s, end);
                         onSetTimeRange(s, end);
                       }}
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
+                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-[10px] sm:text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
                     >
-                      {TIME_OPTIONS.filter((o) => o.value < 24).map((o) => (
+                      {timeOptions.filter((o) => o.value < 24).map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
                     </select>
@@ -286,9 +306,9 @@ export function FilterBar({
                         trackTimeRange(start, end);
                         onSetTimeRange(start, end);
                       }}
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
+                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-[10px] sm:text-xs px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer pr-6"
                     >
-                      {TIME_OPTIONS.filter((o) => o.value > 0).map((o) => (
+                      {timeOptions.filter((o) => o.value > 0).map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
                     </select>

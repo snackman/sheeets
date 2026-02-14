@@ -73,7 +73,7 @@ export function useFriendsItineraries(friends: Friend[]) {
       return {
         userId: ri.userId,
         displayName:
-          friend?.display_name || friend?.email || ri.userId.slice(0, 8),
+          friend?.display_name || (friend?.x_handle ? `@${friend.x_handle}` : null) || friend?.email || ri.userId.slice(0, 8),
         eventIds: new Set(ri.eventIds),
       };
     });
