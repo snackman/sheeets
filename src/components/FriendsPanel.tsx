@@ -1,6 +1,7 @@
 'use client';
 
-import { X, Trash2, ExternalLink, Users } from 'lucide-react';
+import { useState } from 'react';
+import { X, Trash2, ExternalLink, Users, ChevronRight, Mail } from 'lucide-react';
 import type { Friend } from '@/lib/types';
 
 interface FriendsPanelProps {
@@ -8,6 +9,97 @@ interface FriendsPanelProps {
   onClose: () => void;
   friends: Friend[];
   onRemoveFriend: (userId: string) => void;
+}
+
+function FriendCard({
+  friend,
+  onRemove,
+}: {
+  friend: Friend;
+  onRemove: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const displayName = friend.display_name || friend.email || 'Anonymous';
+  const hasSocials = friend.x_handle || friend.farcaster_username;
+
+  return (
+    <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+      {/* Tappable header */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-3 p-3 text-left cursor-pointer hover:bg-slate-750 transition-colors"
+      >
+        {/* Avatar circle with initial */}
+        <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
+          <span className="text-sm font-medium text-slate-300">
+            {(friend.display_name || friend.email || '?')[0].toUpperCase()}
+          </span>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-white truncate">{displayName}</p>
+          {friend.display_name && friend.email && (
+            <p className="text-xs text-slate-500 truncate">{friend.email}</p>
+          )}
+        </div>
+
+        <ChevronRight
+          className={`w-4 h-4 text-slate-500 shrink-0 transition-transform ${expanded ? 'rotate-90' : ''}`}
+        />
+      </button>
+
+      {/* Expanded profile */}
+      {expanded && (
+        <div className="px-3 pb-3 pt-1 border-t border-slate-700/50 space-y-2">
+          {friend.email && (
+            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+              <Mail className="w-3 h-3 shrink-0" />
+              <span className="truncate">{friend.email}</span>
+            </div>
+          )}
+
+          {friend.x_handle && (
+            <a
+              href={`https://twitter.com/${friend.x_handle}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              <span>X: @{friend.x_handle}</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+
+          {friend.farcaster_username && (
+            <a
+              href={`https://warpcast.com/${friend.farcaster_username}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              <span>Farcaster: @{friend.farcaster_username}</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+
+          {!friend.email && !hasSocials && (
+            <p className="text-xs text-slate-500">No profile info yet</p>
+          )}
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-red-400 transition-colors cursor-pointer mt-1"
+          >
+            <Trash2 className="w-3 h-3" />
+            Remove friend
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function FriendsPanel({
@@ -52,12 +144,9 @@ export function FriendsPanel({
         {/* Content */}
         <div className="overflow-y-auto h-[calc(100%-57px)] px-4 pb-4">
           {friends.length === 0 ? (
-            /* Empty state */
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Users className="w-12 h-12 text-slate-600 mb-4" />
-              <p className="text-slate-400 font-medium mb-2">
-                No friends yet
-              </p>
+              <p className="text-slate-400 font-medium mb-2">No friends yet</p>
               <p className="text-slate-500 text-sm max-w-xs">
                 Share a friend link from your profile to connect!
               </p>
@@ -65,51 +154,11 @@ export function FriendsPanel({
           ) : (
             <div className="space-y-2 mt-3">
               {friends.map((friend) => (
-                <div
+                <FriendCard
                   key={friend.user_id}
-                  className="bg-slate-800 rounded-lg p-3 border border-slate-700"
-                >
-                  {/* Top row: name + remove */}
-                  <div className="flex items-start gap-2">
-                    <h4 className="flex-1 text-sm font-semibold text-white leading-tight min-w-0 truncate">
-                      {friend.display_name || 'Anonymous'}
-                    </h4>
-                    <button
-                      onClick={() => onRemoveFriend(friend.user_id)}
-                      className="shrink-0 p-1 text-slate-500 hover:text-red-400 active:text-red-400 transition-colors cursor-pointer"
-                      aria-label="Remove friend"
-                      title="Remove friend"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  {/* Social handles */}
-                  <div className="flex flex-col gap-1 mt-1.5">
-                    {friend.x_handle && (
-                      <a
-                        href={`https://twitter.com/${friend.x_handle}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-slate-400 hover:text-slate-200 transition-colors text-xs"
-                      >
-                        <span>@{friend.x_handle}</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
-                    {friend.farcaster_username && (
-                      <a
-                        href={`https://warpcast.com/${friend.farcaster_username}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-slate-400 hover:text-slate-200 transition-colors text-xs"
-                      >
-                        <span>@{friend.farcaster_username}</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
-                  </div>
-                </div>
+                  friend={friend}
+                  onRemove={() => onRemoveFriend(friend.user_id)}
+                />
               ))}
             </div>
           )}

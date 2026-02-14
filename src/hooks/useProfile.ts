@@ -29,7 +29,7 @@ export function useProfile() {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('user_id, display_name, x_handle, farcaster_username')
+          .select('user_id, email, display_name, x_handle, farcaster_username')
           .eq('user_id', user!.id)
           .maybeSingle();
 
@@ -45,6 +45,7 @@ export function useProfile() {
           // Lazy-create a blank profile row
           const newProfile: UserProfile = {
             user_id: user!.id,
+            email: user!.email ?? null,
             display_name: null,
             x_handle: null,
             farcaster_username: null,
@@ -58,7 +59,7 @@ export function useProfile() {
             // Could be a race condition — try fetching again
             const { data: retryData } = await supabase
               .from('profiles')
-              .select('user_id, display_name, x_handle, farcaster_username')
+              .select('user_id, email, display_name, x_handle, farcaster_username')
               .eq('user_id', user!.id)
               .maybeSingle();
 
