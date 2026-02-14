@@ -242,6 +242,18 @@ export function EventApp() {
     return counts;
   }, [friendItineraries]);
 
+  // Inverted index: eventId -> list of friends going
+  const friendsByEvent = useMemo(() => {
+    const map = new Map<string, { userId: string; displayName: string }[]>();
+    for (const fi of friendItineraries) {
+      for (const eid of fi.eventIds) {
+        if (!map.has(eid)) map.set(eid, []);
+        map.get(eid)!.push({ userId: fi.userId, displayName: fi.displayName });
+      }
+    }
+    return map;
+  }, [friendItineraries]);
+
   const filteredEvents = useMemo(
     () => applyFilters(events, filters, itinerary, filters.nowMode ? Date.now() : undefined, selectedFriendEventIds),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -365,6 +377,7 @@ export function EventApp() {
             itinerary={itinerary}
             onItineraryToggle={handleItineraryToggle}
             friendsCountByEvent={friendsCountByEvent}
+            friendsByEvent={friendsByEvent}
           />
         </main>
       )}

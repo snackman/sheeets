@@ -11,6 +11,7 @@ interface ListViewProps {
   itinerary?: Set<string>;
   onItineraryToggle?: (eventId: string) => void;
   friendsCountByEvent?: Map<string, number>;
+  friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
 }
 
 interface DateGroup {
@@ -48,6 +49,7 @@ export function ListView({
   itinerary,
   onItineraryToggle,
   friendsCountByEvent,
+  friendsByEvent,
 }: ListViewProps) {
   const dateGroups: DateGroup[] = useMemo(() => {
     const groupMap = new Map<string, ETHDenverEvent[]>();
@@ -105,6 +107,7 @@ export function ListView({
                 isInItinerary={itinerary?.has(event.id)}
                 onItineraryToggle={onItineraryToggle}
                 friendsCount={friendsCountByEvent?.get(event.id)}
+                friendsGoing={friendsByEvent?.get(event.id)}
               />
             ))}
           </div>
