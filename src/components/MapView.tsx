@@ -5,6 +5,7 @@ import MapGL, { NavigationControl, Marker } from 'react-map-gl/mapbox';
 import type { MapRef } from 'react-map-gl/mapbox';
 import { LocateFixed } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
+import type { RsvpStatus } from '@/hooks/useRsvp';
 import { DENVER_CENTER } from '@/lib/constants';
 import { parseTimeToMinutes } from '@/lib/filters';
 import { trackLocateMe } from '@/lib/analytics';
@@ -19,6 +20,8 @@ interface MapViewProps {
   isItineraryView?: boolean;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  getRsvpState?: (eventId: string) => { status: RsvpStatus };
+  onRsvp?: (eventId: string, eventUrl: string) => void;
 }
 
 /**
@@ -37,6 +40,8 @@ export function MapView({
   isItineraryView = false,
   friendsCountByEvent,
   friendsByEvent,
+  getRsvpState,
+  onRsvp,
 }: MapViewProps) {
   const mapRef = useRef<MapRef>(null);
   const hasFittedRef = useRef(false);
@@ -443,6 +448,8 @@ export function MapView({
           onItineraryToggle={onItineraryToggle}
           friendsCount={friendsCountByEvent?.get(popupEvent.id)}
           friendsGoing={friendsByEvent?.get(popupEvent.id)}
+          rsvpStatus={getRsvpState?.(popupEvent.id)?.status}
+          onRsvp={onRsvp}
         />
       )}
 
@@ -457,6 +464,8 @@ export function MapView({
           onItineraryToggle={onItineraryToggle}
           friendsCountByEvent={friendsCountByEvent}
           friendsByEvent={friendsByEvent}
+          getRsvpState={getRsvpState}
+          onRsvp={onRsvp}
         />
       )}
     </MapGL>

@@ -10,6 +10,7 @@ import { useItinerary } from '@/hooks/useItinerary';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFriends } from '@/hooks/useFriends';
 import { useFriendsItineraries } from '@/hooks/useFriendsItineraries';
+import { useRsvp } from '@/hooks/useRsvp';
 import { trackItinerary, trackAuthPrompt } from '@/lib/analytics';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
@@ -20,6 +21,7 @@ import { Loading } from './Loading';
 import { AuthModal } from './AuthModal';
 import { FriendsPanel } from './FriendsPanel';
 import { SponsorsTicker } from './SponsorsTicker';
+import { LumaEmbedOverlay } from './LumaEmbedOverlay';
 
 export function EventApp() {
   const { events, loading, error } = useEvents();
@@ -49,6 +51,36 @@ export function EventApp() {
 
   const { friends, removeFriend } = useFriends();
   const { friendItineraries } = useFriendsItineraries(friends);
+
+  // RSVP
+  const { getState: getRsvpState, rsvp: handleRsvp, embedEvent, closeEmbed, markEmbedRsvp } = useRsvp();
+
+  // Auth-gated RSVP
+  const [showAuthForRsvp, setShowAuthForRsvp] = useState(false);
+  const pendingRsvpRef = useRef<{ eventId: string; eventUrl: string } | null>(null);
+
+  const handleRsvpClick = useCallback(
+    (eventId: string, eventUrl: string) => {
+      if (user) {
+        handleRsvp(eventId, eventUrl);
+      } else {
+        trackAuthPrompt('rsvp');
+        pendingRsvpRef.current = { eventId, eventUrl };
+        setShowAuthForRsvp(true);
+      }
+    },
+    [user, handleRsvp]
+  );
+
+  // Complete pending RSVP after successful login
+  useEffect(() => {
+    if (user && pendingRsvpRef.current) {
+      const { eventId, eventUrl } = pendingRsvpRef.current;
+      pendingRsvpRef.current = null;
+      setShowAuthForRsvp(false);
+      handleRsvp(eventId, eventUrl);
+    }
+  }, [user, handleRsvp]);
 
   // Friends panel
   const [showFriends, setShowFriends] = useState(false);
@@ -303,6 +335,8 @@ export function EventApp() {
             isItineraryView={filters.itineraryOnly}
             friendsCountByEvent={friendsCountByEvent}
             friendsByEvent={friendsByEvent}
+            getRsvpState={getRsvpState}
+            onRsvp={handleRsvpClick}
           />
         </main>
       ) : viewMode === 'table' ? (
@@ -315,6 +349,8 @@ export function EventApp() {
             onScrolledChange={setTableScrolled}
             friendsCountByEvent={friendsCountByEvent}
             friendsByEvent={friendsByEvent}
+            getRsvpState={getRsvpState}
+            onRsvp={handleRsvpClick}
           />
         </main>
       ) : (
@@ -326,17 +362,28 @@ export function EventApp() {
             onItineraryToggle={handleItineraryToggle}
             friendsCountByEvent={friendsCountByEvent}
             friendsByEvent={friendsByEvent}
+            getRsvpState={getRsvpState}
+            onRsvp={handleRsvpClick}
           />
         </main>
       )}
 
       <AuthModal isOpen={showAuthForStar} onClose={() => { pendingStarRef.current = null; setShowAuthForStar(false); }} />
+      <AuthModal isOpen={showAuthForRsvp} onClose={() => { pendingRsvpRef.current = null; setShowAuthForRsvp(false); }} />
       <FriendsPanel
         isOpen={showFriends}
         onClose={() => setShowFriends(false)}
         friends={friends}
         onRemoveFriend={removeFriend}
       />
+      {embedEvent && (
+        <LumaEmbedOverlay
+          lumaUrl={embedEvent.lumaUrl}
+          eventId={embedEvent.eventId}
+          onClose={closeEmbed}
+          onComplete={markEmbedRsvp}
+        />
+      )}
     </div>
   );
 }

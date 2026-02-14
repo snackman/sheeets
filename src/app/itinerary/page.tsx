@@ -3,18 +3,22 @@
 import { useMemo, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, AlertTriangle, Trash2, CalendarX, Share2, Download, Map as MapIcon, List } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Trash2, CalendarX, Share2, Download, Map as MapIcon, List, ExternalLink, Check, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import { useEvents } from '@/hooks/useEvents';
 import { useItinerary } from '@/hooks/useItinerary';
+import { useRsvp } from '@/hooks/useRsvp';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { isLumaUrl } from '@/lib/luma';
 import { VIBE_COLORS } from '@/lib/constants';
 import { formatDateLabel } from '@/lib/utils';
 import { downloadICS } from '@/lib/calendar';
 import type { ETHDenverEvent } from '@/lib/types';
 import { Loading } from '@/components/Loading';
 import { EventCard } from '@/components/EventCard';
+import { RsvpButton } from '@/components/RsvpButton';
+import { LumaEmbedOverlay } from '@/components/LumaEmbedOverlay';
 
 const MapView = dynamic(
   () => import('@/components/MapView').then((mod) => ({ default: mod.MapView })),
@@ -90,8 +94,10 @@ function generateShortCode(): string {
 export default function ItineraryPage() {
   const { events, loading } = useEvents();
   const { itinerary, toggle: toggleItinerary, clear: clearItinerary } = useItinerary();
+  const { getState: getRsvpState, rsvp: handleRsvp, rsvpAll, embedEvent, closeEmbed, markEmbedRsvp } = useRsvp();
   const { user } = useAuth();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [rsvpAllStatus, setRsvpAllStatus] = useState<'idle' | 'loading' | 'done'>('idle');
   const [exporting, setExporting] = useState(false);
   const [viewMode, setViewMode] = useState<ItineraryViewMode>('list');
   const [shareStatus, setShareStatus] = useState<'idle' | 'sharing' | 'copied'>('idle');
@@ -121,6 +127,22 @@ export default function ItineraryPage() {
   );
 
   const conflicts = useMemo(() => detectConflicts(itineraryEvents), [itineraryEvents]);
+
+  // Count Luma events that haven't been RSVP'd yet
+  const lumaEventsToRsvp = useMemo(
+    () => itineraryEvents.filter(
+      (e) => isLumaUrl(e.link) && getRsvpState(e.id).status !== 'confirmed'
+    ),
+    [itineraryEvents, getRsvpState]
+  );
+
+  const handleRsvpAll = useCallback(async () => {
+    if (lumaEventsToRsvp.length === 0) return;
+    setRsvpAllStatus('loading');
+    await rsvpAll(lumaEventsToRsvp.map((e) => ({ id: e.id, link: e.link })));
+    setRsvpAllStatus('done');
+    setTimeout(() => setRsvpAllStatus('idle'), 3000);
+  }, [lumaEventsToRsvp, rsvpAll]);
 
   const dateGroups = useMemo(() => {
     const groupMap = new Map<string, ETHDenverEvent[]>();
@@ -297,6 +319,27 @@ export default function ItineraryPage() {
                 >
                   {shareStatus === 'sharing' ? 'Saving...' : shareStatus === 'copied' ? 'Copied!' : 'Share Link'}
                 </button>
+                {user && lumaEventsToRsvp.length > 0 && (
+                  <button
+                    onClick={handleRsvpAll}
+                    disabled={rsvpAllStatus === 'loading'}
+                    className={clsx(
+                      'px-2 py-1 text-xs font-medium rounded transition-colors cursor-pointer flex items-center gap-1',
+                      rsvpAllStatus === 'done'
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : 'bg-orange-500/15 text-orange-400 hover:bg-orange-500/25 border border-orange-500/30'
+                    )}
+                    title={`RSVP to ${lumaEventsToRsvp.length} Luma events`}
+                  >
+                    {rsvpAllStatus === 'loading' ? (
+                      <><Loader2 className="w-3 h-3 animate-spin" /> RSVPing...</>
+                    ) : rsvpAllStatus === 'done' ? (
+                      <><Check className="w-3 h-3" /> Done</>
+                    ) : (
+                      <><ExternalLink className="w-3 h-3" /> RSVP All ({lumaEventsToRsvp.length})</>
+                    )}
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -428,6 +471,13 @@ export default function ItineraryPage() {
                               FREE
                             </span>
                           )}
+                          <RsvpButton
+                            eventId={event.id}
+                            eventUrl={event.link}
+                            status={getRsvpState(event.id).status}
+                            onRsvp={handleRsvp}
+                            size="sm"
+                          />
                         </div>
                       </div>
                     );
@@ -470,6 +520,14 @@ export default function ItineraryPage() {
             )}
           </div>
         </div>
+      )}
+      {embedEvent && (
+        <LumaEmbedOverlay
+          lumaUrl={embedEvent.lumaUrl}
+          eventId={embedEvent.eventId}
+          onClose={closeEmbed}
+          onComplete={markEmbedRsvp}
+        />
       )}
     </div>
   );

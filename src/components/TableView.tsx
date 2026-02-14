@@ -4,9 +4,12 @@ import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, Calendar, Star, X } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
+import type { RsvpStatus } from '@/hooks/useRsvp';
 import { trackEventClick } from '@/lib/analytics';
+import { isLumaUrl } from '@/lib/luma';
 import { TagBadge } from './TagBadge';
 import { EventCard } from './EventCard';
+import { RsvpButton } from './RsvpButton';
 
 interface TableViewProps {
   events: ETHDenverEvent[];
@@ -16,6 +19,8 @@ interface TableViewProps {
   onScrolledChange?: (scrolled: boolean) => void;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  getRsvpState?: (eventId: string) => { status: RsvpStatus };
+  onRsvp?: (eventId: string, eventUrl: string) => void;
 }
 
 /** Format a dateISO string like "2026-02-10" into "Mon Feb 10" */
@@ -55,6 +60,8 @@ export function TableView({
   onScrolledChange,
   friendsCountByEvent,
   friendsByEvent,
+  getRsvpState,
+  onRsvp,
 }: TableViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
@@ -221,6 +228,8 @@ export function TableView({
                 setSeparatorRef={setSeparatorRef}
                 friendsCountByEvent={friendsCountByEvent}
                 onSelectEvent={setSelectedEvent}
+                getRsvpState={getRsvpState}
+                onRsvp={onRsvp}
               />
             ))}
           </tbody>
@@ -239,6 +248,8 @@ export function TableView({
           friendsCount={friendsCountByEvent?.get(selectedEvent.id) ?? 0}
           friendsGoing={friendsByEvent?.get(selectedEvent.id)}
           onClose={() => setSelectedEvent(null)}
+          rsvpStatus={getRsvpState?.(selectedEvent.id)?.status}
+          onRsvp={onRsvp}
         />,
         document.body
       )}
@@ -254,6 +265,8 @@ function EventDetailModal({
   friendsCount,
   friendsGoing,
   onClose,
+  rsvpStatus,
+  onRsvp,
 }: {
   event: ETHDenverEvent;
   isInItinerary: boolean;
@@ -261,6 +274,8 @@ function EventDetailModal({
   friendsCount: number;
   friendsGoing?: { userId: string; displayName: string }[];
   onClose: () => void;
+  rsvpStatus?: RsvpStatus;
+  onRsvp?: (eventId: string, eventUrl: string) => void;
 }) {
   return (
     <>
@@ -275,6 +290,8 @@ function EventDetailModal({
             onItineraryToggle={onItineraryToggle}
             friendsCount={friendsCount}
             friendsGoing={friendsGoing}
+            rsvpStatus={rsvpStatus}
+            onRsvp={onRsvp}
           />
           <button
             onClick={onClose}
@@ -297,6 +314,8 @@ function DateGroup({
   setSeparatorRef,
   friendsCountByEvent,
   onSelectEvent,
+  getRsvpState,
+  onRsvp,
 }: {
   group: { dateISO: string; label: string; events: ETHDenverEvent[] };
   itinerary?: Set<string>;
@@ -304,6 +323,8 @@ function DateGroup({
   setSeparatorRef: (dateISO: string, el: HTMLTableRowElement | null) => void;
   friendsCountByEvent?: Map<string, number>;
   onSelectEvent: (event: ETHDenverEvent) => void;
+  getRsvpState?: (eventId: string) => { status: RsvpStatus };
+  onRsvp?: (eventId: string, eventUrl: string) => void;
 }) {
   return (
     <>
@@ -418,12 +439,21 @@ function DateGroup({
               ) : null}
             </td>
 
-            {/* Tags */}
+            {/* Tags + RSVP */}
             <td className="px-3 py-2 overflow-hidden">
               <div className="flex gap-1 items-center" title={event.tags.join(', ')}>
                 {event.tags.map((tag) => (
                   <TagBadge key={tag} tag={tag} iconOnly />
                 ))}
+                {onRsvp && isLumaUrl(event.link) && (
+                  <RsvpButton
+                    eventId={event.id}
+                    eventUrl={event.link}
+                    status={getRsvpState?.(event.id)?.status ?? 'idle'}
+                    onRsvp={onRsvp}
+                    size="sm"
+                  />
+                )}
               </div>
             </td>
           </tr>

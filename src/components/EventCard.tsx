@@ -5,9 +5,11 @@ import { createPortal } from 'react-dom';
 import { MapPin, Calendar, Users, X } from 'lucide-react';
 import { ETHDenverEvent } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
+import type { RsvpStatus } from '@/hooks/useRsvp';
 import { StarButton } from './StarButton';
 import { TagBadge } from './TagBadge';
 import { OGImage } from './OGImage';
+import { RsvpButton } from './RsvpButton';
 
 interface FriendInfo {
   userId: string;
@@ -20,6 +22,8 @@ interface EventCardProps {
   onItineraryToggle?: (eventId: string) => void;
   friendsCount?: number;
   friendsGoing?: FriendInfo[];
+  rsvpStatus?: RsvpStatus;
+  onRsvp?: (eventId: string, eventUrl: string) => void;
 }
 
 function FriendsGoingModal({
@@ -103,6 +107,8 @@ export function EventCard({
   onItineraryToggle,
   friendsCount,
   friendsGoing,
+  rsvpStatus,
+  onRsvp,
 }: EventCardProps) {
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const timeDisplay = event.isAllDay
@@ -170,14 +176,21 @@ export function EventCard({
           </a>
         )}
 
-        {/* Badges row */}
-        {event.tags.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 mt-3">
-            {event.tags.map((tag) => (
-              <TagBadge key={tag} tag={tag} />
-            ))}
-          </div>
-        )}
+        {/* Badges row + RSVP button */}
+        <div className="flex flex-wrap items-center gap-1.5 mt-3">
+          {event.tags.map((tag) => (
+            <TagBadge key={tag} tag={tag} />
+          ))}
+          {onRsvp && (
+            <RsvpButton
+              eventId={event.id}
+              eventUrl={event.link}
+              status={rsvpStatus ?? 'idle'}
+              onRsvp={onRsvp}
+              size="sm"
+            />
+          )}
+        </div>
 
         {/* Friends going row */}
         {friendsGoing && friendsGoing.length > 0 && (

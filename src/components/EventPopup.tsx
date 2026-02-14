@@ -3,10 +3,12 @@
 import { Popup } from 'react-map-gl/mapbox';
 import { X, Calendar, MapPin, Users } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
+import type { RsvpStatus } from '@/hooks/useRsvp';
 import { trackEventClick } from '@/lib/analytics';
 import { StarButton } from './StarButton';
 import { TagBadge } from './TagBadge';
 import { OGImage } from './OGImage';
+import { RsvpButton } from './RsvpButton';
 
 interface FriendInfo {
   userId: string;
@@ -22,6 +24,8 @@ interface EventPopupProps {
   onItineraryToggle?: (eventId: string) => void;
   friendsCount?: number;
   friendsGoing?: FriendInfo[];
+  rsvpStatus?: RsvpStatus;
+  onRsvp?: (eventId: string, eventUrl: string) => void;
 }
 
 interface MultiEventPopupProps {
@@ -34,6 +38,8 @@ interface MultiEventPopupProps {
   onItineraryToggle?: (eventId: string) => void;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, FriendInfo[]>;
+  getRsvpState?: (eventId: string) => { status: RsvpStatus };
+  onRsvp?: (eventId: string, eventUrl: string) => void;
 }
 
 function formatFriendsText(friends: FriendInfo[]): string {
@@ -62,6 +68,8 @@ function SingleEventContent({
   onItineraryToggle,
   friendsCount,
   friendsGoing,
+  rsvpStatus,
+  onRsvp,
 }: {
   event: ETHDenverEvent;
   onClose: () => void;
@@ -69,6 +77,8 @@ function SingleEventContent({
   onItineraryToggle?: (eventId: string) => void;
   friendsCount?: number;
   friendsGoing?: FriendInfo[];
+  rsvpStatus?: RsvpStatus;
+  onRsvp?: (eventId: string, eventUrl: string) => void;
 }) {
   const timeDisplay = event.isAllDay
     ? 'All Day'
@@ -140,14 +150,21 @@ function SingleEventContent({
           </a>
         )}
 
-        {/* Tags row (icons only) */}
-        {event.tags.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1 mt-2">
-            {event.tags.map((tag) => (
-              <TagBadge key={tag} tag={tag} iconOnly />
-            ))}
-          </div>
-        )}
+        {/* Tags row (icons only) + RSVP */}
+        <div className="flex flex-wrap items-center gap-1 mt-2">
+          {event.tags.map((tag) => (
+            <TagBadge key={tag} tag={tag} iconOnly />
+          ))}
+          {onRsvp && (
+            <RsvpButton
+              eventId={event.id}
+              eventUrl={event.link}
+              status={rsvpStatus ?? 'idle'}
+              onRsvp={onRsvp}
+              size="sm"
+            />
+          )}
+        </div>
 
         {/* Friends going */}
         {friendsGoing && <FriendsRow friends={friendsGoing} />}
@@ -170,6 +187,8 @@ export function EventPopup({
   onItineraryToggle,
   friendsCount,
   friendsGoing,
+  rsvpStatus,
+  onRsvp,
 }: EventPopupProps) {
   return (
     <Popup
@@ -189,6 +208,8 @@ export function EventPopup({
         onItineraryToggle={onItineraryToggle}
         friendsCount={friendsCount}
         friendsGoing={friendsGoing}
+        rsvpStatus={rsvpStatus}
+        onRsvp={onRsvp}
       />
     </Popup>
   );
@@ -204,6 +225,8 @@ export function MultiEventPopup({
   onItineraryToggle,
   friendsCountByEvent,
   friendsByEvent,
+  getRsvpState,
+  onRsvp,
 }: MultiEventPopupProps) {
   return (
     <Popup
@@ -282,13 +305,20 @@ export function MultiEventPopup({
                       <span className="truncate">{event.address}</span>
                     </a>
                   )}
-                  {event.tags.length > 0 && (
-                    <div className="flex items-center gap-1 mt-1">
-                      {event.tags.map((tag) => (
-                        <TagBadge key={tag} tag={tag} iconOnly />
-                      ))}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1 mt-1">
+                    {event.tags.map((tag) => (
+                      <TagBadge key={tag} tag={tag} iconOnly />
+                    ))}
+                    {onRsvp && (
+                      <RsvpButton
+                        eventId={event.id}
+                        eventUrl={event.link}
+                        status={getRsvpState?.(event.id)?.status ?? 'idle'}
+                        onRsvp={onRsvp}
+                        size="sm"
+                      />
+                    )}
+                  </div>
                   {eventFriends && <FriendsRow friends={eventFriends} />}
                 </div>
               </div>

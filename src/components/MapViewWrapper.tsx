@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { ChevronUp, ChevronDown, MapPinOff } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
+import type { RsvpStatus } from '@/hooks/useRsvp';
 import { EventCard } from './EventCard';
 
 const MapView = dynamic(
@@ -26,6 +27,8 @@ interface MapViewWrapperProps {
   isItineraryView?: boolean;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  getRsvpState?: (eventId: string) => { status: RsvpStatus };
+  onRsvp?: (eventId: string, eventUrl: string) => void;
 }
 
 export function MapViewWrapper({
@@ -36,6 +39,8 @@ export function MapViewWrapper({
   isItineraryView,
   friendsCountByEvent,
   friendsByEvent,
+  getRsvpState,
+  onRsvp,
 }: MapViewWrapperProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -56,6 +61,8 @@ export function MapViewWrapper({
         isItineraryView={isItineraryView}
         friendsCountByEvent={friendsCountByEvent}
         friendsByEvent={friendsByEvent}
+        getRsvpState={getRsvpState}
+        onRsvp={onRsvp}
       />
 
       {/* No-location drawer */}
@@ -73,6 +80,8 @@ export function MapViewWrapper({
                     onItineraryToggle={onItineraryToggle}
                     friendsCount={friendsCountByEvent?.get(event.id)}
                     friendsGoing={friendsByEvent?.get(event.id)}
+                    rsvpStatus={getRsvpState?.(event.id)?.status}
+                    onRsvp={onRsvp}
                   />
                 ))}
               </div>
