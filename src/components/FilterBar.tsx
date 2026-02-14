@@ -2,12 +2,12 @@
 
 import { useState, useMemo, useRef } from 'react';
 import clsx from 'clsx';
-import { X, SlidersHorizontal, ChevronDown, Zap } from 'lucide-react';
+import { X, SlidersHorizontal, ChevronDown, Zap, Users } from 'lucide-react';
 import type { FilterState } from '@/lib/types';
 import { EVENT_DATES, VIBE_COLORS } from '@/lib/constants';
 import { TAG_ICONS } from './TagBadge';
 import { SearchBar } from './SearchBar';
-import { trackConferenceSelect, trackTagToggle, trackDayRange, trackTimeRange, trackNowMode, trackClearFilters } from '@/lib/analytics';
+import { trackConferenceSelect, trackTagToggle, trackDayRange, trackTimeRange, trackNowMode, trackClearFilters, trackFriendFilter } from '@/lib/analytics';
 
 interface FilterBarProps {
   filters: FilterState;
@@ -21,6 +21,9 @@ interface FilterBarProps {
   availableConferences: string[];
   availableTypes: string[];
   availableVibes: string[];
+  friendsForFilter: Array<{ userId: string; displayName: string }>;
+  selectedFriends: string[];
+  onToggleFriend: (friendId: string) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   eventCount: number;
@@ -63,6 +66,9 @@ export function FilterBar({
   availableConferences,
   availableTypes,
   availableVibes,
+  friendsForFilter,
+  selectedFriends,
+  onToggleFriend,
   searchQuery,
   onSearchChange,
   eventCount,
@@ -291,6 +297,35 @@ export function FilterBar({
                 </div>
               </div>
             </div>
+
+            {/* Friends filter */}
+            {friendsForFilter.length > 0 && (
+              <div>
+                <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">
+                  Friends
+                </div>
+                <div className="overflow-x-auto flex gap-2 pb-1">
+                  {friendsForFilter.map((friend) => {
+                    const isActive = selectedFriends.includes(friend.userId);
+                    return (
+                      <button
+                        key={friend.userId}
+                        onClick={() => { trackFriendFilter(friend.displayName, !isActive); onToggleFriend(friend.userId); }}
+                        className={clsx(
+                          'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
+                          isActive
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600 active:bg-slate-600'
+                        )}
+                      >
+                        <Users className="w-3.5 h-3.5" />
+                        {friend.displayName}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Types (event format) + quick filters */}
             {(availableTypes.length > 0 || true) && (

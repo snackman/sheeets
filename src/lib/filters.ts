@@ -71,7 +71,8 @@ export function applyFilters(
   events: ETHDenverEvent[],
   filters: FilterState,
   itinerary?: Set<string>,
-  nowTimestamp?: number
+  nowTimestamp?: number,
+  friendEventIds?: Set<string>
 ): ETHDenverEvent[] {
   // Create the "now" Date once for consistency across all events
   const now = nowTimestamp ? new Date(nowTimestamp) : new Date();
@@ -117,6 +118,10 @@ export function applyFilters(
 
     // Itinerary
     if (filters.itineraryOnly && itinerary && !itinerary.has(event.id))
+      return false;
+
+    // Friends filter
+    if (filters.selectedFriends.length > 0 && friendEventIds && !friendEventIds.has(event.id))
       return false;
 
     // Search
