@@ -11,12 +11,14 @@ interface EventCardProps {
   event: ETHDenverEvent;
   isInItinerary?: boolean;
   onItineraryToggle?: (eventId: string) => void;
+  friendsCount?: number;
 }
 
 export function EventCard({
   event,
   isInItinerary = false,
   onItineraryToggle,
+  friendsCount,
 }: EventCardProps) {
   const timeDisplay = event.isAllDay
     ? 'All Day'
@@ -36,6 +38,7 @@ export function EventCard({
               eventId={event.id}
               isStarred={isInItinerary}
               onToggle={onItineraryToggle}
+              friendsCount={friendsCount}
             />
           ) : (
             <div className="w-5 shrink-0" />

@@ -12,6 +12,7 @@ interface TableViewProps {
   itinerary?: Set<string>;
   onItineraryToggle?: (eventId: string) => void;
   onScrolledChange?: (scrolled: boolean) => void;
+  friendsCountByEvent?: Map<string, number>;
 }
 
 /** Format a dateISO string like "2026-02-10" into "Mon Feb 10" */
@@ -49,6 +50,7 @@ export function TableView({
   itinerary,
   onItineraryToggle,
   onScrolledChange,
+  friendsCountByEvent,
 }: TableViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
@@ -202,6 +204,7 @@ export function TableView({
                 itinerary={itinerary}
                 onItineraryToggle={onItineraryToggle}
                 setSeparatorRef={setSeparatorRef}
+                friendsCountByEvent={friendsCountByEvent}
               />
             ))}
           </tbody>
@@ -222,11 +225,13 @@ function DateGroup({
   itinerary,
   onItineraryToggle,
   setSeparatorRef,
+  friendsCountByEvent,
 }: {
   group: { dateISO: string; label: string; events: ETHDenverEvent[] };
   itinerary?: Set<string>;
   onItineraryToggle?: (eventId: string) => void;
   setSeparatorRef: (dateISO: string, el: HTMLTableRowElement | null) => void;
+  friendsCountByEvent?: Map<string, number>;
 }) {
   return (
     <>
@@ -257,15 +262,31 @@ function DateGroup({
           >
             {/* Star (toggles itinerary) */}
             <td className="px-2 py-2">
-              <button
-                onClick={() => onItineraryToggle?.(event.id)}
-                className="cursor-pointer p-0.5"
-                title={isInItinerary ? 'Remove from itinerary' : 'Add to itinerary'}
-              >
-                <Star
-                  className={`w-3.5 h-3.5 ${isInItinerary ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600 hover:text-slate-400'}`}
-                />
-              </button>
+              {(() => {
+                const fc = friendsCountByEvent?.get(event.id) ?? 0;
+                return (
+                  <button
+                    onClick={() => onItineraryToggle?.(event.id)}
+                    className="relative cursor-pointer p-0.5"
+                    title={
+                      fc > 0
+                        ? `${fc} friend${fc !== 1 ? 's' : ''} going`
+                        : isInItinerary
+                          ? 'Remove from itinerary'
+                          : 'Add to itinerary'
+                    }
+                  >
+                    <Star
+                      className={`w-3.5 h-3.5 ${isInItinerary ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600 hover:text-slate-400'}`}
+                    />
+                    {fc > 0 && (
+                      <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-blue-500 text-white text-[8px] font-bold px-0.5 pointer-events-none">
+                        {fc}
+                      </span>
+                    )}
+                  </button>
+                );
+              })()}
             </td>
 
             {/* Time */}
