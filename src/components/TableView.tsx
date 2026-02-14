@@ -419,7 +419,7 @@ function DateGroup({
               ) : null}
             </td>
 
-            {/* Tags — type row on top, topic tags on bottom, max 2 rows */}
+            {/* Tags — single row on mobile, type/topic split on desktop */}
             <td className="px-3 py-2">
               <div className="flex flex-col gap-0.5 max-h-[3.25rem] overflow-hidden" title={event.tags.join(', ')}>
                 {(() => {
@@ -427,15 +427,22 @@ function DateGroup({
                   const topics = event.tags.filter((t) => !TYPE_TAGS.includes(t));
                   return (
                     <>
+                      {/* Mobile: single row with all tags */}
+                      <div className="flex gap-1 items-center overflow-hidden shrink-0 sm:hidden">
+                        {event.tags.map((tag) => (
+                          <TagBadge key={tag} tag={tag} iconOnly />
+                        ))}
+                      </div>
+                      {/* Desktop: split into type/topic rows */}
                       {types.length > 0 && (
-                        <div className="flex gap-1 items-center overflow-hidden shrink-0">
+                        <div className="hidden sm:flex gap-1 items-center overflow-hidden shrink-0">
                           {types.map((tag) => (
                             <TagBadge key={tag} tag={tag} iconOnly />
                           ))}
                         </div>
                       )}
                       {topics.length > 0 && (
-                        <div className="flex gap-1 items-center overflow-hidden shrink-0">
+                        <div className="hidden sm:flex gap-1 items-center overflow-hidden shrink-0">
                           {topics.map((tag) => (
                             <TagBadge key={tag} tag={tag} iconOnly />
                           ))}
