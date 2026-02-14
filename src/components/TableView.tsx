@@ -183,7 +183,7 @@ export function TableView({
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="overflow-auto rounded-lg border border-slate-700 flex-1 min-h-0 min-w-0"
+        className="overflow-auto rounded-lg border border-slate-700 flex-1 min-h-0 min-w-0 overscroll-none"
       >
         <table className="w-full min-w-[640px] sm:min-w-[900px] text-sm text-left">
           <colgroup>
