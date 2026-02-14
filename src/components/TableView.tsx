@@ -379,7 +379,7 @@ function DateGroup({
             </td>
 
             {/* Event Name (+ organizer on mobile portrait) */}
-            <td className="px-3 py-2 font-medium text-slate-100 overflow-hidden sm:truncate" title={event.name}>
+            <td className="px-3 py-2 font-medium text-slate-100 overflow-hidden sm:truncate max-w-[25ch] sm:max-w-none" title={event.name}>
               <span className="inline-flex items-center gap-1 max-w-full truncate">
                 {event.isDuplicate && (
                   <span title="Duplicate entry in sheet"><AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" /></span>
@@ -406,7 +406,7 @@ function DateGroup({
             </td>
 
             {/* Location */}
-            <td className="px-3 py-2 text-slate-400 truncate" title={event.address}>
+            <td className="px-3 py-2 text-slate-400 truncate max-w-[20ch] sm:max-w-none" title={event.address}>
               {event.address ? (
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`}
