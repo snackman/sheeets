@@ -73,16 +73,24 @@ export function useFriends() {
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('user_id, display_name, x_handle, farcaster_username')
+      .select('user_id, email, display_name, x_handle, farcaster_username')
       .in('user_id', [...friendIds]);
 
+    const profileMap = new Map(
+      (profiles ?? []).map((p) => [p.user_id, p])
+    );
+
     setFriends(
-      (profiles ?? []).map((p) => ({
-        user_id: p.user_id,
-        display_name: p.display_name,
-        x_handle: p.x_handle,
-        farcaster_username: p.farcaster_username,
-      }))
+      [...friendIds].map((id) => {
+        const p = profileMap.get(id);
+        return {
+          user_id: id,
+          email: p?.email ?? null,
+          display_name: p?.display_name ?? null,
+          x_handle: p?.x_handle ?? null,
+          farcaster_username: p?.farcaster_username ?? null,
+        };
+      })
     );
   }, [user]);
 
@@ -163,11 +171,26 @@ export function useFriends() {
     [user, refreshFriends]
   );
 
+  const removeFriend = useCallback(async (targetUserId: string) => {
+    if (!user) return;
+    const userA = user.id < targetUserId ? user.id : targetUserId;
+    const userB = user.id < targetUserId ? targetUserId : user.id;
+
+    await supabase
+      .from('friendships')
+      .delete()
+      .eq('user_a', userA)
+      .eq('user_b', userB);
+
+    await refreshFriends();
+  }, [user, refreshFriends]);
+
   return {
     friends,
     friendCount: friends.length,
     loading,
     generateCode,
     addFriend,
+    removeFriend,
   };
 }

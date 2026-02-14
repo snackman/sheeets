@@ -208,9 +208,10 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 interface UserMenuProps {
   events: ETHDenverEvent[];
   itinerary: Set<string>;
+  onOpenFriends: () => void;
 }
 
-export function UserMenu({ events, itinerary }: UserMenuProps) {
+export function UserMenu({ events, itinerary, onOpenFriends }: UserMenuProps) {
   const { user, signOut } = useAuth();
   const { profile, updateProfile } = useProfile();
   const { friendCount, generateCode } = useFriends();
@@ -490,6 +491,17 @@ export function UserMenu({ events, itinerary }: UserMenuProps) {
                       {friendCount > 0 && `${friendCount} friend${friendCount !== 1 ? 's' : ''}`}
                     </p>
                   </div>
+
+                  {/* View Friends button */}
+                  {friendCount > 0 && (
+                    <button
+                      onClick={() => { setOpen(false); onOpenFriends(); }}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-slate-700 hover:bg-slate-600 text-white transition-colors cursor-pointer"
+                    >
+                      <Users className="w-4 h-4" />
+                      View Friends ({friendCount})
+                    </button>
+                  )}
 
                   {/* Generate single-use link */}
                   <button

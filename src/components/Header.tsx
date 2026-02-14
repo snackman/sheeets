@@ -16,6 +16,7 @@ interface HeaderProps {
   isItineraryActive: boolean;
   events: ETHDenverEvent[];
   itinerary: Set<string>;
+  onOpenFriends: () => void;
 }
 
 export function Header({
@@ -26,6 +27,7 @@ export function Header({
   isItineraryActive,
   events,
   itinerary,
+  onOpenFriends,
 }: HeaderProps) {
   const { user, loading } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
@@ -49,7 +51,7 @@ export function Header({
             {/* Auth */}
             {!loading && (
               user ? (
-                <UserMenu events={events} itinerary={itinerary} />
+                <UserMenu events={events} itinerary={itinerary} onOpenFriends={onOpenFriends} />
               ) : (
                 <button
                   onClick={() => { trackAuthPrompt('sign_in_button'); setShowAuth(true); }}
