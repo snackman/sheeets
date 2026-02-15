@@ -4,7 +4,6 @@ import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, Calendar, Star, X } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
-import { TYPE_TAGS } from '@/lib/constants';
 import { trackEventClick } from '@/lib/analytics';
 import { TagBadge } from './TagBadge';
 import { EventCard } from './EventCard';
@@ -431,38 +430,12 @@ function DateGroup({
               ) : null}
             </td>
 
-            {/* Tags — single row on mobile, type/topic split on desktop */}
+            {/* Tags — single row, overflow hidden */}
             <td className="px-3 py-2">
-              <div className="flex flex-col gap-0.5 max-h-[3.25rem] overflow-hidden" title={event.tags.join(', ')}>
-                {(() => {
-                  const types = event.tags.filter((t) => TYPE_TAGS.includes(t));
-                  const topics = event.tags.filter((t) => !TYPE_TAGS.includes(t));
-                  return (
-                    <>
-                      {/* Mobile: single row with all tags */}
-                      <div className="flex gap-1 items-center overflow-hidden shrink-0 sm:hidden">
-                        {event.tags.map((tag) => (
-                          <TagBadge key={tag} tag={tag} iconOnly />
-                        ))}
-                      </div>
-                      {/* Desktop: split into type/topic rows */}
-                      {types.length > 0 && (
-                        <div className="hidden sm:flex gap-1 items-center overflow-hidden shrink-0">
-                          {types.map((tag) => (
-                            <TagBadge key={tag} tag={tag} iconOnly />
-                          ))}
-                        </div>
-                      )}
-                      {topics.length > 0 && (
-                        <div className="hidden sm:flex gap-1 items-center overflow-hidden shrink-0">
-                          {topics.map((tag) => (
-                            <TagBadge key={tag} tag={tag} iconOnly />
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
+              <div className="flex gap-1 items-center overflow-hidden" title={event.tags.join(', ')}>
+                {event.tags.map((tag) => (
+                  <TagBadge key={tag} tag={tag} iconOnly />
+                ))}
               </div>
             </td>
           </tr>
