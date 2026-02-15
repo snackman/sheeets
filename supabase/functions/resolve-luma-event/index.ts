@@ -82,6 +82,7 @@ Deno.serve(async (req: Request) => {
     const requiresApproval =
       eventData?.requires_approval ||
       ticketInfo?.requires_approval ||
+      ticketInfo?.require_approval ||
       false;
     const lumaEventName = eventData?.name || null;
 
