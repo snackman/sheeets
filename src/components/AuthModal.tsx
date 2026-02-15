@@ -223,9 +223,7 @@ function SearchResultRow({
     ? `@${result.x_handle}`
     : result.email
       ? result.email
-      : result.farcaster_username
-        ? `@${result.farcaster_username}`
-        : null;
+      : null;
 
   return (
     <div className="flex items-center gap-3 py-2">
@@ -398,7 +396,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
   // Profile form state
   const [displayName, setDisplayName] = useState('');
   const [xHandle, setXHandle] = useState('');
-  const [farcasterUsername, setFarcasterUsername] = useState('');
+  const [rsvpName, setRsvpName] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
 
@@ -417,7 +415,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
     if (profile) {
       setDisplayName(profile.display_name ?? '');
       setXHandle(profile.x_handle ?? '');
-      setFarcasterUsername(profile.farcaster_username ?? '');
+      setRsvpName(profile.rsvp_name ?? '');
     }
   }, [profile]);
 
@@ -442,7 +440,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
     await updateProfile({
       display_name: displayName.trim() || null,
       x_handle: xHandle.trim() || null,
-      farcaster_username: farcasterUsername.trim() || null,
+      rsvp_name: rsvpName.trim() || null,
     });
     setSaving(false);
     setSaveStatus('saved');
@@ -620,17 +618,14 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
                   </div>
 
                   <div>
-                    <label className="text-xs text-slate-500 uppercase tracking-wide block mb-1">Farcaster</label>
-                    <div className="flex items-center bg-slate-900 border border-slate-600 rounded-lg focus-within:border-orange-500">
-                      <span className="text-slate-500 text-sm pl-3 select-none">@</span>
-                      <input
-                        type="text"
-                        value={farcasterUsername}
-                        onChange={(e) => setFarcasterUsername(e.target.value.replace(/^@/, ''))}
-                        placeholder="username"
-                        className="flex-1 bg-transparent text-white text-sm px-2 py-2 focus:outline-none placeholder:text-slate-500"
-                      />
-                    </div>
+                    <label className="text-xs text-slate-500 uppercase tracking-wide block mb-1">RSVP Name</label>
+                    <input
+                      type="text"
+                      value={rsvpName}
+                      onChange={(e) => setRsvpName(e.target.value)}
+                      placeholder="Name for event RSVPs"
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-slate-500"
+                    />
                   </div>
 
                   <button
@@ -647,17 +642,20 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
                   <button
                     onClick={handleCheckIn}
                     disabled={checking}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white transition-colors cursor-pointer"
+                    className="w-full flex flex-col items-center gap-1 px-3 py-2.5 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white transition-colors cursor-pointer"
                   >
                     {checking ? (
-                      <>
+                      <span className="flex items-center gap-2">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         Checking in...
-                      </>
+                      </span>
                     ) : (
                       <>
-                        <MapPin className="w-4 h-4" />
-                        Check In
+                        <span className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          Check In
+                        </span>
+                        <span className="text-xs font-normal text-green-200/70">Checks into nearest live RSVP'd event</span>
                       </>
                     )}
                   </button>

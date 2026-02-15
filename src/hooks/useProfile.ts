@@ -29,7 +29,7 @@ export function useProfile() {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('user_id, email, display_name, x_handle, farcaster_username')
+          .select('user_id, email, display_name, x_handle, rsvp_name')
           .eq('user_id', user!.id)
           .maybeSingle();
 
@@ -48,7 +48,7 @@ export function useProfile() {
             email: user!.email ?? null,
             display_name: null,
             x_handle: null,
-            farcaster_username: null,
+            rsvp_name: null,
           };
 
           const { error: insertError } = await supabase
@@ -59,7 +59,7 @@ export function useProfile() {
             // Could be a race condition — try fetching again
             const { data: retryData } = await supabase
               .from('profiles')
-              .select('user_id, email, display_name, x_handle, farcaster_username')
+              .select('user_id, email, display_name, x_handle, rsvp_name')
               .eq('user_id', user!.id)
               .maybeSingle();
 
@@ -83,7 +83,7 @@ export function useProfile() {
   }, [user, authLoading]);
 
   const updateProfile = useCallback(
-    async (fields: Partial<Pick<UserProfile, 'display_name' | 'x_handle' | 'farcaster_username'>>) => {
+    async (fields: Partial<Pick<UserProfile, 'display_name' | 'x_handle' | 'rsvp_name'>>) => {
       if (!user) return;
 
       const { error } = await supabase

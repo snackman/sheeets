@@ -20,7 +20,7 @@ function FriendCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const displayName = friend.display_name || friend.email || 'Anonymous';
-  const hasSocials = friend.x_handle || friend.farcaster_username;
+  const hasSocials = friend.x_handle || friend.rsvp_name;
 
   return (
     <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
@@ -70,16 +70,10 @@ function FriendCard({
             </a>
           )}
 
-          {friend.farcaster_username && (
-            <a
-              href={`https://warpcast.com/${friend.farcaster_username}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors"
-            >
-              <span>Farcaster: @{friend.farcaster_username}</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
+          {friend.rsvp_name && (
+            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+              <span>RSVP Name: {friend.rsvp_name}</span>
+            </div>
           )}
 
           {!friend.email && !hasSocials && (

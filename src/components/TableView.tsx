@@ -196,14 +196,14 @@ export function TableView({
         onScroll={handleScroll}
         className="overflow-auto rounded-lg border border-slate-700 flex-1 min-h-0 min-w-0 overscroll-none"
       >
-        <table className="w-full min-w-[640px] sm:min-w-[900px] text-sm text-left table-fixed">
+        <table className="w-full min-w-[640px] sm:min-w-[1100px] text-sm text-left table-fixed">
           <colgroup>
             <col className="w-8" />           {/* star */}
             <col className="w-[110px]" />     {/* when */}
-            <col style={{ width: '25%' }} />  {/* organizer */}
-            <col style={{ width: '26%' }} />  {/* event */}
-            <col style={{ width: '15%' }} />  {/* where */}
-            <col style={{ width: '22%' }} />  {/* tags */}
+            <col style={{ width: '20%' }} />  {/* organizer */}
+            <col style={{ width: '24%' }} />  {/* event */}
+            <col style={{ width: '14%' }} />  {/* where */}
+            <col style={{ width: '30%' }} />  {/* tags — wide enough for 10+ icons */}
           </colgroup>
           <thead className="text-xs uppercase tracking-wider text-slate-400 bg-slate-800 border-b border-slate-700 sticky top-0 z-20">
             <tr>
@@ -431,7 +431,7 @@ function DateGroup({
             </td>
 
             {/* Tags — single row, all visible */}
-            <td className="px-3 py-2">
+            <td className="px-3 py-2 whitespace-nowrap">
               <div className="flex gap-1 items-center" title={event.tags.join(', ')}>
                 {event.tags.map((tag) => (
                   <TagBadge key={tag} tag={tag} iconOnly />

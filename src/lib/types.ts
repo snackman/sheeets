@@ -46,7 +46,7 @@ export interface UserProfile {
   email: string | null;
   display_name: string | null;
   x_handle: string | null;
-  farcaster_username: string | null;
+  rsvp_name: string | null;
 }
 
 export interface Friend {
@@ -54,7 +54,7 @@ export interface Friend {
   email: string | null;
   display_name: string | null;
   x_handle: string | null;
-  farcaster_username: string | null;
+  rsvp_name: string | null;
 }
 
 export interface FriendRequest {
@@ -72,6 +72,6 @@ export interface UserSearchResult {
   display_name: string | null;
   x_handle: string | null;
   email: string | null;
-  farcaster_username: string | null;
+  rsvp_name: string | null;
   request_status: 'pending_outgoing' | 'pending_incoming' | null;
 }
