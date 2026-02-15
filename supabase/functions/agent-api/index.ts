@@ -503,7 +503,6 @@ interface ApiKeyAuthResult {
   scopes: string[];
 }
 
-// deno-lint-ignore no-unused-vars
 async function authenticateApiKey(
   req: Request,
 ): Promise<ApiKeyAuthResult | Response> {
@@ -569,7 +568,6 @@ async function authenticateApiKey(
   };
 }
 
-// deno-lint-ignore no-unused-vars
 function hasScope(auth: ApiKeyAuthResult, scope: string): boolean {
   return auth.scopes.includes(scope);
 }
@@ -606,6 +604,373 @@ function generateApiKey(): string {
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
   return `shts_${hex}`;
+}
+
+// --- HTML Docs Generator -----------------------------------------------------
+
+function generateDocsHtml(): string {
+  const BASE_URL = "https://qsiukfwuwbpwyujfahtz.supabase.co/functions/v1/agent-api";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sheeets Agent API</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    line-height: 1.6;
+    padding: 0;
+  }
+  .container { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+  h1 { color: #fff; font-size: 2.25rem; margin-bottom: 0.5rem; }
+  h1 span { color: #38bdf8; }
+  .subtitle { color: #94a3b8; font-size: 1.1rem; margin-bottom: 2rem; }
+  .base-url-box {
+    background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+    padding: 1rem 1.25rem; margin-bottom: 2.5rem; display: flex;
+    align-items: center; gap: 0.75rem; flex-wrap: wrap;
+  }
+  .base-url-label { color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+  .base-url-value { color: #38bdf8; font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace; font-size: 0.95rem; word-break: break-all; }
+  h2 { color: #fff; font-size: 1.5rem; margin: 2.5rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #1e293b; }
+  h3 { color: #f1f5f9; font-size: 1.15rem; margin: 1.75rem 0 0.75rem; }
+  .section { margin-bottom: 2rem; }
+  .endpoint-group { margin-bottom: 2rem; }
+  .endpoint-group-title { color: #cbd5e1; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-bottom: 0.75rem; }
+  .endpoint {
+    background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+    padding: 0.85rem 1rem; margin-bottom: 0.5rem; display: flex;
+    align-items: flex-start; gap: 0.75rem; flex-wrap: wrap;
+  }
+  .method {
+    font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
+    font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.5rem;
+    border-radius: 4px; flex-shrink: 0; min-width: 56px; text-align: center;
+  }
+  .method-get { background: #065f46; color: #6ee7b7; }
+  .method-post { background: #1e3a5f; color: #93c5fd; }
+  .method-delete { background: #7f1d1d; color: #fca5a5; }
+  .method-put { background: #713f12; color: #fde68a; }
+  .endpoint-path {
+    font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
+    color: #f1f5f9; font-size: 0.9rem; min-width: 200px;
+  }
+  .endpoint-desc { color: #94a3b8; font-size: 0.9rem; flex: 1; }
+  .endpoint-desc code {
+    background: #334155; color: #fbbf24; padding: 0.1rem 0.35rem;
+    border-radius: 3px; font-size: 0.8rem;
+    font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
+  }
+  .endpoint-params { color: #64748b; font-size: 0.8rem; font-family: 'SF Mono', SFMono-Regular, Consolas, monospace; margin-top: 0.25rem; }
+  .auth-badge {
+    font-size: 0.7rem; padding: 0.15rem 0.45rem; border-radius: 3px;
+    font-weight: 600; flex-shrink: 0;
+  }
+  .auth-public { background: #14532d; color: #86efac; }
+  .auth-apikey { background: #4c1d95; color: #c4b5fd; }
+  .auth-jwt { background: #78350f; color: #fde68a; }
+  .scope-tag { color: #a78bfa; font-size: 0.75rem; font-family: 'SF Mono', SFMono-Regular, Consolas, monospace; }
+
+  .info-box {
+    background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+    padding: 1.25rem; margin-bottom: 1rem;
+  }
+  .info-box p { margin-bottom: 0.5rem; }
+  .info-box p:last-child { margin-bottom: 0; }
+  .info-box code {
+    background: #334155; color: #fbbf24; padding: 0.15rem 0.4rem;
+    border-radius: 3px; font-size: 0.85rem;
+    font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
+  }
+  .info-box a { color: #38bdf8; text-decoration: none; }
+  .info-box a:hover { text-decoration: underline; }
+  .info-box ul { list-style: none; padding-left: 0; }
+  .info-box li { padding: 0.25rem 0; }
+  .info-box li::before { content: "\\2022"; color: #64748b; margin-right: 0.5rem; }
+
+  table {
+    width: 100%; border-collapse: collapse; margin: 1rem 0;
+    background: #1e293b; border-radius: 8px; overflow: hidden;
+    border: 1px solid #334155;
+  }
+  th { background: #0f172a; color: #94a3b8; text-align: left; padding: 0.6rem 1rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+  td { padding: 0.6rem 1rem; border-top: 1px solid #334155; font-size: 0.9rem; }
+  td code {
+    background: #334155; color: #a78bfa; padding: 0.1rem 0.35rem;
+    border-radius: 3px; font-size: 0.8rem;
+    font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
+  }
+
+  .example {
+    background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+    padding: 1rem 1.25rem; margin: 1rem 0; overflow-x: auto;
+  }
+  .example-label { color: #64748b; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; font-weight: 600; }
+  .example pre {
+    color: #a5f3fc; font-family: 'SF Mono', SFMono-Regular, Consolas, monospace;
+    font-size: 0.85rem; white-space: pre-wrap; word-break: break-all; line-height: 1.5;
+  }
+  .example .comment { color: #64748b; }
+  .example .string { color: #86efac; }
+  .example .flag { color: #fbbf24; }
+
+  .footer {
+    margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #1e293b;
+    text-align: center; color: #475569; font-size: 0.85rem;
+  }
+  .footer a { color: #38bdf8; text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 640px) {
+    .container { padding: 1.25rem 1rem; }
+    h1 { font-size: 1.75rem; }
+    .endpoint { flex-direction: column; gap: 0.4rem; }
+    .endpoint-path { min-width: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1><span>sheeets</span> Agent API</h1>
+<p class="subtitle">REST API for AI agents to interact with sheeets &mdash; crypto event discovery for conferences like ETH Denver, Consensus, and more.</p>
+
+<div class="base-url-box">
+  <span class="base-url-label">Base URL</span>
+  <span class="base-url-value">${BASE_URL}</span>
+</div>
+
+<!-- ============================================================ -->
+<h2>Endpoints</h2>
+
+<!-- Events -->
+<div class="endpoint-group">
+  <div class="endpoint-group-title">Events <span class="auth-badge auth-public">Public</span></div>
+
+  <div class="endpoint">
+    <span class="method method-get">GET</span>
+    <span class="endpoint-path">/events</span>
+    <span class="endpoint-desc">
+      Search and filter events
+      <div class="endpoint-params">?conference= &amp; ?date= &amp; ?tags= &amp; ?search= &amp; ?free=true &amp; ?now=true</div>
+    </span>
+  </div>
+  <div class="endpoint">
+    <span class="method method-get">GET</span>
+    <span class="endpoint-path">/events/:id</span>
+    <span class="endpoint-desc">Get a single event by ID</span>
+  </div>
+  <div class="endpoint">
+    <span class="method method-get">GET</span>
+    <span class="endpoint-path">/events/conferences</span>
+    <span class="endpoint-desc">List all conferences with event counts</span>
+  </div>
+  <div class="endpoint">
+    <span class="method method-get">GET</span>
+    <span class="endpoint-path">/events/tags</span>
+    <span class="endpoint-desc">List all unique tags with counts</span>
+  </div>
+  <div class="endpoint">
+    <span class="method method-get">GET</span>
+    <span class="endpoint-path">/events/dates</span>
+    <span class="endpoint-desc">List event dates with counts</span>
+  </div>
+</div>
+
+<!-- Itinerary -->
+<div class="endpoint-group">
+  <div class="endpoint-group-title">Itinerary <span class="auth-badge auth-apikey">API Key</span> <span class="scope-tag">itinerary:read / itinerary:write</span></div>
+
+  <div class="endpoint">
+    <span class="method method-get">GET</span>
+    <span class="endpoint-path">/itinerary</span>
+    <span class="endpoint-desc">Get the user's saved events</span>
+  </div>
+  <div class="endpoint">
+    <span class="method method-post">POST</span>
+    <span class="endpoint-path">/itinerary/add</span>
+    <span class="endpoint-desc">Add events to itinerary <code>{ "eventIds": ["..."] }</code></span>
+  </div>
+  <div class="endpoint">
+    <span class="method method-post">POST</span>
+    <span class="endpoint-path">/itinerary/remove</span>
+    <span class="endpoint-desc">Remove events from itinerary <code>{ "eventIds": ["..."] }</code></span>
+  </div>
+  <div class="endpoint">
+    <span class="method method-delete">DELETE</span>
+    <span class="endpoint-path">/itinerary</span>
+    <span class="endpoint-desc">Clear all saved events</span>
+  </div>
+  <div class="endpoint">
+    <span class="method method-get">GET</span>
+    <span class="endpoint-path">/itinerary/conflicts</span>
+    <span class="endpoint-desc">Detect scheduling conflicts in itinerary</span>
+  </div>
+  <div class="endpoint">
+    <span class="method method-get">GET</span>
+    <span class="endpoint-path">/itinerary/export</span>
+    <span class="endpoint-desc">Export itinerary as JSON</span>
+  </div>
+</div>
+
+<!-- Friends -->
+<div class="endpoint-group">
+  <div class="endpoint-group-title">Friends <span class="auth-badge auth-apikey">API Key</span> <span class="scope-tag">friends:read</span></div>
+
+  <div class="endpoint">
+    <span class="method method-get">GET</span>
+    <span class="endpoint-path">/friends</span>
+    <span class="endpoint-desc">List your friends</span>
+  </div>
+  <div class="endpoint">
+    <span class="method method-get">GET</span>
+    <span class="endpoint-path">/friends/going</span>
+    <span class="endpoint-desc">See which friends are going to events <code>?eventId=</code></span>
+  </div>
+</div>
+
+<!-- RSVPs -->
+<div class="endpoint-group">
+  <div class="endpoint-group-title">RSVPs <span class="auth-badge auth-apikey">API Key</span> <span class="scope-tag">rsvps:read / rsvps:write</span></div>
+
+  <div class="endpoint">
+    <span class="method method-get">GET</span>
+    <span class="endpoint-path">/rsvps</span>
+    <span class="endpoint-desc">List your RSVPs</span>
+  </div>
+  <div class="endpoint">
+    <span class="method method-post">POST</span>
+    <span class="endpoint-path">/rsvps</span>
+    <span class="endpoint-desc">Create an RSVP <code>{ "eventId": "..." }</code></span>
+  </div>
+</div>
+
+<!-- Recommendations -->
+<div class="endpoint-group">
+  <div class="endpoint-group-title">Recommendations <span class="auth-badge auth-apikey">API Key</span> <span class="scope-tag">recommendations:read</span></div>
+
+  <div class="endpoint">
+    <span class="method method-get">GET</span>
+    <span class="endpoint-path">/recommendations</span>
+    <span class="endpoint-desc">Get personalized event suggestions based on your itinerary and preferences</span>
+  </div>
+</div>
+
+<!-- API Keys -->
+<div class="endpoint-group">
+  <div class="endpoint-group-title">API Keys <span class="auth-badge auth-jwt">JWT Auth</span></div>
+
+  <div class="endpoint">
+    <span class="method method-post">POST</span>
+    <span class="endpoint-path">/keys</span>
+    <span class="endpoint-desc">Create an API key <code>{ "name?": "...", "scopes?": [...] }</code></span>
+  </div>
+  <div class="endpoint">
+    <span class="method method-get">GET</span>
+    <span class="endpoint-path">/keys</span>
+    <span class="endpoint-desc">List your API keys (key values redacted)</span>
+  </div>
+  <div class="endpoint">
+    <span class="method method-delete">DELETE</span>
+    <span class="endpoint-path">/keys/:id</span>
+    <span class="endpoint-desc">Revoke an API key</span>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>Authentication</h2>
+
+<div class="info-box">
+  <p><strong>Public endpoints</strong> (Events) require no authentication.</p>
+  <p><strong>Authenticated endpoints</strong> (Itinerary, Friends, RSVPs, Recommendations) use an API key:</p>
+  <p><code>Authorization: Bearer shts_...</code></p>
+  <p><strong>Key management endpoints</strong> use a Supabase JWT from the web app:</p>
+  <p><code>Authorization: Bearer &lt;supabase-jwt&gt;</code></p>
+  <p style="margin-top: 0.75rem; color: #94a3b8;">Get your API key at <a href="https://sheeets.xyz">sheeets.xyz</a> (coming soon)</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>Rate Limits</h2>
+
+<div class="info-box">
+  <ul>
+    <li><strong>60 requests per minute</strong> per API key</li>
+    <li><strong>1,000 requests per day</strong> per API key</li>
+  </ul>
+  <p style="margin-top: 0.5rem; color: #94a3b8;">Public event endpoints are not rate-limited but are cached for 15 minutes.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>Scopes</h2>
+
+<table>
+  <thead>
+    <tr><th>Scope</th><th>Access</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>itinerary:read</code></td><td>Read your saved itinerary, detect conflicts, export</td></tr>
+    <tr><td><code>itinerary:write</code></td><td>Add/remove events, clear itinerary</td></tr>
+    <tr><td><code>friends:read</code></td><td>List friends, see friends' itineraries</td></tr>
+    <tr><td><code>rsvps:read</code></td><td>List your RSVPs</td></tr>
+    <tr><td><code>rsvps:write</code></td><td>Create new RSVPs</td></tr>
+    <tr><td><code>recommendations:read</code></td><td>Get personalized event recommendations</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2>Examples</h2>
+
+<div class="example">
+  <div class="example-label">Search events</div>
+  <pre><span class="flag">curl</span> <span class="string">"${BASE_URL}/events?search=pizza&amp;free=true"</span></pre>
+</div>
+
+<div class="example">
+  <div class="example-label">Get a single event</div>
+  <pre><span class="flag">curl</span> <span class="string">"${BASE_URL}/events/evt-abc123"</span></pre>
+</div>
+
+<div class="example">
+  <div class="example-label">List conferences</div>
+  <pre><span class="flag">curl</span> <span class="string">"${BASE_URL}/events/conferences"</span></pre>
+</div>
+
+<div class="example">
+  <div class="example-label">Filter by conference and date</div>
+  <pre><span class="flag">curl</span> <span class="string">"${BASE_URL}/events?conference=ETH+Denver+2026&amp;date=2026-02-25"</span></pre>
+</div>
+
+<div class="example">
+  <div class="example-label">Filter by tags</div>
+  <pre><span class="flag">curl</span> <span class="string">"${BASE_URL}/events?tags=AI,DeFi"</span></pre>
+</div>
+
+<div class="example">
+  <div class="example-label">Events happening now</div>
+  <pre><span class="flag">curl</span> <span class="string">"${BASE_URL}/events?now=true"</span></pre>
+</div>
+
+<div class="example">
+  <div class="example-label">Authenticated request (API key)</div>
+  <pre><span class="flag">curl</span> <span class="flag">-H</span> <span class="string">"Authorization: Bearer shts_your_key_here"</span> \\
+     <span class="string">"${BASE_URL}/itinerary"</span></pre>
+</div>
+
+<!-- ============================================================ -->
+<div class="footer">
+  Built with <a href="https://supabase.com/docs/guides/functions" target="_blank" rel="noopener">Supabase Edge Functions</a>
+  &nbsp;&middot;&nbsp;
+  <a href="https://sheeets.xyz" target="_blank" rel="noopener">sheeets.xyz</a>
+</div>
+
+</div>
+</body>
+</html>`;
 }
 
 // --- Route Handlers -----------------------------------------------------------
@@ -823,6 +1188,333 @@ async function handleRevokeKey(
   return corsResponse({ success: true });
 }
 
+// --- Phase 5: Friends Route Handlers (API key auth, friends:read) -------------
+
+async function handleGetFriends(req: Request): Promise<Response> {
+  const auth = await authenticateApiKey(req);
+  if (auth instanceof Response) return auth;
+  if (!hasScope(auth, "friends:read")) {
+    return errorResponse("Missing required scope: friends:read", 403);
+  }
+
+  const admin = getAdminClient();
+  const userId = auth.userId;
+
+  // Query friendships where user is either user_a or user_b
+  const { data: friendships, error: fErr } = await admin
+    .from("friendships")
+    .select("user_a, user_b")
+    .or(`user_a.eq.${userId},user_b.eq.${userId}`);
+
+  if (fErr) {
+    console.error("Failed to fetch friendships:", fErr.message);
+    return errorResponse("Failed to fetch friends", 500);
+  }
+
+  // Extract the friend IDs (the other side of each friendship)
+  const friendIds = (friendships || []).map((f) =>
+    f.user_a === userId ? f.user_b : f.user_a
+  );
+
+  if (friendIds.length === 0) {
+    return corsResponse({ data: [] });
+  }
+
+  // Fetch profiles for all friends
+  const { data: profiles, error: pErr } = await admin
+    .from("profiles")
+    .select("user_id, display_name, x_handle, email")
+    .in("user_id", friendIds);
+
+  if (pErr) {
+    console.error("Failed to fetch friend profiles:", pErr.message);
+    return errorResponse("Failed to fetch friend profiles", 500);
+  }
+
+  return corsResponse({ data: profiles || [] });
+}
+
+async function handleGetFriendsGoing(
+  req: Request,
+  params: URLSearchParams,
+): Promise<Response> {
+  const auth = await authenticateApiKey(req);
+  if (auth instanceof Response) return auth;
+  if (!hasScope(auth, "friends:read")) {
+    return errorResponse("Missing required scope: friends:read", 403);
+  }
+
+  const admin = getAdminClient();
+  const userId = auth.userId;
+  const eventId = params.get("eventId");
+
+  // Get friend IDs
+  const { data: friendships, error: fErr } = await admin
+    .from("friendships")
+    .select("user_a, user_b")
+    .or(`user_a.eq.${userId},user_b.eq.${userId}`);
+
+  if (fErr) {
+    console.error("Failed to fetch friendships:", fErr.message);
+    return errorResponse("Failed to fetch friends", 500);
+  }
+
+  const friendIds = (friendships || []).map((f) =>
+    f.user_a === userId ? f.user_b : f.user_a
+  );
+
+  if (friendIds.length === 0) {
+    return corsResponse({ data: [] });
+  }
+
+  // Fetch itineraries for all friends
+  const { data: itineraries, error: iErr } = await admin
+    .from("itineraries")
+    .select("user_id, event_ids")
+    .in("user_id", friendIds);
+
+  if (iErr) {
+    console.error("Failed to fetch friend itineraries:", iErr.message);
+    return errorResponse("Failed to fetch friend itineraries", 500);
+  }
+
+  // Fetch profiles for display names
+  const { data: profiles } = await admin
+    .from("profiles")
+    .select("user_id, display_name")
+    .in("user_id", friendIds);
+
+  const profileMap = new Map(
+    (profiles || []).map((p) => [p.user_id, p.display_name]),
+  );
+
+  let results = (itineraries || []).map((it) => ({
+    user_id: it.user_id,
+    display_name: profileMap.get(it.user_id) || null,
+    event_ids: it.event_ids || [],
+  }));
+
+  // If eventId specified, filter to friends whose itinerary contains that event
+  if (eventId) {
+    results = results.filter((r) => r.event_ids.includes(eventId));
+  }
+
+  return corsResponse({ data: results });
+}
+
+// --- Phase 6: RSVP Route Handlers (API key auth) -----------------------------
+
+async function handleGetRsvps(req: Request): Promise<Response> {
+  const auth = await authenticateApiKey(req);
+  if (auth instanceof Response) return auth;
+  if (!hasScope(auth, "rsvps:read")) {
+    return errorResponse("Missing required scope: rsvps:read", 403);
+  }
+
+  const admin = getAdminClient();
+
+  const { data: rsvps, error } = await admin
+    .from("rsvps")
+    .select("event_id, status, method, created_at")
+    .eq("user_id", auth.userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Failed to fetch RSVPs:", error.message);
+    return errorResponse("Failed to fetch RSVPs", 500);
+  }
+
+  return corsResponse({ data: rsvps || [] });
+}
+
+async function handleCreateRsvp(req: Request): Promise<Response> {
+  const auth = await authenticateApiKey(req);
+  if (auth instanceof Response) return auth;
+  if (!hasScope(auth, "rsvps:write")) {
+    return errorResponse("Missing required scope: rsvps:write", 403);
+  }
+
+  let body: { eventId?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return errorResponse("Invalid JSON body", 400);
+  }
+
+  if (!body.eventId || typeof body.eventId !== "string") {
+    return errorResponse("Missing required field: eventId (string)", 400);
+  }
+
+  const eventId = body.eventId.trim();
+
+  // Validate eventId exists in events cache
+  const events = await getEvents();
+  const event = events.find((e) => e.id === eventId);
+  if (!event) {
+    return errorResponse("Event not found", 404);
+  }
+
+  const admin = getAdminClient();
+
+  // Upsert into rsvps table (UNIQUE on user_id + event_id)
+  const { error } = await admin.from("rsvps").upsert(
+    {
+      user_id: auth.userId,
+      event_id: eventId,
+      status: "confirmed",
+      method: "api",
+      created_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,event_id" },
+  );
+
+  if (error) {
+    console.error("Failed to create RSVP:", error.message);
+    return errorResponse("Failed to create RSVP", 500);
+  }
+
+  return corsResponse({ success: true, eventId, method: "api" }, 201);
+}
+
+// --- Phase 7: Recommendations Route Handler (API key auth) -------------------
+
+async function handleGetRecommendations(req: Request): Promise<Response> {
+  const auth = await authenticateApiKey(req);
+  if (auth instanceof Response) return auth;
+  if (!hasScope(auth, "recommendations:read")) {
+    return errorResponse(
+      "Missing required scope: recommendations:read",
+      403,
+    );
+  }
+
+  const admin = getAdminClient();
+  const userId = auth.userId;
+
+  // 1. Get user's itinerary
+  const { data: itinerary } = await admin
+    .from("itineraries")
+    .select("event_ids")
+    .eq("user_id", userId)
+    .single();
+
+  const userEventIds = new Set<string>(itinerary?.event_ids || []);
+
+  // 2. Get all events
+  const allEvents = await getEvents();
+
+  // If user has no itinerary, return top events by default (can't personalize)
+  if (userEventIds.size === 0) {
+    const topEvents = allEvents.slice(0, 20).map((e) => ({
+      ...formatEvent(e),
+      score: 0,
+      reasons: ["no_itinerary"],
+    }));
+    return corsResponse({ data: topEvents });
+  }
+
+  // 3. Collect tags from itinerary events, weighted by frequency
+  const tagWeights = new Map<string, number>();
+  for (const event of allEvents) {
+    if (userEventIds.has(event.id)) {
+      for (const tag of event.tags) {
+        tagWeights.set(tag, (tagWeights.get(tag) || 0) + 1);
+      }
+    }
+  }
+
+  // 4. Get friends and their itineraries for social signal
+  const { data: friendships } = await admin
+    .from("friendships")
+    .select("user_a, user_b")
+    .or(`user_a.eq.${userId},user_b.eq.${userId}`);
+
+  const friendIds = (friendships || []).map((f) =>
+    f.user_a === userId ? f.user_b : f.user_a
+  );
+
+  // Build a map: eventId -> list of friend display names going
+  const friendEventMap = new Map<string, string[]>();
+  if (friendIds.length > 0) {
+    const { data: friendItineraries } = await admin
+      .from("itineraries")
+      .select("user_id, event_ids")
+      .in("user_id", friendIds);
+
+    const { data: friendProfiles } = await admin
+      .from("profiles")
+      .select("user_id, display_name")
+      .in("user_id", friendIds);
+
+    const nameMap = new Map(
+      (friendProfiles || []).map((p) => [
+        p.user_id,
+        p.display_name || "Friend",
+      ]),
+    );
+
+    for (const fi of friendItineraries || []) {
+      const name = nameMap.get(fi.user_id) || "Friend";
+      for (const eid of fi.event_ids || []) {
+        if (!friendEventMap.has(eid)) {
+          friendEventMap.set(eid, []);
+        }
+        friendEventMap.get(eid)!.push(name);
+      }
+    }
+  }
+
+  // 5. Score remaining events (exclude events already in itinerary)
+  const scored: {
+    event: CachedEvent;
+    score: number;
+    reasons: string[];
+  }[] = [];
+
+  for (const event of allEvents) {
+    if (userEventIds.has(event.id)) continue; // skip events already in itinerary
+
+    let score = 0;
+    const reasons: string[] = [];
+
+    // Tag overlap scoring
+    for (const tag of event.tags) {
+      const weight = tagWeights.get(tag);
+      if (weight) {
+        score += weight;
+        reasons.push(`tag:${tag}`);
+      }
+    }
+
+    // Friends going scoring (each friend going = +3 points)
+    const friendsGoing = friendEventMap.get(event.id);
+    if (friendsGoing && friendsGoing.length > 0) {
+      score += friendsGoing.length * 3;
+      for (const name of friendsGoing) {
+        reasons.push(`friend:${name}`);
+      }
+    }
+
+    if (score > 0) {
+      // Deduplicate reasons
+      const uniqueReasons = [...new Set(reasons)];
+      scored.push({ event, score, reasons: uniqueReasons });
+    }
+  }
+
+  // 6. Sort by score descending, return top 20
+  scored.sort((a, b) => b.score - a.score);
+  const top = scored.slice(0, 20);
+
+  const data = top.map((s) => ({
+    ...formatEvent(s.event),
+    score: s.score,
+    reasons: s.reasons,
+  }));
+
+  return corsResponse({ data });
+}
+
 // --- Router -------------------------------------------------------------------
 
 Deno.serve(async (req: Request) => {
@@ -856,9 +1548,18 @@ Deno.serve(async (req: Request) => {
     // -- Public Event Routes ---------------------------------------------------
 
     if (method === "GET" && path === "/") {
+      // Content negotiation: return HTML docs for browsers, JSON for agents
+      const accept = req.headers.get("Accept") || "";
+      if (accept.includes("text/html")) {
+        return new Response(generateDocsHtml(), {
+          status: 200,
+          headers: { ...CORS_HEADERS, "Content-Type": "text/html; charset=utf-8" },
+        });
+      }
       return corsResponse({
         name: "sheeets Agent API",
-        version: "0.2.0",
+        version: "0.3.0",
+        docs: "Visit this URL in a browser for interactive documentation",
         endpoints: {
           events: {
             "GET /events":
@@ -868,6 +1569,29 @@ Deno.serve(async (req: Request) => {
               "List conferences with event counts",
             "GET /events/tags": "List all unique tags with counts",
             "GET /events/dates": "List dates with event counts",
+          },
+          itinerary: {
+            "GET /itinerary": "Get saved events (API key, itinerary:read)",
+            "POST /itinerary/add": "Add events { eventIds: [...] } (API key, itinerary:write)",
+            "POST /itinerary/remove": "Remove events { eventIds: [...] } (API key, itinerary:write)",
+            "DELETE /itinerary": "Clear all (API key, itinerary:write)",
+            "GET /itinerary/conflicts": "Detect scheduling conflicts (API key, itinerary:read)",
+            "GET /itinerary/export": "Export as JSON (API key, itinerary:read)",
+          },
+          friends: {
+            "GET /friends":
+              "List friends with profiles (API key, friends:read)",
+            "GET /friends/going":
+              "Friends' itineraries, optionally filtered by ?eventId= (API key, friends:read)",
+          },
+          rsvps: {
+            "GET /rsvps": "List your RSVPs (API key, rsvps:read)",
+            "POST /rsvps":
+              "RSVP to an event — { eventId } (API key, rsvps:write)",
+          },
+          recommendations: {
+            "GET /recommendations":
+              "Personalized event recommendations based on itinerary tags + friends (API key, recommendations:read)",
           },
           keys: {
             "POST /keys":
@@ -919,6 +1643,32 @@ Deno.serve(async (req: Request) => {
       if (keyId) {
         return await handleRevokeKey(req, decodeURIComponent(keyId));
       }
+    }
+
+    // -- Friends Routes (API key auth, friends:read) --------------------------
+
+    if (method === "GET" && path === "/friends") {
+      return await handleGetFriends(req);
+    }
+
+    if (method === "GET" && path === "/friends/going") {
+      return await handleGetFriendsGoing(req, params);
+    }
+
+    // -- RSVP Routes (API key auth) --------------------------------------------
+
+    if (method === "GET" && path === "/rsvps") {
+      return await handleGetRsvps(req);
+    }
+
+    if (method === "POST" && path === "/rsvps") {
+      return await handleCreateRsvp(req);
+    }
+
+    // -- Recommendations Route (API key auth) ----------------------------------
+
+    if (method === "GET" && path === "/recommendations") {
+      return await handleGetRecommendations(req);
     }
 
     // -- 404 -------------------------------------------------------------------
