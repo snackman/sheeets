@@ -430,9 +430,9 @@ function DateGroup({
               ) : null}
             </td>
 
-            {/* Tags — single row, overflow hidden */}
+            {/* Tags — single row, all visible */}
             <td className="px-3 py-2">
-              <div className="flex gap-1 items-center overflow-hidden" title={event.tags.join(', ')}>
+              <div className="flex gap-1 items-center" title={event.tags.join(', ')}>
                 {event.tags.map((tag) => (
                   <TagBadge key={tag} tag={tag} iconOnly />
                 ))}
