@@ -35,6 +35,7 @@ export function useRsvp() {
   const [embedEvent, setEmbedEvent] = useState<{
     eventId: string;
     lumaUrl: string;
+    lumaApiId?: string;
   } | null>(null);
 
   // Load existing RSVPs from database on mount
@@ -123,6 +124,7 @@ export function useRsvp() {
 
       // Step 1: Resolve Luma event metadata
       const resolution = await resolveLumaEvent(eventId, eventUrl);
+      let resolvedApiId: string | undefined = resolution?.luma_api_id ?? undefined;
 
       if (!resolution?.luma_api_id) {
         // Can't resolve - fall back to embed
@@ -135,7 +137,7 @@ export function useRsvp() {
       // Step 2: If event requires approval or is paid, go straight to embed
       if (resolution.requires_approval || !resolution.is_free) {
         setState(eventId, { status: 'fallback' });
-        setEmbedEvent({ eventId, lumaUrl: eventUrl });
+        setEmbedEvent({ eventId, lumaUrl: eventUrl, lumaApiId: resolvedApiId });
         trackRsvp(eventId, 'fallback_paid_or_approval');
         return;
       }
@@ -170,7 +172,7 @@ export function useRsvp() {
           trackRsvp(eventId, 'success');
         } else if (result.fallback_required) {
           setState(eventId, { status: 'fallback' });
-          setEmbedEvent({ eventId, lumaUrl: eventUrl });
+          setEmbedEvent({ eventId, lumaUrl: eventUrl, lumaApiId: resolvedApiId });
           trackRsvp(eventId, 'fallback_api_failed');
         } else {
           setState(eventId, { status: 'error', error: 'RSVP failed' });
@@ -180,7 +182,7 @@ export function useRsvp() {
         console.error('RSVP error:', err);
         // Fall back to embed on any error
         setState(eventId, { status: 'fallback' });
-        setEmbedEvent({ eventId, lumaUrl: eventUrl });
+        setEmbedEvent({ eventId, lumaUrl: eventUrl, lumaApiId: resolvedApiId });
         trackRsvp(eventId, 'fallback_error');
       }
     },

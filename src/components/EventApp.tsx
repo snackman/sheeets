@@ -380,6 +380,7 @@ export function EventApp() {
         <LumaEmbedOverlay
           lumaUrl={embedEvent.lumaUrl}
           eventId={embedEvent.eventId}
+          lumaApiId={embedEvent.lumaApiId}
           onClose={closeEmbed}
           onComplete={markEmbedRsvp}
         />
