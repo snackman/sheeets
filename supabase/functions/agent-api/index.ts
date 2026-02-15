@@ -27,7 +27,7 @@ const CORS_HEADERS = {
 function corsResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json; charset=utf-8" },
   });
 }
 
@@ -451,16 +451,62 @@ function formatEvent(e: CachedEvent) {
   };
 }
 
-// --- Auth Module (infrastructure for future authenticated endpoints) ----------
+// --- Auth Module: JWT Auth (for key management from web app) -----------------
 
-interface AuthResult {
+interface JwtAuthResult {
+  userId: string;
+}
+
+async function authenticateJwt(
+  req: Request,
+): Promise<JwtAuthResult | Response> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return errorResponse(
+      "Missing or invalid token. Expected: Authorization: Bearer <jwt>",
+      401,
+    );
+  }
+
+  const token = authHeader.replace("Bearer ", "");
+
+  // JWT tokens should NOT start with shts_ (those are API keys)
+  if (token.startsWith("shts_")) {
+    return errorResponse(
+      "API keys cannot be used for key management. Use a Supabase JWT.",
+      401,
+    );
+  }
+
+  const url = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const admin = createClient(url, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const {
+    data: { user },
+    error,
+  } = await admin.auth.getUser(token);
+
+  if (error || !user) {
+    return errorResponse("Invalid or expired JWT", 401);
+  }
+
+  return { userId: user.id };
+}
+
+// --- Auth Module: API Key Auth (for authenticated API endpoints) -------------
+
+interface ApiKeyAuthResult {
   userId: string;
   scopes: string[];
 }
 
-async function authenticateRequest(
+// deno-lint-ignore no-unused-vars
+async function authenticateApiKey(
   req: Request,
-): Promise<AuthResult | Response> {
+): Promise<ApiKeyAuthResult | Response> {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer shts_")) {
     return errorResponse(
@@ -472,11 +518,11 @@ async function authenticateRequest(
   const apiKey = authHeader.replace("Bearer ", "");
 
   // SHA-256 hash the key
-  const encoder = new TextEncoder();
-  const data = encoder.encode(apiKey);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const keyHash = hashArray
+  const hashBuffer = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(apiKey),
+  );
+  const keyHash = Array.from(new Uint8Array(hashBuffer))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 
@@ -487,15 +533,11 @@ async function authenticateRequest(
     .from("api_keys")
     .select("*")
     .eq("key_hash", keyHash)
+    .is("revoked_at", null)
     .single();
 
   if (error || !keyRecord) {
     return errorResponse("Invalid API key", 401);
-  }
-
-  // Check if revoked
-  if (keyRecord.revoked_at) {
-    return errorResponse("API key has been revoked", 401);
   }
 
   // Check if expired
@@ -514,11 +556,12 @@ async function authenticateRequest(
     );
   }
 
-  // Update last_used_at
-  await admin
+  // Update last_used_at (fire and forget)
+  admin
     .from("api_keys")
     .update({ last_used_at: new Date().toISOString() })
-    .eq("id", keyRecord.id);
+    .eq("id", keyRecord.id)
+    .then(() => {});
 
   return {
     userId: keyRecord.user_id,
@@ -527,8 +570,42 @@ async function authenticateRequest(
 }
 
 // deno-lint-ignore no-unused-vars
-function hasScope(auth: AuthResult, scope: string): boolean {
+function hasScope(auth: ApiKeyAuthResult, scope: string): boolean {
   return auth.scopes.includes(scope);
+}
+
+// --- Auth Helpers -------------------------------------------------------------
+
+const VALID_SCOPES = [
+  "itinerary:read",
+  "itinerary:write",
+  "friends:read",
+  "rsvps:read",
+  "rsvps:write",
+  "recommendations:read",
+];
+
+const DEFAULT_SCOPES = [...VALID_SCOPES];
+
+const MAX_KEYS_PER_USER = 5;
+
+async function sha256Hex(input: string): Promise<string> {
+  const hashBuffer = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(input),
+  );
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function generateApiKey(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return `shts_${hex}`;
 }
 
 // --- Route Handlers -----------------------------------------------------------
@@ -592,6 +669,160 @@ async function handleGetDates(): Promise<Response> {
   return corsResponse({ data: dates });
 }
 
+// --- Key Management Route Handlers -------------------------------------------
+
+async function handleCreateKey(req: Request): Promise<Response> {
+  // Authenticate via JWT
+  const auth = await authenticateJwt(req);
+  if (auth instanceof Response) return auth;
+
+  const admin = getAdminClient();
+
+  // Check key count limit
+  const { count, error: countError } = await admin
+    .from("api_keys")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", auth.userId)
+    .is("revoked_at", null);
+
+  if (countError) {
+    return errorResponse("Failed to check key count", 500);
+  }
+
+  if ((count ?? 0) >= MAX_KEYS_PER_USER) {
+    return errorResponse(
+      `Maximum of ${MAX_KEYS_PER_USER} active API keys per user. Revoke an existing key first.`,
+      400,
+    );
+  }
+
+  // Parse request body
+  let name = "default";
+  let scopes = DEFAULT_SCOPES;
+
+  try {
+    const body = await req.json();
+    if (body.name && typeof body.name === "string") {
+      name = body.name.trim().slice(0, 100); // limit name length
+    }
+    if (Array.isArray(body.scopes) && body.scopes.length > 0) {
+      // Validate all scopes
+      const invalidScopes = body.scopes.filter(
+        (s: unknown) => typeof s !== "string" || !VALID_SCOPES.includes(s as string),
+      );
+      if (invalidScopes.length > 0) {
+        return errorResponse(
+          `Invalid scopes: ${invalidScopes.join(", ")}. Valid scopes: ${VALID_SCOPES.join(", ")}`,
+          400,
+        );
+      }
+      scopes = body.scopes;
+    }
+  } catch {
+    // Empty body is fine, use defaults
+  }
+
+  // Generate the raw key
+  const rawKey = generateApiKey();
+  const keyHash = await sha256Hex(rawKey);
+  const keyPrefix = rawKey.substring(5, 13); // first 8 chars after "shts_"
+
+  // Insert into database
+  const { data: newKey, error: insertError } = await admin
+    .from("api_keys")
+    .insert({
+      user_id: auth.userId,
+      key_hash: keyHash,
+      key_prefix: keyPrefix,
+      name,
+      scopes,
+    })
+    .select("id, name, scopes, created_at")
+    .single();
+
+  if (insertError) {
+    console.error("Failed to create API key:", insertError.message);
+    return errorResponse("Failed to create API key", 500);
+  }
+
+  // Return the raw key ONCE -- it cannot be retrieved again
+  return corsResponse(
+    {
+      key: rawKey,
+      id: newKey.id,
+      name: newKey.name,
+      scopes: newKey.scopes,
+      created_at: newKey.created_at,
+    },
+    201,
+  );
+}
+
+async function handleListKeys(req: Request): Promise<Response> {
+  // Authenticate via JWT
+  const auth = await authenticateJwt(req);
+  if (auth instanceof Response) return auth;
+
+  const admin = getAdminClient();
+
+  const { data: keys, error } = await admin
+    .from("api_keys")
+    .select("id, name, key_prefix, scopes, last_used_at, created_at")
+    .eq("user_id", auth.userId)
+    .is("revoked_at", null)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Failed to list API keys:", error.message);
+    return errorResponse("Failed to list API keys", 500);
+  }
+
+  return corsResponse({ data: keys });
+}
+
+async function handleRevokeKey(
+  req: Request,
+  keyId: string,
+): Promise<Response> {
+  // Authenticate via JWT
+  const auth = await authenticateJwt(req);
+  if (auth instanceof Response) return auth;
+
+  const admin = getAdminClient();
+
+  // Verify the key belongs to this user and is not already revoked
+  const { data: existing, error: lookupError } = await admin
+    .from("api_keys")
+    .select("id, user_id, revoked_at")
+    .eq("id", keyId)
+    .single();
+
+  if (lookupError || !existing) {
+    return errorResponse("API key not found", 404);
+  }
+
+  if (existing.user_id !== auth.userId) {
+    return errorResponse("API key not found", 404); // Don't reveal it exists
+  }
+
+  if (existing.revoked_at) {
+    return errorResponse("API key is already revoked", 400);
+  }
+
+  // Soft-delete by setting revoked_at
+  const { error: updateError } = await admin
+    .from("api_keys")
+    .update({ revoked_at: new Date().toISOString() })
+    .eq("id", keyId);
+
+  if (updateError) {
+    console.error("Failed to revoke API key:", updateError.message);
+    return errorResponse("Failed to revoke API key", 500);
+  }
+
+  return corsResponse({ success: true });
+}
+
 // --- Router -------------------------------------------------------------------
 
 Deno.serve(async (req: Request) => {
@@ -627,7 +858,7 @@ Deno.serve(async (req: Request) => {
     if (method === "GET" && path === "/") {
       return corsResponse({
         name: "sheeets Agent API",
-        version: "0.1.0",
+        version: "0.2.0",
         endpoints: {
           events: {
             "GET /events":
@@ -637,6 +868,12 @@ Deno.serve(async (req: Request) => {
               "List conferences with event counts",
             "GET /events/tags": "List all unique tags with counts",
             "GET /events/dates": "List dates with event counts",
+          },
+          keys: {
+            "POST /keys":
+              "Create API key (JWT auth) — { name?, scopes? }",
+            "GET /keys": "List your API keys (JWT auth, redacted)",
+            "DELETE /keys/:id": "Revoke an API key (JWT auth)",
           },
         },
       });
@@ -663,6 +900,24 @@ Deno.serve(async (req: Request) => {
       const id = path.substring("/events/".length);
       if (id) {
         return await handleGetEventById(decodeURIComponent(id));
+      }
+    }
+
+    // -- Key Management Routes (JWT auth) --------------------------------------
+
+    if (method === "POST" && path === "/keys") {
+      return await handleCreateKey(req);
+    }
+
+    if (method === "GET" && path === "/keys") {
+      return await handleListKeys(req);
+    }
+
+    // DELETE /keys/:id
+    if (method === "DELETE" && path.startsWith("/keys/")) {
+      const keyId = path.substring("/keys/".length);
+      if (keyId) {
+        return await handleRevokeKey(req, decodeURIComponent(keyId));
       }
     }
 
