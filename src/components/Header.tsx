@@ -48,21 +48,6 @@ export function Header({
 
           {/* Right: Controls */}
           <div className="flex items-center gap-3 shrink-0">
-            {/* Auth */}
-            {!loading && (
-              user ? (
-                <UserMenu events={events} itinerary={itinerary} onOpenFriends={onOpenFriends} />
-              ) : (
-                <button
-                  onClick={() => { trackAuthPrompt('sign_in_button'); setShowAuth(true); }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700 transition-colors text-sm cursor-pointer"
-                >
-                  <User className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Sign in</span>
-                </button>
-              )
-            )}
-
             <ViewToggle viewMode={viewMode} onViewChange={onViewChange} />
 
             {/* Itinerary filter toggle */}
@@ -93,6 +78,21 @@ export function Header({
                 </span>
               )}
             </button>
+
+            {/* Auth / Profile — far right */}
+            {!loading && (
+              user ? (
+                <UserMenu events={events} itinerary={itinerary} onOpenFriends={onOpenFriends} />
+              ) : (
+                <button
+                  onClick={() => { trackAuthPrompt('sign_in_button'); setShowAuth(true); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700 transition-colors text-sm cursor-pointer"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Sign in</span>
+                </button>
+              )
+            )}
           </div>
         </div>
       </header>
