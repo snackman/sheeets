@@ -134,11 +134,11 @@ export function useRsvp() {
         return;
       }
 
-      // Step 2: If event requires approval or is paid, go straight to embed
-      if (resolution.requires_approval || !resolution.is_free) {
+      // Step 2: If event is paid, go straight to embed (approval-required still gets auto RSVP)
+      if (!resolution.is_free) {
         setState(eventId, { status: 'fallback' });
         setEmbedEvent({ eventId, lumaUrl: eventUrl, lumaApiId: resolvedApiId });
-        trackRsvp(eventId, 'fallback_paid_or_approval');
+        trackRsvp(eventId, 'fallback_paid');
         return;
       }
 
