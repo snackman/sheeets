@@ -812,6 +812,11 @@ function generateDocsHtml(): string {
     <span class="endpoint-desc">Detect scheduling conflicts in itinerary</span>
   </div>
   <div class="endpoint">
+    <span class="method method-post">POST</span>
+    <span class="endpoint-path">/itinerary/share</span>
+    <span class="endpoint-desc">Create a shareable itinerary link</span>
+  </div>
+  <div class="endpoint">
     <span class="method method-get">GET</span>
     <span class="endpoint-path">/itinerary/export</span>
     <span class="endpoint-desc">Export itinerary as JSON</span>
@@ -1515,6 +1520,380 @@ async function handleGetRecommendations(req: Request): Promise<Response> {
   return corsResponse({ data });
 }
 
+// --- Phase 4/9: Itinerary Route Handlers (API key auth) -----------------------
+
+async function handleGetItinerary(req: Request): Promise<Response> {
+  const auth = await authenticateApiKey(req);
+  if (auth instanceof Response) return auth;
+  if (!hasScope(auth, "itinerary:read")) {
+    return errorResponse("Missing required scope: itinerary:read", 403);
+  }
+
+  const admin = getAdminClient();
+
+  const { data: itinerary, error } = await admin
+    .from("itineraries")
+    .select("event_ids")
+    .eq("user_id", auth.userId)
+    .single();
+
+  if (error && error.code !== "PGRST116") {
+    // PGRST116 = no rows found, which is fine (empty itinerary)
+    console.error("Failed to fetch itinerary:", error.message);
+    return errorResponse("Failed to fetch itinerary", 500);
+  }
+
+  const eventIds: string[] = itinerary?.event_ids || [];
+
+  if (eventIds.length === 0) {
+    return corsResponse({ data: [] });
+  }
+
+  // Join with events cache to return full event objects
+  const allEvents = await getEvents();
+  const eventMap = new Map(allEvents.map((e) => [e.id, e]));
+  const events = eventIds
+    .map((id) => eventMap.get(id))
+    .filter(Boolean)
+    .map((e) => formatEvent(e!));
+
+  return corsResponse({ data: events });
+}
+
+async function handleAddToItinerary(req: Request): Promise<Response> {
+  const auth = await authenticateApiKey(req);
+  if (auth instanceof Response) return auth;
+  if (!hasScope(auth, "itinerary:write")) {
+    return errorResponse("Missing required scope: itinerary:write", 403);
+  }
+
+  let body: { eventIds?: string[] };
+  try {
+    body = await req.json();
+  } catch {
+    return errorResponse("Invalid JSON body", 400);
+  }
+
+  if (
+    !body.eventIds ||
+    !Array.isArray(body.eventIds) ||
+    body.eventIds.length === 0
+  ) {
+    return errorResponse(
+      'Missing required field: eventIds (non-empty array of strings)',
+      400,
+    );
+  }
+
+  const eventIds = body.eventIds.map((id) => String(id).trim());
+
+  // Validate eventIds exist in events cache
+  const allEvents = await getEvents();
+  const validIds = new Set(allEvents.map((e) => e.id));
+  const invalidIds = eventIds.filter((id) => !validIds.has(id));
+  if (invalidIds.length > 0) {
+    return errorResponse(
+      `Events not found: ${invalidIds.join(", ")}`,
+      404,
+    );
+  }
+
+  const admin = getAdminClient();
+
+  // Get existing itinerary
+  const { data: existing } = await admin
+    .from("itineraries")
+    .select("event_ids")
+    .eq("user_id", auth.userId)
+    .single();
+
+  const currentIds: string[] = existing?.event_ids || [];
+  const currentSet = new Set(currentIds);
+
+  // Merge: add new IDs without duplicates
+  const newIds = eventIds.filter((id) => !currentSet.has(id));
+  const mergedIds = [...currentIds, ...newIds];
+
+  // Upsert
+  const { error } = await admin.from("itineraries").upsert(
+    {
+      user_id: auth.userId,
+      event_ids: mergedIds,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
+
+  if (error) {
+    console.error("Failed to add to itinerary:", error.message);
+    return errorResponse("Failed to add to itinerary", 500);
+  }
+
+  return corsResponse({ success: true, eventIds: mergedIds });
+}
+
+async function handleRemoveFromItinerary(req: Request): Promise<Response> {
+  const auth = await authenticateApiKey(req);
+  if (auth instanceof Response) return auth;
+  if (!hasScope(auth, "itinerary:write")) {
+    return errorResponse("Missing required scope: itinerary:write", 403);
+  }
+
+  let body: { eventIds?: string[] };
+  try {
+    body = await req.json();
+  } catch {
+    return errorResponse("Invalid JSON body", 400);
+  }
+
+  if (
+    !body.eventIds ||
+    !Array.isArray(body.eventIds) ||
+    body.eventIds.length === 0
+  ) {
+    return errorResponse(
+      'Missing required field: eventIds (non-empty array of strings)',
+      400,
+    );
+  }
+
+  const removeSet = new Set(body.eventIds.map((id) => String(id).trim()));
+
+  const admin = getAdminClient();
+
+  // Get existing itinerary
+  const { data: existing } = await admin
+    .from("itineraries")
+    .select("event_ids")
+    .eq("user_id", auth.userId)
+    .single();
+
+  const currentIds: string[] = existing?.event_ids || [];
+  const filteredIds = currentIds.filter((id) => !removeSet.has(id));
+
+  // Update
+  const { error } = await admin
+    .from("itineraries")
+    .upsert(
+      {
+        user_id: auth.userId,
+        event_ids: filteredIds,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+
+  if (error) {
+    console.error("Failed to remove from itinerary:", error.message);
+    return errorResponse("Failed to remove from itinerary", 500);
+  }
+
+  return corsResponse({ success: true, eventIds: filteredIds });
+}
+
+async function handleClearItinerary(req: Request): Promise<Response> {
+  const auth = await authenticateApiKey(req);
+  if (auth instanceof Response) return auth;
+  if (!hasScope(auth, "itinerary:write")) {
+    return errorResponse("Missing required scope: itinerary:write", 403);
+  }
+
+  const admin = getAdminClient();
+
+  const { error } = await admin
+    .from("itineraries")
+    .upsert(
+      {
+        user_id: auth.userId,
+        event_ids: [],
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+
+  if (error) {
+    console.error("Failed to clear itinerary:", error.message);
+    return errorResponse("Failed to clear itinerary", 500);
+  }
+
+  return corsResponse({ success: true });
+}
+
+async function handleGetConflicts(req: Request): Promise<Response> {
+  const auth = await authenticateApiKey(req);
+  if (auth instanceof Response) return auth;
+  if (!hasScope(auth, "itinerary:read")) {
+    return errorResponse("Missing required scope: itinerary:read", 403);
+  }
+
+  const admin = getAdminClient();
+
+  const { data: itinerary, error } = await admin
+    .from("itineraries")
+    .select("event_ids")
+    .eq("user_id", auth.userId)
+    .single();
+
+  if (error && error.code !== "PGRST116") {
+    console.error("Failed to fetch itinerary:", error.message);
+    return errorResponse("Failed to fetch itinerary", 500);
+  }
+
+  const eventIds: string[] = itinerary?.event_ids || [];
+  if (eventIds.length === 0) {
+    return corsResponse({ data: [] });
+  }
+
+  // Get full event objects
+  const allEvents = await getEvents();
+  const eventMap = new Map(allEvents.map((e) => [e.id, e]));
+  const userEvents = eventIds
+    .map((id) => eventMap.get(id))
+    .filter(Boolean) as CachedEvent[];
+
+  // Find conflicts: events on the same day with overlapping time ranges
+  const conflicts: {
+    events: ReturnType<typeof formatEvent>[];
+    overlap: string;
+  }[] = [];
+
+  for (let i = 0; i < userEvents.length; i++) {
+    for (let j = i + 1; j < userEvents.length; j++) {
+      const a = userEvents[i];
+      const b = userEvents[j];
+
+      // Must be on the same day
+      if (a.date_iso !== b.date_iso || !a.date_iso) continue;
+
+      // Skip all-day events (they don't really "conflict" with time-specific events)
+      if (a.is_all_day || b.is_all_day) continue;
+
+      const aStart = parseTimeToMinutes(a.start_time);
+      const aEnd = parseTimeToMinutes(a.end_time) ||
+        (aStart !== null ? aStart + 120 : null); // default 2h duration
+      const bStart = parseTimeToMinutes(b.start_time);
+      const bEnd = parseTimeToMinutes(b.end_time) ||
+        (bStart !== null ? bStart + 120 : null);
+
+      if (
+        aStart === null || aEnd === null || bStart === null || bEnd === null
+      ) {
+        continue;
+      }
+
+      // Check overlap: events overlap if one starts before the other ends
+      if (aStart < bEnd && bStart < aEnd) {
+        const overlapStart = Math.max(aStart, bStart);
+        const overlapEnd = Math.min(aEnd, bEnd);
+
+        const formatMinutes = (m: number): string => {
+          const h = Math.floor(m / 60);
+          const min = m % 60;
+          const ampm = h >= 12 ? "PM" : "AM";
+          const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+          return `${h12}:${String(min).padStart(2, "0")} ${ampm}`;
+        };
+
+        conflicts.push({
+          events: [formatEvent(a), formatEvent(b)],
+          overlap: `${formatMinutes(overlapStart)} - ${formatMinutes(overlapEnd)}`,
+        });
+      }
+    }
+  }
+
+  return corsResponse({ data: conflicts });
+}
+
+async function handleShareItinerary(req: Request): Promise<Response> {
+  const auth = await authenticateApiKey(req);
+  if (auth instanceof Response) return auth;
+  if (!hasScope(auth, "itinerary:write")) {
+    return errorResponse("Missing required scope: itinerary:write", 403);
+  }
+
+  const admin = getAdminClient();
+
+  // Get user's current itinerary
+  const { data: itinerary, error: fetchErr } = await admin
+    .from("itineraries")
+    .select("event_ids")
+    .eq("user_id", auth.userId)
+    .single();
+
+  if (fetchErr && fetchErr.code !== "PGRST116") {
+    console.error("Failed to fetch itinerary:", fetchErr.message);
+    return errorResponse("Failed to fetch itinerary", 500);
+  }
+
+  const eventIds: string[] = itinerary?.event_ids || [];
+  if (eventIds.length === 0) {
+    return errorResponse("Cannot share an empty itinerary", 400);
+  }
+
+  // Generate a short code (8 chars, alphanumeric)
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  const shortCode = Array.from(bytes)
+    .map((b) => b.toString(36).padStart(2, "0"))
+    .join("")
+    .slice(0, 8);
+
+  // Insert into shared_itineraries
+  const { error: insertErr } = await admin.from("shared_itineraries").insert({
+    short_code: shortCode,
+    event_ids: eventIds,
+    created_by: auth.userId,
+  });
+
+  if (insertErr) {
+    console.error("Failed to share itinerary:", insertErr.message);
+    return errorResponse("Failed to share itinerary", 500);
+  }
+
+  return corsResponse({
+    code: shortCode,
+    url: `https://sheeets.xyz/itinerary/s/${shortCode}`,
+  });
+}
+
+async function handleExportItinerary(req: Request): Promise<Response> {
+  const auth = await authenticateApiKey(req);
+  if (auth instanceof Response) return auth;
+  if (!hasScope(auth, "itinerary:read")) {
+    return errorResponse("Missing required scope: itinerary:read", 403);
+  }
+
+  const admin = getAdminClient();
+
+  const { data: itinerary, error } = await admin
+    .from("itineraries")
+    .select("event_ids")
+    .eq("user_id", auth.userId)
+    .single();
+
+  if (error && error.code !== "PGRST116") {
+    console.error("Failed to fetch itinerary:", error.message);
+    return errorResponse("Failed to fetch itinerary", 500);
+  }
+
+  const eventIds: string[] = itinerary?.event_ids || [];
+
+  if (eventIds.length === 0) {
+    return corsResponse({ data: [] });
+  }
+
+  // Join with events cache to return full event objects
+  const allEvents = await getEvents();
+  const eventMap = new Map(allEvents.map((e) => [e.id, e]));
+  const events = eventIds
+    .map((id) => eventMap.get(id))
+    .filter(Boolean)
+    .map((e) => formatEvent(e!));
+
+  return corsResponse({ data: events });
+}
+
 // --- Router -------------------------------------------------------------------
 
 Deno.serve(async (req: Request) => {
@@ -1558,7 +1937,7 @@ Deno.serve(async (req: Request) => {
       }
       return corsResponse({
         name: "sheeets Agent API",
-        version: "0.3.0",
+        version: "0.4.0",
         docs: "Visit this URL in a browser for interactive documentation",
         endpoints: {
           events: {
@@ -1576,6 +1955,7 @@ Deno.serve(async (req: Request) => {
             "POST /itinerary/remove": "Remove events { eventIds: [...] } (API key, itinerary:write)",
             "DELETE /itinerary": "Clear all (API key, itinerary:write)",
             "GET /itinerary/conflicts": "Detect scheduling conflicts (API key, itinerary:read)",
+            "POST /itinerary/share": "Create shareable itinerary link (API key, itinerary:write)",
             "GET /itinerary/export": "Export as JSON (API key, itinerary:read)",
           },
           friends: {
@@ -1643,6 +2023,37 @@ Deno.serve(async (req: Request) => {
       if (keyId) {
         return await handleRevokeKey(req, decodeURIComponent(keyId));
       }
+    }
+
+    // -- Itinerary Routes (API key auth) ----------------------------------------
+    // Static sub-paths MUST come before the base /itinerary route
+
+    if (method === "POST" && path === "/itinerary/add") {
+      return await handleAddToItinerary(req);
+    }
+
+    if (method === "POST" && path === "/itinerary/remove") {
+      return await handleRemoveFromItinerary(req);
+    }
+
+    if (method === "GET" && path === "/itinerary/conflicts") {
+      return await handleGetConflicts(req);
+    }
+
+    if (method === "POST" && path === "/itinerary/share") {
+      return await handleShareItinerary(req);
+    }
+
+    if (method === "GET" && path === "/itinerary/export") {
+      return await handleExportItinerary(req);
+    }
+
+    if (method === "GET" && path === "/itinerary") {
+      return await handleGetItinerary(req);
+    }
+
+    if (method === "DELETE" && path === "/itinerary") {
+      return await handleClearItinerary(req);
     }
 
     // -- Friends Routes (API key auth, friends:read) --------------------------
