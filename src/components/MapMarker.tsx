@@ -56,10 +56,10 @@ function ClockPin({
         <circle cx={cx} cy={cy} r={ir} fill={color} />
         <circle cx={cx} cy={cy} r={ir} fill="none" stroke="white" strokeWidth={1.5} strokeOpacity={0.8} />
         {/* Clock tick marks at 12, 3, 6, 9 */}
-        <line x1={cx} y1={cy - ir} x2={cx} y2={cy - ir + 2.5} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
-        <line x1={cx + ir} y1={cy} x2={cx + ir - 2.5} y2={cy} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
-        <line x1={cx} y1={cy + ir} x2={cx} y2={cy + ir - 2.5} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
-        <line x1={cx - ir} y1={cy} x2={cx - ir + 2.5} y2={cy} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
+        <line x1={cx} y1={cy - ir} x2={cx} y2={cy - ir + 4} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
+        <line x1={cx + ir} y1={cy} x2={cx + ir - 4} y2={cy} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
+        <line x1={cx} y1={cy + ir} x2={cx} y2={cy + ir - 4} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
+        <line x1={cx - ir} y1={cy} x2={cx - ir + 4} y2={cy} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
       </svg>
     );
   }
@@ -91,10 +91,10 @@ function ClockPin({
       <path d={wedgePath} fill={color} />
       <circle cx={cx} cy={cy} r={ir} fill="none" stroke="white" strokeWidth={1.5} strokeOpacity={0.8} />
       {/* Clock tick marks at 12, 3, 6, 9 */}
-      <line x1={cx} y1={cy - ir} x2={cx} y2={cy - ir + 2.5} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
-      <line x1={cx + ir} y1={cy} x2={cx + ir - 2.5} y2={cy} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
-      <line x1={cx} y1={cy + ir} x2={cx} y2={cy + ir - 2.5} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
-      <line x1={cx - ir} y1={cy} x2={cx - ir + 2.5} y2={cy} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
+      <line x1={cx} y1={cy - ir} x2={cx} y2={cy - ir + 4} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
+      <line x1={cx + ir} y1={cy} x2={cx + ir - 4} y2={cy} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
+      <line x1={cx} y1={cy + ir} x2={cx} y2={cy + ir - 4} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
+      <line x1={cx - ir} y1={cy} x2={cx - ir + 4} y2={cy} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
     </svg>
   );
 }
