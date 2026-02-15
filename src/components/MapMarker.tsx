@@ -55,6 +55,8 @@ function ClockPin({
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <circle cx={cx} cy={cy} r={ir} fill={color} />
         <circle cx={cx} cy={cy} r={ir} fill="none" stroke="white" strokeWidth={1.5} strokeOpacity={0.8} />
+        {/* 12 o'clock notch */}
+        <line x1={cx} y1={cy - ir} x2={cx} y2={cy - ir + 3} stroke="white" strokeWidth={1.5} strokeOpacity={0.9} />
       </svg>
     );
   }
@@ -85,6 +87,8 @@ function ClockPin({
       <circle cx={cx} cy={cy} r={ir} fill="#1e293b" />
       <path d={wedgePath} fill={color} />
       <circle cx={cx} cy={cy} r={ir} fill="none" stroke="white" strokeWidth={1.5} strokeOpacity={0.8} />
+      {/* 12 o'clock notch */}
+      <line x1={cx} y1={cy - ir} x2={cx} y2={cy - ir + 3} stroke="white" strokeWidth={1.5} strokeOpacity={0.9} />
     </svg>
   );
 }
