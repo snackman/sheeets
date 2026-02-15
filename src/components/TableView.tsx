@@ -433,7 +433,7 @@ function DateGroup({
             {/* Tags — single row, all visible */}
             <td className="px-3 py-2 whitespace-nowrap">
               <div className="flex gap-1 items-center" title={event.tags.join(', ')}>
-                {event.tags.map((tag) => (
+                {event.tags.slice(0, 10).map((tag) => (
                   <TagBadge key={tag} tag={tag} iconOnly />
                 ))}
               </div>
