@@ -55,6 +55,11 @@ function ClockPin({
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <circle cx={cx} cy={cy} r={ir} fill={color} />
         <circle cx={cx} cy={cy} r={ir} fill="none" stroke="white" strokeWidth={1.5} strokeOpacity={0.8} />
+        {/* Clock tick marks at 12, 3, 6, 9 */}
+        <line x1={cx} y1={cy - ir} x2={cx} y2={cy - ir + 3} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
+        <line x1={cx + ir} y1={cy} x2={cx + ir - 3} y2={cy} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
+        <line x1={cx} y1={cy + ir} x2={cx} y2={cy + ir - 3} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
+        <line x1={cx - ir} y1={cy} x2={cx - ir + 3} y2={cy} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
       </svg>
     );
   }
@@ -85,6 +90,11 @@ function ClockPin({
       <circle cx={cx} cy={cy} r={ir} fill="#1e293b" />
       <path d={wedgePath} fill={color} />
       <circle cx={cx} cy={cy} r={ir} fill="none" stroke="white" strokeWidth={1.5} strokeOpacity={0.8} />
+      {/* Clock tick marks at 12, 3, 6, 9 */}
+      <line x1={cx} y1={cy - ir} x2={cx} y2={cy - ir + 3} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
+      <line x1={cx + ir} y1={cy} x2={cx + ir - 3} y2={cy} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
+      <line x1={cx} y1={cy + ir} x2={cx} y2={cy + ir - 3} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
+      <line x1={cx - ir} y1={cy} x2={cx - ir + 3} y2={cy} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
     </svg>
   );
 }
