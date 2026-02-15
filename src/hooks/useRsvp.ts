@@ -77,7 +77,7 @@ export function useRsvp() {
     });
   }, []);
 
-  /** Resolve Luma event metadata (cached) */
+  /** Resolve Luma event metadata (cached). No auth required - edge function is public. */
   const resolveLumaEvent = useCallback(
     async (eventId: string, lumaUrl: string): Promise<LumaResolution | null> => {
       // Check in-memory cache
@@ -88,12 +88,8 @@ export function useRsvp() {
       if (!slug) return null;
 
       try {
-        const { data: session } = await supabase.auth.getSession();
-        const token = session?.session?.access_token;
-
         const res = await supabase.functions.invoke('resolve-luma-event', {
           body: { event_id: eventId, luma_slug: slug },
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         });
 
         if (res.error) {

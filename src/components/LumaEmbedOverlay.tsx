@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { ExternalLink, Check, X } from 'lucide-react';
 
 interface LumaEmbedOverlayProps {
   lumaUrl: string;
@@ -12,9 +12,9 @@ interface LumaEmbedOverlayProps {
 }
 
 /**
- * Full-screen overlay that embeds the Luma checkout page in an iframe.
- * Used as a fallback when the server-side RSVP fails (paid events,
- * approval-gated, custom questions, etc.).
+ * Modal overlay that opens the Luma RSVP page in a new tab.
+ * Luma blocks iframe embedding (X-Frame-Options: sameorigin),
+ * so we open in a new tab and let the user confirm when done.
  */
 export function LumaEmbedOverlay({
   lumaUrl,
@@ -22,7 +22,13 @@ export function LumaEmbedOverlay({
   onClose,
   onComplete,
 }: LumaEmbedOverlayProps) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  // Ensure lumaUrl is absolute
+  const fullUrl = lumaUrl.startsWith('http') ? lumaUrl : `https://${lumaUrl}`;
+
+  // Open Luma in a new tab on mount
+  useEffect(() => {
+    window.open(fullUrl, '_blank');
+  }, [fullUrl]);
 
   // Close on Escape
   useEffect(() => {
@@ -33,63 +39,55 @@ export function LumaEmbedOverlay({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
-  // Prevent body scroll while overlay is open
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, []);
-
   const handleDone = useCallback(() => {
     onComplete?.(eventId);
     onClose();
   }, [eventId, onComplete, onClose]);
 
-  // Ensure lumaUrl is absolute
-  const embedUrl = lumaUrl.startsWith('http') ? lumaUrl : `https://${lumaUrl}`;
-
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex flex-col">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
 
-      {/* Content */}
-      <div className="relative flex flex-col w-full h-full max-w-lg mx-auto my-4 sm:my-8 z-10">
-        {/* Header bar */}
-        <div className="flex items-center justify-between px-4 py-3 bg-slate-800 rounded-t-xl border border-slate-700 border-b-0 shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-white">RSVP on Luma</span>
-            <span className="text-xs text-slate-400">Free events register instantly</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleDone}
-              className="px-3 py-1 text-xs font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 rounded transition-colors cursor-pointer"
-            >
-              Done
-            </button>
-            <button
-              onClick={onClose}
-              className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
-              aria-label="Close RSVP overlay"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+      {/* Modal */}
+      <div className="relative z-10 w-full max-w-sm mx-4 bg-slate-800 rounded-xl border border-slate-700 shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+          <span className="text-sm font-medium text-white">RSVP on Luma</span>
+          <button
+            onClick={onClose}
+            className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            aria-label="Close"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Iframe */}
-        <div className="flex-1 bg-white rounded-b-xl overflow-hidden border border-slate-700 border-t-0 min-h-0">
-          <iframe
-            ref={iframeRef}
-            src={embedUrl}
-            className="w-full h-full border-0"
-            title="Luma RSVP"
-            allow="payment"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-          />
+        {/* Body */}
+        <div className="px-4 py-5 text-center space-y-4">
+          <p className="text-sm text-slate-300">
+            Luma has been opened in a new tab. Complete your RSVP there, then come back and tap <strong>Done</strong>.
+          </p>
+
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={handleDone}
+              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 rounded-lg transition-colors cursor-pointer"
+            >
+              <Check className="w-4 h-4" />
+              Done
+            </button>
+
+            <a
+              href={fullUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Open Luma
+            </a>
+          </div>
         </div>
       </div>
     </div>,
