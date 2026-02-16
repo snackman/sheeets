@@ -65,6 +65,12 @@ export function TableView({
 
   const groups = useMemo(() => groupByDate(events), [events]);
 
+  // Compute dynamic tags column width based on max tag count across visible events
+  const tagsColWidth = useMemo(() => {
+    const maxTags = Math.min(10, events.reduce((max, e) => Math.max(max, e.tags.length), 0));
+    return maxTags * 24 + 24; // 24px per icon (20px + 4px gap) + 24px cell padding
+  }, [events]);
+
   // Close modal on Escape key
   useEffect(() => {
     if (!selectedEvent) return;
@@ -190,7 +196,7 @@ export function TableView({
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-4 pb-3 flex-1 min-h-0 min-w-0 flex flex-col w-full">
+    <div className="max-w-full mx-auto px-2 sm:px-4 pb-3 flex-1 min-h-0 min-w-0 flex flex-col w-full">
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
@@ -198,12 +204,12 @@ export function TableView({
       >
         <table className="w-full min-w-[640px] sm:min-w-[900px] text-sm text-left table-fixed">
           <colgroup>
-            <col className="w-8" />           {/* star */}
-            <col className="w-[110px]" />     {/* when */}
-            <col style={{ width: '20%' }} />  {/* organizer */}
-            <col style={{ width: '22%' }} />  {/* event */}
-            <col style={{ width: '12%' }} />  {/* where */}
-            <col style={{ width: '34%' }} />  {/* tags */}
+            <col className="w-8" />                         {/* star */}
+            <col className="w-[110px]" />                   {/* when */}
+            <col style={{ width: '20%' }} />                {/* organizer */}
+            <col style={{ width: '50%' }} />                {/* event — gets the lion's share */}
+            <col style={{ width: '30%' }} />                {/* where */}
+            <col style={{ width: `${tagsColWidth}px` }} />  {/* tags — sized to fit content */}
           </colgroup>
           <thead className="text-xs uppercase tracking-wider text-slate-400 bg-slate-800 border-b border-slate-700 sticky top-0 z-20">
             <tr>
