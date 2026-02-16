@@ -173,7 +173,7 @@ export function FilterBar({
             )}
 
             {/* Datetime range */}
-            <div className={clsx('flex gap-4', filters.nowMode && 'opacity-30 pointer-events-none')}>
+            <div className={clsx('flex gap-2', filters.nowMode && 'opacity-30 pointer-events-none')}>
               <div className="flex-1 min-w-0">
                 <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Start</div>
                 <DateTimePicker
