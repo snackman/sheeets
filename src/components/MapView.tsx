@@ -452,7 +452,7 @@ export function MapView({
 
       {/* POI Markers (rendered before events so events layer on top) */}
       {pois?.map((poi) => (
-        <POIMarker key={poi.id} poi={poi} onSelect={handlePOISelect} isOwn={poi.user_id === user?.id} />
+        <POIMarker key={poi.id} poi={poi} onSelect={handlePOISelect} isOwn={poi.user_id === user?.id} zoom={viewState.zoom} />
       ))}
 
       {locationMarkers.map(({ event, key, count }) => {
