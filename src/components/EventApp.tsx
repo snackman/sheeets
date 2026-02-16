@@ -7,6 +7,7 @@ import { useFilters } from '@/hooks/useFilters';
 import { applyFilters } from '@/lib/filters';
 import { TYPE_TAGS } from '@/lib/constants';
 import { useItinerary } from '@/hooks/useItinerary';
+import { usePOIs } from '@/hooks/usePOIs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFriends } from '@/hooks/useFriends';
 import { useFriendsItineraries } from '@/hooks/useFriendsItineraries';
@@ -46,6 +47,8 @@ export function EventApp() {
     count: itineraryCount,
     ready: itineraryReady,
   } = useItinerary();
+
+  const { pois, addPOI, removePOI } = usePOIs();
 
   const { friends, removeFriend } = useFriends();
   const { friendItineraries } = useFriendsItineraries(friends);
@@ -303,6 +306,9 @@ export function EventApp() {
             isItineraryView={filters.itineraryOnly}
             friendsCountByEvent={friendsCountByEvent}
             friendsByEvent={friendsByEvent}
+            pois={pois}
+            onAddPOI={addPOI}
+            onRemovePOI={removePOI}
           />
         </main>
       ) : viewMode === 'table' ? (

@@ -4,12 +4,15 @@ import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import MapGL, { NavigationControl, Marker } from 'react-map-gl/mapbox';
 import type { MapRef } from 'react-map-gl/mapbox';
 import { LocateFixed } from 'lucide-react';
-import type { ETHDenverEvent } from '@/lib/types';
+import type { ETHDenverEvent, POI, POICategory } from '@/lib/types';
 import { DENVER_CENTER } from '@/lib/constants';
 import { parseTimeToMinutes } from '@/lib/filters';
 import { trackLocateMe } from '@/lib/analytics';
 import { MapMarker } from './MapMarker';
 import { EventPopup, MultiEventPopup } from './EventPopup';
+import { POIMarker } from './POIMarker';
+import { POIPopup } from './POIPopup';
+import { POISearchBar } from './POISearchBar';
 
 interface MapViewProps {
   events: ETHDenverEvent[];
@@ -19,6 +22,9 @@ interface MapViewProps {
   isItineraryView?: boolean;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  pois?: POI[];
+  onAddPOI?: (poi: { name: string; lat: number; lng: number; address?: string | null; category: POICategory; note?: string | null }) => Promise<unknown>;
+  onRemovePOI?: (id: string) => void;
 }
 
 /**
@@ -37,6 +43,9 @@ export function MapView({
   isItineraryView = false,
   friendsCountByEvent,
   friendsByEvent,
+  pois,
+  onAddPOI,
+  onRemovePOI,
 }: MapViewProps) {
   const mapRef = useRef<MapRef>(null);
   const hasFittedRef = useRef(false);
@@ -117,6 +126,7 @@ export function MapView({
     lat: number;
     lng: number;
   } | null>(null);
+  const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
 
   // Group events by co-located coordinates
   const colocatedMap = useMemo(() => {
@@ -312,6 +322,7 @@ export function MapView({
     setPopupEvent(null);
     setPopupEvents(null);
     setPopupCoords(null);
+    setSelectedPOI(null);
   }, []);
 
   const handleMultiEventSelect = useCallback(
@@ -321,6 +332,21 @@ export function MapView({
       onEventSelect?.(event);
     },
     [onEventSelect]
+  );
+
+  const handlePOISelect = useCallback((poi: POI) => {
+    setPopupEvent(null);
+    setPopupEvents(null);
+    setPopupCoords(null);
+    setSelectedPOI(poi);
+  }, []);
+
+  const handlePOIDelete = useCallback(
+    (id: string) => {
+      onRemovePOI?.(id);
+      setSelectedPOI(null);
+    },
+    [onRemovePOI]
   );
 
   const handleMapClick = useCallback(() => {
@@ -390,6 +416,14 @@ export function MapView({
         </Marker>
       )}
 
+      {/* POI Search Bar */}
+      <POISearchBar onAddPOI={onAddPOI} />
+
+      {/* POI Markers (rendered before events so events layer on top) */}
+      {pois?.map((poi) => (
+        <POIMarker key={poi.id} poi={poi} onSelect={handlePOISelect} />
+      ))}
+
       {locationMarkers.map(({ event, key, count }) => {
         const colocated = colocatedMap.get(key);
         // Always show the first event's details on the pin label
@@ -457,6 +491,14 @@ export function MapView({
           onItineraryToggle={onItineraryToggle}
           friendsCountByEvent={friendsCountByEvent}
           friendsByEvent={friendsByEvent}
+        />
+      )}
+
+      {selectedPOI && (
+        <POIPopup
+          poi={selectedPOI}
+          onClose={handlePopupClose}
+          onDelete={handlePOIDelete}
         />
       )}
     </MapGL>
