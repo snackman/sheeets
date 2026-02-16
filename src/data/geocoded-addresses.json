@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-16T05:07:11.939Z",
+  "generatedAt": "2026-02-16T07:49:11.878Z",
   "addresses": {
     "header highlight - $500": {
       "lat": 40.084736,
@@ -630,6 +630,61 @@
       "lat": 39.784305,
       "lng": -104.971308,
       "matchedAddress": "4850 North National Western Drive, Denver, Colorado 80216, United States"
+    },
+    "denver skatepark 2205 19th st, denver, co 80202": {
+      "lat": 39.75958,
+      "lng": -105.00277,
+      "matchedAddress": "2205 19th Street, Denver, Colorado 80202, United States"
+    },
+    "tacoselhuequito 2111 east 48th avenue, denver, co 80216, usa": {
+      "lat": 39.78427,
+      "lng": -104.962143,
+      "matchedAddress": "2111 East 48th Avenue, Denver, Colorado 80216, United States"
+    },
+    "4850 national western drive, denver, co 80216": {
+      "lat": 39.784305,
+      "lng": -104.971308,
+      "matchedAddress": "4850 North National Western Drive, Denver, Colorado 80216, United States"
+    },
+    "reunion bakery / sourdough bread / coffee 3350 brighton blvd #140, denver, co 80216, usa": {
+      "lat": 39.76859,
+      "lng": -104.979562,
+      "matchedAddress": "3350 North Brighton Boulevard, Denver, Colorado 80216, United States"
+    },
+    "denver art museum 100 w 14th ave pkwy, denver, co 80204": {
+      "lat": 39.737518,
+      "lng": -104.98949,
+      "matchedAddress": "100 West 14th Avenue Parkway, Denver, Colorado 80204, United States"
+    },
+    "poka lola social club 1850 wazee st, denver, co 80202, usa": {
+      "lat": 39.753605,
+      "lng": -104.996502,
+      "matchedAddress": "1850 Wazee Street, Denver, Colorado 80202, United States"
+    },
+    "mirus gallery & art bar denver 1144 broadway, denver, co 80203": {
+      "lat": 39.734721,
+      "lng": -104.987112,
+      "matchedAddress": "1144 North Broadway, Denver, Colorado 80203, United States"
+    },
+    "thompson denver reynard social spaces 1616 market st, denver, co 80202, usa": {
+      "lat": 39.749888,
+      "lng": -104.997812,
+      "matchedAddress": "1616 Market Street, Denver, Colorado 80202, United States"
+    },
+    "mirus gallery 1144 broadway denver, co 80203": {
+      "lat": 39.734721,
+      "lng": -104.987112,
+      "matchedAddress": "1144 North Broadway, Denver, Colorado 80203, United States"
+    },
+    "3535 walnut street 3535 walnut st, denver, co 80205, usa": {
+      "lat": 39.76822,
+      "lng": -104.97485,
+      "matchedAddress": "3535 Walnut Street, Denver, Colorado 80205, United States"
+    },
+    "plant magic cafe 925 e 17th ave, denver, co 80218, usa": {
+      "lat": 39.743509,
+      "lng": -104.975376,
+      "matchedAddress": "925 East 17th Avenue, Denver, Colorado 80218, United States"
     }
   }
 }
