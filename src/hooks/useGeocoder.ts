@@ -7,6 +7,7 @@ export interface GeocoderResult {
   place_name: string;
   text: string;
   mapbox_id: string;
+  poi_categories: string[];
 }
 
 export interface SelectedResult {
@@ -14,6 +15,7 @@ export interface SelectedResult {
   text: string;
   lat: number;
   lng: number;
+  poi_categories: string[];
 }
 
 export function useGeocoder() {
@@ -25,7 +27,7 @@ export function useGeocoder() {
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
 
   const search = useCallback(
-    (q: string) => {
+    (q: string, options?: { proximity?: { lng: number; lat: number }; bbox?: [number, number, number, number] }) => {
       setQuery(q);
       if (timeout.current) clearTimeout(timeout.current);
       if (!q.trim()) {
@@ -36,7 +38,11 @@ export function useGeocoder() {
       timeout.current = setTimeout(async () => {
         setLoading(true);
         try {
-          const url = `https://api.mapbox.com/search/searchbox/v1/suggest?q=${encodeURIComponent(q)}&access_token=${token}&session_token=${sessionToken.current}&proximity=${DENVER_CENTER.lng},${DENVER_CENTER.lat}&limit=5&types=poi,address&country=US`;
+          const prox = options?.proximity ?? DENVER_CENTER;
+          let url = `https://api.mapbox.com/search/searchbox/v1/suggest?q=${encodeURIComponent(q)}&access_token=${token}&session_token=${sessionToken.current}&proximity=${prox.lng},${prox.lat}&limit=5&types=poi,address&country=US`;
+          if (options?.bbox) {
+            url += `&bbox=${options.bbox.join(',')}`;
+          }
           const res = await fetch(url);
           const data = await res.json();
           setResults(
@@ -45,6 +51,7 @@ export function useGeocoder() {
               place_name: s.place_formatted ?? s.full_address ?? '',
               text: s.name,
               mapbox_id: s.mapbox_id,
+              poi_categories: s.poi_category ?? [],
             }))
           );
         } catch {
@@ -73,6 +80,7 @@ export function useGeocoder() {
           text: feature.properties.name,
           lat: feature.geometry.coordinates[1],
           lng: feature.geometry.coordinates[0],
+          poi_categories: feature.properties.poi_category ?? [],
         };
       } catch {
         return null;

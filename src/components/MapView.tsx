@@ -417,7 +417,7 @@ export function MapView({
       )}
 
       {/* POI Search Bar */}
-      <POISearchBar onAddPOI={onAddPOI} />
+      <POISearchBar onAddPOI={onAddPOI} mapRef={mapRef} />
 
       {/* POI Markers (rendered before events so events layer on top) */}
       {pois?.map((poi) => (

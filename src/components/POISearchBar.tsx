@@ -5,10 +5,21 @@ import {
   MapPin, BedDouble, Utensils, Wine, Laptop, Users,
   Search, X, Plus, Loader2, Check,
 } from 'lucide-react';
+import type { MapRef } from 'react-map-gl/mapbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGeocoder } from '@/hooks/useGeocoder';
+import type { GeocoderResult } from '@/hooks/useGeocoder';
 import { POI_CATEGORIES } from '@/lib/constants';
 import type { POICategory } from '@/lib/types';
+
+function inferCategory(poiCategories: string[]): POICategory {
+  const cats = poiCategories.map(c => c.toLowerCase());
+  if (cats.some(c => ['hotel', 'lodging', 'motel', 'hostel', 'inn', 'bed and breakfast'].includes(c))) return 'hotel';
+  if (cats.some(c => ['restaurant', 'food', 'cafe', 'coffee', 'bakery', 'diner', 'pizza', 'fast food', 'breakfast'].includes(c))) return 'food';
+  if (cats.some(c => ['bar', 'pub', 'brewery', 'winery', 'nightlife', 'cocktail', 'beer', 'lounge', 'wine bar'].includes(c))) return 'drink';
+  if (cats.some(c => ['coworking', 'office', 'coworking space', 'business center', 'library'].includes(c))) return 'work';
+  return 'pin';
+}
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   MapPin,
@@ -28,9 +39,10 @@ interface POISearchBarProps {
     category: POICategory;
     note?: string | null;
   }) => Promise<unknown>;
+  mapRef?: React.RefObject<MapRef | null>;
 }
 
-export function POISearchBar({ onAddPOI }: POISearchBarProps) {
+export function POISearchBar({ onAddPOI, mapRef }: POISearchBarProps) {
   const { user } = useAuth();
   const { query, search, results, loading, select, clear } = useGeocoder();
 
@@ -71,11 +83,12 @@ export function POISearchBar({ onAddPOI }: POISearchBarProps) {
   }, [clear]);
 
   const handleSelectResult = useCallback(
-    async (result: { text: string; place_name: string; mapbox_id: string }) => {
+    async (result: GeocoderResult) => {
       const resolved = await select(result.mapbox_id);
       if (resolved) {
         setSelectedResult(resolved);
         setName(resolved.text);
+        setCategory(inferCategory(resolved.poi_categories));
       }
       clear();
     },
@@ -126,7 +139,13 @@ export function POISearchBar({ onAddPOI }: POISearchBarProps) {
               ref={inputRef}
               type="text"
               value={query}
-              onChange={(e) => search(e.target.value)}
+              onChange={(e) => {
+                const map = mapRef?.current;
+                const center = map ? { lng: map.getCenter().lng, lat: map.getCenter().lat } : undefined;
+                const bounds = map?.getBounds();
+                const bbox = bounds ? [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()] as [number, number, number, number] : undefined;
+                search(e.target.value, { proximity: center, bbox });
+              }}
               placeholder="Search for a place..."
               className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-500 outline-none"
             />
