@@ -587,7 +587,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
                 {/* Profile Fields */}
                 <div className="border-t border-slate-700 pt-4 space-y-3">
                   <div>
-                    <label className="text-xs text-slate-500 uppercase tracking-wide block mb-1">Display Name</label>
+                    <label className="text-xs text-slate-500 uppercase tracking-wide block mb-1">Username</label>
                     <input
                       type="text"
                       value={displayName}

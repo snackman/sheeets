@@ -2,10 +2,30 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import type { FilterState } from '@/lib/types';
+import { EVENT_DATES } from '@/lib/constants';
+
+function getDefaultSelectedDays(): string[] {
+  const today = new Date();
+  const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  // If today is before the earliest event date, don't filter
+  if (todayISO < EVENT_DATES[0]) return [];
+
+  // Filter to today and future dates
+  const fromToday = EVENT_DATES.filter((d) => d >= todayISO);
+
+  // If no dates remain (all events are in the past), show all
+  if (fromToday.length === 0) return [];
+
+  // If all dates remain, no need to filter
+  if (fromToday.length === EVENT_DATES.length) return [];
+
+  return fromToday;
+}
 
 const defaultFilters: FilterState = {
   conference: 'ETH Denver 2026',
-  selectedDays: [],
+  selectedDays: getDefaultSelectedDays(),
   timeStart: 0,
   timeEnd: 24,
   vibes: [],

@@ -72,7 +72,7 @@ export function applyFilters(
   filters: FilterState,
   itinerary?: Set<string>,
   nowTimestamp?: number,
-  friendEventIds?: Set<string>
+  friendEventIds?: Set<string>,
 ): ETHDenverEvent[] {
   // Create the "now" Date once for consistency across all events
   const now = nowTimestamp ? new Date(nowTimestamp) : new Date();
