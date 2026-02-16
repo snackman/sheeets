@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-12T07:41:00.394Z",
+  "generatedAt": "2026-02-16T05:07:11.939Z",
   "addresses": {
     "header highlight - $500": {
       "lat": 40.084736,
@@ -595,6 +595,41 @@
       "lat": 22.258137,
       "lng": 114.173723,
       "matchedAddress": "港島徑第4段 Hong Kong Trail Section 4, Wanzai Qu, Hong Kong"
+    },
+    "csu spur hydro building 4777 national western dr, denver, co 80216": {
+      "lat": 39.783518,
+      "lng": -104.97373,
+      "matchedAddress": "4777 North National Western Drive, Denver, Colorado 80216, United States"
+    },
+    "ethdenver": {
+      "lat": 39.741681,
+      "lng": -104.986109,
+      "matchedAddress": "Denver, Colorado, United States"
+    },
+    "secret location tba": {
+      "lat": 39.741681,
+      "lng": -104.986109,
+      "matchedAddress": "Denver, Colorado, United States"
+    },
+    "national western complex 4655 n humboldt st, denver, co 80216, usa": {
+      "lat": 39.78111,
+      "lng": -104.971375,
+      "matchedAddress": "4655 Humboldt Street, Denver, Colorado 80216, United States"
+    },
+    "call me pearl 1600 20th street, denver, co 80202": {
+      "lat": 39.75514,
+      "lng": -104.996177,
+      "matchedAddress": "1600 20th Street, Denver, Colorado 80202, United States"
+    },
+    "milk tea people 1641 market st #133, denver, co 80202, usa": {
+      "lat": 39.75065,
+      "lng": -104.997934,
+      "matchedAddress": "1641 Market Street, Denver, Colorado 80202, United States"
+    },
+    "4850 national western dr, denver, co 80216, usa": {
+      "lat": 39.784305,
+      "lng": -104.971308,
+      "matchedAddress": "4850 North National Western Drive, Denver, Colorado 80216, United States"
     }
   }
 }
