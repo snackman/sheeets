@@ -1,20 +1,19 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import clsx from 'clsx';
 import { X, SlidersHorizontal, ChevronDown, Zap, Users } from 'lucide-react';
 import type { FilterState } from '@/lib/types';
 import { EVENT_DATES, VIBE_COLORS } from '@/lib/constants';
 import { TAG_ICONS } from './TagBadge';
 import { SearchBar } from './SearchBar';
-import { trackConferenceSelect, trackTagToggle, trackDayRange, trackTimeRange, trackNowMode, trackClearFilters, trackFriendFilter } from '@/lib/analytics';
+import { trackConferenceSelect, trackDateTimeRange, trackTagToggle, trackNowMode, trackClearFilters, trackFriendFilter } from '@/lib/analytics';
 
 interface FilterBarProps {
   filters: FilterState;
   onSetConference: (conf: string) => void;
-  onSetDayRange: (startIdx: number, endIdx: number, allDates: string[]) => void;
+  onSetDateTimeRange: (start: string, end: string) => void;
   onToggleVibe: (vibe: string) => void;
-  onSetTimeRange: (start: number, end: number) => void;
   onToggleNowMode: () => void;
   onClearFilters: () => void;
   activeFilterCount: number;
@@ -29,46 +28,11 @@ interface FilterBarProps {
   eventCount: number;
 }
 
-/** Format an ISO date string to "Mon Feb 10" style label (desktop) */
-function formatDayLabel(isoDate: string): string {
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const d = new Date(isoDate + 'T12:00:00');
-  return `${days[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()}`;
-}
-
-/** Format an ISO date string to "Mo 2/17" style label (mobile) */
-function formatDayLabelShort(isoDate: string): string {
-  const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-  const d = new Date(isoDate + 'T12:00:00');
-  return `${days[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}`;
-}
-
-/** Format a fractional hour (0-24 in 0.5 increments) to "12:00 AM" style */
-function formatTimeLabel(fractionalHour: number, short = false): string {
-  const h = Math.floor(fractionalHour) % 24;
-  const m = fractionalHour % 1 === 0.5 ? '30' : '00';
-  const period = h < 12 || h === 24 ? (short ? 'a' : 'AM') : (short ? 'p' : 'PM');
-  const displayH = h === 0 || h === 24 ? 12 : h > 12 ? h - 12 : h;
-  if (fractionalHour === 24) return short ? '12:00a' : '12:00 AM';
-  return short ? `${displayH}:${m}${period}` : `${displayH}:${m} ${period}`;
-}
-
-/** Generate time options: 0, 0.5, 1, ... 24 */
-function buildTimeOptions(short: boolean) {
-  const opts: { value: number; label: string }[] = [];
-  for (let v = 0; v <= 24; v += 0.5) {
-    opts.push({ value: v, label: formatTimeLabel(v, short) });
-  }
-  return opts;
-}
-
 export function FilterBar({
   filters,
   onSetConference,
-  onSetDayRange,
+  onSetDateTimeRange,
   onToggleVibe,
-  onSetTimeRange,
   onToggleNowMode,
   onClearFilters,
   activeFilterCount,
@@ -85,30 +49,6 @@ export function FilterBar({
   const [expanded, setExpanded] = useState(false);
   const [confOpen, setConfOpen] = useState(false);
   const confBtnRef = useRef<HTMLButtonElement | null>(null);
-  const maxIdx = EVENT_DATES.length - 1;
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
-
-  const timeOptions = useMemo(() => buildTimeOptions(isMobile), [isMobile]);
-  const dayLabel = isMobile ? formatDayLabelShort : formatDayLabel;
-
-  const rangeStart = useMemo(() => {
-    if (filters.selectedDays.length === 0) return 0;
-    const indices = filters.selectedDays.map((d) => EVENT_DATES.indexOf(d)).filter((i) => i >= 0);
-    return Math.min(...indices);
-  }, [filters.selectedDays]);
-
-  const rangeEnd = useMemo(() => {
-    if (filters.selectedDays.length === 0) return maxIdx;
-    const indices = filters.selectedDays.map((d) => EVENT_DATES.indexOf(d)).filter((i) => i >= 0);
-    return Math.max(...indices);
-  }, [filters.selectedDays, maxIdx]);
 
   return (
     <div className="relative bg-slate-900 border-b border-slate-800 z-30">
@@ -231,86 +171,39 @@ export function FilterBar({
               </div>
             )}
 
-            {/* Day + Time range selectors — single row */}
+            {/* Datetime range */}
             <div className={clsx('flex gap-4', filters.nowMode && 'opacity-30 pointer-events-none')}>
-              {/* Days */}
               <div className="flex-1 min-w-0">
-                <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Days</div>
-                <div className="flex items-center gap-1.5">
-                  <div className="flex-1 min-w-0">
-                    <select
-                      value={rangeStart}
-                      onChange={(e) => {
-                        const s = Number(e.target.value);
-                        const end = Math.max(s, rangeEnd);
-                        trackDayRange(EVENT_DATES[s], EVENT_DATES[end]);
-                        onSetDayRange(s, end, EVENT_DATES);
-                      }}
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-sm font-medium px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer"
-                    >
-                      {EVENT_DATES.map((date, i) => (
-                        <option key={date} value={i}>{dayLabel(date)}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <span className="text-slate-500 text-xs shrink-0">&mdash;</span>
-                  <div className="flex-1 min-w-0">
-                    <select
-                      value={rangeEnd}
-                      onChange={(e) => {
-                        const end = Number(e.target.value);
-                        const start = Math.min(rangeStart, end);
-                        trackDayRange(EVENT_DATES[start], EVENT_DATES[end]);
-                        onSetDayRange(start, end, EVENT_DATES);
-                      }}
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-sm font-medium px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer"
-                    >
-                      {EVENT_DATES.map((date, i) => (
-                        <option key={date} value={i}>{dayLabel(date)}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Start</div>
+                <input
+                  type="datetime-local"
+                  value={filters.startDateTime}
+                  min={`${EVENT_DATES[0]}T00:00`}
+                  max={filters.endDateTime}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      trackDateTimeRange(e.target.value, filters.endDateTime);
+                      onSetDateTimeRange(e.target.value, filters.endDateTime);
+                    }
+                  }}
+                  className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-sm font-medium px-2 py-1.5 focus:border-orange-500 focus:outline-none cursor-pointer [color-scheme:dark]"
+                />
               </div>
-
-              {/* Time */}
               <div className="flex-1 min-w-0">
-                <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Time</div>
-                <div className="flex items-center gap-1.5">
-                  <div className="flex-1 min-w-0">
-                    <select
-                      value={filters.timeStart}
-                      onChange={(e) => {
-                        const s = Number(e.target.value);
-                        const end = Math.max(s, filters.timeEnd);
-                        trackTimeRange(s, end);
-                        onSetTimeRange(s, end);
-                      }}
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-sm font-medium px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer"
-                    >
-                      {timeOptions.filter((o) => o.value < 24).map((o) => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <span className="text-slate-500 text-xs shrink-0">&mdash;</span>
-                  <div className="flex-1 min-w-0">
-                    <select
-                      value={filters.timeEnd}
-                      onChange={(e) => {
-                        const end = Number(e.target.value);
-                        const start = Math.min(filters.timeStart, end);
-                        trackTimeRange(start, end);
-                        onSetTimeRange(start, end);
-                      }}
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-sm font-medium px-2 py-1.5 focus:border-orange-500 focus:outline-none appearance-none cursor-pointer"
-                    >
-                      {timeOptions.filter((o) => o.value > 0).map((o) => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">End</div>
+                <input
+                  type="datetime-local"
+                  value={filters.endDateTime}
+                  min={filters.startDateTime}
+                  max={`${EVENT_DATES[EVENT_DATES.length - 1]}T23:59`}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      trackDateTimeRange(filters.startDateTime, e.target.value);
+                      onSetDateTimeRange(filters.startDateTime, e.target.value);
+                    }
+                  }}
+                  className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-sm font-medium px-2 py-1.5 focus:border-orange-500 focus:outline-none cursor-pointer [color-scheme:dark]"
+                />
               </div>
             </div>
 

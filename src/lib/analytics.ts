@@ -26,13 +26,9 @@ export const trackConferenceSelect = (conference: string) =>
 export const trackTagToggle = (tag: string, active: boolean) =>
   track('tag_toggle', { tag, active });
 
-// Day range change
-export const trackDayRange = (startDay: string, endDay: string) =>
-  track('day_range', { start_day: startDay, end_day: endDay });
-
-// Time range change
-export const trackTimeRange = (startHour: number, endHour: number) =>
-  track('time_range', { start_hour: startHour, end_hour: endHour });
+// Datetime range change
+export const trackDateTimeRange = (start: string, end: string) =>
+  track('datetime_range', { start_datetime: start, end_datetime: end });
 
 // Now mode toggle
 export const trackNowMode = (active: boolean) =>

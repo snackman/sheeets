@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { ViewMode } from '@/lib/types';
 import { useEvents } from '@/hooks/useEvents';
 import { useFilters } from '@/hooks/useFilters';
-import { applyFilters } from '@/lib/filters';
+import { applyFilters, getConferenceNow } from '@/lib/filters';
 import { TYPE_TAGS } from '@/lib/constants';
 import { useItinerary } from '@/hooks/useItinerary';
 import { usePOIs } from '@/hooks/usePOIs';
@@ -28,10 +28,9 @@ export function EventApp() {
     filters,
     setFilter,
     setConference,
-    setDayRange,
+    setDateTimeRange,
     toggleVibe,
     toggleFriend,
-    setTimeRange,
     toggleBool,
     toggleNowMode,
     clearFilters,
@@ -204,7 +203,7 @@ export function EventApp() {
   }, [friendItineraries]);
 
   const filteredEvents = useMemo(
-    () => applyFilters(events, filters, itinerary, filters.nowMode ? Date.now() : undefined, selectedFriendEventIds),
+    () => applyFilters(events, filters, itinerary, filters.nowMode ? getConferenceNow().getTime() : undefined, selectedFriendEventIds),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [events, filters, itinerary, nowTick, selectedFriendEventIds]
   );
@@ -278,9 +277,8 @@ export function EventApp() {
         <FilterBar
           filters={filters}
           onSetConference={setConference}
-          onSetDayRange={setDayRange}
+          onSetDateTimeRange={setDateTimeRange}
           onToggleVibe={toggleVibe}
-          onSetTimeRange={setTimeRange}
           onToggleNowMode={toggleNowMode}
           onClearFilters={clearFilters}
           activeFilterCount={activeFilterCount}
