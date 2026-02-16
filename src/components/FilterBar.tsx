@@ -178,6 +178,7 @@ export function FilterBar({
                 <input
                   type="datetime-local"
                   value={filters.startDateTime}
+                  step="1800"
                   min={`${EVENT_DATES[0]}T00:00`}
                   max={filters.endDateTime}
                   onChange={(e) => {
@@ -194,6 +195,7 @@ export function FilterBar({
                 <input
                   type="datetime-local"
                   value={filters.endDateTime}
+                  step="1800"
                   min={filters.startDateTime}
                   max={`${EVENT_DATES[EVENT_DATES.length - 1]}T23:59`}
                   onChange={(e) => {
