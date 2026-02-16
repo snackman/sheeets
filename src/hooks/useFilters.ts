@@ -3,31 +3,32 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { FilterState } from '@/lib/types';
 import { EVENT_DATES } from '@/lib/constants';
+import { getConferenceNow } from '@/lib/filters';
 
-function getDefaultSelectedDays(): string[] {
-  const today = new Date();
-  const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+function getDefaultDateTimeRange(): { startDateTime: string; endDateTime: string } {
+  const now = getConferenceNow();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const nowISO = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
-  // If today is before the earliest event date, don't filter
-  if (todayISO < EVENT_DATES[0]) return [];
+  const firstEventStart = `${EVENT_DATES[0]}T00:00`;
+  const lastEventEnd = `${EVENT_DATES[EVENT_DATES.length - 1]}T23:59`;
 
-  // Filter to today and future dates
-  const fromToday = EVENT_DATES.filter((d) => d >= todayISO);
+  // If now is past the last event, show all events
+  if (nowISO > lastEventEnd) {
+    return { startDateTime: firstEventStart, endDateTime: lastEventEnd };
+  }
 
-  // If no dates remain (all events are in the past), show all
-  if (fromToday.length === 0) return [];
+  const startDateTime = nowISO > firstEventStart ? nowISO : firstEventStart;
 
-  // If all dates remain, no need to filter
-  if (fromToday.length === EVENT_DATES.length) return [];
-
-  return fromToday;
+  return { startDateTime, endDateTime: lastEventEnd };
 }
+
+const defaults = getDefaultDateTimeRange();
 
 const defaultFilters: FilterState = {
   conference: 'ETH Denver 2026',
-  selectedDays: getDefaultSelectedDays(),
-  timeStart: 0,
-  timeEnd: 24,
+  startDateTime: defaults.startDateTime,
+  endDateTime: defaults.endDateTime,
   vibes: [],
   selectedFriends: [],
   itineraryOnly: false,
@@ -49,15 +50,8 @@ export function useFilters() {
     setFilters((prev) => ({ ...prev, conference: conf }));
   }, []);
 
-  const setDayRange = useCallback((startIdx: number, endIdx: number, allDates: string[]) => {
-    if (startIdx === 0 && endIdx === allDates.length - 1) {
-      setFilters((prev) => ({ ...prev, selectedDays: [] }));
-    } else {
-      setFilters((prev) => ({
-        ...prev,
-        selectedDays: allDates.slice(startIdx, endIdx + 1),
-      }));
-    }
+  const setDateTimeRange = useCallback((start: string, end: string) => {
+    setFilters((prev) => ({ ...prev, startDateTime: start, endDateTime: end }));
   }, []);
 
   const toggleVibe = useCallback((vibe: string) => {
@@ -78,10 +72,6 @@ export function useFilters() {
     }));
   }, []);
 
-  const setTimeRange = useCallback((start: number, end: number) => {
-    setFilters((prev) => ({ ...prev, timeStart: start, timeEnd: end }));
-  }, []);
-
   const toggleBool = useCallback(
     (key: 'itineraryOnly') => {
       setFilters((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -97,8 +87,7 @@ export function useFilters() {
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (filters.selectedDays.length > 0) count++;
-    if (filters.timeStart !== 0 || filters.timeEnd !== 24) count++;
+    if (filters.startDateTime !== defaultFilters.startDateTime || filters.endDateTime !== defaultFilters.endDateTime) count++;
     if (filters.vibes.length > 0) count++;
     if (filters.selectedFriends.length > 0) count++;
     if (filters.searchQuery) count++;
@@ -110,10 +99,9 @@ export function useFilters() {
     filters,
     setFilter,
     setConference,
-    setDayRange,
+    setDateTimeRange,
     toggleVibe,
     toggleFriend,
-    setTimeRange,
     toggleBool,
     toggleNowMode,
     clearFilters,

@@ -1,18 +1,5 @@
 import type { ETHDenverEvent, FilterState } from './types';
-
-function parseStartHour(t: string): number | null {
-  if (!t) return null;
-  const s = t.toLowerCase().trim();
-  if (s === 'all day' || s === 'tbd') return null;
-  const m = s.match(/(\d{1,2}):?(\d{2})?\s*(am?|pm?)?/i);
-  if (!m) return null;
-  let h = parseInt(m[1]);
-  const isPM = m[3] && m[3].startsWith('p');
-  const isAM = m[3] && m[3].startsWith('a');
-  if (isPM && h !== 12) h += 12;
-  if (isAM && h === 12) h = 0;
-  return h;
-}
+import { CONFERENCE_TIMEZONE } from './constants';
 
 /** Parse a time string like "12:00p", "6:00 PM", "2:30 AM" to minutes since midnight */
 export function parseTimeToMinutes(t: string): number | null {
@@ -28,6 +15,44 @@ export function parseTimeToMinutes(t: string): number | null {
   if (isPM && h !== 12) h += 12;
   if (isAM && h === 12) h = 0;
   return h * 60 + min;
+}
+
+/** Get current time in conference timezone */
+export function getConferenceNow(): Date {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: CONFERENCE_TIMEZONE }));
+}
+
+/** Build a Date range from an event's dateISO + time strings */
+function eventToDateRange(event: ETHDenverEvent): { start: Date; end: Date } | null {
+  if (!event.dateISO) return null;
+
+  if (event.isAllDay) {
+    return {
+      start: new Date(`${event.dateISO}T00:00:00`),
+      end: new Date(`${event.dateISO}T23:59:59`),
+    };
+  }
+
+  const startMinutes = parseTimeToMinutes(event.startTime);
+  if (startMinutes === null) return null;
+
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const startH = Math.floor(startMinutes / 60);
+  const startM = startMinutes % 60;
+  const start = new Date(`${event.dateISO}T${pad(startH)}:${pad(startM)}:00`);
+
+  const endMinutes = parseTimeToMinutes(event.endTime);
+  let end: Date;
+  if (endMinutes !== null) {
+    const endH = Math.floor(endMinutes / 60);
+    const endM = endMinutes % 60;
+    end = new Date(`${event.dateISO}T${pad(endH)}:${pad(endM)}:00`);
+    if (end <= start) end.setDate(end.getDate() + 1); // cross-midnight
+  } else {
+    end = new Date(start.getTime() + 2 * 60 * 60 * 1000); // assume 2hr
+  }
+
+  return { start, end };
 }
 
 /** Check if an event passes the "Now" filter (happening now or starting within 60 minutes) */
@@ -74,8 +99,12 @@ export function applyFilters(
   nowTimestamp?: number,
   friendEventIds?: Set<string>,
 ): ETHDenverEvent[] {
-  // Create the "now" Date once for consistency across all events
-  const now = nowTimestamp ? new Date(nowTimestamp) : new Date();
+  // Create the "now" Date once using conference timezone
+  const now = nowTimestamp ? new Date(nowTimestamp) : getConferenceNow();
+
+  // Pre-compute filter bounds outside the loop
+  const filterStart = !filters.nowMode && filters.startDateTime ? new Date(filters.startDateTime) : null;
+  const filterEnd = !filters.nowMode && filters.endDateTime ? new Date(filters.endDateTime) : null;
 
   return events.filter((event) => {
     // Conference filter
@@ -83,30 +112,15 @@ export function applyFilters(
       return false;
     }
 
-    // Now mode overrides day + time filters
+    // Now mode overrides datetime filters
     if (filters.nowMode) {
       if (!passesNowFilter(event, now)) return false;
-    } else {
-      // Day filter
-      if (
-        filters.selectedDays.length > 0 &&
-        !filters.selectedDays.includes(event.dateISO)
-      ) {
-        return false;
-      }
-
-      // Time range filter (half-hour precision)
-      if (filters.timeStart !== 0 || filters.timeEnd !== 24) {
-        if (event.isAllDay) {
-          // all-day events always pass time filter
-        } else {
-          const minutes = parseTimeToMinutes(event.startTime);
-          if (minutes !== null) {
-            const fractionalHour = minutes / 60;
-            if (fractionalHour < filters.timeStart || fractionalHour >= filters.timeEnd) {
-              return false;
-            }
-          }
+    } else if (filterStart && filterEnd) {
+      const eventRange = eventToDateRange(event);
+      if (eventRange) {
+        // Interval overlap: event overlaps filter range if event.start < filterEnd AND event.end > filterStart
+        if (eventRange.start >= filterEnd || eventRange.end <= filterStart) {
+          return false;
         }
       }
     }
