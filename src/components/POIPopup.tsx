@@ -9,10 +9,14 @@ interface POIPopupProps {
   poi: POI;
   onClose: () => void;
   onDelete: (id: string) => void;
+  onUpdate?: (id: string, updates: Partial<Pick<POI, 'name' | 'category' | 'note' | 'is_public'>>) => void;
+  currentUserId?: string;
+  ownerName?: string;
 }
 
-export function POIPopup({ poi, onClose, onDelete }: POIPopupProps) {
+export function POIPopup({ poi, onClose, onDelete, onUpdate, currentUserId, ownerName }: POIPopupProps) {
   const cat = POI_CATEGORIES.find((c) => c.value === poi.category) ?? POI_CATEGORIES[0];
+  const isOwn = poi.user_id === currentUserId;
 
   return (
     <Popup
@@ -66,16 +70,39 @@ export function POIPopup({ poi, onClose, onDelete }: POIPopupProps) {
           <p className="text-slate-400 text-xs mt-1.5 italic line-clamp-2">{poi.note}</p>
         )}
 
-        {/* Delete button */}
-        <div className="mt-2 pt-2 border-t border-slate-700">
-          <button
-            onClick={() => onDelete(poi.id)}
-            className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 active:text-red-300 transition-colors cursor-pointer"
-          >
-            <Trash2 className="w-3 h-3" />
-            Remove pin
-          </button>
-        </div>
+        {/* Friend attribution */}
+        {!isOwn && ownerName && (
+          <p className="text-xs text-slate-500 mt-1">Shared by {ownerName}</p>
+        )}
+
+        {/* Share toggle & delete — own POIs only */}
+        {isOwn && (
+          <div className="mt-2 pt-2 border-t border-slate-700">
+            {/* Share toggle */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-slate-400">Share with friends</span>
+              <button
+                onClick={() => onUpdate?.(poi.id, { is_public: !poi.is_public })}
+                className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer ${
+                  poi.is_public ? 'bg-orange-500' : 'bg-slate-600'
+                }`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                  poi.is_public ? 'translate-x-4' : ''
+                }`} />
+              </button>
+            </div>
+
+            {/* Delete button */}
+            <button
+              onClick={() => onDelete(poi.id)}
+              className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 active:text-red-300 transition-colors cursor-pointer mt-2"
+            >
+              <Trash2 className="w-3 h-3" />
+              Remove pin
+            </button>
+          </div>
+        )}
       </div>
     </Popup>
   );

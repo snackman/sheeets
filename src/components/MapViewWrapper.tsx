@@ -29,6 +29,8 @@ interface MapViewWrapperProps {
   pois?: POI[];
   onAddPOI?: (poi: { name: string; lat: number; lng: number; address?: string | null; category: POICategory; note?: string | null }) => Promise<unknown>;
   onRemovePOI?: (id: string) => void;
+  onUpdatePOI?: (id: string, updates: Partial<Pick<POI, 'name' | 'category' | 'note' | 'is_public'>>) => void;
+  ownerNames?: Map<string, string>;
 }
 
 export function MapViewWrapper({
@@ -42,6 +44,8 @@ export function MapViewWrapper({
   pois,
   onAddPOI,
   onRemovePOI,
+  onUpdatePOI,
+  ownerNames,
 }: MapViewWrapperProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -65,6 +69,8 @@ export function MapViewWrapper({
         pois={pois}
         onAddPOI={onAddPOI}
         onRemovePOI={onRemovePOI}
+        onUpdatePOI={onUpdatePOI}
+        ownerNames={ownerNames}
       />
 
       {/* No-location drawer */}

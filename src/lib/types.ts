@@ -88,5 +88,6 @@ export interface POI {
   category: POICategory;
   note: string | null;
   conference: string | null;
+  is_public: boolean;
   created_at: string;
 }
