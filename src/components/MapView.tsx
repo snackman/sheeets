@@ -314,6 +314,19 @@ export function MapView({
         setPopupEvent(event);
         setPopupCoords({ lat, lng });
       }
+
+      // Pan map so the popup (which appears above the pin) is visible
+      const map = mapRef.current;
+      if (map) {
+        const point = map.project([lng, lat]);
+        const container = map.getContainer();
+        const targetY = container.clientHeight * 0.65; // pin at 65% from top
+        if (point.y < container.clientHeight * 0.4) {
+          // Pin is in the upper 40% — pan down so popup has room
+          const newCenter = map.unproject([point.x, point.y - (targetY - point.y)]);
+          map.easeTo({ center: newCenter, duration: 300 });
+        }
+      }
     },
     [colocatedMap]
   );

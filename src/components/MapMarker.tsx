@@ -189,14 +189,15 @@ export function MapMarker({
         {/* Label card */}
         {showLabel && (
           <div
-            className="absolute pointer-events-none"
+            className="absolute cursor-pointer"
             style={{
               left: labelOffsetX,
               top: labelOffsetY,
               transform: 'translateX(-50%)',
             }}
+            onClick={handleClick}
           >
-            <div className="px-1.5 py-0.5 rounded bg-slate-800/90 text-[10px] text-white max-w-[140px] leading-tight">
+            <div className="px-1.5 py-0.5 rounded bg-slate-800/90 hover:bg-slate-700/90 text-[10px] text-white max-w-[140px] leading-tight transition-colors">
               <div className="truncate whitespace-nowrap">{label}</div>
               {showOrganizer && organizer && (
                 <div className="truncate whitespace-nowrap text-slate-400">{organizer}</div>
