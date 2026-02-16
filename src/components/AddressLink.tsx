@@ -11,7 +11,7 @@ function buildNavUrls(address: string, lat?: number, lng?: number) {
   return {
     google: `https://www.google.com/maps/dir/?api=1&destination=${dest}`,
     uber: `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encoded}${lat != null ? `&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}` : ''}`,
-    lyft: `https://ride.lyft.com/ridetype?destination[address]=${encoded}${lat != null ? `&destination[latitude]=${lat}&destination[longitude]=${lng}` : ''}`,
+    lyft: `lyft://ridetype?id=lyft&destination[address]=${encoded}${lat != null ? `&destination[latitude]=${lat}&destination[longitude]=${lng}` : ''}`,
   };
 }
 
@@ -39,8 +39,8 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng }: NavigationSheet
 
   const options = [
     { label: 'Google Maps', url: urls.google, icon: <Navigation className="w-5 h-5" />, color: 'text-blue-400' },
-    { label: 'Uber', url: urls.uber, icon: <Car className="w-5 h-5" />, color: 'text-white' },
     { label: 'Lyft', url: urls.lyft, icon: <Car className="w-5 h-5" />, color: 'text-pink-400' },
+    { label: 'Uber', url: urls.uber, icon: <Car className="w-5 h-5" />, color: 'text-white' },
   ];
 
   return createPortal(
