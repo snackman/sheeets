@@ -89,8 +89,19 @@ export function AddressLink({ address, lat, lng, className, children }: AddressL
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+
+    // Desktop: open Google Maps directly
+    const isDesktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    if (isDesktop) {
+      const encoded = encodeURIComponent(address);
+      const dest = lat != null ? `${lat},${lng}` : encoded;
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${dest}`, '_blank');
+      return;
+    }
+
+    // Mobile: show navigation sheet with all options
     setOpen(true);
-  }, []);
+  }, [address, lat, lng]);
 
   return (
     <>
