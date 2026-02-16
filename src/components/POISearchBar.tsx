@@ -32,7 +32,7 @@ interface POISearchBarProps {
 
 export function POISearchBar({ onAddPOI }: POISearchBarProps) {
   const { user } = useAuth();
-  const { query, search, results, loading, clear } = useGeocoder();
+  const { query, search, results, loading, select, clear } = useGeocoder();
 
   const [expanded, setExpanded] = useState(false);
   const [selectedResult, setSelectedResult] = useState<{
@@ -71,12 +71,15 @@ export function POISearchBar({ onAddPOI }: POISearchBarProps) {
   }, [clear]);
 
   const handleSelectResult = useCallback(
-    (result: { text: string; place_name: string; lat: number; lng: number }) => {
-      setSelectedResult(result);
-      setName(result.text);
+    async (result: { text: string; place_name: string; mapbox_id: string }) => {
+      const resolved = await select(result.mapbox_id);
+      if (resolved) {
+        setSelectedResult(resolved);
+        setName(resolved.text);
+      }
       clear();
     },
-    [clear]
+    [select, clear]
   );
 
   const handleConfirm = useCallback(async () => {
