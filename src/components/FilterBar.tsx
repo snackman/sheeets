@@ -7,6 +7,7 @@ import type { FilterState } from '@/lib/types';
 import { EVENT_DATES, VIBE_COLORS } from '@/lib/constants';
 import { TAG_ICONS } from './TagBadge';
 import { SearchBar } from './SearchBar';
+import { DateTimePicker } from './DateTimePicker';
 import { trackConferenceSelect, trackDateTimeRange, trackTagToggle, trackNowMode, trackClearFilters, trackFriendFilter } from '@/lib/analytics';
 
 interface FilterBarProps {
@@ -175,36 +176,26 @@ export function FilterBar({
             <div className={clsx('flex gap-4', filters.nowMode && 'opacity-30 pointer-events-none')}>
               <div className="flex-1 min-w-0">
                 <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Start</div>
-                <input
-                  type="datetime-local"
+                <DateTimePicker
                   value={filters.startDateTime}
-                  step="1800"
                   min={`${EVENT_DATES[0]}T00:00`}
                   max={filters.endDateTime}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      trackDateTimeRange(e.target.value, filters.endDateTime);
-                      onSetDateTimeRange(e.target.value, filters.endDateTime);
-                    }
+                  onChange={(v) => {
+                    trackDateTimeRange(v, filters.endDateTime);
+                    onSetDateTimeRange(v, filters.endDateTime);
                   }}
-                  className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-sm font-medium px-2 py-1.5 focus:border-orange-500 focus:outline-none cursor-pointer [color-scheme:dark]"
                 />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">End</div>
-                <input
-                  type="datetime-local"
+                <DateTimePicker
                   value={filters.endDateTime}
-                  step="1800"
                   min={filters.startDateTime}
-                  max={`${EVENT_DATES[EVENT_DATES.length - 1]}T23:59`}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      trackDateTimeRange(filters.startDateTime, e.target.value);
-                      onSetDateTimeRange(filters.startDateTime, e.target.value);
-                    }
+                  max={`${EVENT_DATES[EVENT_DATES.length - 1]}T23:30`}
+                  onChange={(v) => {
+                    trackDateTimeRange(filters.startDateTime, v);
+                    onSetDateTimeRange(filters.startDateTime, v);
                   }}
-                  className="w-full bg-slate-800 border border-slate-600 rounded-lg text-white text-sm font-medium px-2 py-1.5 focus:border-orange-500 focus:outline-none cursor-pointer [color-scheme:dark]"
                 />
               </div>
             </div>

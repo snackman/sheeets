@@ -8,10 +8,11 @@ import { getConferenceNow } from '@/lib/filters';
 function getDefaultDateTimeRange(): { startDateTime: string; endDateTime: string } {
   const now = getConferenceNow();
   const pad = (n: number) => String(n).padStart(2, '0');
-  const nowISO = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const mins = now.getMinutes() < 30 ? 0 : 30;
+  const nowISO = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(mins)}`;
 
   const firstEventStart = `${EVENT_DATES[0]}T00:00`;
-  const lastEventEnd = `${EVENT_DATES[EVENT_DATES.length - 1]}T23:59`;
+  const lastEventEnd = `${EVENT_DATES[EVENT_DATES.length - 1]}T23:30`;
 
   // If now is past the last event, show all events
   if (nowISO > lastEventEnd) {
