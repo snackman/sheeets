@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { AddressLink } from '@/components/AddressLink';
 import dynamic from 'next/dynamic';
 import { ArrowLeft, Calendar, Map as MapIcon, List, Copy, Check } from 'lucide-react';
 import clsx from 'clsx';
@@ -329,7 +330,10 @@ export default function SharedItineraryPage() {
                       <p className="text-slate-400 text-xs mt-1">{timeDisplay}</p>
 
                       {event.address && (
-                        <p className="text-slate-500 text-xs mt-0.5 truncate">{event.address}</p>
+                        <AddressLink address={event.address} lat={event.lat} lng={event.lng}
+                          className="text-slate-500 hover:text-slate-300 text-xs mt-0.5 truncate block transition-colors">
+                          {event.address}
+                        </AddressLink>
                       )}
 
                       <div className="flex items-center gap-1.5 mt-1.5">

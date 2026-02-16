@@ -3,6 +3,7 @@
 import { useMemo, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { AddressLink } from '@/components/AddressLink';
 import { ArrowLeft, AlertTriangle, Trash2, CalendarX, Share2, Download, Map as MapIcon, List } from 'lucide-react';
 import clsx from 'clsx';
 import { useEvents } from '@/hooks/useEvents';
@@ -411,7 +412,10 @@ export default function ItineraryPage() {
                         <p className="text-slate-400 text-xs mt-1">{timeDisplay}</p>
 
                         {event.address && (
-                          <p className="text-slate-500 text-xs mt-0.5 truncate">{event.address}</p>
+                          <AddressLink address={event.address} lat={event.lat} lng={event.lng}
+                            className="text-slate-500 hover:text-slate-300 text-xs mt-0.5 truncate block transition-colors">
+                            {event.address}
+                          </AddressLink>
                         )}
 
                         <div className="flex items-center gap-1.5 mt-1.5">
