@@ -47,7 +47,7 @@ export function isFreeEvent(cost: string): boolean {
 }
 
 export function normalizeAddress(address: string): string {
-  return address.toLowerCase().trim().replace(/\s+/g, ' ');
+  return address.toLowerCase().trim().replace(/\s+/g, ' ').replace(/[.,]+$/, '');
 }
 
 export function formatDateLabel(isoDate: string): string {
