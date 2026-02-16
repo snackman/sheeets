@@ -202,7 +202,7 @@ export function TableView({
         onScroll={handleScroll}
         className="overflow-auto rounded-lg border border-slate-700 flex-1 min-h-0 min-w-0 overscroll-none"
       >
-        <table className="w-full text-sm text-left md:table-fixed" style={{ minWidth: Math.max(640, 142 + tagsColWidth + 480) }}>
+        <table className="w-full text-sm text-left md:table-fixed" style={{ minWidth: Math.max(640, 142 + tagsColWidth + 420) }}>
           <colgroup>
             <col style={{ width: 32 }} />                                                                          {/* star */}
             <col style={{ width: 100 }} />                                                                         {/* when */}
