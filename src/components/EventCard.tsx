@@ -111,7 +111,7 @@ export function EventCard({
     : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 hover:bg-slate-750 hover:border-slate-600 active:bg-slate-750 active:border-slate-600 transition-colors group flex gap-4">
+    <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 hover:bg-slate-750 hover:border-slate-600 active:bg-slate-750 active:border-slate-600 transition-colors group flex gap-4 overflow-hidden">
       {/* Left: cover image */}
       {event.link && <OGImage url={event.link} eventId={event.id} />}
 
@@ -161,7 +161,7 @@ export function EventCard({
         {/* Address */}
         {event.address && (
           <AddressLink address={event.address} lat={event.lat} lng={event.lng}
-            className="text-slate-500 hover:text-slate-300 text-sm mt-1 flex items-start gap-1 transition-colors">
+            className="text-slate-500 hover:text-slate-300 text-sm mt-1 flex items-start gap-1 transition-colors min-w-0">
             <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
             <span className="truncate">{event.address}</span>
           </AddressLink>
@@ -194,7 +194,7 @@ export function EventCard({
 
         {/* Note */}
         {event.note && (
-          <p className="text-slate-600 text-xs mt-1 italic">{event.note}</p>
+          <p className="text-slate-600 text-xs mt-1 italic truncate">{event.note}</p>
         )}
       </div>
 
