@@ -97,7 +97,7 @@ export function POISearchBar({ onAddPOI }: POISearchBarProps) {
 
   if (!expanded) {
     return (
-      <div className="absolute top-3 left-12 z-10">
+      <div className="absolute top-2 left-12 z-10">
         <button
           onClick={() => setExpanded(true)}
           className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-xs text-slate-300 hover:text-white hover:bg-slate-700 active:bg-slate-700 transition-colors cursor-pointer shadow-lg"
@@ -112,7 +112,7 @@ export function POISearchBar({ onAddPOI }: POISearchBarProps) {
   return (
     <div
       ref={containerRef}
-      className="absolute top-3 left-12 z-10 w-72 bg-slate-800 border border-slate-700 rounded-lg shadow-xl"
+      className="absolute top-2 left-12 z-10 w-72 bg-slate-800 border border-slate-700 rounded-lg shadow-xl"
     >
       {/* Search input or selected result form */}
       {!selectedResult ? (
