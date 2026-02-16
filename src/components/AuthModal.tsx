@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, Settings } from 'lucide-react';
+import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, Settings, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAuthSuccess, trackSignOut } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
@@ -780,8 +780,17 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
                   )}
                 </div>
 
-                {/* Sign Out */}
-                <div className="border-t border-slate-700 pt-4">
+                {/* Submit Event + Sign Out */}
+                <div className="border-t border-slate-700 pt-4 space-y-2">
+                  <a
+                    href="https://sheeets.xyz"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Submit Event
+                  </a>
                   <button
                     onClick={() => {
                       trackSignOut();
