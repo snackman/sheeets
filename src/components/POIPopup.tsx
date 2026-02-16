@@ -4,6 +4,7 @@ import { Popup } from 'react-map-gl/mapbox';
 import { X, MapPin, Trash2 } from 'lucide-react';
 import { POI_CATEGORIES } from '@/lib/constants';
 import type { POI } from '@/lib/types';
+import { AddressLink } from './AddressLink';
 
 interface POIPopupProps {
   poi: POI;
@@ -54,15 +55,15 @@ export function POIPopup({ poi, onClose, onDelete, onUpdate, currentUserId, owne
 
         {/* Address */}
         {poi.address && (
-          <a
-            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(poi.address)}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <AddressLink
+            address={poi.address}
+            lat={poi.lat}
+            lng={poi.lng}
             className="text-slate-500 hover:text-slate-300 text-xs mt-1.5 flex items-center gap-1 transition-colors"
           >
             <MapPin className="w-3 h-3 shrink-0" />
             <span className="truncate">{poi.address}</span>
-          </a>
+          </AddressLink>
         )}
 
         {/* Note */}
