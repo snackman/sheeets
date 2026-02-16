@@ -18,10 +18,11 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>
 interface POIMarkerProps {
   poi: POI;
   onSelect: (poi: POI) => void;
+  isOwn?: boolean;
   zoom?: number;
 }
 
-export function POIMarker({ poi, onSelect, zoom = 12 }: POIMarkerProps) {
+export function POIMarker({ poi, onSelect, isOwn = true, zoom = 12 }: POIMarkerProps) {
   const cat = POI_CATEGORIES.find((c) => c.value === poi.category) ?? POI_CATEGORIES[0];
   const Icon = CATEGORY_ICONS[cat.icon] ?? MapPin;
   const showLabel = zoom >= 11.5;
@@ -44,7 +45,9 @@ export function POIMarker({ poi, onSelect, zoom = 12 }: POIMarkerProps) {
           aria-label={poi.name}
         >
           <div
-            className="flex items-center justify-center rounded-full border-2 border-white/60 shadow-lg"
+            className={`flex items-center justify-center rounded-full border-2 shadow-lg ${
+              isOwn !== false ? 'border-white/60' : 'border-dashed border-white/40'
+            }`}
             style={{ width: 24, height: 24, backgroundColor: cat.color }}
           >
             <Icon className="w-3.5 h-3.5 text-white" />

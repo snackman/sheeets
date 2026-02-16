@@ -8,6 +8,7 @@ import type { ETHDenverEvent, POI, POICategory } from '@/lib/types';
 import { DENVER_CENTER } from '@/lib/constants';
 import { parseTimeToMinutes } from '@/lib/filters';
 import { trackLocateMe } from '@/lib/analytics';
+import { useAuth } from '@/contexts/AuthContext';
 import { MapMarker } from './MapMarker';
 import { EventPopup, MultiEventPopup } from './EventPopup';
 import { POIMarker } from './POIMarker';
@@ -25,6 +26,8 @@ interface MapViewProps {
   pois?: POI[];
   onAddPOI?: (poi: { name: string; lat: number; lng: number; address?: string | null; category: POICategory; note?: string | null }) => Promise<unknown>;
   onRemovePOI?: (id: string) => void;
+  onUpdatePOI?: (id: string, updates: Partial<Pick<POI, 'name' | 'category' | 'note' | 'is_public'>>) => void;
+  ownerNames?: Map<string, string>;
 }
 
 /**
@@ -46,7 +49,10 @@ export function MapView({
   pois,
   onAddPOI,
   onRemovePOI,
+  onUpdatePOI,
+  ownerNames,
 }: MapViewProps) {
+  const { user } = useAuth();
   const mapRef = useRef<MapRef>(null);
   const hasFittedRef = useRef(false);
 
@@ -127,6 +133,18 @@ export function MapView({
     lng: number;
   } | null>(null);
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
+
+  // Keep selectedPOI in sync with pois array updates
+  useEffect(() => {
+    if (selectedPOI && pois) {
+      const updated = pois.find(p => p.id === selectedPOI.id);
+      if (updated && updated !== selectedPOI) {
+        setSelectedPOI(updated);
+      } else if (!updated) {
+        setSelectedPOI(null); // POI was deleted
+      }
+    }
+  }, [pois]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Group events by co-located coordinates
   const colocatedMap = useMemo(() => {
@@ -434,7 +452,7 @@ export function MapView({
 
       {/* POI Markers (rendered before events so events layer on top) */}
       {pois?.map((poi) => (
-        <POIMarker key={poi.id} poi={poi} onSelect={handlePOISelect} zoom={viewState.zoom} />
+        <POIMarker key={poi.id} poi={poi} onSelect={handlePOISelect} isOwn={poi.user_id === user?.id} zoom={viewState.zoom} />
       ))}
 
       {locationMarkers.map(({ event, key, count }) => {
@@ -512,6 +530,9 @@ export function MapView({
           poi={selectedPOI}
           onClose={handlePopupClose}
           onDelete={handlePOIDelete}
+          onUpdate={onUpdatePOI}
+          currentUserId={user?.id}
+          ownerName={ownerNames?.get(selectedPOI.user_id)}
         />
       )}
     </MapGL>

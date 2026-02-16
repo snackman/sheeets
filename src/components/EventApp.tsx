@@ -47,7 +47,7 @@ export function EventApp() {
     ready: itineraryReady,
   } = useItinerary();
 
-  const { pois, addPOI, removePOI } = usePOIs();
+  const { pois, addPOI, removePOI, updatePOI, ownerNames } = usePOIs();
 
   const { friends, removeFriend } = useFriends();
   const { friendItineraries } = useFriendsItineraries(friends);
@@ -307,6 +307,8 @@ export function EventApp() {
             pois={pois}
             onAddPOI={addPOI}
             onRemovePOI={removePOI}
+            onUpdatePOI={updatePOI}
+            ownerNames={ownerNames}
           />
         </main>
       ) : viewMode === 'table' ? (
