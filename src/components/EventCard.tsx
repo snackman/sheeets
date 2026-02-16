@@ -5,10 +5,12 @@ import { createPortal } from 'react-dom';
 import { MapPin, Calendar, Users, X } from 'lucide-react';
 import { ETHDenverEvent } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
+import { isLumaUrl } from '@/lib/luma';
 import { AddressLink } from './AddressLink';
 import { StarButton } from './StarButton';
 import { TagBadge } from './TagBadge';
 import { OGImage } from './OGImage';
+import { RsvpButton } from './RsvpButton';
 
 interface FriendInfo {
   userId: string;
@@ -21,6 +23,8 @@ interface EventCardProps {
   onItineraryToggle?: (eventId: string) => void;
   friendsCount?: number;
   friendsGoing?: FriendInfo[];
+  rsvpStatus?: 'idle' | 'confirmed';
+  onRsvp?: (event: ETHDenverEvent) => void;
 }
 
 function FriendsGoingModal({
@@ -104,6 +108,8 @@ export function EventCard({
   onItineraryToggle,
   friendsCount,
   friendsGoing,
+  rsvpStatus,
+  onRsvp,
 }: EventCardProps) {
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const timeDisplay = event.isAllDay
@@ -168,11 +174,17 @@ export function EventCard({
         )}
 
         {/* Badges row */}
-        {event.tags.length > 0 && (
+        {(event.tags.length > 0 || (onRsvp && isLumaUrl(event.link))) && (
           <div className="flex flex-wrap items-center gap-1.5 mt-3">
             {event.tags.map((tag) => (
               <TagBadge key={tag} tag={tag} />
             ))}
+            {onRsvp && isLumaUrl(event.link) && (
+              <RsvpButton
+                status={rsvpStatus ?? 'idle'}
+                onClick={() => onRsvp(event)}
+              />
+            )}
           </div>
         )}
 

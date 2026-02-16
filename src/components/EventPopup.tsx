@@ -4,10 +4,12 @@ import { Popup } from 'react-map-gl/mapbox';
 import { X, Calendar, MapPin, Users } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
+import { isLumaUrl } from '@/lib/luma';
 import { StarButton } from './StarButton';
 import { AddressLink } from './AddressLink';
 import { TagBadge } from './TagBadge';
 import { OGImage } from './OGImage';
+import { RsvpButton } from './RsvpButton';
 
 interface FriendInfo {
   userId: string;
@@ -23,6 +25,8 @@ interface EventPopupProps {
   onItineraryToggle?: (eventId: string) => void;
   friendsCount?: number;
   friendsGoing?: FriendInfo[];
+  rsvpStatus?: 'idle' | 'confirmed';
+  onRsvp?: (event: ETHDenverEvent) => void;
 }
 
 interface MultiEventPopupProps {
@@ -35,6 +39,8 @@ interface MultiEventPopupProps {
   onItineraryToggle?: (eventId: string) => void;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, FriendInfo[]>;
+  getRsvpStatus?: (eventId: string) => 'idle' | 'confirmed';
+  onRsvp?: (event: ETHDenverEvent) => void;
 }
 
 function formatFriendsText(friends: FriendInfo[]): string {
@@ -63,6 +69,8 @@ function SingleEventContent({
   onItineraryToggle,
   friendsCount,
   friendsGoing,
+  rsvpStatus,
+  onRsvp,
 }: {
   event: ETHDenverEvent;
   onClose: () => void;
@@ -70,6 +78,8 @@ function SingleEventContent({
   onItineraryToggle?: (eventId: string) => void;
   friendsCount?: number;
   friendsGoing?: FriendInfo[];
+  rsvpStatus?: 'idle' | 'confirmed';
+  onRsvp?: (event: ETHDenverEvent) => void;
 }) {
   const timeDisplay = event.isAllDay
     ? 'All Day'
@@ -138,11 +148,17 @@ function SingleEventContent({
         )}
 
         {/* Tags row (icons only) */}
-        {event.tags.length > 0 && (
+        {(event.tags.length > 0 || (onRsvp && isLumaUrl(event.link))) && (
           <div className="flex flex-wrap items-center gap-1 mt-2">
             {event.tags.map((tag) => (
               <TagBadge key={tag} tag={tag} iconOnly />
             ))}
+            {onRsvp && isLumaUrl(event.link) && (
+              <RsvpButton
+                status={rsvpStatus ?? 'idle'}
+                onClick={() => onRsvp(event)}
+              />
+            )}
           </div>
         )}
 
@@ -167,6 +183,8 @@ export function EventPopup({
   onItineraryToggle,
   friendsCount,
   friendsGoing,
+  rsvpStatus,
+  onRsvp,
 }: EventPopupProps) {
   return (
     <Popup
@@ -186,6 +204,8 @@ export function EventPopup({
         onItineraryToggle={onItineraryToggle}
         friendsCount={friendsCount}
         friendsGoing={friendsGoing}
+        rsvpStatus={rsvpStatus}
+        onRsvp={onRsvp}
       />
     </Popup>
   );
@@ -201,6 +221,8 @@ export function MultiEventPopup({
   onItineraryToggle,
   friendsCountByEvent,
   friendsByEvent,
+  getRsvpStatus,
+  onRsvp,
 }: MultiEventPopupProps) {
   return (
     <Popup
@@ -274,11 +296,17 @@ export function MultiEventPopup({
                       <span className="truncate">{event.address}</span>
                     </AddressLink>
                   )}
-                  {event.tags.length > 0 && (
+                  {(event.tags.length > 0 || (onRsvp && isLumaUrl(event.link))) && (
                     <div className="flex items-center gap-1 mt-1">
                       {event.tags.map((tag) => (
                         <TagBadge key={tag} tag={tag} iconOnly />
                       ))}
+                      {onRsvp && isLumaUrl(event.link) && (
+                        <RsvpButton
+                          status={getRsvpStatus?.(event.id) ?? 'idle'}
+                          onClick={() => onRsvp(event)}
+                        />
+                      )}
                     </div>
                   )}
                   {eventFriends && <FriendsRow friends={eventFriends} />}
