@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { AlertTriangle, Calendar, Star, X } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
+import { AddressLink } from './AddressLink';
 import { TagBadge } from './TagBadge';
 import { EventCard } from './EventCard';
 
@@ -425,14 +426,10 @@ function DateGroup({
             {/* Location */}
             <td className="px-3 py-2 text-slate-400 truncate max-w-[20ch] sm:max-w-none" title={event.address}>
               {event.address ? (
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-orange-400 transition-colors"
-                >
+                <AddressLink address={event.address} lat={event.lat} lng={event.lng}
+                  className="hover:text-orange-400 transition-colors">
                   {event.address}
-                </a>
+                </AddressLink>
               ) : null}
             </td>
 

@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { MapPin, Calendar, Users, X } from 'lucide-react';
 import { ETHDenverEvent } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
+import { AddressLink } from './AddressLink';
 import { StarButton } from './StarButton';
 import { TagBadge } from './TagBadge';
 import { OGImage } from './OGImage';
@@ -159,15 +160,11 @@ export function EventCard({
 
         {/* Address */}
         {event.address && (
-          <a
-            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-slate-500 hover:text-slate-300 text-sm mt-1 flex items-start gap-1 transition-colors"
-          >
+          <AddressLink address={event.address} lat={event.lat} lng={event.lng}
+            className="text-slate-500 hover:text-slate-300 text-sm mt-1 flex items-start gap-1 transition-colors">
             <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
             <span className="truncate">{event.address}</span>
-          </a>
+          </AddressLink>
         )}
 
         {/* Badges row */}
