@@ -202,14 +202,14 @@ export function TableView({
         onScroll={handleScroll}
         className="overflow-auto rounded-lg border border-slate-700 flex-1 min-h-0 min-w-0 overscroll-none"
       >
-        <table className="w-full text-sm text-left" style={{ minWidth: Math.max(640, 142 + tagsColWidth + 480) }}>
+        <table className="w-full text-sm text-left md:table-fixed" style={{ minWidth: Math.max(640, 142 + tagsColWidth + 480) }}>
           <colgroup>
-            <col className="w-8" />                         {/* star */}
-            <col className="w-[110px]" />                   {/* when */}
-            <col style={{ width: '15%' }} />                {/* organizer */}
-            <col style={{ width: '40%' }} />                {/* event */}
-            <col style={{ width: '18%' }} />                {/* where */}
-            <col style={{ width: `${tagsColWidth}px` }} />  {/* tags — sized to fit content */}
+            <col style={{ width: 32 }} />                                                                          {/* star */}
+            <col style={{ width: 100 }} />                                                                         {/* when */}
+            <col style={{ width: `calc((100% - 32px - 100px - ${tagsColWidth}px) * 0.22)` }} />                    {/* organizer */}
+            <col style={{ width: `calc((100% - 32px - 100px - ${tagsColWidth}px) * 0.50)` }} />                    {/* event */}
+            <col style={{ width: `calc((100% - 32px - 100px - ${tagsColWidth}px) * 0.28)` }} />                    {/* where */}
+            <col style={{ width: tagsColWidth }} />                                                                {/* tags */}
           </colgroup>
           <thead className="text-xs uppercase tracking-wider text-slate-400 bg-slate-800 border-b border-slate-700 sticky top-0 z-20">
             <tr>
@@ -396,7 +396,7 @@ function DateGroup({
             </td>
 
             {/* Event Name (+ organizer on mobile portrait) */}
-            <td className="px-3 py-2 font-medium text-slate-100 overflow-hidden truncate min-w-[24ch]" title={event.name}>
+            <td className="px-3 py-2 font-medium text-slate-100 overflow-hidden truncate max-w-[25ch] sm:max-w-none" title={event.name}>
               <span className="inline-flex items-center gap-1 max-w-full truncate">
                 {event.isDuplicate && (
                   <span title="Duplicate entry in sheet"><AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" /></span>
