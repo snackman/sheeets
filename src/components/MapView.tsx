@@ -295,10 +295,10 @@ export function MapView({
         }
       }
 
-      // Draw leader line if label center is more than 2 pin diameters away
+      // Draw leader line if label isn't in the default "right of pin" position
       const PIN_DIAM = 22;
       const labelCenterDist = Math.sqrt(bestDx * bestDx + (bestDy + LABEL_H / 2) * (bestDy + LABEL_H / 2));
-      const leader = labelCenterDist > PIN_DIAM * 2;
+      const leader = labelCenterDist > PIN_DIAM * 1.2;
 
       // Register this label's bounding box
       labelBoxes.push({
