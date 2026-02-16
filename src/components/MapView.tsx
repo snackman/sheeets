@@ -28,6 +28,8 @@ interface MapViewProps {
   onRemovePOI?: (id: string) => void;
   onUpdatePOI?: (id: string, updates: Partial<Pick<POI, 'name' | 'category' | 'note' | 'is_public'>>) => void;
   ownerNames?: Map<string, string>;
+  getRsvpStatus?: (eventId: string) => 'idle' | 'confirmed';
+  onRsvp?: (event: ETHDenverEvent) => void;
 }
 
 /**
@@ -51,6 +53,8 @@ export function MapView({
   onRemovePOI,
   onUpdatePOI,
   ownerNames,
+  getRsvpStatus,
+  onRsvp,
 }: MapViewProps) {
   const { user } = useAuth();
   const mapRef = useRef<MapRef>(null);
@@ -508,6 +512,8 @@ export function MapView({
           onItineraryToggle={onItineraryToggle}
           friendsCount={friendsCountByEvent?.get(popupEvent.id)}
           friendsGoing={friendsByEvent?.get(popupEvent.id)}
+          rsvpStatus={getRsvpStatus?.(popupEvent.id)}
+          onRsvp={onRsvp}
         />
       )}
 
@@ -522,6 +528,8 @@ export function MapView({
           onItineraryToggle={onItineraryToggle}
           friendsCountByEvent={friendsCountByEvent}
           friendsByEvent={friendsByEvent}
+          getRsvpStatus={getRsvpStatus}
+          onRsvp={onRsvp}
         />
       )}
 

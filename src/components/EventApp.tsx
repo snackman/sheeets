@@ -1,17 +1,19 @@
 'use client';
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { ViewMode } from '@/lib/types';
+import { ViewMode, ETHDenverEvent } from '@/lib/types';
 import { useEvents } from '@/hooks/useEvents';
 import { useFilters } from '@/hooks/useFilters';
 import { applyFilters, getConferenceNow } from '@/lib/filters';
 import { TYPE_TAGS } from '@/lib/constants';
 import { useItinerary } from '@/hooks/useItinerary';
+import { useRsvp } from '@/hooks/useRsvp';
 import { usePOIs } from '@/hooks/usePOIs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFriends } from '@/hooks/useFriends';
 import { useFriendsItineraries } from '@/hooks/useFriendsItineraries';
-import { trackItinerary, trackAuthPrompt } from '@/lib/analytics';
+import { isLumaUrl } from '@/lib/luma';
+import { trackItinerary, trackAuthPrompt, trackRsvp } from '@/lib/analytics';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
@@ -20,6 +22,7 @@ import { MapViewWrapper } from './MapViewWrapper';
 import { Loading } from './Loading';
 import { AuthModal } from './AuthModal';
 import { FriendsPanel } from './FriendsPanel';
+import { RsvpOverlay } from './RsvpOverlay';
 import { SponsorsTicker } from './SponsorsTicker';
 
 export function EventApp() {
@@ -46,6 +49,8 @@ export function EventApp() {
     count: itineraryCount,
     ready: itineraryReady,
   } = useItinerary();
+
+  const { getRsvpStatus, openRsvp, markConfirmed, closeRsvp, activeRsvp } = useRsvp();
 
   const { pois, addPOI, removePOI, updatePOI, ownerNames } = usePOIs();
 
@@ -82,6 +87,32 @@ export function EventApp() {
       setShowAuthForStar(false);
     }
   }, [user, itineraryReady, toggleItinerary]);
+
+  // Auth-gated RSVP
+  const [showAuthForRsvp, setShowAuthForRsvp] = useState(false);
+  const pendingRsvpRef = useRef<ETHDenverEvent | null>(null);
+
+  const handleRsvp = useCallback((event: ETHDenverEvent) => {
+    if (!isLumaUrl(event.link)) return;
+    if (user) {
+      trackRsvp(event.id, 'open');
+      openRsvp({ id: event.id, name: event.name, link: event.link });
+    } else {
+      trackAuthPrompt('rsvp');
+      pendingRsvpRef.current = event;
+      setShowAuthForRsvp(true);
+    }
+  }, [user, openRsvp]);
+
+  // Complete pending RSVP after login
+  useEffect(() => {
+    if (user && pendingRsvpRef.current) {
+      const event = pendingRsvpRef.current;
+      pendingRsvpRef.current = null;
+      setShowAuthForRsvp(false);
+      openRsvp({ id: event.id, name: event.name, link: event.link });
+    }
+  }, [user, openRsvp]);
 
   // Turn off itinerary filter if user signs out or auth is dismissed
   useEffect(() => {
@@ -309,6 +340,8 @@ export function EventApp() {
             onRemovePOI={removePOI}
             onUpdatePOI={updatePOI}
             ownerNames={ownerNames}
+            getRsvpStatus={getRsvpStatus}
+            onRsvp={handleRsvp}
           />
         </main>
       ) : viewMode === 'table' ? (
@@ -321,6 +354,8 @@ export function EventApp() {
             onScrolledChange={setTableScrolled}
             friendsCountByEvent={friendsCountByEvent}
             friendsByEvent={friendsByEvent}
+            getRsvpStatus={getRsvpStatus}
+            onRsvp={handleRsvp}
           />
         </main>
       ) : (
@@ -332,17 +367,30 @@ export function EventApp() {
             onItineraryToggle={handleItineraryToggle}
             friendsCountByEvent={friendsCountByEvent}
             friendsByEvent={friendsByEvent}
+            getRsvpStatus={getRsvpStatus}
+            onRsvp={handleRsvp}
           />
         </main>
       )}
 
       <AuthModal isOpen={showAuthForStar} onClose={() => { pendingStarRef.current = null; setShowAuthForStar(false); }} />
+      <AuthModal isOpen={showAuthForRsvp} onClose={() => { pendingRsvpRef.current = null; setShowAuthForRsvp(false); }} />
       <FriendsPanel
         isOpen={showFriends}
         onClose={() => setShowFriends(false)}
         friends={friends}
         onRemoveFriend={removeFriend}
       />
+      {activeRsvp && (
+        <RsvpOverlay
+          event={activeRsvp}
+          onConfirm={(eventId) => {
+            trackRsvp(eventId, 'confirmed');
+            markConfirmed(eventId);
+          }}
+          onClose={closeRsvp}
+        />
+      )}
     </div>
   );
 }

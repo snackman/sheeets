@@ -5,9 +5,11 @@ import { createPortal } from 'react-dom';
 import { AlertTriangle, Calendar, Star, X } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
+import { isLumaUrl } from '@/lib/luma';
 import { AddressLink } from './AddressLink';
 import { TagBadge } from './TagBadge';
 import { EventCard } from './EventCard';
+import { RsvpButton } from './RsvpButton';
 
 interface TableViewProps {
   events: ETHDenverEvent[];
@@ -17,6 +19,8 @@ interface TableViewProps {
   onScrolledChange?: (scrolled: boolean) => void;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  getRsvpStatus?: (eventId: string) => 'idle' | 'confirmed';
+  onRsvp?: (event: ETHDenverEvent) => void;
 }
 
 /** Format a dateISO string like "2026-02-10" into "Mon Feb 10" */
@@ -56,6 +60,8 @@ export function TableView({
   onScrolledChange,
   friendsCountByEvent,
   friendsByEvent,
+  getRsvpStatus,
+  onRsvp,
 }: TableViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
@@ -240,6 +246,8 @@ export function TableView({
                 setSeparatorRef={setSeparatorRef}
                 friendsCountByEvent={friendsCountByEvent}
                 onSelectEvent={setSelectedEvent}
+                getRsvpStatus={getRsvpStatus}
+                onRsvp={onRsvp}
               />
             ))}
           </tbody>
@@ -258,6 +266,8 @@ export function TableView({
           friendsCount={friendsCountByEvent?.get(selectedEvent.id) ?? 0}
           friendsGoing={friendsByEvent?.get(selectedEvent.id)}
           onClose={() => setSelectedEvent(null)}
+          rsvpStatus={getRsvpStatus?.(selectedEvent.id)}
+          onRsvp={onRsvp}
         />,
         document.body
       )}
@@ -273,6 +283,8 @@ function EventDetailModal({
   friendsCount,
   friendsGoing,
   onClose,
+  rsvpStatus,
+  onRsvp,
 }: {
   event: ETHDenverEvent;
   isInItinerary: boolean;
@@ -280,6 +292,8 @@ function EventDetailModal({
   friendsCount: number;
   friendsGoing?: { userId: string; displayName: string }[];
   onClose: () => void;
+  rsvpStatus?: 'idle' | 'confirmed';
+  onRsvp?: (event: ETHDenverEvent) => void;
 }) {
   return (
     <>
@@ -294,6 +308,8 @@ function EventDetailModal({
             onItineraryToggle={onItineraryToggle}
             friendsCount={friendsCount}
             friendsGoing={friendsGoing}
+            rsvpStatus={rsvpStatus}
+            onRsvp={onRsvp}
           />
           <button
             onClick={onClose}
@@ -316,6 +332,8 @@ function DateGroup({
   setSeparatorRef,
   friendsCountByEvent,
   onSelectEvent,
+  getRsvpStatus,
+  onRsvp,
 }: {
   group: { dateISO: string; label: string; events: ETHDenverEvent[] };
   itinerary?: Set<string>;
@@ -323,6 +341,8 @@ function DateGroup({
   setSeparatorRef: (dateISO: string, el: HTMLTableRowElement | null) => void;
   friendsCountByEvent?: Map<string, number>;
   onSelectEvent: (event: ETHDenverEvent) => void;
+  getRsvpStatus?: (eventId: string) => 'idle' | 'confirmed';
+  onRsvp?: (event: ETHDenverEvent) => void;
 }) {
   return (
     <>
@@ -439,6 +459,12 @@ function DateGroup({
                 {event.tags.slice(0, 10).map((tag) => (
                   <TagBadge key={tag} tag={tag} iconOnly />
                 ))}
+                {onRsvp && isLumaUrl(event.link) && (
+                  <RsvpButton
+                    status={getRsvpStatus?.(event.id) ?? 'idle'}
+                    onClick={() => onRsvp(event)}
+                  />
+                )}
               </div>
             </td>
           </tr>
