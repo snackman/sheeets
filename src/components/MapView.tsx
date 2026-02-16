@@ -134,6 +134,18 @@ export function MapView({
   } | null>(null);
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
 
+  // Keep selectedPOI in sync with pois array updates
+  useEffect(() => {
+    if (selectedPOI && pois) {
+      const updated = pois.find(p => p.id === selectedPOI.id);
+      if (updated && updated !== selectedPOI) {
+        setSelectedPOI(updated);
+      } else if (!updated) {
+        setSelectedPOI(null); // POI was deleted
+      }
+    }
+  }, [pois]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Group events by co-located coordinates
   const colocatedMap = useMemo(() => {
     const map = new Map<string, ETHDenverEvent[]>();

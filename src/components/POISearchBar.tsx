@@ -38,6 +38,7 @@ interface POISearchBarProps {
     address?: string | null;
     category: POICategory;
     note?: string | null;
+    is_public?: boolean;
   }) => Promise<unknown>;
   mapRef?: React.RefObject<MapRef | null>;
 }
@@ -56,6 +57,7 @@ export function POISearchBar({ onAddPOI, mapRef }: POISearchBarProps) {
   const [category, setCategory] = useState<POICategory>('pin');
   const [name, setName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -79,6 +81,7 @@ export function POISearchBar({ onAddPOI, mapRef }: POISearchBarProps) {
     setSelectedResult(null);
     setCategory('pin');
     setName('');
+    setIsPublic(false);
     clear();
   }, [clear]);
 
@@ -104,10 +107,11 @@ export function POISearchBar({ onAddPOI, mapRef }: POISearchBarProps) {
       lng: selectedResult.lng,
       address: selectedResult.place_name,
       category,
+      is_public: isPublic,
     });
     setSaving(false);
     handleClose();
-  }, [selectedResult, name, category, onAddPOI, handleClose]);
+  }, [selectedResult, name, category, isPublic, onAddPOI, handleClose]);
 
   if (!user) return null;
 
@@ -211,6 +215,22 @@ export function POISearchBar({ onAddPOI, mapRef }: POISearchBarProps) {
                 </button>
               );
             })}
+          </div>
+
+          {/* Share toggle */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-400">Share with friends</span>
+            <button
+              type="button"
+              onClick={() => setIsPublic(v => !v)}
+              className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer ${
+                isPublic ? 'bg-orange-500' : 'bg-slate-600'
+              }`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                isPublic ? 'translate-x-4' : ''
+              }`} />
+            </button>
           </div>
 
           {/* Actions */}
