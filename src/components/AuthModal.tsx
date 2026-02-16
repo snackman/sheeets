@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus, Clock, XCircle } from 'lucide-react';
+import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAuthSuccess, trackSignOut } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
@@ -546,16 +546,10 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
     <>
       <button
         onClick={() => setOpen(true)}
-        className="relative p-1.5 text-slate-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1"
-        title="Profile"
+        className="relative p-1.5 text-slate-400 hover:text-white transition-colors cursor-pointer"
+        title="Settings"
       >
-        {profile?.display_name ? (
-          <span className="text-xs font-medium truncate max-w-[80px]">
-            {profile.display_name.split(' ')[0]}
-          </span>
-        ) : (
-          <User className="w-4 h-4" />
-        )}
+        <Settings className="w-4 h-4" />
         {badgeCount > 0 && (
           <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center text-[9px] font-bold rounded-full bg-orange-500 text-white px-0.5">
             {badgeCount}

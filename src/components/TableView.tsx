@@ -206,8 +206,8 @@ export function TableView({
           <colgroup>
             <col className="w-8" />                         {/* star */}
             <col className="w-[110px]" />                   {/* when */}
-            <col style={{ width: '20%' }} />                {/* organizer */}
-            <col style={{ width: '35%' }} />                {/* event */}
+            <col style={{ width: '15%' }} />                {/* organizer */}
+            <col style={{ width: '40%' }} />                {/* event */}
             <col style={{ width: '18%' }} />                {/* where */}
             <col style={{ width: `${tagsColWidth}px` }} />  {/* tags — sized to fit content */}
           </colgroup>
