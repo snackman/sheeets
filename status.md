@@ -1,27 +1,39 @@
 # Project Status
-*Last updated: 2026-02-14 01:30*
-
-## Uncommitted Changes (master)
-- `EventCard.tsx` — Removed friend letter circles, kept Users icon
-- `EventPopup.tsx` — Same (Users icon kept, circles removed)
-- `TableView.tsx` — Tags now wrap on mobile instead of truncating
-- `useFriendsItineraries.ts` — Display name fallback: name → @x_handle → email
-- `plans/done/friends-filter.md` — Archived completed plan
+*Last updated: 2026-02-16 (Session 10)*
 
 ## Open PRs
-| PR | Task | Preview | Status | Notes |
-|----|------|---------|--------|-------|
-| #30 | Luma RSVP | [Preview](https://sheeets-git-luma-rsvp-pizza-dao.vercel.app) | ✓ Deployed | Edge functions deployed, ready for review |
-| #18 | tomato-46571: Light/dark theme toggle | [Preview](https://sheeets-git-tomato-46571-theme-toggle-pizza-dao.vercel.app) | ✓ Deployed | Ready for review |
+| PR | Branch | Feature | Preview | Status |
+|----|--------|---------|---------|--------|
+| #40 | `luma-rsvp-v2` | Luma RSVP: in-page checkout + copy-paste fields | [Preview](https://sheeets-git-luma-rsvp-v2-pizza-dao.vercel.app) | ✓ Ready for review |
+| #41 | `geocode-api` | Runtime geocode API (fixes missing map pins) | [Preview](https://sheeets-git-geocode-api-pizza-dao.vercel.app) | ✓ Ready for review |
+| #39 | `api-docs-page` | API documentation page | [Preview](https://sheeets-git-api-docs-page-pizza-dao.vercel.app/api-docs) | ✓ Ready for review |
+| #34 | `agent-api` | Agent API: Foundation + Events | - | Edge fn live v4. Safe to merge. |
+| #30 | `luma-rsvp` | Old Luma RSVP (superseded by #40) | - | Close — replaced by #40 |
+
+## Just Pushed to Master
+- `1644a59` fix: POI address tap opens navigation drawer on mobile
+- Geocode script ran — 11 new addresses cached (goes live via PR #41)
+
+## Active Worktrees
+| Worktree | Branch | PR |
+|----------|--------|----|
+| `sheeets-luma-rsvp` | `luma-rsvp-v2` | #40 |
+| `sheeets-geocode-api` | `geocode-api` | #41 |
+| `sheeets-api-docs` | `api-docs-page` | #39 |
+| `sheeets-agent-api` | `agent-api` | #34 |
 
 ## Open Plans
-- `plans/luma-rsvp.md` — Luma RSVP (PR #30 open)
-- `plans/tomato-46571-theme-toggle.md` — Theme toggle (PR #18 open)
-- `plans/luma-api-research.md` — Research doc (complete)
+- `plans/luma-rsvp.md` — Implemented in #40
+- `plans/tomato-46571-theme-toggle.md` — Theme toggle
 
-## Top Tasks
-| ID | Task | Priority | Stage |
-|----|------|----------|-------|
-| temp-4-luma-rsvp | Luma RSVP feature (redirect-based) | P2 | Doing |
+## Edge Functions (Deployed)
+| Function | Version | Status |
+|----------|---------|--------|
+| `agent-api` | v4 | ✓ Live |
+| `resolve-luma-event` | v4 | ✓ Live |
+| `luma-rsvp` | v3 | ✓ Live (not needed with new approach) |
 
-*Run `sheets-claude tasks` for full list*
+## Cleanup Needed
+- Close PR #30 (superseded by #40)
+- Delete `test-luma-rsvp` and `luma-rsvp` edge functions (no longer needed with embed widget approach)
+- Delete `luma_events` Supabase table (not needed)

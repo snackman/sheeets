@@ -1,73 +1,115 @@
-# Plan: Luma RSVP from Sheeets
+# Luma RSVP - Embed Widget + Copy-Paste Fields
 
-## Context
-Users want to RSVP to Luma events without leaving sheeets. Many events in the dataset have `lu.ma/*` links.
+## Approach
 
-## Research Findings
+Use Luma's official `checkout-button.js` widget to open their RSVP form in an overlay on our page. Show the user's profile fields (name, email) with copy buttons alongside the flow for easy form-filling.
 
-### Option A: Thin Proxy (server-side RSVP)
-- Luma's **official API** (`POST /v1/event/add-guests`) requires a Luma Plus API key **per event organizer** — not viable since we aggregate events from hundreds of hosts.
-- The alternative is reverse-engineering Luma's browser form submission endpoint. This is fragile (no API contract, can break anytime, CAPTCHA risk).
+**Flow:**
+1. User clicks RSVP badge on a Luma event
+2. Modal opens with their profile fields (name, email) + copy buttons
+3. "Open RSVP Form" button triggers Luma's checkout widget (stays on our page)
+4. User fills out Luma form (copy-pasting from our fields)
+5. User clicks "Done - I RSVP'd" -> we record it in `rsvps` table
 
-### Option B: Luma Embed Checkout Widget (recommended)
-Luma provides an official embeddable registration button:
-```html
-<script id="luma-checkout" src="https://embed.lu.ma/checkout-button.js" />
-<button data-luma-action="checkout" data-luma-event-id="evt-XXXXX">Register</button>
+## Key Technical Details
+
+- Luma's `checkout-button.js` creates an iframe to `lu.ma/embed/event/{id}/simple`
+- This bypasses `x-frame-options: SAMEORIGIN` because it's Luma's dedicated embed URL
+- The widget is triggered via `data-luma-action="checkout"` + `data-luma-event-id={id}`
+- We extract the Luma slug from the event link using `getLumaSlug()`
+- Try slug directly as the event ID first; if Luma needs the API ID, resolve client-side
+
+## What to keep from the old branch
+
+- `src/lib/luma.ts` concepts -- `isLumaUrl()` and `getLumaSlug()` utilities
+- `rsvps` table -- already exists in Supabase with correct schema
+- `trackRsvp` analytics concept
+- `LumaEmbedOverlay` checkout widget pattern (script loading + trigger)
+
+## What NOT to do (old branch mistakes)
+
+- Do NOT rename `rsvp_name` to `farcaster_username` (column doesn't exist)
+- Do NOT delete AddressLink, DateTimePicker, POI system, or rewrite filters
+- Do NOT create edge functions -- not needed for this approach
+- Do NOT touch filter/types/useFilters -- start fresh from master
+
+## Files to Create
+
+### 1. `src/lib/luma.ts`
+```ts
+export function isLumaUrl(url: string): boolean
+export function getLumaSlug(url: string): string | null
 ```
-- Opens Luma's checkout overlay **inside sheeets** — no new tab, no redirect
-- Official/supported — won't break or violate ToS
-- Handles paid events, approval-gated events, custom questions natively
-- User authenticates with Luma inside the overlay (their account, their IP)
-- **Challenge**: Needs `evt-` format event ID, but our data has URL slugs (`lu.ma/some-slug`)
 
-### Option C: Pre-filled redirect
-- Open `lu.ma/event-slug` in new tab
-- Research found **no documented query param** for pre-filling email
-- Lowest effort but worst UX (leaves the app)
+### 2. `src/components/RsvpButton.tsx`
+Small badge button:
+- Only renders for Luma events (`isLumaUrl(event.link)`)
+- Two states: idle ("RSVP" orange) / confirmed ("RSVP'd" green checkmark)
+- On click: triggers RSVP flow
 
-## Recommended Approach: Option B (Embed Widget)
+### 3. `src/hooks/useRsvp.ts`
+Simple hook:
+- Load user's confirmed RSVPs from `rsvps` table on mount
+- `getRsvpStatus(eventId)` -> `'idle' | 'confirmed'`
+- `openRsvp(eventId, lumaUrl)` -> sets active RSVP event (opens overlay)
+- `markConfirmed(eventId)` -> insert into `rsvps` table
+- `activeRsvp` state for which event's overlay is open
 
-### Phase 1: Resolve event IDs
-- For each Luma URL, we need the `evt-` ID
-- Options to get it:
-  1. **Scrape on ingest**: When events are loaded, fetch the lu.ma page and extract the event ID from page metadata/scripts
-  2. **Luma oEmbed/API lookup**: Check if `GET https://public-api.luma.com/v1/event/get?slug=some-slug` works without auth
-  3. **Runtime lookup**: When user clicks RSVP, fetch the lu.ma page server-side, extract evt ID, then open the widget
-- Store resolved `lumaEventId` on the event object to avoid repeated lookups
+### 4. `src/components/RsvpOverlay.tsx`
+Portal-based overlay with two stages:
 
-### Phase 2: Embed the widget
-- Load `embed.lu.ma/checkout-button.js` script (once, in layout or on-demand)
-- When user clicks RSVP on a Luma event, trigger the checkout overlay with the evt ID
-- For non-Luma events, keep the current behavior (open link in new tab)
+**Stage 1 - Copy-paste fields:**
+- Event name header + close button
+- Profile fields (name, email) with copy-to-clipboard buttons
+- "Open RSVP Form" button -> loads Luma widget, transitions to stage 2
+- If not logged in, profile section shows "Log in to see your details"
 
-### Phase 3: Batch RSVP for itinerary
-- "RSVP All" button on itinerary page
-- Opens Luma checkout overlay for each Luma event sequentially
-- User confirms each one (since the overlay handles auth/payment/custom questions)
-- Skip non-Luma events (show count of skipped)
+**Stage 2 - Luma widget active:**
+- Luma's checkout overlay is open on top
+- Our overlay shows "Done - I RSVP'd" and "Cancel" buttons behind it
+- When Luma overlay closes, user sees our buttons
 
-## Database Changes
-- Add `luma_event_id` column to event cache/storage (or resolve at runtime)
-- No user profile changes needed (Luma handles auth in its own overlay)
+**Implementation:**
+- Load `checkout-button.js` on mount
+- Hidden `<a>` with `data-luma-action="checkout"` + `data-luma-event-id={slug}`
+- "Open RSVP Form" programmatically clicks the hidden link
+- Mobile-first layout (stacked), works on iPhone SE (375px)
 
 ## Files to Modify
-| File | Change |
-|------|--------|
-| `src/lib/types.ts` | Add `lumaEventId?: string` to ETHDenverEvent |
-| `src/app/layout.tsx` | Load Luma checkout script |
-| `src/components/EventPopup.tsx` | RSVP button triggers checkout overlay for Luma events |
-| `src/components/EventCard.tsx` | Same RSVP logic |
-| `src/components/TableView.tsx` | Same RSVP logic |
-| `src/app/itinerary/page.tsx` | "RSVP All" button |
-| Event parsing/fetching | Resolve luma event IDs from slugs |
 
-## Open Questions
-1. Does Luma's public API support looking up events by slug without auth?
-2. Can the embed widget accept a slug instead of evt- ID?
-3. Does the checkout overlay work well on mobile?
+### 5. `src/lib/analytics.ts`
+Add: `trackRsvp` event tracking
 
-## Risks
-- If Luma changes the embed widget, it breaks (but this is an official/supported integration)
-- Event ID resolution adds a network request per Luma event on first load
-- The overlay may not pre-fill user info (user types their email each time in the Luma overlay)
+### 6. `src/components/EventCard.tsx`
+- Add optional `rsvpStatus` and `onRsvp` props
+- Render `<RsvpButton>` in tags/badges row for Luma events
+
+### 7. `src/components/EventPopup.tsx`
+- Same as EventCard -- add RSVP props, render badge
+
+### 8. `src/components/EventApp.tsx`
+- Import and use `useRsvp` hook
+- Auth-gate: if not logged in when clicking RSVP, show auth modal first
+- Pass `getRsvpStatus` and `onRsvp` down to all views
+- Render `<RsvpOverlay>` when `activeRsvp` is set
+
+### 9-12. ListView, TableView, MapView, MapViewWrapper
+- Thread `getRsvpStatus` and `onRsvp` props through to EventCard/EventPopup
+
+## Database
+
+No migrations needed. Existing `rsvps` table schema:
+- `id`, `user_id`, `event_id`, `luma_api_id` (nullable), `status`, `method`, `created_at`
+- RLS: authenticated users can read/insert/update their own rows
+- For this approach: `method = 'manual'`, `status = 'confirmed'`, `luma_api_id = null`
+
+## Verification
+
+- [ ] RSVP button appears only on events with Luma links
+- [ ] Clicking RSVP when logged out triggers auth modal
+- [ ] Profile fields show name + email with working copy buttons
+- [ ] "Open RSVP Form" triggers Luma checkout widget (stays on page)
+- [ ] "Done" records RSVP in DB, button changes to green "RSVP'd"
+- [ ] RSVP state persists across page reloads
+- [ ] Works on mobile (iPhone SE 375px)
+- [ ] No regressions to existing features (filters, POIs, address links, etc.)
