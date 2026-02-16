@@ -75,3 +75,18 @@ export interface UserSearchResult {
   rsvp_name: string | null;
   request_status: 'pending_outgoing' | 'pending_incoming' | null;
 }
+
+export type POICategory = 'pin' | 'hotel' | 'food' | 'drink' | 'work' | 'meeting';
+
+export interface POI {
+  id: string;
+  user_id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  address: string | null;
+  category: POICategory;
+  note: string | null;
+  conference: string | null;
+  created_at: string;
+}

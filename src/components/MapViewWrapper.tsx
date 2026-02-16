@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { ChevronUp, ChevronDown, MapPinOff } from 'lucide-react';
-import type { ETHDenverEvent } from '@/lib/types';
+import type { ETHDenverEvent, POI, POICategory } from '@/lib/types';
 import { EventCard } from './EventCard';
 
 const MapView = dynamic(
@@ -26,6 +26,9 @@ interface MapViewWrapperProps {
   isItineraryView?: boolean;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  pois?: POI[];
+  onAddPOI?: (poi: { name: string; lat: number; lng: number; address?: string | null; category: POICategory; note?: string | null }) => Promise<unknown>;
+  onRemovePOI?: (id: string) => void;
 }
 
 export function MapViewWrapper({
@@ -36,6 +39,9 @@ export function MapViewWrapper({
   isItineraryView,
   friendsCountByEvent,
   friendsByEvent,
+  pois,
+  onAddPOI,
+  onRemovePOI,
 }: MapViewWrapperProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -56,6 +62,9 @@ export function MapViewWrapper({
         isItineraryView={isItineraryView}
         friendsCountByEvent={friendsCountByEvent}
         friendsByEvent={friendsByEvent}
+        pois={pois}
+        onAddPOI={onAddPOI}
+        onRemovePOI={onRemovePOI}
       />
 
       {/* No-location drawer */}
