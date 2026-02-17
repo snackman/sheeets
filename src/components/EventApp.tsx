@@ -266,6 +266,7 @@ export function EventApp() {
         events={events}
         itinerary={itinerary}
         onOpenFriends={() => setShowFriends(true)}
+        refreshFriends={refreshFriends}
       />
 
       <SponsorsTicker />

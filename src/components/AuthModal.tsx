@@ -644,16 +644,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
 
                 {/* Friends */}
                 <div className="border-t border-slate-700 pt-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-slate-400" />
-                      <p className="text-xs text-slate-500 uppercase tracking-wide">Friends</p>
-                    </div>
-                    <p className="text-xs text-slate-500">
-                      {friendCount > 0 && `${friendCount} friend${friendCount !== 1 ? 's' : ''}`}
-                    </p>
-                  </div>
-
                   {/* View Friends button */}
                   {friendCount > 0 && (
                     <button
@@ -794,7 +784,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
                 {/* Submit Event + Sign Out */}
                 <div className="border-t border-slate-700 pt-4 space-y-2">
                   <a
-                    href="https://sheeets.xyz"
+                    href="https://docs.google.com/spreadsheets/d/1xWmIHyEyOmPHfkYuZkucPRlLGWbb9CF6Oqvfl8FUV6k/edit?gid=356217373#gid=356217373"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"

@@ -147,7 +147,10 @@ export function TableView({
     const scrollingUp = scrollTop < lastScrollTopRef.current - 2;
     lastScrollTopRef.current = scrollTop;
 
-    const shouldHide = !atTop && scrollingDown;
+    // Only hide the filter bar if there's enough overflow that hiding it won't
+    // eliminate the scroll, which would cause a show→hide→show jitter loop.
+    const overflowAmount = container.scrollHeight - container.clientHeight;
+    const shouldHide = !atTop && scrollingDown && overflowAmount > 80;
     const shouldShow = atTop || scrollingUp;
 
     if (shouldHide && !lastScrolledRef.current) {
