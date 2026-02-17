@@ -12,6 +12,7 @@ interface ListViewProps {
   onItineraryToggle?: (eventId: string) => void;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  checkInCounts?: Map<string, number>;
 }
 
 interface DateGroup {
@@ -50,6 +51,7 @@ export function ListView({
   onItineraryToggle,
   friendsCountByEvent,
   friendsByEvent,
+  checkInCounts,
 }: ListViewProps) {
   const dateGroups: DateGroup[] = useMemo(() => {
     const groupMap = new Map<string, ETHDenverEvent[]>();
@@ -87,7 +89,7 @@ export function ListView({
       {dateGroups.map((group) => (
         <section key={group.dateISO} className="mb-6">
           {/* Sticky date header */}
-          <div className="sticky top-[56px] z-20 bg-slate-900 py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-slate-800">
+          <div className="sticky top-0 z-20 bg-slate-900 py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-slate-800">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-white">
                 {group.label}
@@ -108,6 +110,7 @@ export function ListView({
                 onItineraryToggle={onItineraryToggle}
                 friendsCount={friendsCountByEvent?.get(event.id)}
                 friendsGoing={friendsByEvent?.get(event.id)}
+                checkInCount={checkInCounts?.get(event.id)}
               />
             ))}
           </div>

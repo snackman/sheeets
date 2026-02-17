@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import clsx from 'clsx';
-import { X, SlidersHorizontal, ChevronDown, Zap, Users } from 'lucide-react';
+import { X, SlidersHorizontal, Zap, Users, MapPin } from 'lucide-react';
 import type { FilterState } from '@/lib/types';
 import { EVENT_DATES, VIBE_COLORS } from '@/lib/constants';
 import { TAG_ICONS } from './TagBadge';
@@ -64,10 +64,13 @@ export function FilterBar({
                 <button
                   ref={(el) => { confBtnRef.current = el; }}
                   onClick={() => setConfOpen(!confOpen)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-orange-500 text-white text-sm font-semibold cursor-pointer max-w-[120px]"
+                  className={clsx(
+                    'flex items-center gap-1.5 px-3 py-2 rounded-lg bg-orange-500 text-white font-semibold cursor-pointer',
+                    (filters.conference || 'All').length > 12 ? 'text-xs' : 'text-sm'
+                  )}
                 >
-                  <span className="truncate">{filters.conference || 'All'}</span>
-                  <ChevronDown className={clsx('w-3.5 h-3.5 shrink-0 transition-transform', confOpen && 'rotate-180')} />
+                  <MapPin className="w-3.5 h-3.5 shrink-0" />
+                  <span className="whitespace-nowrap">{filters.conference || 'All'}</span>
                 </button>
                 {confOpen && (
                   <>
@@ -141,7 +144,7 @@ export function FilterBar({
           <button
             onClick={() => setExpanded(!expanded)}
             className={clsx(
-              'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ml-auto',
+              'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
               expanded || activeFilterCount > 0
                 ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
                 : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700 border border-slate-700'
@@ -154,7 +157,6 @@ export function FilterBar({
                 {activeFilterCount}
               </span>
             )}
-            <ChevronDown className={clsx('w-3.5 h-3.5 transition-transform', expanded && 'rotate-180')} />
           </button>
         </div>
 

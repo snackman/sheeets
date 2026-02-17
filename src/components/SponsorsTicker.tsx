@@ -29,6 +29,15 @@ export function SponsorsTicker() {
       {renderSponsors()}
       <span>. Join the Fight for Sensible Crypto Policy!</span>
       <span className="mx-6 text-slate-600">&#10022;</span>
+      <a
+        href="https://rsv.pizza/ethdenver"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline decoration-slate-500 underline-offset-2 hover:text-slate-200 hover:decoration-slate-300 transition-colors"
+      >
+        🍕 Pizza Temple 8:30pm tonight!
+      </a>
+      <span className="mx-6 text-slate-600">&#10022;</span>
     </span>
   );
 

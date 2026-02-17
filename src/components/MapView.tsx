@@ -23,6 +23,7 @@ interface MapViewProps {
   isItineraryView?: boolean;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  checkInCounts?: Map<string, number>;
   pois?: POI[];
   onAddPOI?: (poi: { name: string; lat: number; lng: number; address?: string | null; category: POICategory; note?: string | null }) => Promise<unknown>;
   onRemovePOI?: (id: string) => void;
@@ -46,6 +47,7 @@ export function MapView({
   isItineraryView = false,
   friendsCountByEvent,
   friendsByEvent,
+  checkInCounts,
   pois,
   onAddPOI,
   onRemovePOI,
@@ -504,6 +506,7 @@ export function MapView({
           onItineraryToggle={onItineraryToggle}
           friendsCount={friendsCountByEvent?.get(popupEvent.id)}
           friendsGoing={friendsByEvent?.get(popupEvent.id)}
+          checkInCount={checkInCounts?.get(popupEvent.id)}
         />
       )}
 
@@ -518,6 +521,7 @@ export function MapView({
           onItineraryToggle={onItineraryToggle}
           friendsCountByEvent={friendsCountByEvent}
           friendsByEvent={friendsByEvent}
+          checkInCounts={checkInCounts}
         />
       )}
 

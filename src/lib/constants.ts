@@ -3,7 +3,7 @@ export const SHEET_ID = '1xWmIHyEyOmPHfkYuZkucPRlLGWbb9CF6Oqvfl8FUV6k';
 export const CONFERENCE_TIMEZONE = 'America/Denver';
 
 export const EVENT_TABS = [
-  { gid: 356217373, name: 'ETH Denver 2026' },
+  { gid: 356217373, name: 'ETHDenver' },
   { gid: 377806756, name: 'Consensus Hong Kong 2026' },
 ];
 

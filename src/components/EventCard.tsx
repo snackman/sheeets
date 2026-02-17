@@ -21,6 +21,7 @@ interface EventCardProps {
   onItineraryToggle?: (eventId: string) => void;
   friendsCount?: number;
   friendsGoing?: FriendInfo[];
+  checkInCount?: number;
 }
 
 function FriendsGoingModal({
@@ -104,6 +105,7 @@ export function EventCard({
   onItineraryToggle,
   friendsCount,
   friendsGoing,
+  checkInCount,
 }: EventCardProps) {
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const timeDisplay = event.isAllDay
@@ -156,6 +158,11 @@ export function EventCard({
         <p className="text-slate-400 text-sm mt-1 flex items-start gap-1">
           <Calendar className="w-3.5 h-3.5 mt-0.5 shrink-0" />
           <span>{event.date} · {timeDisplay}</span>
+          {(checkInCount ?? 0) > 0 && (
+            <span className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-green-500 text-white text-[10px] font-bold px-1 shrink-0">
+              {checkInCount}
+            </span>
+          )}
         </p>
 
         {/* Address */}

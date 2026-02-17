@@ -17,6 +17,7 @@ interface TableViewProps {
   onScrolledChange?: (scrolled: boolean) => void;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  checkInCounts?: Map<string, number>;
 }
 
 /** Format a dateISO string like "2026-02-10" into "Mon Feb 10" */
@@ -56,6 +57,7 @@ export function TableView({
   onScrolledChange,
   friendsCountByEvent,
   friendsByEvent,
+  checkInCounts,
 }: TableViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
@@ -242,6 +244,7 @@ export function TableView({
                 onItineraryToggle={onItineraryToggle}
                 setSeparatorRef={setSeparatorRef}
                 friendsCountByEvent={friendsCountByEvent}
+                checkInCounts={checkInCounts}
                 onSelectEvent={setSelectedEvent}
               />
             ))}
@@ -318,6 +321,7 @@ function DateGroup({
   onItineraryToggle,
   setSeparatorRef,
   friendsCountByEvent,
+  checkInCounts,
   onSelectEvent,
 }: {
   group: { dateISO: string; label: string; events: ETHDenverEvent[] };
@@ -325,6 +329,7 @@ function DateGroup({
   onItineraryToggle?: (eventId: string) => void;
   setSeparatorRef: (dateISO: string, el: HTMLTableRowElement | null) => void;
   friendsCountByEvent?: Map<string, number>;
+  checkInCounts?: Map<string, number>;
   onSelectEvent: (event: ETHDenverEvent) => void;
 }) {
   return (
@@ -390,8 +395,15 @@ function DateGroup({
 
             {/* Time */}
             <td className="px-3 py-2 text-slate-400 whitespace-nowrap">
-              {event.startTime}
-              {event.endTime ? `-${event.endTime}` : ''}
+              <span className="inline-flex items-center gap-1.5">
+                {event.startTime}
+                {event.endTime ? `-${event.endTime}` : ''}
+                {(checkInCounts?.get(event.id) ?? 0) > 0 && (
+                  <span className="min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-green-500 text-white text-[9px] font-bold px-0.5">
+                    {checkInCounts!.get(event.id)}
+                  </span>
+                )}
+              </span>
             </td>
 
             {/* Organizer (hidden on mobile portrait — shown inside Event cell instead) */}

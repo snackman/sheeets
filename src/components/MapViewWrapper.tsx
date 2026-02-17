@@ -26,6 +26,7 @@ interface MapViewWrapperProps {
   isItineraryView?: boolean;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  checkInCounts?: Map<string, number>;
   pois?: POI[];
   onAddPOI?: (poi: { name: string; lat: number; lng: number; address?: string | null; category: POICategory; note?: string | null }) => Promise<unknown>;
   onRemovePOI?: (id: string) => void;
@@ -41,6 +42,7 @@ export function MapViewWrapper({
   isItineraryView,
   friendsCountByEvent,
   friendsByEvent,
+  checkInCounts,
   pois,
   onAddPOI,
   onRemovePOI,
@@ -66,6 +68,7 @@ export function MapViewWrapper({
         isItineraryView={isItineraryView}
         friendsCountByEvent={friendsCountByEvent}
         friendsByEvent={friendsByEvent}
+        checkInCounts={checkInCounts}
         pois={pois}
         onAddPOI={onAddPOI}
         onRemovePOI={onRemovePOI}

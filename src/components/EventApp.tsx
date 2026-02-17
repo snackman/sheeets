@@ -11,6 +11,7 @@ import { usePOIs } from '@/hooks/usePOIs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFriends } from '@/hooks/useFriends';
 import { useFriendsItineraries } from '@/hooks/useFriendsItineraries';
+import { useCheckIns } from '@/hooks/useCheckIns';
 import { trackItinerary, trackAuthPrompt } from '@/lib/analytics';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
@@ -37,7 +38,35 @@ export function EventApp() {
     activeFilterCount,
   } = useFilters();
   const [viewMode, setViewMode] = useState<ViewMode>('table');
-  const [tableScrolled, setTableScrolled] = useState(false);
+  const [contentScrolled, setContentScrolled] = useState(false);
+
+  // List view scroll tracking (mirrors TableView's onScrolledChange)
+  const listMainRef = useRef<HTMLDivElement>(null);
+  const listLastScrollTopRef = useRef(0);
+  const listScrolledRef = useRef(false);
+
+  const handleListScroll = useCallback(() => {
+    const container = listMainRef.current;
+    if (!container) return;
+
+    const scrollTop = container.scrollTop;
+    const atTop = scrollTop <= 5;
+    const scrollingDown = scrollTop > listLastScrollTopRef.current + 2;
+    const scrollingUp = scrollTop < listLastScrollTopRef.current - 2;
+    listLastScrollTopRef.current = scrollTop;
+
+    const overflowAmount = container.scrollHeight - container.clientHeight;
+    const shouldHide = !atTop && scrollingDown && overflowAmount > 80;
+    const shouldShow = atTop || scrollingUp;
+
+    if (shouldHide && !listScrolledRef.current) {
+      listScrolledRef.current = true;
+      setContentScrolled(true);
+    } else if (shouldShow && listScrolledRef.current) {
+      listScrolledRef.current = false;
+      setContentScrolled(false);
+    }
+  }, []);
   const { user } = useAuth();
 
   const {
@@ -51,6 +80,7 @@ export function EventApp() {
 
   const { friends, removeFriend, refreshFriends } = useFriends();
   const { friendItineraries } = useFriendsItineraries(friends);
+  const checkInCounts = useCheckIns(friends);
 
   // Friends panel
   const [showFriends, setShowFriends] = useState(false);
@@ -256,7 +286,7 @@ export function EventApp() {
   }
 
   return (
-    <div className={viewMode === 'list' ? 'min-h-screen bg-slate-900' : 'h-dvh flex flex-col bg-slate-900 overflow-hidden'}>
+    <div className="h-dvh flex flex-col bg-slate-900 overflow-hidden">
       <Header
         viewMode={viewMode}
         onViewChange={setViewMode}
@@ -271,10 +301,10 @@ export function EventApp() {
 
       <SponsorsTicker />
 
-      {/* Filter bar — collapses on table scroll to maximize table height */}
+      {/* Filter bar — collapses on scroll down in table/list views */}
       <div className={
-        viewMode === 'table'
-          ? `shrink-0 transition-all duration-200 ${tableScrolled ? 'lg:overflow-visible lg:max-h-none overflow-hidden max-h-0' : ''}`
+        viewMode === 'table' || viewMode === 'list'
+          ? `shrink-0 transition-all duration-200 ${contentScrolled ? 'lg:overflow-visible lg:max-h-none overflow-hidden max-h-0' : ''}`
           : 'shrink-0'
       }>
         <FilterBar
@@ -307,6 +337,7 @@ export function EventApp() {
             isItineraryView={filters.itineraryOnly}
             friendsCountByEvent={friendsCountByEvent}
             friendsByEvent={friendsByEvent}
+            checkInCounts={checkInCounts}
             pois={pois}
             onAddPOI={addPOI}
             onRemovePOI={removePOI}
@@ -321,13 +352,14 @@ export function EventApp() {
             totalCount={conferenceEventCount}
             itinerary={itinerary}
             onItineraryToggle={handleItineraryToggle}
-            onScrolledChange={setTableScrolled}
+            onScrolledChange={setContentScrolled}
             friendsCountByEvent={friendsCountByEvent}
             friendsByEvent={friendsByEvent}
+            checkInCounts={checkInCounts}
           />
         </main>
       ) : (
-        <main>
+        <main ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto">
           <ListView
             events={filteredEvents}
             totalCount={conferenceEventCount}
@@ -335,6 +367,7 @@ export function EventApp() {
             onItineraryToggle={handleItineraryToggle}
             friendsCountByEvent={friendsCountByEvent}
             friendsByEvent={friendsByEvent}
+            checkInCounts={checkInCounts}
           />
         </main>
       )}

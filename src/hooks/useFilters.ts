@@ -27,7 +27,7 @@ function getDefaultDateTimeRange(): { startDateTime: string; endDateTime: string
 const defaults = getDefaultDateTimeRange();
 
 const defaultFilters: FilterState = {
-  conference: 'ETH Denver 2026',
+  conference: 'ETHDenver',
   startDateTime: defaults.startDateTime,
   endDateTime: defaults.endDateTime,
   vibes: [],

@@ -23,6 +23,7 @@ interface EventPopupProps {
   onItineraryToggle?: (eventId: string) => void;
   friendsCount?: number;
   friendsGoing?: FriendInfo[];
+  checkInCount?: number;
 }
 
 interface MultiEventPopupProps {
@@ -35,6 +36,7 @@ interface MultiEventPopupProps {
   onItineraryToggle?: (eventId: string) => void;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, FriendInfo[]>;
+  checkInCounts?: Map<string, number>;
 }
 
 function formatFriendsText(friends: FriendInfo[]): string {
@@ -63,6 +65,7 @@ function SingleEventContent({
   onItineraryToggle,
   friendsCount,
   friendsGoing,
+  checkInCount,
 }: {
   event: ETHDenverEvent;
   onClose: () => void;
@@ -70,6 +73,7 @@ function SingleEventContent({
   onItineraryToggle?: (eventId: string) => void;
   friendsCount?: number;
   friendsGoing?: FriendInfo[];
+  checkInCount?: number;
 }) {
   const timeDisplay = event.isAllDay
     ? 'All Day'
@@ -126,6 +130,11 @@ function SingleEventContent({
         <p className="text-slate-400 text-xs mt-1.5 flex items-center gap-1">
           <Calendar className="w-3 h-3 shrink-0" />
           <span>{event.date} · {timeDisplay}</span>
+          {(checkInCount ?? 0) > 0 && (
+            <span className="min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-green-500 text-white text-[8px] font-bold px-0.5 shrink-0">
+              {checkInCount}
+            </span>
+          )}
         </p>
 
         {/* Address */}
@@ -167,6 +176,7 @@ export function EventPopup({
   onItineraryToggle,
   friendsCount,
   friendsGoing,
+  checkInCount,
 }: EventPopupProps) {
   return (
     <Popup
@@ -186,6 +196,7 @@ export function EventPopup({
         onItineraryToggle={onItineraryToggle}
         friendsCount={friendsCount}
         friendsGoing={friendsGoing}
+        checkInCount={checkInCount}
       />
     </Popup>
   );
@@ -201,6 +212,7 @@ export function MultiEventPopup({
   onItineraryToggle,
   friendsCountByEvent,
   friendsByEvent,
+  checkInCounts,
 }: MultiEventPopupProps) {
   return (
     <Popup
@@ -266,6 +278,11 @@ export function MultiEventPopup({
                   <p className="text-slate-400 text-[10px] mt-1 flex items-center gap-1">
                     <Calendar className="w-2.5 h-2.5 shrink-0" />
                     <span>{event.date} · {timeDisplay}</span>
+                    {(checkInCounts?.get(event.id) ?? 0) > 0 && (
+                      <span className="min-w-[12px] h-[12px] flex items-center justify-center rounded-full bg-green-500 text-white text-[7px] font-bold px-0.5 shrink-0">
+                        {checkInCounts!.get(event.id)}
+                      </span>
+                    )}
                   </p>
                   {event.address && (
                     <AddressLink address={event.address} lat={event.lat} lng={event.lng}
