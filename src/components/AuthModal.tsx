@@ -399,6 +399,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
   const [rsvpName, setRsvpName] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
+  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Friend search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -433,19 +434,33 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
     };
   }, [searchQuery, searchUsers]);
 
-  if (!user) return null;
+  // Auto-save profile on change (debounced)
+  useEffect(() => {
+    if (!profile) return;
+    const current = { displayName, xHandle, rsvpName };
+    const original = { displayName: profile.display_name ?? '', xHandle: profile.x_handle ?? '', rsvpName: profile.rsvp_name ?? '' };
+    if (current.displayName === original.displayName && current.xHandle === original.xHandle && current.rsvpName === original.rsvpName) return;
 
-  async function handleSaveProfile() {
-    setSaving(true);
-    await updateProfile({
-      display_name: displayName.trim() || null,
-      x_handle: xHandle.trim() || null,
-      rsvp_name: rsvpName.trim() || null,
-    });
-    setSaving(false);
-    setSaveStatus('saved');
-    setTimeout(() => setSaveStatus('idle'), 2000);
-  }
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    setSaveStatus('idle');
+    saveTimeout.current = setTimeout(async () => {
+      setSaving(true);
+      await updateProfile({
+        display_name: displayName.trim() || null,
+        x_handle: xHandle.trim() || null,
+        rsvp_name: rsvpName.trim() || null,
+      });
+      setSaving(false);
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    }, 800);
+
+    return () => {
+      if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    };
+  }, [displayName, xHandle, rsvpName, profile, updateProfile]);
+
+  if (!user) return null;
 
   async function handleSendRequest(receiverId: string) {
     setSendingTo(receiverId);
@@ -566,7 +581,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
             <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
-                <h2 className="text-base font-bold text-white">Profile</h2>
+                <h2 className="text-base font-bold text-white truncate">{user.email}</h2>
                 <button onClick={() => {
                   setOpen(false);
                   setCheckResult(null);
@@ -578,96 +593,45 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
 
               {/* Scrollable Content */}
               <div className="max-h-[80vh] overflow-y-auto px-4 py-5 space-y-4">
-                {/* Email */}
-                <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide">Email</p>
-                  <p className="text-sm text-white mt-0.5">{user.email}</p>
-                </div>
-
                 {/* Profile Fields */}
-                <div className="border-t border-slate-700 pt-4 space-y-3">
+                <div className="space-y-3">
                   <div>
-                    <label className="text-xs text-slate-500 uppercase tracking-wide block mb-1">Username</label>
                     <input
                       type="text"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="Your name"
+                      placeholder="Username"
                       className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-slate-500"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs text-slate-500 uppercase tracking-wide block mb-1">X (Twitter)</label>
                     <div className="flex items-center bg-slate-900 border border-slate-600 rounded-lg focus-within:border-orange-500">
                       <span className="text-slate-500 text-sm pl-3 select-none">@</span>
                       <input
                         type="text"
                         value={xHandle}
                         onChange={(e) => setXHandle(e.target.value.replace(/^@/, ''))}
-                        placeholder="handle"
+                        placeholder="X handle"
                         className="flex-1 bg-transparent text-white text-sm px-2 py-2 focus:outline-none placeholder:text-slate-500"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-xs text-slate-500 uppercase tracking-wide block mb-1">RSVP Name</label>
                     <input
                       type="text"
                       value={rsvpName}
                       onChange={(e) => setRsvpName(e.target.value)}
-                      placeholder="Name for event RSVPs"
+                      placeholder="RSVP Name"
                       className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-slate-500"
                     />
                   </div>
 
-                  <button
-                    onClick={handleSaveProfile}
-                    disabled={saving}
-                    className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer"
-                  >
-                    {saving ? 'Saving...' : saveStatus === 'saved' ? 'Saved!' : 'Save'}
-                  </button>
-                </div>
-
-                {/* Check In */}
-                <div className="border-t border-slate-700 pt-4 space-y-3">
-                  <button
-                    onClick={handleCheckIn}
-                    disabled={checking}
-                    className="w-full flex flex-col items-center gap-1 px-3 py-2.5 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white transition-colors cursor-pointer"
-                  >
-                    {checking ? (
-                      <span className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Checking in...
-                      </span>
-                    ) : (
-                      <>
-                        <span className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
-                          Check In
-                        </span>
-                        <span className="text-xs font-normal text-green-200/70">Checks into nearest live RSVP'd event</span>
-                      </>
-                    )}
-                  </button>
-
-                  {checkResult && (
-                    <div
-                      className={`flex items-start gap-2 text-sm rounded-lg px-3 py-2 ${
-                        checkResult.ok
-                          ? 'bg-green-900/40 text-green-300'
-                          : 'bg-slate-700/60 text-slate-300'
-                      }`}
-                    >
-                      {checkResult.ok ? (
-                        <Check className="w-4 h-4 mt-0.5 shrink-0" />
-                      ) : (
-                        <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
-                      )}
-                      <span>{checkResult.message}</span>
+                  {saveStatus === 'saved' && (
+                    <div className="flex items-center gap-1 text-green-400">
+                      <Check className="w-3.5 h-3.5" />
+                      <span className="text-xs">Saved</span>
                     </div>
                   )}
                 </div>
@@ -777,6 +741,47 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
                     <p className="text-xs text-slate-500">
                       Search by email, name, or @handle to find friends
                     </p>
+                  )}
+                </div>
+
+                {/* Check In */}
+                <div className="border-t border-slate-700 pt-4 space-y-3">
+                  <button
+                    onClick={handleCheckIn}
+                    disabled={checking}
+                    className="w-full flex flex-col items-center gap-1 px-3 py-2.5 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white transition-colors cursor-pointer"
+                  >
+                    {checking ? (
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Checking in...
+                      </span>
+                    ) : (
+                      <>
+                        <span className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          Check In
+                        </span>
+                        <span className="text-xs font-normal text-green-200/70">Checks into nearest live RSVP'd event</span>
+                      </>
+                    )}
+                  </button>
+
+                  {checkResult && (
+                    <div
+                      className={`flex items-start gap-2 text-sm rounded-lg px-3 py-2 ${
+                        checkResult.ok
+                          ? 'bg-green-900/40 text-green-300'
+                          : 'bg-slate-700/60 text-slate-300'
+                      }`}
+                    >
+                      {checkResult.ok ? (
+                        <Check className="w-4 h-4 mt-0.5 shrink-0" />
+                      ) : (
+                        <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
+                      )}
+                      <span>{checkResult.message}</span>
+                    </div>
                   )}
                 </div>
 
