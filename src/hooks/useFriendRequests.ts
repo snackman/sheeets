@@ -139,12 +139,15 @@ export function useFriendRequests({ refreshFriends }: UseFriendRequestsOptions) 
   const sendRequest = useCallback(async (receiverId: string) => {
     if (!user) return;
 
-    const { error } = await supabase.rpc('send_friend_request', {
+    const { data, error } = await supabase.rpc('send_friend_request', {
       receiver: receiverId,
     });
 
+    console.log('send_friend_request result:', { data, error, receiverId });
+
     if (error) {
       console.error('Failed to send friend request:', error);
+      alert(`Friend request failed: ${error.message}`);
       return;
     }
 
