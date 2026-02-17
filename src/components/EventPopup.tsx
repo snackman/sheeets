@@ -131,7 +131,7 @@ function SingleEventContent({
         {/* Address */}
         {event.address && (
           <AddressLink address={event.address} lat={event.lat} lng={event.lng}
-            className="text-slate-500 hover:text-slate-300 text-xs mt-1 flex items-center gap-1 transition-colors">
+            className="text-slate-500 hover:text-slate-300 text-xs mt-1 flex items-center gap-1 overflow-hidden transition-colors">
             <MapPin className="w-3 h-3 shrink-0" />
             <span className="truncate">{event.address}</span>
           </AddressLink>
@@ -269,7 +269,7 @@ export function MultiEventPopup({
                   </p>
                   {event.address && (
                     <AddressLink address={event.address} lat={event.lat} lng={event.lng}
-                      className="text-slate-500 hover:text-slate-300 text-[10px] mt-0.5 flex items-center gap-1 transition-colors">
+                      className="text-slate-500 hover:text-slate-300 text-[10px] mt-0.5 flex items-center gap-1 overflow-hidden transition-colors">
                       <MapPin className="w-2.5 h-2.5 shrink-0" />
                       <span className="truncate">{event.address}</span>
                     </AddressLink>
