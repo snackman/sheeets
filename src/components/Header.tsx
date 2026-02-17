@@ -41,7 +41,7 @@ export function Header({
         <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 flex items-center justify-between gap-4">
           {/* Left: Branding */}
           <div className="flex items-center min-w-0">
-            <Image src="/logo.png" alt="plan." width={80} height={28} className="invert" priority />
+            <Image src="/logo.png" alt="plan.wtf" width={100} height={30} className="invert" priority />
           </div>
 
           {/* Right: Controls */}
