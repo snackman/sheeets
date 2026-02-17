@@ -124,3 +124,9 @@ input, select, textarea {
   transform: scale(0.65);
   transform-origin: bottom left;
 }
+
+/* Shrink Mapbox attribution button to match logo */
+.mapboxgl-ctrl-attrib.mapboxgl-compact {
+  transform: scale(0.65);
+  transform-origin: bottom right;
+}

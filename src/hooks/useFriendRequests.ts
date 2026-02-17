@@ -149,15 +149,35 @@ export function useFriendRequests({ refreshFriends }: UseFriendRequestsOptions) 
     }
 
     trackFriendRequestSent();
-    await fetchRequests();
-    await refreshFriends();
 
-    // Update search results to reflect the new status
+    // Optimistically update search results and outgoing requests immediately
+    const matchedUser = searchResults.find((r) => r.user_id === receiverId);
     setSearchResults((prev) =>
       prev.map((r) =>
         r.user_id === receiverId ? { ...r, request_status: 'pending_outgoing' as const } : r
       )
     );
+    if (matchedUser) {
+      setOutgoingRequests((prev) => [
+        {
+          id: `temp-${receiverId}`,
+          sender_id: user.id,
+          receiver_id: receiverId,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+          receiver_profile: {
+            display_name: matchedUser.display_name,
+            email: matchedUser.email,
+            x_handle: matchedUser.x_handle,
+          },
+        },
+        ...prev,
+      ]);
+    }
+
+    // Then refresh from server in the background
+    fetchRequests();
+    refreshFriends();
   }, [user, fetchRequests, refreshFriends]);
 
   const respondToRequest = useCallback(async (requestId: string, accept: boolean) => {

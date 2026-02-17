@@ -17,7 +17,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "sheeets.xyz",
+  title: "plan.wtf",
   description:
     "Browse and discover crypto conference side events. Filter by date, time, tags, and more.",
 };

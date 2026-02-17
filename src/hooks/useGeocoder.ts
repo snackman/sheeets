@@ -5,6 +5,7 @@ import { DENVER_CENTER } from '@/lib/constants';
 
 export interface GeocoderResult {
   place_name: string;
+  full_address: string;
   text: string;
   mapbox_id: string;
   poi_categories: string[];
@@ -12,6 +13,7 @@ export interface GeocoderResult {
 
 export interface SelectedResult {
   place_name: string;
+  full_address: string;
   text: string;
   lat: number;
   lng: number;
@@ -49,6 +51,7 @@ export function useGeocoder() {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (data.suggestions ?? []).map((s: any) => ({
               place_name: s.place_formatted ?? s.full_address ?? '',
+              full_address: s.full_address ?? s.place_formatted ?? '',
               text: s.name,
               mapbox_id: s.mapbox_id,
               poi_categories: s.poi_category ?? [],
@@ -77,6 +80,7 @@ export function useGeocoder() {
 
         return {
           place_name: feature.properties.place_formatted ?? feature.properties.full_address ?? '',
+          full_address: feature.properties.full_address ?? feature.properties.place_formatted ?? '',
           text: feature.properties.name,
           lat: feature.geometry.coordinates[1],
           lng: feature.geometry.coordinates[0],

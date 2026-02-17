@@ -51,6 +51,7 @@ export function POISearchBar({ onAddPOI, mapRef }: POISearchBarProps) {
   const [selectedResult, setSelectedResult] = useState<{
     text: string;
     place_name: string;
+    full_address: string;
     lat: number;
     lng: number;
   } | null>(null);
@@ -105,7 +106,7 @@ export function POISearchBar({ onAddPOI, mapRef }: POISearchBarProps) {
       name: name.trim(),
       lat: selectedResult.lat,
       lng: selectedResult.lng,
-      address: selectedResult.place_name,
+      address: selectedResult.full_address || selectedResult.place_name,
       category,
       is_public: isPublic,
     });

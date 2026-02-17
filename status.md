@@ -6,7 +6,7 @@
 |----|--------|---------|---------|--------|
 | #40 | `luma-rsvp-v2` | Luma RSVP: in-page checkout + copy-paste fields | [Preview](https://sheeets-git-luma-rsvp-v2-pizza-dao.vercel.app) | ✓ Ready for review |
 | #41 | `geocode-api` | Runtime geocode API (fixes missing map pins) | [Preview](https://sheeets-git-geocode-api-pizza-dao.vercel.app) | ✓ Ready for review |
-| #39 | `api-docs-page` | API documentation page | [Preview](https://sheeets-git-api-docs-page-pizza-dao.vercel.app/api-docs) | ✓ Ready for review |
+| #39 | `api-docs-page` | API documentation page | [Preview](https://sheeets-git-api-docs-page-pizza-dao.vercel.app/api) | ✓ Ready for review |
 | #34 | `agent-api` | Agent API: Foundation + Events | - | Edge fn live v4. Safe to merge. |
 | #30 | `luma-rsvp` | Old Luma RSVP (superseded by #40) | - | Close — replaced by #40 |
 

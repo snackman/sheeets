@@ -236,7 +236,7 @@ export function MultiEventPopup({
             return (
               <div
                 key={event.id}
-                className="flex gap-2.5 p-2 bg-slate-700/50 hover:bg-slate-600/50 active:bg-slate-600/50 rounded-lg transition-colors cursor-pointer"
+                className="flex gap-2.5 p-2.5 bg-slate-700/50 hover:bg-slate-600/50 active:bg-slate-600/50 rounded-lg transition-colors cursor-pointer"
                 onClick={() => onSelectEvent?.(event)}
               >
                 {/* Cover image */}

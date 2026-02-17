@@ -60,7 +60,7 @@ export function POIMarker({ poi, onSelect, isOwn = true, zoom = 12 }: POIMarkerP
             style={{ left: 0, top: 18, transform: 'translateX(-50%)' }}
             onClick={handleClick}
           >
-            <div className="px-1.5 py-0.5 rounded bg-slate-800/90 hover:bg-slate-700/90 text-[10px] text-white max-w-[120px] leading-tight transition-colors whitespace-nowrap truncate">
+            <div className="px-2 py-0.5 rounded bg-slate-800/90 hover:bg-slate-700/90 text-[10px] text-white max-w-[120px] leading-tight transition-colors whitespace-nowrap truncate">
               {poi.name}
             </div>
           </div>

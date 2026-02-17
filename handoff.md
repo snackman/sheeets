@@ -106,12 +106,11 @@ src/
 │   ├── itinerary/
 │   │   ├── page.tsx          # Standalone itinerary page
 │   │   └── s/[code]/page.tsx # Shared itinerary viewer
-│   ├── api/
-│   │   ├── geocode/route.ts  # Runtime geocoding via Mapbox (POST, batch up to 25)
-│   │   └── og/route.ts       # OG image resolution (Luma API + HTML scraping, Supabase cache, 1h TTL)
-│   └── api-docs/
+│   └── api/
 │       ├── page.tsx          # Agent API documentation page
-│       └── CodeBlock.tsx     # Tabbed code examples with copy button
+│       ├── CodeBlock.tsx     # Tabbed code examples with copy button
+│       ├── geocode/route.ts  # Runtime geocoding via Mapbox (POST, batch up to 25)
+│       └── og/route.ts       # OG image resolution (Luma API + HTML scraping, Supabase cache, 1h TTL)
 ├── components/
 │   ├── EventApp.tsx          # Main orchestrator - state, hooks, view routing, auth guards
 │   ├── Header.tsx            # Title, view toggle, itinerary badge, auth at far right (sticky + shrink-0)
@@ -239,7 +238,7 @@ interface UserProfile {
 
 ### Just Merged to Master
 - **PR #34** Agent API: Foundation + Events (edge fn + MCP server)
-- **PR #39** API documentation page at `/api-docs`
+- **PR #39** API documentation page at `/api`
 - **PR #41** Runtime geocode API (fixes missing map pins)
 - **Direct commits**: POI address navigation drawer, tsconfig fix for packages/
 

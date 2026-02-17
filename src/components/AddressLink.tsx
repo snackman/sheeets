@@ -6,7 +6,7 @@ import { Navigation, Car, X } from 'lucide-react';
 
 function buildNavUrls(address: string, lat?: number, lng?: number) {
   const encoded = encodeURIComponent(address);
-  const dest = lat != null ? `${lat},${lng}` : encoded;
+  const dest = address ? encoded : (lat != null ? `${lat},${lng}` : encoded);
 
   return {
     google: `https://www.google.com/maps/dir/?api=1&destination=${dest}`,
@@ -94,7 +94,7 @@ export function AddressLink({ address, lat, lng, className, children }: AddressL
     const isDesktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     if (isDesktop) {
       const encoded = encodeURIComponent(address);
-      const dest = lat != null ? `${lat},${lng}` : encoded;
+      const dest = address ? encoded : (lat != null ? `${lat},${lng}` : encoded);
       window.open(`https://www.google.com/maps/dir/?api=1&destination=${dest}`, '_blank');
       return;
     }
