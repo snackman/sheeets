@@ -39,6 +39,9 @@ yarn-error.log*
 # secrets
 secrets.md
 
+# one-off scripts
+scripts/migrate-itinerary-ids.ts
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

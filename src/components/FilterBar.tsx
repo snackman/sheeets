@@ -55,7 +55,7 @@ export function FilterBar({
     <div className="relative bg-slate-900 border-b border-slate-800 z-30">
       <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 space-y-3">
         {/* Top row: Conference tabs + Filter toggle */}
-        <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-3">
           {/* Conference selector — dropdown on mobile, inline tabs on desktop */}
           {availableConferences.length > 1 && (
             <>
@@ -120,6 +120,9 @@ export function FilterBar({
               </div>
             </>
           )}
+
+          {/* Spacer pushes Now + Filters to the right */}
+          <div className="flex-1" />
 
           {/* Now toggle button */}
           <button
