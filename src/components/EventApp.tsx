@@ -49,7 +49,7 @@ export function EventApp() {
 
   const { pois, addPOI, removePOI, updatePOI, ownerNames } = usePOIs();
 
-  const { friends, removeFriend } = useFriends();
+  const { friends, removeFriend, refreshFriends } = useFriends();
   const { friendItineraries } = useFriendsItineraries(friends);
 
   // Friends panel
@@ -220,6 +220,7 @@ export function EventApp() {
           events={events}
           itinerary={itinerary}
           onOpenFriends={() => setShowFriends(true)}
+          refreshFriends={refreshFriends}
         />
         <Loading />
       </div>
@@ -238,6 +239,7 @@ export function EventApp() {
           events={events}
           itinerary={itinerary}
           onOpenFriends={() => setShowFriends(true)}
+          refreshFriends={refreshFriends}
         />
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-4">
           <div className="text-red-400 text-lg font-medium">Failed to load events</div>

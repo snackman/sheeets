@@ -368,12 +368,18 @@ interface UserMenuProps {
   itinerary: Set<string>;
   onOpenFriends: () => void;
   pendingIncomingCount?: number;
+  externalRefreshFriends?: () => Promise<void>;
 }
 
-export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCount: externalCount }: UserMenuProps) {
+export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCount: externalCount, externalRefreshFriends }: UserMenuProps) {
   const { user, signOut } = useAuth();
   const { profile, updateProfile } = useProfile();
-  const { friendCount, refreshFriends } = useFriends();
+  const { friendCount, refreshFriends: localRefreshFriends } = useFriends();
+
+  const refreshFriends = useCallback(async () => {
+    await localRefreshFriends();
+    await externalRefreshFriends?.();
+  }, [localRefreshFriends, externalRefreshFriends]);
   const {
     incomingRequests,
     outgoingRequests,
