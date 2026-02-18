@@ -121,8 +121,13 @@ export function FilterBar({
             </>
           )}
 
+          {/* Desktop: inline search bar between conference tabs and Now */}
+          <div className="hidden md:block flex-1 max-w-sm">
+            <SearchBar value={searchQuery} onChange={onSearchChange} eventCount={eventCount} />
+          </div>
+
           {/* Spacer pushes Now + Filters to the right */}
-          <div className="flex-1" />
+          <div className="flex-1 md:hidden" />
 
           {/* Now toggle button */}
           <button
@@ -163,8 +168,10 @@ export function FilterBar({
           </button>
         </div>
 
-        {/* Search bar */}
-        <SearchBar value={searchQuery} onChange={onSearchChange} eventCount={eventCount} />
+        {/* Search bar — mobile only (desktop is inline in the row above) */}
+        <div className="md:hidden">
+          <SearchBar value={searchQuery} onChange={onSearchChange} eventCount={eventCount} />
+        </div>
 
         {/* Expandable filter content — overlays map on mobile */}
         {expanded && (

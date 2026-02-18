@@ -395,11 +395,13 @@ function DateGroup({
 
             {/* Time */}
             <td className="px-3 py-2 text-slate-400 whitespace-nowrap">
-              <span className="inline-flex items-center gap-1.5">
-                {event.startTime}
-                {event.endTime ? `-${event.endTime}` : ''}
+              <span className="relative inline-block">
+                <span>
+                  {event.startTime}
+                  {event.endTime ? `-${event.endTime}` : ''}
+                </span>
                 {(checkInCounts?.get(event.id) ?? 0) > 0 && (
-                  <span className="min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-green-500 text-white text-[9px] font-bold px-0.5">
+                  <span className="absolute -top-1.5 -right-3 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-green-500 text-white text-[8px] font-bold px-0.5 pointer-events-none">
                     {checkInCounts!.get(event.id)}
                   </span>
                 )}
@@ -442,6 +444,7 @@ function DateGroup({
             <td className="px-3 py-2 text-slate-400 truncate max-w-[20ch] sm:max-w-none" title={event.address}>
               {event.address ? (
                 <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
+                  eventId={event.id} eventName={event.name}
                   className="hover:text-orange-400 transition-colors">
                   {event.address}
                 </AddressLink>

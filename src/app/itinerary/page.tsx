@@ -413,6 +413,7 @@ export default function ItineraryPage() {
 
                         {event.address && (
                           <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
+                            eventId={event.id} eventName={event.name}
                             className="text-slate-500 hover:text-slate-300 text-xs mt-0.5 truncate block transition-colors">
                             {event.address}
                           </AddressLink>

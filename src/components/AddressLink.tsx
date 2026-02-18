@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Navigation, Car, X } from 'lucide-react';
+import { Navigation, Car, X, MapPinCheck, MapPinOff, Loader2, LogIn } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 function buildNavUrls(address: string, lat?: number, lng?: number) {
   const encoded = encodeURIComponent(address);
@@ -21,9 +23,59 @@ interface NavigationSheetProps {
   address: string;
   lat?: number;
   lng?: number;
+  eventId?: string;
+  eventName?: string;
+  isPrivatePin?: boolean;
 }
 
-function NavigationSheet({ isOpen, onClose, address, lat, lng }: NavigationSheetProps) {
+function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventName, isPrivatePin }: NavigationSheetProps) {
+  const { user } = useAuth();
+  const [checkInLoading, setCheckInLoading] = useState(false);
+  const [checkInResult, setCheckInResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [activeCheckIn, setActiveCheckIn] = useState<{ event_id: string; id: string } | null>(null);
+  const [loadingActiveCheckIn, setLoadingActiveCheckIn] = useState(false);
+
+  // Reset state when sheet opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setCheckInResult(null);
+      setCheckInLoading(false);
+    }
+  }, [isOpen]);
+
+  // For private pins: check if user has an active check-in elsewhere
+  useEffect(() => {
+    if (!isOpen || !isPrivatePin || !user) {
+      setActiveCheckIn(null);
+      return;
+    }
+
+    async function fetchActiveCheckIn() {
+      setLoadingActiveCheckIn(true);
+      try {
+        const { data, error } = await supabase
+          .from('check_ins')
+          .select('id, event_id')
+          .eq('user_id', user!.id)
+          .is('checked_out_at', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!error && data) {
+          setActiveCheckIn(data);
+        } else {
+          setActiveCheckIn(null);
+        }
+      } catch {
+        setActiveCheckIn(null);
+      }
+      setLoadingActiveCheckIn(false);
+    }
+
+    fetchActiveCheckIn();
+  }, [isOpen, isPrivatePin, user]);
+
   useEffect(() => {
     if (!isOpen) return;
     const handleKey = (e: KeyboardEvent) => {
@@ -32,6 +84,73 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng }: NavigationSheet
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
   }, [isOpen, onClose]);
+
+  const handleCheckIn = useCallback(async () => {
+    if (!user || !eventId) return;
+    setCheckInLoading(true);
+    setCheckInResult(null);
+
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10_000,
+        })
+      );
+
+      const { latitude: uLat, longitude: uLng } = pos.coords;
+
+      const { error } = await supabase.from('check_ins').upsert(
+        {
+          user_id: user.id,
+          event_id: eventId,
+          lat: uLat,
+          lng: uLng,
+        },
+        { onConflict: 'user_id,event_id' }
+      );
+
+      if (error) throw error;
+
+      setCheckInResult({
+        ok: true,
+        message: eventName ? `Checked in at ${eventName}!` : 'Checked in!',
+      });
+    } catch (err: unknown) {
+      const msg =
+        err instanceof GeolocationPositionError
+          ? 'Location access denied'
+          : err instanceof Error
+            ? err.message
+            : 'Check-in failed';
+      setCheckInResult({ ok: false, message: msg });
+    }
+
+    setCheckInLoading(false);
+  }, [user, eventId, eventName]);
+
+  const handleCheckOut = useCallback(async () => {
+    if (!user || !activeCheckIn) return;
+    setCheckInLoading(true);
+    setCheckInResult(null);
+
+    try {
+      const { error } = await supabase
+        .from('check_ins')
+        .update({ checked_out_at: new Date().toISOString() })
+        .eq('id', activeCheckIn.id);
+
+      if (error) throw error;
+
+      setCheckInResult({ ok: true, message: 'Checked out!' });
+      setActiveCheckIn(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Check-out failed';
+      setCheckInResult({ ok: false, message: msg });
+    }
+
+    setCheckInLoading(false);
+  }, [user, activeCheckIn]);
 
   if (!isOpen) return null;
 
@@ -42,6 +161,11 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng }: NavigationSheet
     { label: 'Lyft', url: urls.lyft, icon: <Car className="w-5 h-5" />, color: 'text-pink-400' },
     { label: 'Uber', url: urls.uber, icon: <Car className="w-5 h-5" />, color: 'text-white' },
   ];
+
+  // Determine which check-in/check-out button to show
+  const showCheckIn = !!eventId && !!user;
+  const showCheckOut = !!isPrivatePin && !!user && !!activeCheckIn && !loadingActiveCheckIn;
+  const showSignInHint = (!!eventId || !!isPrivatePin) && !user;
 
   return createPortal(
     <>
@@ -63,6 +187,88 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng }: NavigationSheet
             </a>
           ))}
         </div>
+
+        {/* Check In button (for events and public POIs) */}
+        {showCheckIn && (
+          <div className="mt-3 pt-3 border-t border-slate-700">
+            <button
+              onClick={handleCheckIn}
+              disabled={checkInLoading}
+              className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
+            >
+              {checkInLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Checking in...
+                </>
+              ) : (
+                <>
+                  <MapPinCheck className="w-4 h-4" />
+                  Check In
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Check Out button (for private pins when user is checked in elsewhere) */}
+        {showCheckOut && (
+          <div className="mt-3 pt-3 border-t border-slate-700">
+            <button
+              onClick={handleCheckOut}
+              disabled={checkInLoading}
+              className="flex items-center justify-center gap-2 w-full px-4 py-3 border border-slate-600 hover:border-red-500/50 hover:bg-red-500/10 text-slate-300 hover:text-red-400 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+            >
+              {checkInLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Checking out...
+                </>
+              ) : (
+                <>
+                  <MapPinOff className="w-4 h-4" />
+                  Check Out
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Loading active check-in state for private pins */}
+        {isPrivatePin && user && loadingActiveCheckIn && (
+          <div className="mt-3 pt-3 border-t border-slate-700 flex items-center justify-center gap-2 text-slate-500 text-sm py-2">
+            <Loader2 className="w-4 h-4 animate-spin" />
+          </div>
+        )}
+
+        {/* Sign-in hint */}
+        {showSignInHint && (
+          <div className="mt-3 pt-3 border-t border-slate-700">
+            <p className="flex items-center justify-center gap-2 text-slate-500 text-xs py-1">
+              <LogIn className="w-3.5 h-3.5" />
+              Sign in to check in
+            </p>
+          </div>
+        )}
+
+        {/* Check-in/out result message */}
+        {checkInResult && (
+          <div
+            className={`mt-2 flex items-center gap-2 text-sm rounded-lg px-3 py-2 ${
+              checkInResult.ok
+                ? 'bg-green-900/40 text-green-300'
+                : 'bg-slate-700/60 text-slate-300'
+            }`}
+          >
+            {checkInResult.ok ? (
+              <MapPinCheck className="w-4 h-4 shrink-0" />
+            ) : (
+              <X className="w-4 h-4 shrink-0" />
+            )}
+            <span>{checkInResult.message}</span>
+          </div>
+        )}
+
         <button
           onClick={onClose}
           className="w-full mt-2 py-3 text-slate-400 hover:text-white text-sm font-medium transition-colors rounded-lg cursor-pointer"
@@ -82,9 +288,12 @@ interface AddressLinkProps {
   lng?: number;
   className?: string;
   children: React.ReactNode;
+  eventId?: string;
+  eventName?: string;
+  isPrivatePin?: boolean;
 }
 
-export function AddressLink({ address, navAddress, lat, lng, className, children }: AddressLinkProps) {
+export function AddressLink({ address, navAddress, lat, lng, className, children, eventId, eventName, isPrivatePin }: AddressLinkProps) {
   const [open, setOpen] = useState(false);
   const destination = navAddress || address;
 
@@ -116,6 +325,9 @@ export function AddressLink({ address, navAddress, lat, lng, className, children
         address={destination}
         lat={lat}
         lng={lng}
+        eventId={eventId}
+        eventName={eventName}
+        isPrivatePin={isPrivatePin}
       />
     </>
   );

@@ -127,20 +127,23 @@ function SingleEventContent({
         </div>
 
         {/* Date + Time */}
-        <p className="text-slate-400 text-xs mt-1.5 flex items-center gap-1">
-          <Calendar className="w-3 h-3 shrink-0" />
-          <span>{event.date} · {timeDisplay}</span>
+        <div className="relative w-fit mt-1.5">
+          <p className="text-slate-400 text-xs flex items-center gap-1">
+            <Calendar className="w-3 h-3 shrink-0" />
+            <span>{event.date} · {timeDisplay}</span>
+          </p>
           {(checkInCount ?? 0) > 0 && (
-            <span className="min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-green-500 text-white text-[8px] font-bold px-0.5 shrink-0">
+            <span className="absolute -top-0.5 -right-2.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-green-500 text-white text-[8px] font-bold px-0.5 pointer-events-none">
               {checkInCount}
             </span>
           )}
-        </p>
+        </div>
 
         {/* Address */}
         {event.address && (
           <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
-            className="text-slate-500 hover:text-slate-300 text-xs mt-1 flex items-center gap-1 overflow-hidden transition-colors">
+            eventId={event.id} eventName={event.name}
+            className="w-full text-slate-500 hover:text-slate-300 text-xs mt-1 flex items-center gap-1 overflow-hidden transition-colors">
             <MapPin className="w-3 h-3 shrink-0" />
             <span className="truncate">{event.address}</span>
           </AddressLink>
@@ -275,18 +278,21 @@ export function MultiEventPopup({
                       )}
                     </div>
                   </div>
-                  <p className="text-slate-400 text-[10px] mt-1 flex items-center gap-1">
-                    <Calendar className="w-2.5 h-2.5 shrink-0" />
-                    <span>{event.date} · {timeDisplay}</span>
+                  <div className="relative w-fit mt-1">
+                    <p className="text-slate-400 text-[10px] flex items-center gap-1">
+                      <Calendar className="w-2.5 h-2.5 shrink-0" />
+                      <span>{event.date} · {timeDisplay}</span>
+                    </p>
                     {(checkInCounts?.get(event.id) ?? 0) > 0 && (
-                      <span className="min-w-[12px] h-[12px] flex items-center justify-center rounded-full bg-green-500 text-white text-[7px] font-bold px-0.5 shrink-0">
+                      <span className="absolute -top-0.5 -right-2 min-w-[12px] h-[12px] flex items-center justify-center rounded-full bg-green-500 text-white text-[7px] font-bold px-0.5 pointer-events-none">
                         {checkInCounts!.get(event.id)}
                       </span>
                     )}
-                  </p>
+                  </div>
                   {event.address && (
                     <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
-                      className="text-slate-500 hover:text-slate-300 text-[10px] mt-0.5 flex items-center gap-1 overflow-hidden transition-colors">
+                      eventId={event.id} eventName={event.name}
+                      className="w-full text-slate-500 hover:text-slate-300 text-[10px] mt-0.5 flex items-center gap-1 overflow-hidden transition-colors">
                       <MapPin className="w-2.5 h-2.5 shrink-0" />
                       <span className="truncate">{event.address}</span>
                     </AddressLink>
