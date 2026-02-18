@@ -77,14 +77,16 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng }: NavigationSheet
 
 interface AddressLinkProps {
   address: string;
+  navAddress?: string;
   lat?: number;
   lng?: number;
   className?: string;
   children: React.ReactNode;
 }
 
-export function AddressLink({ address, lat, lng, className, children }: AddressLinkProps) {
+export function AddressLink({ address, navAddress, lat, lng, className, children }: AddressLinkProps) {
   const [open, setOpen] = useState(false);
+  const destination = navAddress || address;
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -93,15 +95,15 @@ export function AddressLink({ address, lat, lng, className, children }: AddressL
     // Desktop: open Google Maps directly
     const isDesktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     if (isDesktop) {
-      const encoded = encodeURIComponent(address);
-      const dest = address ? encoded : (lat != null ? `${lat},${lng}` : encoded);
+      const encoded = encodeURIComponent(destination);
+      const dest = destination ? encoded : (lat != null ? `${lat},${lng}` : encoded);
       window.open(`https://www.google.com/maps/dir/?api=1&destination=${dest}`, '_blank');
       return;
     }
 
     // Mobile: show navigation sheet with all options
     setOpen(true);
-  }, [address, lat, lng]);
+  }, [destination, lat, lng]);
 
   return (
     <>
@@ -111,7 +113,7 @@ export function AddressLink({ address, lat, lng, className, children }: AddressL
       <NavigationSheet
         isOpen={open}
         onClose={() => setOpen(false)}
-        address={address}
+        address={destination}
         lat={lat}
         lng={lng}
       />

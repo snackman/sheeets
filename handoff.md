@@ -1,7 +1,7 @@
 # plan.wtf - Multi-Conference Side Event Guide
 
 ## Project Overview
-A standalone Next.js app that displays crypto conference side events with interactive map, list, and table views. Users can filter events by conference, date range, time range, tags, and more. Star favorites and build a personal itinerary with PNG export and shareable links.
+A standalone Next.js app that displays crypto conference side events with interactive map, list, and table views. Users can filter events by conference, date range, time range, tags, and more. Star favorites and build a personal itinerary with PNG export and shareable links. Check in to events and see friends' check-ins as green badges.
 
 **Live**: https://plan.wtf
 **Legacy**: https://sheeets.xyz (301 redirects to plan.wtf via .htaccess)
@@ -16,7 +16,7 @@ A standalone Next.js app that displays crypto conference side events with intera
 - **TypeScript**
 - **Tailwind CSS** (dark theme)
 - **Mapbox GL JS** via `react-map-gl` (individual markers, zoom-aware labels)
-- **Supabase** (auth via email OTP, itinerary sync, friends, POIs, image caching)
+- **Supabase** (auth via email OTP, itinerary sync, friends, check-ins, POIs, image caching)
 - **Google Analytics** (GA4, measurement ID: `G-2WB3SFJ13V`, custom event tracking)
 - **html-to-image** for itinerary PNG export
 - **localStorage + Supabase** for user state (stars, itinerary — dual storage with sync)
@@ -34,7 +34,7 @@ npm run dev        # http://localhost:3000
 NEXT_PUBLIC_MAPBOX_TOKEN=pk.xxx           # Required for map view
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxx      # Supabase anon key
-SUPABASE_SERVICE_ROLE_KEY=eyJxxx           # For server-side operations
+SUPABASE_SERVICE_ROLE_KEY=eyJxxx          # For server-side operations
 MAPBOX_TOKEN=pk.xxx                        # Server-side geocoding
 ```
 
@@ -45,9 +45,11 @@ Events have addresses but no lat/lng. Two systems:
 ```bash
 MAPBOX_SECRET_TOKEN=pk.xxx npx tsx scripts/geocode.ts
 ```
-Creates/updates `src/data/geocoded-addresses.json`. Matched to events via `normalizeAddress()` in `fetch-events.ts`.
+Creates/updates `src/data/geocoded-addresses.json`. Matched to events via `normalizeAddress()` in `fetch-events.ts`. **Auto-runs on every deploy** via the `prebuild` npm script — skips gracefully if `MAPBOX_SECRET_TOKEN` isn't set. Set the token in Vercel env vars to auto-geocode new addresses on each deploy.
 
 2. **Runtime API** (`/api/geocode`): Events not in the static cache get geocoded on-the-fly via Mapbox. The `useEvents` hook detects un-geocoded addresses and POSTs to this endpoint. Uses proximity bias (Denver/Hong Kong) based on conference name.
+
+The geocode cache also stores a `matchedAddress` field (full street address from Mapbox). This is passed to `AddressLink` via the `navAddress` prop so Lyft/Uber/Google Maps receive the complete address (e.g., "1925 Blake Street, Denver, Colorado 80202, United States") even when the spreadsheet has a shorthand like "The 1up Arcade Bar".
 
 ### POI Address Backfill
 Existing user-added POIs may have incomplete addresses. Run to fix:
@@ -66,8 +68,8 @@ Google Sheet (GViz API, multiple tabs)
     → useEvents hook (lazy-geocodes missing addresses via /api/geocode)
       → EventApp
           ├── MapView (Mapbox GL, auto-centers on events, zoom-aware labels, itinerary numbering)
-          ├── ListView (cards grouped by date)
-          └── TableView (compact rows with icon-only tags)
+          ├── ListView (cards grouped by date, contained scroll with filter bar hide/show)
+          └── TableView (compact rows with icon-only tags, contained scroll with filter bar hide/show)
 ```
 
 ### Auth & User Data
@@ -75,6 +77,7 @@ Google Sheet (GViz API, multiple tabs)
 Supabase Auth (email OTP via Resend SMTP)
   → AuthContext (signIn, verifyOtp, signOut)
   → useItinerary (dual storage: localStorage + Supabase itineraries table)
+  → useCheckIns (fetches check-in counts for user + friends from check_ins table)
   → AuthModal (two-step: email → 6-digit code)
 ```
 
@@ -100,7 +103,7 @@ The parser finds the header row by looking for `col B = "Start Time"`, then read
 
 | Tab | GID | Events | Dates |
 |-----|-----|--------|-------|
-| ETH Denver 2026 | 356217373 | ~228 | Feb 10-21, 2026 |
+| ETHDenver | 356217373 | ~228 | Feb 10-21, 2026 |
 | Consensus Hong Kong 2026 | 377806756 | ~360 | Feb 10-12, 2026 |
 
 To add a new conference tab, add its gid and name to `EVENT_TABS` in `src/lib/constants.ts`.
@@ -121,56 +124,58 @@ src/
 │       ├── geocode/route.ts  # Runtime geocoding via Mapbox (POST, batch up to 25)
 │       └── og/route.ts       # OG image resolution (Luma API + HTML scraping, Supabase cache, 1h TTL)
 ├── components/
-│   ├── EventApp.tsx          # Main orchestrator - state, hooks, view routing, auth guards
-│   ├── Header.tsx            # Logo, view toggle, itinerary badge, auth at far right (sticky + shrink-0)
+│   ├── EventApp.tsx          # Main orchestrator - state, hooks, view routing, auth guards, scroll tracking
+│   ├── Header.tsx            # Logo (130x36, inverted), view toggle, itinerary badge, auth (sticky + shrink-0)
 │   ├── AuthModal.tsx         # Email OTP auth, UserMenu with profile (auto-save), friends, check-in
 │   ├── ViewToggle.tsx        # Map | List | Table toggle
-│   ├── FilterBar.tsx         # Conference dropdown (mobile) / tabs (desktop), datetime pickers, tag chips
+│   ├── FilterBar.tsx         # Conference button (MapPin icon) / tabs (desktop), Now toggle, Filters button
 │   ├── DateTimePicker.tsx    # Custom date dropdown (Feb 10-21) + 30-min time dropdown
 │   ├── AddressLink.tsx       # Address tap → Google Maps / Uber / Lyft (mobile sheet, desktop direct)
 │   ├── SearchBar.tsx         # Debounced text search (300ms)
 │   ├── TagBadge.tsx          # Tag icon with color (supports iconOnly mode, custom SVG crypto icons)
-│   ├── EventCard.tsx         # Event card for list view (image left, details right)
-│   ├── ListView.tsx          # Cards grouped by date, sticky date headers
-│   ├── TableView.tsx         # table-fixed layout, fills viewport, CSS truncate
+│   ├── EventCard.tsx         # Event card for list view (image left, details right, check-in badge)
+│   ├── ListView.tsx          # Cards grouped by date, sticky date headers (top-0 in contained scroll)
+│   ├── TableView.tsx         # table-fixed layout, fills viewport, CSS truncate, check-in badges
 │   ├── MapView.tsx           # Mapbox map, auto-centers on events (IQR outlier exclusion)
-│   ├── MapViewWrapper.tsx    # Dynamic import wrapper (ssr: false), passes isItineraryView
+│   ├── MapViewWrapper.tsx    # Dynamic import wrapper (ssr: false), passes isItineraryView + checkInCounts
 │   ├── MapMarker.tsx         # Clock-face SVG pin (white wedge, 19px, tick marks at 12/3/6/9)
-│   ├── EventPopup.tsx        # Map popup matching list card design (OG image, star, tags icons)
+│   ├── EventPopup.tsx        # Map popup (OG image, star, tags icons, check-in badge, overflow-hidden address)
 │   ├── POIPopup.tsx          # POI map popup with AddressLink, share toggle, delete
 │   ├── POIMarker.tsx         # POI map pin
 │   ├── POISearchBar.tsx      # Mapbox Search Box for adding POIs
-│   ├── StarButton.tsx        # Star toggle (yellow), mobile touch targets
+│   ├── StarButton.tsx        # Star toggle (yellow), friends count badge (orange), mobile touch targets
 │   ├── ItineraryPanel.tsx    # Slide-over panel with conflict detection, share, PNG export
 │   ├── FriendsPanel.tsx      # Friends list slide-over with remove friend
 │   ├── OGImage.tsx           # Lazy-loaded OG image thumbnails
-│   ├── SponsorsTicker.tsx    # Scrolling sponsor ticker below header
+│   ├── SponsorsTicker.tsx    # Scrolling sponsor/announcement ticker below header
 │   ├── Providers.tsx         # AuthProvider wrapper
 │   └── Loading.tsx           # Spinner
 ├── contexts/
 │   └── AuthContext.tsx       # Supabase auth context (email OTP)
 ├── hooks/
 │   ├── useEvents.ts          # Fetch + parse events from GViz, lazy-geocode via /api/geocode
-│   ├── useFilters.ts         # Filter state management
+│   ├── useFilters.ts         # Filter state management (default conference: 'ETHDenver')
 │   ├── useItinerary.ts       # Dual storage: localStorage + Supabase sync
 │   ├── useFriends.ts         # Friend list (bidirectional query + profiles)
 │   ├── useFriendRequests.ts  # Friend search, send/accept/reject/cancel requests
 │   ├── useFriendsItineraries.ts # Friends' event lists (RPC-based)
+│   ├── useCheckIns.ts        # Check-in counts for user + friends (Map<eventId, count>)
 │   ├── useProfile.ts         # Current user's profile
 │   ├── usePOIs.ts            # Points of interest CRUD
 │   └── useGeocoder.ts        # Mapbox Search Box API for POI search (full_address + place_name)
 ├── lib/
+│   ├── geo.ts                # distanceMeters() — haversine distance between two lat/lng points
 │   ├── gviz.ts               # GViz response parser
 │   ├── types.ts              # TypeScript types (ETHDenverEvent, FilterState, ViewMode)
 │   ├── constants.ts          # Sheet ID, event tabs, dates, tag colors (3 groups), TYPE_TAGS
 │   ├── analytics.ts          # GA4 custom event tracking (gtag wrapper)
-│   ├── supabase.ts           # Supabase client
+│   ├── supabase.ts           # Supabase client (singleton, anon key, default session persistence)
 │   ├── fetch-events.ts       # GViz fetch + synthetic tag generation + geocode lookup
-│   ├── filters.ts            # Filter logic (pure functions, exported parseTimeToMinutes)
+│   ├── filters.ts            # Filter logic (pure functions, exported parseTimeToMinutes, passesNowFilter)
 │   ├── utils.ts              # Date formatting, normalizeAddress, time parsing
 │   └── calendar.ts           # ICS export for itinerary
 ├── data/
-│   └── geocoded-addresses.json  # Cached geocoded addresses (Denver + Hong Kong, 137 entries)
+│   └── geocoded-addresses.json  # Cached geocoded addresses (Denver + Hong Kong, 149 entries)
 scripts/
 ├── geocode.ts                # Build-time geocoding script (multi-tab, proximity-aware)
 └── backfill-poi-addresses.ts # One-time script to fix incomplete POI addresses via reverse geocoding
@@ -180,7 +185,7 @@ supabase/
 └── functions/
     └── agent-api/index.ts    # RESTful API edge function for AI agents
 public/
-└── logo.png                  # plan.wtf brand logo (black on transparent, inverted to white in header)
+└── logo.png                  # plan.wtf brand logo (black on transparent, inverted to white in header, 1699x474px)
 ```
 
 ### Key Types (`src/lib/types.ts`)
@@ -190,15 +195,16 @@ interface ETHDenverEvent {
   organizer, name, address, cost, isFree,
   vibe,           // Primary tag (first tag)
   tags: string[], // All tags + synthetic tags ($$, Food, Bar)
-  conference,     // Which tab this event belongs to
+  conference,     // Which tab this event belongs to (e.g. "ETHDenver")
   link, hasFood, hasBar, note,
-  lat?, lng?, timeOfDay, isDuplicate?
+  lat?, lng?, matchedAddress?,
+  timeOfDay, isDuplicate?
 }
 
 type ViewMode = 'map' | 'list' | 'table'
 
 interface FilterState {
-  conference,      // Single-select: which conference to show
+  conference,      // Single-select: which conference to show (default: 'ETHDenver')
   startDateTime,   // ISO local: "2026-02-16T14:00" (default: now in Denver time, snapped to :00/:30)
   endDateTime,     // ISO local: "2026-02-21T23:30" (default: last event day 23:30)
   vibes,           // Selected tags (includes $$, Food, Bar)
@@ -219,6 +225,7 @@ interface UserProfile {
 |-------|---------|-------------|
 | `profiles` | User metadata | user_id, display_name, x_handle, email, rsvp_name |
 | `itineraries` | User's starred events | user_id, event_ids (text[]), updated_at |
+| `check_ins` | User check-ins at events | user_id, event_id, lat, lng; UNIQUE(user_id, event_id) |
 | `friendships` | Bidirectional friends (user_a < user_b) | user_a, user_b |
 | `friend_requests` | Friend request flow | sender_id, receiver_id, status (pending/accepted/rejected) |
 | `friend_codes` | Shareable friend invite codes | user_id, code (unique) |
@@ -259,7 +266,7 @@ interface UserProfile {
 ### sheeets.xyz (legacy, redirects to plan.wtf)
 - **Hosting**: Namecheap cPanel (`premium266.web-hosting.com`)
 - **DNS**: `dns1.namecheaphosting.com` (hosting DNS, NOT registrar DNS)
-- **Redirects**: via `.htaccess` — all paths redirect to `plan.wtf` except `/admin` → Google Sheet
+- **Redirects**: via `.htaccess` — all paths redirect to `plan.wtf` (not `plan.wtf/$1`) except `/admin` → Google Sheet
 - **Email DNS**: DKIM, SPF, DMARC configured for Resend
 
 ### Vercel
@@ -273,7 +280,7 @@ interface UserProfile {
 | From | To | Method |
 |------|----|--------|
 | `sheeets.vercel.app/*` | `plan.wtf/*` | Vercel auto-redirect (custom domain) |
-| `sheeets.xyz/*` | `plan.wtf/*` | .htaccess 301 |
+| `sheeets.xyz/*` | `plan.wtf` | .htaccess 301 (no path forwarding) |
 | `sheeets.xyz/admin` | Google Sheet (admin) | .htaccess 301 |
 | `plan.wtf/data` | Google Sheet (data) | Next.js redirect in next.config.ts |
 
@@ -297,12 +304,19 @@ interface UserProfile {
 ### Key Patterns
 - **Auth-gated actions**: Star and RSVP use the same pattern — `pendingRef` stores the action, shows AuthModal, completes after login via useEffect
 - **Profile fields**: Column is `rsvp_name` (NOT `farcaster_username` — the Supabase `search_users` function was updated to match)
-- **Address links**: Use `<AddressLink>` component everywhere (events AND POIs) — desktop opens Google Maps, mobile shows Maps/Uber/Lyft drawer
+- **Address links**: Use `<AddressLink>` component everywhere (events AND POIs) — desktop opens Google Maps, mobile shows Maps/Uber/Lyft drawer. Pass `navAddress` prop with the full Mapbox address for accurate navigation (events use `event.matchedAddress` from geocode cache).
 - **POI addresses**: `useGeocoder` extracts both `place_name` (short) and `full_address` (complete street address) from Mapbox. POIs store `full_address` for accurate navigation links.
 - **Profile auto-save**: Profile fields debounce-save after 800ms of inactivity, showing a green checkmark on success
 - **Friends refresh**: `refreshFriends` is shared from EventApp → Header → UserMenu so accepting a request updates the friends list everywhere without page reload
 - **Optimistic updates**: Sending a friend request immediately updates the search results and outgoing requests list before the server confirms
+- **Scroll-based filter bar**: Both table and list views hide the filter bar on scroll down and show it on scroll up. Table view uses `onScrolledChange` prop; list view uses a ref + scroll handler in EventApp. Both have an `overflowAmount > 80` guard to prevent jitter with few rows.
+- **Contained scroll**: All three views (map, table, list) use `h-dvh flex flex-col overflow-hidden` layout. The content area scrolls independently while the header and filter bar stay fixed.
+- **Check-in badges**: Green numbered badges on the time field show how many people (user + friends) have checked in. Data flows from `useCheckIns` → EventApp → all views via `checkInCounts: Map<string, number>`.
+- **Check-in logic**: Check-in button (in UserMenu) gets GPS position, finds itinerary events within 150m that pass the "now" filter, and upserts to `check_ins` table. One check-in per user per event.
+- **Lyft deep link caveat**: The `lyft://` scheme loses destination params when the Lyft app has a pending tip interstitial. Consider switching to `https://ride.lyft.com/ridetype?...` (Universal Links) for better reliability.
 
 ### Known Issues
 - `search_users` has two overloaded versions in Supabase — the old one `(text, uuid)` is unused and should be dropped: `DROP FUNCTION IF EXISTS public.search_users(text, uuid);`
 - `send_friend_request` debug alert is currently active (remove after confirming it works)
+- `check_ins` table RLS policies are unknown — `useCheckIns` queries directly with `.in('user_id', [...])`. If RLS blocks friends' check-ins, a SECURITY DEFINER RPC (like `get_friends_check_ins()`) will be needed.
+- Check-in data is fetched once on mount — no realtime subscription, so new check-ins won't appear until page refresh.

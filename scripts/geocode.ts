@@ -41,8 +41,8 @@ interface GeocodeCache {
 
 async function main() {
   if (!MAPBOX_TOKEN) {
-    console.error('Error: MAPBOX_SECRET_TOKEN environment variable is required');
-    process.exit(1);
+    console.warn('Warning: MAPBOX_SECRET_TOKEN not set, skipping geocoding');
+    process.exit(0);
   }
 
   // 1. Fetch events from all tabs, tracking which tab each address came from

@@ -19,6 +19,7 @@ export interface ETHDenverEvent {
   note: string;
   lat?: number;
   lng?: number;
+  matchedAddress?: string;
   timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' | 'all-day';
   isDuplicate?: boolean;
 }

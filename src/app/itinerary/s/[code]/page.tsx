@@ -330,7 +330,7 @@ export default function SharedItineraryPage() {
                       <p className="text-slate-400 text-xs mt-1">{timeDisplay}</p>
 
                       {event.address && (
-                        <AddressLink address={event.address} lat={event.lat} lng={event.lng}
+                        <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
                           className="text-slate-500 hover:text-slate-300 text-xs mt-0.5 truncate block transition-colors">
                           {event.address}
                         </AddressLink>

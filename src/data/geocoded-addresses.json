@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-16T07:49:11.878Z",
+  "generatedAt": "2026-02-18T15:29:48.848Z",
   "addresses": {
     "header highlight - $500": {
       "lat": 40.084736,
@@ -685,6 +685,66 @@
       "lat": 39.743509,
       "lng": -104.975376,
       "matchedAddress": "925 East 17th Avenue, Denver, Colorado 80218, United States"
+    },
+    "lvc (livestock center) at the national western center 4850 national western dr, denver, co 80216, usa": {
+      "lat": 39.784305,
+      "lng": -104.971308,
+      "matchedAddress": "4850 North National Western Drive, Denver, Colorado 80216, United States"
+    },
+    "pigtrain coffee company 1701 wynkoop st, denver, co 80202, usa": {
+      "lat": 39.752427,
+      "lng": -104.99884,
+      "matchedAddress": "1701 Wazee Street, Denver, Colorado 80202, United States"
+    },
+    "industrious 1801 california st #2400, denver, co 80202, usa": {
+      "lat": 39.747628,
+      "lng": -104.989799,
+      "matchedAddress": "1801 California Street, Denver, Colorado 80202, United States"
+    },
+    "magna kainan 1350 40th st, denver, co 80205, usa": {
+      "lat": 39.771448,
+      "lng": -104.969679,
+      "matchedAddress": "1350 40th Street, Denver, Colorado 80205, United States"
+    },
+    "malinche audiobar 1541 platte st, denver, co 80202, usa": {
+      "lat": 39.75715,
+      "lng": -105.008625,
+      "matchedAddress": "1541 Platte Street, Denver, Colorado 80202, United States"
+    },
+    "call me pearl 1600 20th st, denver, co 80202, usa": {
+      "lat": 39.75514,
+      "lng": -104.996177,
+      "matchedAddress": "1600 20th Street, Denver, Colorado 80202, United States"
+    },
+    "thrive workplace ball park 1415 park ave w, denver, co 80205, usa": {
+      "lat": 39.756813,
+      "lng": -104.989969,
+      "matchedAddress": "1415 Park Avenue West, Denver, Colorado 80205, United States"
+    },
+    "3560 brighton blvd, denver, co 80216": {
+      "lat": 39.770886,
+      "lng": -104.977683,
+      "matchedAddress": "3560 North Brighton Boulevard, Denver, Colorado 80216, United States"
+    },
+    "the 1up arcade bar - lodo 1925 blake st, denver, co 80202, usa": {
+      "lat": 39.753983,
+      "lng": -104.995264,
+      "matchedAddress": "1925 Blake Street, Denver, Colorado 80202, United States"
+    },
+    "rino beer garden 3800 walnut st, denver, co 80205, usa": {
+      "lat": 39.770107,
+      "lng": -104.971395,
+      "matchedAddress": "3800 Walnut Street, Denver, Colorado 80205, United States"
+    },
+    "banshee house 2715 larimer st, denver, co 80205": {
+      "lat": 39.75986,
+      "lng": -104.983962,
+      "matchedAddress": "2715 Larimer Street, Denver, Colorado 80205, United States"
+    },
+    "710 e 26th ave, denver, co 80205, usa": {
+      "lat": 39.754485,
+      "lng": -104.977894,
+      "matchedAddress": "710 East 26th Avenue, Denver, Colorado 80205, United States"
     }
   }
 }

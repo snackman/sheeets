@@ -441,7 +441,7 @@ function DateGroup({
             {/* Location */}
             <td className="px-3 py-2 text-slate-400 truncate max-w-[20ch] sm:max-w-none" title={event.address}>
               {event.address ? (
-                <AddressLink address={event.address} lat={event.lat} lng={event.lng}
+                <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
                   className="hover:text-orange-400 transition-colors">
                   {event.address}
                 </AddressLink>

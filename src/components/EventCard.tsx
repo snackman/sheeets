@@ -167,7 +167,7 @@ export function EventCard({
 
         {/* Address */}
         {event.address && (
-          <AddressLink address={event.address} lat={event.lat} lng={event.lng}
+          <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
             className="text-slate-500 hover:text-slate-300 text-sm mt-1 flex items-start gap-1 transition-colors min-w-0">
             <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
             <span className="truncate">{event.address}</span>

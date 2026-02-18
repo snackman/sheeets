@@ -116,7 +116,7 @@ export async function fetchEvents(): Promise<ETHDenverEvent[]> {
 
       const address = getCellValue(row.c[5]);
       const geo = address
-        ? (geocodedData.addresses as Record<string, { lat: number; lng: number }>)[normalizeAddress(address)]
+        ? (geocodedData.addresses as Record<string, { lat: number; lng: number; matchedAddress?: string }>)[normalizeAddress(address)]
         : undefined;
 
       // Generate ID and flag duplicates (same name/date/time = data error)
@@ -149,6 +149,7 @@ export async function fetchEvents(): Promise<ETHDenverEvent[]> {
         timeOfDay: isAllDay ? 'all-day' : getTimeOfDay(startTime),
         lat: geo?.lat,
         lng: geo?.lng,
+        matchedAddress: geo?.matchedAddress,
       });
     }
   }
