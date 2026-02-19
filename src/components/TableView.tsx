@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, Calendar, Star, X } from 'lucide-react';
+import { AlertTriangle, Calendar, Download, ExternalLink, Star, X } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
 import { AddressLink } from './AddressLink';
@@ -201,8 +201,63 @@ export function TableView({
     }
   }, []);
 
+  // Generate and download CSV from currently displayed events
+  const downloadCSV = useCallback(() => {
+    const escapeCSV = (value: string) => {
+      if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    };
+
+    const header = ['Date', 'Start Time', 'End Time', 'Organizer', 'Event Name', 'Address', 'Cost', 'Tags', 'Link'];
+    const rows = events.map((e) => [
+      e.date,
+      e.startTime,
+      e.endTime,
+      e.organizer,
+      e.name,
+      e.address,
+      e.cost,
+      e.tags.join(', '),
+      e.link,
+    ].map(escapeCSV));
+
+    const csv = [header.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'plan-wtf-events.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [events]);
+
   return (
     <div className="max-w-full mx-auto px-2 sm:px-4 pb-3 flex-1 min-h-0 min-w-0 flex flex-col w-full">
+      {/* CSV download + spreadsheet link buttons */}
+      <div className="flex justify-end gap-1 mb-1.5">
+        <button
+          onClick={downloadCSV}
+          className="p-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors cursor-pointer"
+          title="Download CSV"
+          aria-label="Download CSV"
+        >
+          <Download className="w-3.5 h-3.5" />
+        </button>
+        <a
+          href="https://plan.wtf/data"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors"
+          title="Open spreadsheet"
+          aria-label="Open spreadsheet"
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
+      </div>
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}

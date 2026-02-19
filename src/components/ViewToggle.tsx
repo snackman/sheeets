@@ -11,9 +11,9 @@ interface ViewToggleProps {
 }
 
 const views: { mode: ViewMode; icon: typeof Map; label: string }[] = [
-  { mode: 'table', icon: Table, label: 'Table' },
-  { mode: 'list', icon: List, label: 'List' },
   { mode: 'map', icon: Map, label: 'Map' },
+  { mode: 'list', icon: List, label: 'List' },
+  { mode: 'table', icon: Table, label: 'Table' },
 ];
 
 export function ViewToggle({ viewMode, onViewChange }: ViewToggleProps) {

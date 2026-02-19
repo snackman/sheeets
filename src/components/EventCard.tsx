@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { MapPin, Calendar, Users, X } from 'lucide-react';
+import { MapPin, Calendar, Users, X, Link, Check } from 'lucide-react';
 import { ETHDenverEvent } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
 import { AddressLink } from './AddressLink';
@@ -108,6 +108,17 @@ export function EventCard({
   checkInCount,
 }: EventCardProps) {
   const [showFriendsModal, setShowFriendsModal] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!event.link) return;
+    navigator.clipboard.writeText(event.link).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   const timeDisplay = event.isAllDay
     ? 'All Day'
     : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
@@ -152,6 +163,21 @@ export function EventCard({
               <p className="text-slate-500 text-xs mt-0.5">{event.organizer}</p>
             )}
           </div>
+
+          {event.link && (
+            <button
+              onClick={handleCopyLink}
+              className="p-1 shrink-0 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+              aria-label="Copy event link"
+              title="Copy link"
+            >
+              {copied ? (
+                <Check className="w-3.5 h-3.5 text-green-400" />
+              ) : (
+                <Link className="w-3.5 h-3.5" />
+              )}
+            </button>
+          )}
         </div>
 
         {/* Date + Time */}

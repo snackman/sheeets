@@ -5,7 +5,7 @@ import { ViewMode } from '@/lib/types';
 import { useEvents } from '@/hooks/useEvents';
 import { useFilters } from '@/hooks/useFilters';
 import { applyFilters, getConferenceNow } from '@/lib/filters';
-import { TYPE_TAGS } from '@/lib/constants';
+import { TYPE_TAGS, STORAGE_KEYS } from '@/lib/constants';
 import { useItinerary } from '@/hooks/useItinerary';
 import { usePOIs } from '@/hooks/usePOIs';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,8 +37,19 @@ export function EventApp() {
     clearFilters,
     activeFilterCount,
   } = useFilters();
-  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
+      if (saved === 'map' || saved === 'list' || saved === 'table') return saved;
+    }
+    return 'map';
+  });
   const [contentScrolled, setContentScrolled] = useState(false);
+
+  // Persist view mode to localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.VIEW_MODE, viewMode);
+  }, [viewMode]);
 
   // List view scroll tracking (mirrors TableView's onScrolledChange)
   const listMainRef = useRef<HTMLDivElement>(null);

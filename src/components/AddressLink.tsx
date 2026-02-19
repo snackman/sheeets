@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Navigation, Car, X, MapPinCheck, MapPinOff, Loader2, LogIn } from 'lucide-react';
+import { Navigation, Car, X, MapPinCheck, MapPinOff, Loader2, LogIn, Copy, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 
@@ -13,7 +13,7 @@ function buildNavUrls(address: string, lat?: number, lng?: number) {
   return {
     google: `https://www.google.com/maps/dir/?api=1&destination=${dest}`,
     uber: `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encoded}${lat != null ? `&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}` : ''}`,
-    lyft: `lyft://ridetype?id=lyft&destination[address]=${encoded}${lat != null ? `&destination[latitude]=${lat}&destination[longitude]=${lng}` : ''}`,
+    lyft: `https://ride.lyft.com/ridetype?id=lyft&destination[address]=${encoded}${lat != null ? `&destination[latitude]=${lat}&destination[longitude]=${lng}` : ''}`,
   };
 }
 
@@ -34,12 +34,14 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
   const [checkInResult, setCheckInResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [activeCheckIn, setActiveCheckIn] = useState<{ event_id: string; id: string } | null>(null);
   const [loadingActiveCheckIn, setLoadingActiveCheckIn] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Reset state when sheet opens/closes
   useEffect(() => {
     if (!isOpen) {
       setCheckInResult(null);
       setCheckInLoading(false);
+      setCopied(false);
     }
   }, [isOpen]);
 
@@ -152,6 +154,16 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
     setCheckInLoading(false);
   }, [user, activeCheckIn]);
 
+  const handleCopyAddress = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback: some browsers block clipboard in non-secure contexts
+    }
+  }, [address]);
+
   if (!isOpen) return null;
 
   const urls = buildNavUrls(address, lat, lng);
@@ -173,6 +185,15 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
       <div className="fixed bottom-0 left-0 right-0 z-[90] bg-slate-800 border-t border-slate-700 rounded-t-2xl p-4 pb-8">
         <p className="text-slate-400 text-xs mb-3 truncate px-1">{address}</p>
         <div className="space-y-1">
+          <button
+            onClick={handleCopyAddress}
+            className="flex items-center gap-3 w-full px-4 py-3 text-white hover:bg-slate-700/50 transition-colors rounded-lg cursor-pointer"
+          >
+            <span className="text-slate-300">
+              {copied ? <Check className="w-5 h-5 text-green-400" /> : <Copy className="w-5 h-5" />}
+            </span>
+            <span className="text-sm font-medium">{copied ? 'Copied!' : 'Copy Address'}</span>
+          </button>
           {options.map((opt) => (
             <a
               key={opt.label}
