@@ -176,6 +176,10 @@ export function useItinerary() {
     setItinerary(new Set());
   }, []);
 
+  const reorder = useCallback((orderedIds: string[]) => {
+    setItinerary(new Set(orderedIds));
+  }, []);
+
   return {
     itinerary,
     add,
@@ -184,6 +188,7 @@ export function useItinerary() {
     toggle,
     isInItinerary,
     clear,
+    reorder,
     count: itinerary.size,
     ready,
   };

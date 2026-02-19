@@ -1,10 +1,10 @@
 'use client';
 
-import { useMemo, useState, useRef, useCallback } from 'react';
+import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { AddressLink } from '@/components/AddressLink';
-import { ArrowLeft, AlertTriangle, Trash2, CalendarX, Share2, Download, Map as MapIcon, List } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Trash2, CalendarX, Share2, Download, Map as MapIcon, List, GripVertical } from 'lucide-react';
 import clsx from 'clsx';
 import { useEvents } from '@/hooks/useEvents';
 import { useItinerary } from '@/hooks/useItinerary';
@@ -16,6 +16,7 @@ import { downloadICS } from '@/lib/calendar';
 import type { ETHDenverEvent } from '@/lib/types';
 import { Loading } from '@/components/Loading';
 import { EventCard } from '@/components/EventCard';
+import { useDragReorder } from '@/hooks/useDragReorder';
 
 const MapView = dynamic(
   () => import('@/components/MapView').then((mod) => ({ default: mod.MapView })),
@@ -90,7 +91,7 @@ function generateShortCode(): string {
 
 export default function ItineraryPage() {
   const { events, loading } = useEvents();
-  const { itinerary, toggle: toggleItinerary, clear: clearItinerary } = useItinerary();
+  const { itinerary, toggle: toggleItinerary, clear: clearItinerary, reorder: reorderItinerary } = useItinerary();
   const { user } = useAuth();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -138,6 +139,38 @@ export default function ItineraryPage() {
         events: groupEvents.sort(sortByStartTime),
       }));
   }, [itineraryEvents]);
+
+  // Flat ordered list of all event IDs across date groups (for drag reorder)
+  const flatEventIds = useMemo(
+    () => dateGroups.flatMap((g) => g.events.map((e) => e.id)),
+    [dateGroups]
+  );
+
+  const handleReorder = useCallback(
+    (orderedIds: string[]) => {
+      // The drag reorder gives us the visible (conference-filtered) IDs in new order.
+      // Preserve IDs from other conferences that aren't visible.
+      const allIds = [...itinerary];
+      const visibleIdSet = new Set(flatEventIds);
+      const otherIds = allIds.filter((id) => !visibleIdSet.has(id));
+      reorderItinerary([...orderedIds, ...otherIds]);
+    },
+    [itinerary, flatEventIds, reorderItinerary]
+  );
+
+  const {
+    setOrderedIds,
+    registerItemRef,
+    getDragHandleProps,
+    getItemProps,
+    getDropIndicator,
+    dragId,
+  } = useDragReorder({ onReorder: handleReorder });
+
+  // Keep ordered IDs in sync
+  useEffect(() => {
+    setOrderedIds(flatEventIds);
+  }, [flatEventIds, setOrderedIds]);
 
   const handleSharePNG = useCallback(async () => {
     if (!captureRef.current || itineraryEvents.length === 0) return;
@@ -362,78 +395,105 @@ export default function ItineraryPage() {
                     const timeDisplay = event.isAllDay
                       ? 'All Day'
                       : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
+                    const dropIndicator = getDropIndicator(event.id);
+                    const isBeingDragged = dragId === event.id;
 
                     return (
                       <div
                         key={event.id}
-                        className={`bg-slate-800 rounded-lg p-3 border ${
-                          hasConflict ? 'border-amber-500/40' : 'border-slate-700'
-                        }`}
+                        ref={(el) => registerItemRef(event.id, el)}
+                        {...getItemProps(event.id)}
+                        className="relative"
                       >
-                        {hasConflict && (
-                          <div className="flex items-center gap-1.5 mb-2 text-amber-400">
-                            <AlertTriangle className="w-3 h-3" />
-                            <span className="text-[10px] font-medium uppercase tracking-wide">
-                              Schedule conflict
-                            </span>
-                          </div>
+                        {/* Drop indicator - above */}
+                        {dropIndicator.showAbove && (
+                          <div className="absolute -top-1.5 left-0 right-0 h-0.5 bg-orange-500 rounded-full z-10" />
                         )}
 
-                        <div className="flex items-start gap-2">
-                          <h4 className="flex-1 text-sm font-semibold text-white leading-tight min-w-0">
-                            {event.link ? (
-                              <a
-                                href={event.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:text-orange-400 transition-colors"
-                              >
-                                {event.name}
-                              </a>
-                            ) : (
-                              event.name
-                            )}
-                          </h4>
-                          <button
-                            data-export-hide
-                            onClick={() => toggleItinerary(event.id)}
-                            className="shrink-0 p-1 text-slate-500 hover:text-red-400 transition-colors cursor-pointer"
-                            aria-label="Remove from itinerary"
-                            title="Remove from itinerary"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        <div
+                          className={`bg-slate-800 rounded-lg p-3 border transition-opacity ${
+                            hasConflict ? 'border-amber-500/40' : 'border-slate-700'
+                          } ${isBeingDragged ? 'opacity-40' : 'opacity-100'}`}
+                        >
+                          {hasConflict && (
+                            <div className="flex items-center gap-1.5 mb-2 text-amber-400">
+                              <AlertTriangle className="w-3 h-3" />
+                              <span className="text-[10px] font-medium uppercase tracking-wide">
+                                Schedule conflict
+                              </span>
+                            </div>
+                          )}
 
-                        {event.organizer && (
-                          <p className="text-slate-500 text-xs mt-0.5">By {event.organizer}</p>
-                        )}
-
-                        <p className="text-slate-400 text-xs mt-1">{timeDisplay}</p>
-
-                        {event.address && (
-                          <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
-                            eventId={event.id} eventName={event.name}
-                            className="text-slate-500 hover:text-slate-300 text-xs mt-0.5 truncate block transition-colors">
-                            {event.address}
-                          </AddressLink>
-                        )}
-
-                        <div className="flex items-center gap-1.5 mt-1.5">
-                          {event.vibe && (
-                            <span
-                              className="px-1.5 py-0.5 rounded text-[10px] font-semibold text-white"
-                              style={{ backgroundColor: vibeColor }}
+                          <div className="flex items-start gap-2">
+                            <div
+                              data-export-hide
+                              {...getDragHandleProps(event.id)}
+                              className="shrink-0 pt-0.5 text-slate-600 hover:text-slate-400 active:text-slate-400 cursor-grab active:cursor-grabbing touch-none select-none"
+                              aria-label="Drag to reorder"
+                              title="Drag to reorder"
                             >
-                              {event.vibe}
-                            </span>
+                              <GripVertical className="w-4 h-4" />
+                            </div>
+                            <h4 className="flex-1 text-sm font-semibold text-white leading-tight min-w-0">
+                              {event.link ? (
+                                <a
+                                  href={event.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="hover:text-orange-400 transition-colors"
+                                >
+                                  {event.name}
+                                </a>
+                              ) : (
+                                event.name
+                              )}
+                            </h4>
+                            <button
+                              data-export-hide
+                              onClick={() => toggleItinerary(event.id)}
+                              className="shrink-0 p-1 text-slate-500 hover:text-red-400 transition-colors cursor-pointer"
+                              aria-label="Remove from itinerary"
+                              title="Remove from itinerary"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          {event.organizer && (
+                            <p className="text-slate-500 text-xs mt-0.5 ml-6">By {event.organizer}</p>
                           )}
-                          {event.isFree && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/20 text-emerald-400">
-                              FREE
-                            </span>
+
+                          <p className="text-slate-400 text-xs mt-1 ml-6">{timeDisplay}</p>
+
+                          {event.address && (
+                            <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
+                              eventId={event.id} eventName={event.name}
+                              className="text-slate-500 hover:text-slate-300 text-xs mt-0.5 truncate block transition-colors ml-6">
+                              {event.address}
+                            </AddressLink>
                           )}
+
+                          <div className="flex items-center gap-1.5 mt-1.5 ml-6">
+                            {event.vibe && (
+                              <span
+                                className="px-1.5 py-0.5 rounded text-[10px] font-semibold text-white"
+                                style={{ backgroundColor: vibeColor }}
+                              >
+                                {event.vibe}
+                              </span>
+                            )}
+                            {event.isFree && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/20 text-emerald-400">
+                                FREE
+                              </span>
+                            )}
+                          </div>
                         </div>
+
+                        {/* Drop indicator - below */}
+                        {dropIndicator.showBelow && (
+                          <div className="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-orange-500 rounded-full z-10" />
+                        )}
                       </div>
                     );
                   })}

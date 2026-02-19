@@ -2,11 +2,13 @@
 
 import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { X, AlertTriangle, Trash2, CalendarX, Share2, ExternalLink, Download } from 'lucide-react';
+import { X, AlertTriangle, Trash2, CalendarX, Share2, ExternalLink, Download, GripVertical } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { VIBE_COLORS } from '@/lib/constants';
 import { formatDateLabel } from '@/lib/utils';
 import { downloadICS } from '@/lib/calendar';
+import { useDragReorder } from '@/hooks/useDragReorder';
+
 interface ItineraryPanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -14,6 +16,7 @@ interface ItineraryPanelProps {
   itinerary: Set<string>;
   onItineraryToggle: (eventId: string) => void;
   onItineraryClear: () => void;
+  onReorder?: (orderedIds: string[]) => void;
   activeConference?: string;
 }
 
@@ -107,6 +110,7 @@ export function ItineraryPanel({
   itinerary,
   onItineraryToggle,
   onItineraryClear,
+  onReorder,
   activeConference,
 }: ItineraryPanelProps) {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -214,6 +218,41 @@ export function ItineraryPanel({
     onItineraryClear();
     setShowClearConfirm(false);
   };
+
+  // Flat ordered list of all event IDs across date groups (for drag reorder)
+  const flatEventIds = useMemo(
+    () => dateGroups.flatMap((g) => g.events.map((e) => e.id)),
+    [dateGroups]
+  );
+
+  const handleReorder = useCallback(
+    (orderedIds: string[]) => {
+      if (!onReorder) return;
+      // The drag reorder gives us the visible (conference-filtered) IDs in new order.
+      // We need to preserve IDs from other conferences that aren't visible.
+      const allIds = [...itinerary];
+      const visibleIdSet = new Set(flatEventIds);
+      const otherIds = allIds.filter((id) => !visibleIdSet.has(id));
+      onReorder([...orderedIds, ...otherIds]);
+    },
+    [onReorder, itinerary, flatEventIds]
+  );
+
+  const {
+    setOrderedIds,
+    registerItemRef,
+    getDragHandleProps,
+    getItemProps,
+    getDropIndicator,
+    dragId,
+  } = useDragReorder({ onReorder: handleReorder });
+
+  // Keep ordered IDs in sync
+  useEffect(() => {
+    setOrderedIds(flatEventIds);
+  }, [flatEventIds, setOrderedIds]);
+
+  const canDrag = !!onReorder;
 
   return (
     <>
@@ -355,63 +394,92 @@ export function ItineraryPanel({
                         const timeDisplay = event.isAllDay
                           ? 'All Day'
                           : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
+                        const dropIndicator = getDropIndicator(event.id);
+                        const isBeingDragged = dragId === event.id;
 
                         return (
                           <div
                             key={event.id}
-                            className={`bg-slate-800 rounded-lg p-3 border ${
-                              hasConflict
-                                ? 'border-amber-500/40'
-                                : 'border-slate-700'
-                            }`}
+                            ref={(el) => registerItemRef(event.id, el)}
+                            {...(canDrag ? getItemProps(event.id) : {})}
+                            className="relative"
                           >
-                            {/* Conflict warning */}
-                            {hasConflict && (
-                              <div className="flex items-center gap-1.5 mb-2 text-amber-400">
-                                <AlertTriangle className="w-3 h-3" />
-                                <span className="text-[10px] font-medium uppercase tracking-wide">
-                                  Schedule conflict
-                                </span>
-                              </div>
+                            {/* Drop indicator - above */}
+                            {dropIndicator.showAbove && (
+                              <div className="absolute -top-1.5 left-0 right-0 h-0.5 bg-orange-500 rounded-full z-10" />
                             )}
 
-                            {/* Top row: name, remove */}
-                            <div className="flex items-start gap-2">
-                              <h4 className="flex-1 text-sm font-semibold text-white leading-tight min-w-0 truncate">
-                                {event.name}
-                              </h4>
-                              <button
-                                data-export-hide
-                                onClick={() => onItineraryToggle(event.id)}
-                                className="shrink-0 p-1 text-slate-500 hover:text-red-400 active:text-red-400 transition-colors cursor-pointer"
-                                aria-label="Remove from itinerary"
-                                title="Remove from itinerary"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                            <div
+                              className={`bg-slate-800 rounded-lg p-3 border transition-opacity ${
+                                hasConflict
+                                  ? 'border-amber-500/40'
+                                  : 'border-slate-700'
+                              } ${isBeingDragged ? 'opacity-40' : 'opacity-100'}`}
+                            >
+                              {/* Conflict warning */}
+                              {hasConflict && (
+                                <div className="flex items-center gap-1.5 mb-2 text-amber-400">
+                                  <AlertTriangle className="w-3 h-3" />
+                                  <span className="text-[10px] font-medium uppercase tracking-wide">
+                                    Schedule conflict
+                                  </span>
+                                </div>
+                              )}
 
-                            {/* Time */}
-                            <p className="text-slate-400 text-xs mt-1">
-                              {timeDisplay}
-                            </p>
-
-                            {/* Badges */}
-                            <div className="flex items-center gap-1.5 mt-1.5">
-                              {event.vibe && (
-                                <span
-                                  className="px-1.5 py-0.5 rounded text-[10px] font-semibold text-white"
-                                  style={{ backgroundColor: vibeColor }}
+                              {/* Top row: drag handle, name, remove */}
+                              <div className="flex items-start gap-2">
+                                {canDrag && (
+                                  <div
+                                    data-export-hide
+                                    {...getDragHandleProps(event.id)}
+                                    className="shrink-0 pt-0.5 text-slate-600 hover:text-slate-400 active:text-slate-400 cursor-grab active:cursor-grabbing touch-none select-none"
+                                    aria-label="Drag to reorder"
+                                    title="Drag to reorder"
+                                  >
+                                    <GripVertical className="w-4 h-4" />
+                                  </div>
+                                )}
+                                <h4 className="flex-1 text-sm font-semibold text-white leading-tight min-w-0 truncate">
+                                  {event.name}
+                                </h4>
+                                <button
+                                  data-export-hide
+                                  onClick={() => onItineraryToggle(event.id)}
+                                  className="shrink-0 p-1 text-slate-500 hover:text-red-400 active:text-red-400 transition-colors cursor-pointer"
+                                  aria-label="Remove from itinerary"
+                                  title="Remove from itinerary"
                                 >
-                                  {event.vibe}
-                                </span>
-                              )}
-                              {event.isFree && (
-                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/20 text-emerald-400">
-                                  FREE
-                                </span>
-                              )}
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              {/* Time */}
+                              <p className={`text-slate-400 text-xs mt-1 ${canDrag ? 'ml-6' : ''}`}>
+                                {timeDisplay}
+                              </p>
+
+                              {/* Badges */}
+                              <div className={`flex items-center gap-1.5 mt-1.5 ${canDrag ? 'ml-6' : ''}`}>
+                                {event.vibe && (
+                                  <span
+                                    className="px-1.5 py-0.5 rounded text-[10px] font-semibold text-white"
+                                    style={{ backgroundColor: vibeColor }}
+                                  >
+                                    {event.vibe}
+                                  </span>
+                                )}
+                                {event.isFree && (
+                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/20 text-emerald-400">
+                                    FREE
+                                  </span>
+                                )}
+                              </div>
                             </div>
+
+                            {/* Drop indicator - below */}
+                            {dropIndicator.showBelow && (
+                              <div className="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-orange-500 rounded-full z-10" />
+                            )}
                           </div>
                         );
                       })}
