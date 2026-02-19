@@ -37,19 +37,25 @@ export function EventApp() {
     clearFilters,
     activeFilterCount,
   } = useFilters();
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
-      if (saved === 'map' || saved === 'list' || saved === 'table') return saved;
-    }
-    return 'map';
-  });
+  const [viewMode, setViewMode] = useState<ViewMode>('map');
+  const [viewRestored, setViewRestored] = useState(false);
   const [contentScrolled, setContentScrolled] = useState(false);
 
-  // Persist view mode to localStorage
+  // Restore view mode from localStorage on mount (after hydration)
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.VIEW_MODE, viewMode);
-  }, [viewMode]);
+    const saved = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
+    if (saved === 'map' || saved === 'list' || saved === 'table') {
+      setViewMode(saved);
+    }
+    setViewRestored(true);
+  }, []);
+
+  // Persist view mode to localStorage (skip the initial restore)
+  useEffect(() => {
+    if (viewRestored) {
+      localStorage.setItem(STORAGE_KEYS.VIEW_MODE, viewMode);
+    }
+  }, [viewMode, viewRestored]);
 
   // List view scroll tracking (mirrors TableView's onScrolledChange)
   const listMainRef = useRef<HTMLDivElement>(null);
