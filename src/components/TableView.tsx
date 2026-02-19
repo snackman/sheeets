@@ -237,27 +237,6 @@ export function TableView({
 
   return (
     <div className="max-w-full mx-auto px-2 sm:px-4 pb-3 flex-1 min-h-0 min-w-0 flex flex-col w-full">
-      {/* CSV download + spreadsheet link buttons */}
-      <div className="flex justify-end gap-1 mb-1.5">
-        <button
-          onClick={downloadCSV}
-          className="p-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors cursor-pointer"
-          title="Download CSV"
-          aria-label="Download CSV"
-        >
-          <Download className="w-3.5 h-3.5" />
-        </button>
-        <a
-          href="https://plan.wtf/data"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="p-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition-colors"
-          title="Open spreadsheet"
-          aria-label="Open spreadsheet"
-        >
-          <ExternalLink className="w-3.5 h-3.5" />
-        </a>
-      </div>
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
@@ -287,7 +266,31 @@ export function TableView({
               <th className="px-3 py-2.5 hidden sm:table-cell">Organizer</th>
               <th className="px-3 py-2.5">Event</th>
               <th className="px-3 py-2.5">Where</th>
-              <th className="px-3 py-2.5">Tags</th>
+              <th className="px-3 py-2.5">
+                <div className="flex items-center justify-between">
+                  <span>Tags</span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={downloadCSV}
+                      className="p-1 rounded text-slate-500 hover:text-slate-200 transition-colors cursor-pointer"
+                      title="Download CSV"
+                      aria-label="Download CSV"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </button>
+                    <a
+                      href="https://plan.wtf/data"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1 rounded text-slate-500 hover:text-slate-200 transition-colors"
+                      title="Open spreadsheet"
+                      aria-label="Open spreadsheet"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-700/50">

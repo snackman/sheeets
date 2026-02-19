@@ -13,7 +13,7 @@ function buildNavUrls(address: string, lat?: number, lng?: number) {
   return {
     google: `https://www.google.com/maps/dir/?api=1&destination=${dest}`,
     uber: `https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encoded}${lat != null ? `&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}` : ''}`,
-    lyft: `https://ride.lyft.com/ridetype?id=lyft&destination[address]=${encoded}${lat != null ? `&destination[latitude]=${lat}&destination[longitude]=${lng}` : ''}`,
+    lyft: `lyft://ridetype?id=lyft&destination[address]=${encoded}${lat != null ? `&destination[latitude]=${lat}&destination[longitude]=${lng}` : ''}`,
   };
 }
 

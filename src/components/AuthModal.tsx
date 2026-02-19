@@ -2,9 +2,10 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, Settings, ExternalLink } from 'lucide-react';
+import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, Settings, ExternalLink, Link2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { trackAuthSuccess, trackSignOut } from '@/lib/analytics';
+import { trackAuthSuccess, trackSignOut, trackFriendCodeGenerate, trackFriendCodeCopy } from '@/lib/analytics';
+import { SubmitEventModal } from '@/components/SubmitEventModal';
 import { supabase } from '@/lib/supabase';
 import { distanceMeters } from '@/lib/geo';
 import { passesNowFilter } from '@/lib/filters';
@@ -393,6 +394,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
   } = useFriendRequests({ refreshFriends });
 
   const [open, setOpen] = useState(false);
+  const [showSubmitEvent, setShowSubmitEvent] = useState(false);
   const [checking, setChecking] = useState(false);
   const [checkResult, setCheckResult] = useState<{
     ok: boolean;
@@ -414,6 +416,10 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [showOutgoing, setShowOutgoing] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Friend link state
+  const [friendLinkCopied, setFriendLinkCopied] = useState(false);
+  const [friendLinkLoading, setFriendLinkLoading] = useState(false);
 
   const badgeCount = externalCount ?? pendingIncomingCount;
 
@@ -563,6 +569,57 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
     setChecking(false);
   }
 
+  async function handleCopyFriendLink() {
+    if (!user || friendLinkLoading) return;
+    setFriendLinkLoading(true);
+
+    try {
+      // Try to fetch existing code
+      const { data: existing } = await supabase
+        .from('friend_codes')
+        .select('code')
+        .eq('user_id', user.id)
+        .single();
+
+      let code = existing?.code;
+
+      if (!code) {
+        // Generate a new code (8 char alphanumeric)
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const arr = new Uint8Array(8);
+        crypto.getRandomValues(arr);
+        code = Array.from(arr, (b) => chars[b % chars.length]).join('');
+
+        const { error } = await supabase
+          .from('friend_codes')
+          .insert({ user_id: user.id, code });
+
+        if (error) {
+          // Could be a race condition — try fetching again
+          const { data: retry } = await supabase
+            .from('friend_codes')
+            .select('code')
+            .eq('user_id', user.id)
+            .single();
+          code = retry?.code;
+          if (!code) throw error;
+        }
+
+        trackFriendCodeGenerate();
+      }
+
+      const link = `${window.location.origin}?fc=${code}`;
+      await navigator.clipboard.writeText(link);
+      trackFriendCodeCopy();
+      setFriendLinkCopied(true);
+      setTimeout(() => setFriendLinkCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy friend link:', err);
+    }
+
+    setFriendLinkLoading(false);
+  }
+
   return (
     <>
       <button
@@ -644,16 +701,44 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
 
                 {/* Friends */}
                 <div className="border-t border-slate-700 pt-4 space-y-3">
-                  {/* View Friends button */}
-                  {friendCount > 0 && (
+                  {/* Friends button + Friend Link button */}
+                  <div className="flex items-center gap-2">
+                    {friendCount > 0 && (
+                      <button
+                        onClick={() => { setOpen(false); onOpenFriends(); }}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-slate-700 hover:bg-slate-600 text-white transition-colors cursor-pointer"
+                      >
+                        <Users className="w-4 h-4" />
+                        Friends {friendCount}
+                      </button>
+                    )}
                     <button
-                      onClick={() => { setOpen(false); onOpenFriends(); }}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-slate-700 hover:bg-slate-600 text-white transition-colors cursor-pointer"
+                      onClick={handleCopyFriendLink}
+                      disabled={friendLinkLoading}
+                      className={`${friendCount > 0 ? '' : 'flex-1 '}flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
+                        friendLinkCopied
+                          ? 'bg-green-600 text-white'
+                          : 'bg-slate-700 hover:bg-slate-600 text-white'
+                      } disabled:opacity-50`}
                     >
-                      <Users className="w-4 h-4" />
-                      View Friends ({friendCount})
+                      {friendLinkCopied ? (
+                        <>
+                          <Check className="w-4 h-4" />
+                          Copied!
+                        </>
+                      ) : friendLinkLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Friend Link
+                        </>
+                      ) : (
+                        <>
+                          <Link2 className="w-4 h-4" />
+                          Friend Link
+                        </>
+                      )}
                     </button>
-                  )}
+                  </div>
 
                   {/* Incoming friend requests */}
                   {incomingRequests.length > 0 && (
@@ -783,15 +868,16 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
 
                 {/* Submit Event + Sign Out */}
                 <div className="border-t border-slate-700 pt-4 space-y-2">
-                  <a
-                    href="https://docs.google.com/spreadsheets/d/1xWmIHyEyOmPHfkYuZkucPRlLGWbb9CF6Oqvfl8FUV6k/edit?gid=356217373#gid=356217373"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => {
+                      setShowSubmitEvent(true);
+                      setOpen(false);
+                    }}
                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     Submit Event
-                  </a>
+                  </button>
                   <button
                     onClick={() => {
                       trackSignOut();
@@ -809,6 +895,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
           </div>,
           document.body
       )}
+      <SubmitEventModal isOpen={showSubmitEvent} onClose={() => setShowSubmitEvent(false)} />
     </>
   );
 }
