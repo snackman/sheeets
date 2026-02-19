@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, Settings, ExternalLink, Link2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAuthSuccess, trackSignOut, trackFriendCodeGenerate, trackFriendCodeCopy } from '@/lib/analytics';
-import { SubmitEventModal } from '@/components/SubmitEventModal';
+
 import { supabase } from '@/lib/supabase';
 import { distanceMeters } from '@/lib/geo';
 import { passesNowFilter } from '@/lib/filters';
@@ -394,7 +394,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
   } = useFriendRequests({ refreshFriends });
 
   const [open, setOpen] = useState(false);
-  const [showSubmitEvent, setShowSubmitEvent] = useState(false);
   const [checking, setChecking] = useState(false);
   const [checkResult, setCheckResult] = useState<{
     ok: boolean;
@@ -868,16 +867,15 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
 
                 {/* Submit Event + Sign Out */}
                 <div className="border-t border-slate-700 pt-4 space-y-2">
-                  <button
-                    onClick={() => {
-                      setShowSubmitEvent(true);
-                      setOpen(false);
-                    }}
+                  <a
+                    href="https://plan.wtf/data"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     Submit Event
-                  </button>
+                  </a>
                   <button
                     onClick={() => {
                       trackSignOut();
@@ -895,7 +893,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
           </div>,
           document.body
       )}
-      <SubmitEventModal isOpen={showSubmitEvent} onClose={() => setShowSubmitEvent(false)} />
     </>
   );
 }

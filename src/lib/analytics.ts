@@ -77,3 +77,8 @@ export const trackFriendSearch = (searchType: string) => track('friend_search', 
 export const trackFriendRequestSent = () => track('friend_request_sent');
 export const trackFriendRequestAccepted = () => track('friend_request_accepted');
 export const trackFriendRequestRejected = () => track('friend_request_rejected');
+
+// Submit Event
+export const trackSubmitEventOpen = () => track('submit_event_open');
+export const trackSubmitEventSuccess = (conference: string) =>
+  track('submit_event_success', { conference });
