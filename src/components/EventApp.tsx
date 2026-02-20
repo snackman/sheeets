@@ -73,7 +73,8 @@ export function EventApp() {
     listLastScrollTopRef.current = scrollTop;
 
     const overflowAmount = container.scrollHeight - container.clientHeight;
-    const shouldHide = !atTop && scrollingDown && overflowAmount > 80;
+    const nearBottom = scrollTop + container.clientHeight >= container.scrollHeight - 50;
+    const shouldHide = !atTop && !nearBottom && scrollingDown && overflowAmount > 80;
     const shouldShow = atTop || scrollingUp;
 
     if (shouldHide && !listScrolledRef.current) {
