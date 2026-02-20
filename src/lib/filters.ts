@@ -57,14 +57,29 @@ function eventToDateRange(event: ETHDenverEvent): { start: Date; end: Date } | n
 
 /** Check if an event passes the "Now" filter (happening now or starting within 60 minutes) */
 export function passesNowFilter(event: ETHDenverEvent, now: Date): boolean {
-  // Check if event date matches today
+  // Check if event date matches today or yesterday (for cross-midnight events)
   const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  if (event.dateISO !== todayISO) return false;
+  const yesterdayDate = new Date(now);
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayISO = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, '0')}-${String(yesterdayDate.getDate()).padStart(2, '0')}`;
+
+  const isToday = event.dateISO === todayISO;
+  const isYesterday = event.dateISO === yesterdayISO;
+  if (!isToday && !isYesterday) return false;
+
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  // For yesterday's events, only include if they cross midnight and end after now
+  if (isYesterday) {
+    const startMin = parseTimeToMinutes(event.startTime);
+    const endMin = parseTimeToMinutes(event.endTime);
+    if (startMin === null || endMin === null) return false;
+    // Must be cross-midnight (end < start) and end time hasn't passed yet
+    return endMin < startMin && endMin > nowMinutes;
+  }
 
   // All-day events happening today always pass
   if (event.isAllDay) return true;
-
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const startMinutes = parseTimeToMinutes(event.startTime);
 
   // If we can't parse start time, include the event (benefit of the doubt)
@@ -78,9 +93,11 @@ export function passesNowFilter(event: ETHDenverEvent, now: Date): boolean {
     if (endMinutes === null) {
       return nowMinutes <= startMinutes + 120;
     }
-    // End time is after now — still happening
+    // Cross-midnight: end time is before start time (e.g. 7pm-2am)
+    // If we're on the start day, the event hasn't ended yet
+    if (endMinutes < startMinutes) return true;
+    // Same-day: end time is after now — still happening
     if (endMinutes >= nowMinutes) return true;
-    // Event has ended
     return false;
   }
 
