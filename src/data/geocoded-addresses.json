@@ -1,6 +1,11 @@
 {
   "generatedAt": "2026-02-18T15:29:48.848Z",
   "addresses": {
+    "860 vallejo st denver": {
+      "lat": 39.7304048,
+      "lng": -105.0126254,
+      "matchedAddress": "860 Vallejo Street, Denver, CO 80204"
+    },
     "header highlight - $500": {
       "lat": 40.084736,
       "lng": -104.81027,
