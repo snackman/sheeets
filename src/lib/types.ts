@@ -76,6 +76,37 @@ export interface UserSearchResult {
   request_status: 'pending_outgoing' | 'pending_incoming' | null;
 }
 
+export type ReactionEmoji = '🔥' | '❤️' | '💯' | '👍' | '🎉' | '👀';
+
+export interface EventReaction {
+  id: string;
+  event_id: string;
+  user_id: string;
+  emoji: ReactionEmoji;
+  visibility: 'public' | 'friends';
+  created_at: string;
+}
+
+export interface EventComment {
+  id: string;
+  event_id: string;
+  user_id: string;
+  text: string;
+  visibility: 'public' | 'friends';
+  created_at: string;
+  display_name?: string;
+  x_handle?: string;
+}
+
+export interface FriendLocation {
+  user_id: string;
+  lat: number;
+  lng: number;
+  updated_at: string;
+  display_name?: string;
+  x_handle?: string;
+}
+
 export type POICategory = 'pin' | 'hotel' | 'food' | 'drink' | 'work' | 'meeting';
 
 export interface POI {

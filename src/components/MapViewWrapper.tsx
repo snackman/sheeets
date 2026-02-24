@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { ChevronUp, ChevronDown, MapPinOff } from 'lucide-react';
-import type { ETHDenverEvent, POI, POICategory } from '@/lib/types';
+import type { ETHDenverEvent, POI, POICategory, ReactionEmoji, FriendLocation } from '@/lib/types';
 import { EventCard } from './EventCard';
 
 const MapView = dynamic(
@@ -26,7 +26,12 @@ interface MapViewWrapperProps {
   isItineraryView?: boolean;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  checkedInFriendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
   checkInCounts?: Map<string, number>;
+  reactionsByEvent?: Map<string, { emoji: ReactionEmoji; count: number; reacted: boolean }[]>;
+  onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
+  commentCounts?: Map<string, number>;
+  friendLocations?: FriendLocation[];
   pois?: POI[];
   onAddPOI?: (poi: { name: string; lat: number; lng: number; address?: string | null; category: POICategory; note?: string | null }) => Promise<unknown>;
   onRemovePOI?: (id: string) => void;
@@ -42,7 +47,12 @@ export function MapViewWrapper({
   isItineraryView,
   friendsCountByEvent,
   friendsByEvent,
+  checkedInFriendsByEvent,
   checkInCounts,
+  reactionsByEvent,
+  onToggleReaction,
+  commentCounts,
+  friendLocations,
   pois,
   onAddPOI,
   onRemovePOI,
@@ -68,7 +78,11 @@ export function MapViewWrapper({
         isItineraryView={isItineraryView}
         friendsCountByEvent={friendsCountByEvent}
         friendsByEvent={friendsByEvent}
+        checkedInFriendsByEvent={checkedInFriendsByEvent}
         checkInCounts={checkInCounts}
+        reactionsByEvent={reactionsByEvent}
+        onToggleReaction={onToggleReaction}
+        friendLocations={friendLocations}
         pois={pois}
         onAddPOI={onAddPOI}
         onRemovePOI={onRemovePOI}

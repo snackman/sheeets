@@ -12,6 +12,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useFriends } from '@/hooks/useFriends';
 import { useFriendsItineraries } from '@/hooks/useFriendsItineraries';
 import { useCheckIns } from '@/hooks/useCheckIns';
+import { useEventReactions } from '@/hooks/useEventReactions';
+import { useEventCommentCounts } from '@/hooks/useEventCommentCounts';
+import { useFriendLocations } from '@/hooks/useFriendLocations';
 import { trackItinerary, trackAuthPrompt } from '@/lib/analytics';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
@@ -98,7 +101,23 @@ export function EventApp() {
 
   const { friends, removeFriend, refreshFriends } = useFriends();
   const { friendItineraries } = useFriendsItineraries(friends);
-  const checkInCounts = useCheckIns(friends);
+  const { checkInCounts, checkInUsersByEvent } = useCheckIns(friends);
+  const { reactionsByEvent, toggleReaction } = useEventReactions();
+  const commentCounts = useEventCommentCounts();
+  const friendLocations = useFriendLocations(friends);
+
+  // Auth-gated reaction toggle
+  const handleToggleReaction = useCallback(
+    (eventId: string, emoji: import('@/lib/types').ReactionEmoji) => {
+      if (user) {
+        toggleReaction(eventId, emoji);
+      } else {
+        trackAuthPrompt('reaction');
+        setShowAuthForStar(true);
+      }
+    },
+    [user, toggleReaction]
+  );
 
   // Friends panel
   const [showFriends, setShowFriends] = useState(false);
@@ -250,6 +269,26 @@ export function EventApp() {
     return map;
   }, [friendItineraries]);
 
+  // Inverted index: eventId -> list of friends checked in (green indicators)
+  const checkedInFriendsByEvent = useMemo(() => {
+    const friendMap = new Map(friends.map((f) => [f.user_id, f]));
+    const map = new Map<string, { userId: string; displayName: string }[]>();
+    for (const [eid, userIds] of checkInUsersByEvent) {
+      const friendInfos: { userId: string; displayName: string }[] = [];
+      for (const uid of userIds) {
+        const friend = friendMap.get(uid);
+        if (friend) {
+          friendInfos.push({
+            userId: uid,
+            displayName: friend.display_name || (friend.x_handle ? `@${friend.x_handle}` : null) || friend.email || uid.slice(0, 8),
+          });
+        }
+      }
+      if (friendInfos.length > 0) map.set(eid, friendInfos);
+    }
+    return map;
+  }, [checkInUsersByEvent, friends]);
+
   const filteredEvents = useMemo(
     () => applyFilters(events, filters, itinerary, filters.nowMode ? getConferenceNow().getTime() : undefined, selectedFriendEventIds),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -355,7 +394,12 @@ export function EventApp() {
             isItineraryView={filters.itineraryOnly}
             friendsCountByEvent={friendsCountByEvent}
             friendsByEvent={friendsByEvent}
+            checkedInFriendsByEvent={checkedInFriendsByEvent}
             checkInCounts={checkInCounts}
+            reactionsByEvent={reactionsByEvent}
+            onToggleReaction={handleToggleReaction}
+            commentCounts={commentCounts}
+            friendLocations={friendLocations}
             pois={pois}
             onAddPOI={addPOI}
             onRemovePOI={removePOI}
@@ -373,7 +417,11 @@ export function EventApp() {
             onScrolledChange={setContentScrolled}
             friendsCountByEvent={friendsCountByEvent}
             friendsByEvent={friendsByEvent}
+            checkedInFriendsByEvent={checkedInFriendsByEvent}
             checkInCounts={checkInCounts}
+            reactionsByEvent={reactionsByEvent}
+            onToggleReaction={handleToggleReaction}
+            commentCounts={commentCounts}
           />
         </main>
       ) : (
@@ -385,7 +433,11 @@ export function EventApp() {
             onItineraryToggle={handleItineraryToggle}
             friendsCountByEvent={friendsCountByEvent}
             friendsByEvent={friendsByEvent}
+            checkedInFriendsByEvent={checkedInFriendsByEvent}
             checkInCounts={checkInCounts}
+            reactionsByEvent={reactionsByEvent}
+            onToggleReaction={handleToggleReaction}
+            commentCounts={commentCounts}
           />
         </main>
       )}

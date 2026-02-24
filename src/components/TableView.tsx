@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, Calendar, Download, ExternalLink, Star, X } from 'lucide-react';
-import type { ETHDenverEvent } from '@/lib/types';
+import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
 import { AddressLink } from './AddressLink';
 import { TagBadge } from './TagBadge';
@@ -17,7 +17,11 @@ interface TableViewProps {
   onScrolledChange?: (scrolled: boolean) => void;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  checkedInFriendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
   checkInCounts?: Map<string, number>;
+  reactionsByEvent?: Map<string, { emoji: ReactionEmoji; count: number; reacted: boolean }[]>;
+  onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
+  commentCounts?: Map<string, number>;
 }
 
 /** Format a dateISO string like "2026-02-10" into "Mon Feb 10" */
@@ -57,7 +61,11 @@ export function TableView({
   onScrolledChange,
   friendsCountByEvent,
   friendsByEvent,
+  checkedInFriendsByEvent,
   checkInCounts,
+  reactionsByEvent,
+  onToggleReaction,
+  commentCounts,
 }: TableViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
@@ -322,6 +330,10 @@ export function TableView({
           onItineraryToggle={onItineraryToggle}
           friendsCount={friendsCountByEvent?.get(selectedEvent.id) ?? 0}
           friendsGoing={friendsByEvent?.get(selectedEvent.id)}
+          checkedInFriends={checkedInFriendsByEvent?.get(selectedEvent.id)}
+          reactions={reactionsByEvent?.get(selectedEvent.id)}
+          onToggleReaction={onToggleReaction}
+          commentCount={commentCounts?.get(selectedEvent.id)}
           onClose={() => setSelectedEvent(null)}
         />,
         document.body
@@ -337,6 +349,10 @@ function EventDetailModal({
   onItineraryToggle,
   friendsCount,
   friendsGoing,
+  checkedInFriends,
+  reactions,
+  onToggleReaction,
+  commentCount,
   onClose,
 }: {
   event: ETHDenverEvent;
@@ -344,6 +360,10 @@ function EventDetailModal({
   onItineraryToggle?: (eventId: string) => void;
   friendsCount: number;
   friendsGoing?: { userId: string; displayName: string }[];
+  checkedInFriends?: { userId: string; displayName: string }[];
+  reactions?: { emoji: ReactionEmoji; count: number; reacted: boolean }[];
+  onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
+  commentCount?: number;
   onClose: () => void;
 }) {
   return (
@@ -359,6 +379,10 @@ function EventDetailModal({
             onItineraryToggle={onItineraryToggle}
             friendsCount={friendsCount}
             friendsGoing={friendsGoing}
+            checkedInFriends={checkedInFriends}
+            reactions={reactions}
+            onToggleReaction={onToggleReaction}
+            commentCount={commentCount}
           />
           <button
             onClick={onClose}

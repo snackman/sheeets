@@ -97,3 +97,5 @@ export const POI_CATEGORIES = [
 ] as const;
 
 export const MAX_POIS = 20;
+
+export const REACTION_EMOJIS = ['🔥', '❤️', '💯', '👍', '🎉', '👀'] as const;

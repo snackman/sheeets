@@ -2,12 +2,13 @@
 
 import { Popup } from 'react-map-gl/mapbox';
 import { X, Calendar, MapPin, Users } from 'lucide-react';
-import type { ETHDenverEvent } from '@/lib/types';
+import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
 import { StarButton } from './StarButton';
 import { AddressLink } from './AddressLink';
 import { TagBadge } from './TagBadge';
 import { OGImage } from './OGImage';
+import { EmojiReactions } from './EmojiReactions';
 
 interface FriendInfo {
   userId: string;
@@ -23,7 +24,10 @@ interface EventPopupProps {
   onItineraryToggle?: (eventId: string) => void;
   friendsCount?: number;
   friendsGoing?: FriendInfo[];
+  checkedInFriends?: FriendInfo[];
   checkInCount?: number;
+  reactions?: { emoji: ReactionEmoji; count: number; reacted: boolean }[];
+  onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
 }
 
 interface MultiEventPopupProps {
@@ -36,7 +40,10 @@ interface MultiEventPopupProps {
   onItineraryToggle?: (eventId: string) => void;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, FriendInfo[]>;
+  checkedInFriendsByEvent?: Map<string, FriendInfo[]>;
   checkInCounts?: Map<string, number>;
+  reactionsByEvent?: Map<string, { emoji: ReactionEmoji; count: number; reacted: boolean }[]>;
+  onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
 }
 
 function formatFriendsText(friends: FriendInfo[]): string {
@@ -58,6 +65,18 @@ function FriendsRow({ friends }: { friends: FriendInfo[] }) {
   );
 }
 
+function CheckedInFriendsRow({ friends }: { friends: FriendInfo[] }) {
+  if (!friends || friends.length === 0) return null;
+  return (
+    <div className="flex items-center gap-1 mt-1">
+      <MapPin className="w-2.5 h-2.5 text-green-400 shrink-0" />
+      <span className="text-[10px] text-green-400/80 truncate">
+        {formatFriendsText(friends)} checked in
+      </span>
+    </div>
+  );
+}
+
 function SingleEventContent({
   event,
   onClose,
@@ -65,7 +84,10 @@ function SingleEventContent({
   onItineraryToggle,
   friendsCount,
   friendsGoing,
+  checkedInFriends,
   checkInCount,
+  reactions,
+  onToggleReaction,
 }: {
   event: ETHDenverEvent;
   onClose: () => void;
@@ -73,7 +95,10 @@ function SingleEventContent({
   onItineraryToggle?: (eventId: string) => void;
   friendsCount?: number;
   friendsGoing?: FriendInfo[];
+  checkedInFriends?: FriendInfo[];
   checkInCount?: number;
+  reactions?: { emoji: ReactionEmoji; count: number; reacted: boolean }[];
+  onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
 }) {
   const timeDisplay = event.isAllDay
     ? 'All Day'
@@ -158,8 +183,23 @@ function SingleEventContent({
           </div>
         )}
 
+        {/* Compact emoji reactions */}
+        {onToggleReaction && (
+          <div className="mt-1.5">
+            <EmojiReactions
+              eventId={event.id}
+              reactions={reactions}
+              onToggle={onToggleReaction}
+              compact
+            />
+          </div>
+        )}
+
         {/* Friends going */}
         {friendsGoing && <FriendsRow friends={friendsGoing} />}
+
+        {/* Friends checked in (green) */}
+        {checkedInFriends && <CheckedInFriendsRow friends={checkedInFriends} />}
 
         {/* Note */}
         {event.note && (
@@ -179,7 +219,10 @@ export function EventPopup({
   onItineraryToggle,
   friendsCount,
   friendsGoing,
+  checkedInFriends,
   checkInCount,
+  reactions,
+  onToggleReaction,
 }: EventPopupProps) {
   return (
     <Popup
@@ -199,7 +242,10 @@ export function EventPopup({
         onItineraryToggle={onItineraryToggle}
         friendsCount={friendsCount}
         friendsGoing={friendsGoing}
+        checkedInFriends={checkedInFriends}
         checkInCount={checkInCount}
+        reactions={reactions}
+        onToggleReaction={onToggleReaction}
       />
     </Popup>
   );
@@ -215,6 +261,7 @@ export function MultiEventPopup({
   onItineraryToggle,
   friendsCountByEvent,
   friendsByEvent,
+  checkedInFriendsByEvent,
   checkInCounts,
 }: MultiEventPopupProps) {
   return (
@@ -248,6 +295,7 @@ export function MultiEventPopup({
               : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
             const isInItinerary = itinerary?.has(event.id) ?? false;
             const eventFriends = friendsByEvent?.get(event.id);
+            const eventCheckedIn = checkedInFriendsByEvent?.get(event.id);
             return (
               <div
                 key={event.id}
@@ -305,6 +353,7 @@ export function MultiEventPopup({
                     </div>
                   )}
                   {eventFriends && <FriendsRow friends={eventFriends} />}
+                  {eventCheckedIn && <CheckedInFriendsRow friends={eventCheckedIn} />}
                 </div>
               </div>
             );

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { ETHDenverEvent } from '@/lib/types';
+import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
 import { formatDateLabel } from '@/lib/utils';
 import { EventCard } from './EventCard';
 
@@ -12,7 +12,11 @@ interface ListViewProps {
   onItineraryToggle?: (eventId: string) => void;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  checkedInFriendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
   checkInCounts?: Map<string, number>;
+  reactionsByEvent?: Map<string, { emoji: ReactionEmoji; count: number; reacted: boolean }[]>;
+  onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
+  commentCounts?: Map<string, number>;
 }
 
 interface DateGroup {
@@ -51,7 +55,11 @@ export function ListView({
   onItineraryToggle,
   friendsCountByEvent,
   friendsByEvent,
+  checkedInFriendsByEvent,
   checkInCounts,
+  reactionsByEvent,
+  onToggleReaction,
+  commentCounts,
 }: ListViewProps) {
   const dateGroups: DateGroup[] = useMemo(() => {
     const groupMap = new Map<string, ETHDenverEvent[]>();
@@ -110,7 +118,11 @@ export function ListView({
                 onItineraryToggle={onItineraryToggle}
                 friendsCount={friendsCountByEvent?.get(event.id)}
                 friendsGoing={friendsByEvent?.get(event.id)}
+                checkedInFriends={checkedInFriendsByEvent?.get(event.id)}
                 checkInCount={checkInCounts?.get(event.id)}
+                reactions={reactionsByEvent?.get(event.id)}
+                onToggleReaction={onToggleReaction}
+                commentCount={commentCounts?.get(event.id)}
               />
             ))}
           </div>

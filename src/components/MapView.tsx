@@ -4,7 +4,7 @@ import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import MapGL, { NavigationControl, Marker } from 'react-map-gl/mapbox';
 import type { MapRef } from 'react-map-gl/mapbox';
 import { LocateFixed } from 'lucide-react';
-import type { ETHDenverEvent, POI, POICategory } from '@/lib/types';
+import type { ETHDenverEvent, POI, POICategory, ReactionEmoji, FriendLocation } from '@/lib/types';
 import { DENVER_CENTER } from '@/lib/constants';
 import { parseTimeToMinutes } from '@/lib/filters';
 import { trackLocateMe } from '@/lib/analytics';
@@ -14,6 +14,7 @@ import { EventPopup, MultiEventPopup } from './EventPopup';
 import { POIMarker } from './POIMarker';
 import { POIPopup } from './POIPopup';
 import { POISearchBar } from './POISearchBar';
+import { FriendMarker } from './FriendMarker';
 
 interface MapViewProps {
   events: ETHDenverEvent[];
@@ -23,7 +24,11 @@ interface MapViewProps {
   isItineraryView?: boolean;
   friendsCountByEvent?: Map<string, number>;
   friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  checkedInFriendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
   checkInCounts?: Map<string, number>;
+  reactionsByEvent?: Map<string, { emoji: ReactionEmoji; count: number; reacted: boolean }[]>;
+  onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
+  friendLocations?: FriendLocation[];
   pois?: POI[];
   onAddPOI?: (poi: { name: string; lat: number; lng: number; address?: string | null; category: POICategory; note?: string | null }) => Promise<unknown>;
   onRemovePOI?: (id: string) => void;
@@ -47,7 +52,11 @@ export function MapView({
   isItineraryView = false,
   friendsCountByEvent,
   friendsByEvent,
+  checkedInFriendsByEvent,
   checkInCounts,
+  reactionsByEvent,
+  onToggleReaction,
+  friendLocations,
   pois,
   onAddPOI,
   onRemovePOI,
@@ -448,6 +457,11 @@ export function MapView({
       {/* POI Search Bar */}
       <POISearchBar onAddPOI={onAddPOI} mapRef={mapRef} />
 
+      {/* Friend location markers (rendered first, below POIs and events) */}
+      {friendLocations?.map((loc) => (
+        <FriendMarker key={loc.user_id} location={loc} zoom={viewState.zoom} />
+      ))}
+
       {/* POI Markers (rendered before events so events layer on top) */}
       {pois?.map((poi) => (
         <POIMarker key={poi.id} poi={poi} onSelect={handlePOISelect} isOwn={poi.user_id === user?.id} zoom={viewState.zoom} />
@@ -506,7 +520,10 @@ export function MapView({
           onItineraryToggle={onItineraryToggle}
           friendsCount={friendsCountByEvent?.get(popupEvent.id)}
           friendsGoing={friendsByEvent?.get(popupEvent.id)}
+          checkedInFriends={checkedInFriendsByEvent?.get(popupEvent.id)}
           checkInCount={checkInCounts?.get(popupEvent.id)}
+          reactions={reactionsByEvent?.get(popupEvent.id)}
+          onToggleReaction={onToggleReaction}
         />
       )}
 
@@ -521,7 +538,10 @@ export function MapView({
           onItineraryToggle={onItineraryToggle}
           friendsCountByEvent={friendsCountByEvent}
           friendsByEvent={friendsByEvent}
+          checkedInFriendsByEvent={checkedInFriendsByEvent}
           checkInCounts={checkInCounts}
+          reactionsByEvent={reactionsByEvent}
+          onToggleReaction={onToggleReaction}
         />
       )}
 

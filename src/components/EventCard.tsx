@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { MapPin, Calendar, Users, X, Link, Check } from 'lucide-react';
-import { ETHDenverEvent } from '@/lib/types';
+import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
 import { AddressLink } from './AddressLink';
 import { StarButton } from './StarButton';
 import { TagBadge } from './TagBadge';
 import { OGImage } from './OGImage';
+import { EmojiReactions } from './EmojiReactions';
+import { CommentSection } from './CommentSection';
 
 interface FriendInfo {
   userId: string;
@@ -21,17 +23,25 @@ interface EventCardProps {
   onItineraryToggle?: (eventId: string) => void;
   friendsCount?: number;
   friendsGoing?: FriendInfo[];
+  checkedInFriends?: FriendInfo[];
   checkInCount?: number;
+  reactions?: { emoji: ReactionEmoji; count: number; reacted: boolean }[];
+  onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
+  commentCount?: number;
 }
 
 function FriendsGoingModal({
   eventName,
   friends,
   onClose,
+  title = 'Friends Going',
+  accentColor = 'blue',
 }: {
   eventName: string;
   friends: FriendInfo[];
   onClose: () => void;
+  title?: string;
+  accentColor?: 'blue' | 'green';
 }) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -40,6 +50,9 @@ function FriendsGoingModal({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
+
+  const avatarBg = accentColor === 'green' ? 'bg-green-500/20' : 'bg-blue-500/20';
+  const avatarText = accentColor === 'green' ? 'text-green-400' : 'text-blue-400';
 
   return createPortal(
     <div
@@ -57,7 +70,7 @@ function FriendsGoingModal({
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-bold text-white">Friends Going</h3>
+            <h3 className="text-sm font-bold text-white">{title}</h3>
             <p className="text-xs text-slate-400 truncate">{eventName}</p>
           </div>
           <button
@@ -76,8 +89,8 @@ function FriendsGoingModal({
               key={friend.userId}
               className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-750 hover:bg-slate-700 transition-colors"
             >
-              <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
-                <span className="text-sm font-medium text-blue-400">
+              <div className={`w-8 h-8 rounded-full ${avatarBg} flex items-center justify-center shrink-0`}>
+                <span className={`text-sm font-medium ${avatarText}`}>
                   {friend.displayName[0]?.toUpperCase() ?? '?'}
                 </span>
               </div>
@@ -105,9 +118,14 @@ export function EventCard({
   onItineraryToggle,
   friendsCount,
   friendsGoing,
+  checkedInFriends,
   checkInCount,
+  reactions,
+  onToggleReaction,
+  commentCount,
 }: EventCardProps) {
   const [showFriendsModal, setShowFriendsModal] = useState(false);
+  const [showCheckedInModal, setShowCheckedInModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const handleCopyLink = (e: React.MouseEvent) => {
@@ -212,6 +230,17 @@ export function EventCard({
           </div>
         )}
 
+        {/* Emoji reactions */}
+        {onToggleReaction && (
+          <div className="mt-2">
+            <EmojiReactions
+              eventId={event.id}
+              reactions={reactions}
+              onToggle={onToggleReaction}
+            />
+          </div>
+        )}
+
         {/* Friends going row */}
         {friendsGoing && friendsGoing.length > 0 && (
           <button
@@ -228,10 +257,29 @@ export function EventCard({
           </button>
         )}
 
+        {/* Friends checked in row (green) */}
+        {checkedInFriends && checkedInFriends.length > 0 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowCheckedInModal(true);
+            }}
+            className="flex items-center gap-2 mt-1 px-2 py-1.5 -mx-1 rounded-lg hover:bg-slate-700/50 transition-colors cursor-pointer group/checkin w-fit"
+          >
+            <MapPin className="w-3.5 h-3.5 text-green-400 shrink-0" />
+            <span className="text-xs text-green-400 group-hover/checkin:text-green-300 transition-colors">
+              {formatFriendsText(checkedInFriends)} checked in
+            </span>
+          </button>
+        )}
+
         {/* Note */}
         {event.note && (
           <p className="text-slate-600 text-xs mt-1 italic truncate">{event.note}</p>
         )}
+
+        {/* Comments */}
+        <CommentSection eventId={event.id} commentCount={commentCount} />
       </div>
 
       {/* Friends going modal */}
@@ -240,6 +288,17 @@ export function EventCard({
           eventName={event.name}
           friends={friendsGoing}
           onClose={() => setShowFriendsModal(false)}
+        />
+      )}
+
+      {/* Friends checked in modal (green) */}
+      {showCheckedInModal && checkedInFriends && checkedInFriends.length > 0 && (
+        <FriendsGoingModal
+          eventName={event.name}
+          friends={checkedInFriends}
+          onClose={() => setShowCheckedInModal(false)}
+          title="Friends Checked In"
+          accentColor="green"
         />
       )}
     </div>
