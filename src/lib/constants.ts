@@ -5,6 +5,8 @@ export const CONFERENCE_TIMEZONE = 'America/Denver';
 export const EVENT_TABS = [
   { gid: 356217373, name: 'ETHDenver' },
   { gid: 377806756, name: 'Consensus Hong Kong 2026' },
+  { gid: 1543768695, name: 'SXSW 2026' },
+  { gid: 437576609, name: 'ETHCC 2026' },
 ];
 
 export const EVENT_DATES = [
