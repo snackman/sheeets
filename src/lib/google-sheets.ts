@@ -74,14 +74,14 @@ async function getAccessToken(): Promise<string> {
 }
 
 /**
- * Find the next empty row in a sheet tab.
- * Reads columns A:E starting from row 14 (data rows start after header).
- * An "empty row" is one where date (A), startTime (B), and name (E) are all empty.
- * Returns the 1-based row number.
+ * Find the next empty row in the "Add Events Here" section of a sheet tab.
+ * Scans column A for the cell containing "Add Events Here", then looks for
+ * the header row below it (col B = "Start Time"), and returns the first
+ * empty row after that header.
  */
 export async function findNextEmptyRow(sheetName: string): Promise<number> {
   const token = await getAccessToken();
-  const range = encodeURIComponent(`'${sheetName}'!A14:E`);
+  const range = encodeURIComponent(`'${sheetName}'!A1:E`);
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}`;
 
   const res = await fetch(url, {
@@ -96,19 +96,44 @@ export async function findNextEmptyRow(sheetName: string): Promise<number> {
   const data = await res.json();
   const rows: string[][] = data.values || [];
 
+  // Find the "Add Events Here" marker row
+  let addEventsRow = -1;
   for (let i = 0; i < rows.length; i++) {
+    const cellA = (rows[i]?.[0] || '').trim();
+    if (cellA.includes('Add Events Here')) {
+      addEventsRow = i;
+      break;
+    }
+  }
+
+  // Find the header row after the marker (col B = "Start Time")
+  let headerRow = addEventsRow >= 0 ? addEventsRow + 1 : -1;
+  if (addEventsRow >= 0) {
+    for (let i = addEventsRow + 1; i < rows.length; i++) {
+      const colB = (rows[i]?.[1] || '').trim().toLowerCase();
+      if (colB === 'start time') {
+        headerRow = i;
+        break;
+      }
+    }
+  }
+
+  // Start scanning for empty rows after the header
+  const startIdx = headerRow >= 0 ? headerRow + 1 : 13; // fallback to row 14
+
+  for (let i = startIdx; i < rows.length; i++) {
     const row = rows[i] || [];
-    const date = (row[0] || '').trim();
+    const cellDate = (row[0] || '').trim();
     const startTime = (row[1] || '').trim();
     const name = (row[4] || '').trim();
 
-    if (!date && !startTime && !name) {
-      return i + 14; // Convert to 1-based sheet row (data starts at row 14)
+    if (!cellDate && !startTime && !name) {
+      return i + 1; // Convert to 1-based sheet row
     }
   }
 
   // If no empty row found, append after last row
-  return rows.length + 14;
+  return rows.length + 1;
 }
 
 export interface EventRow {

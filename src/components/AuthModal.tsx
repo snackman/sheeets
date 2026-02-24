@@ -368,11 +368,12 @@ interface UserMenuProps {
   events: ETHDenverEvent[];
   itinerary: Set<string>;
   onOpenFriends: () => void;
+  onSubmitEvent?: () => void;
   pendingIncomingCount?: number;
   externalRefreshFriends?: () => Promise<void>;
 }
 
-export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCount: externalCount, externalRefreshFriends }: UserMenuProps) {
+export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pendingIncomingCount: externalCount, externalRefreshFriends }: UserMenuProps) {
   const { user, signOut } = useAuth();
   const { profile, updateProfile } = useProfile();
   const { friendCount, refreshFriends: localRefreshFriends } = useFriends();
@@ -867,15 +868,13 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
 
                 {/* Submit Event + Sign Out */}
                 <div className="border-t border-slate-700 pt-4 space-y-2">
-                  <a
-                    href="https://plan.wtf/data"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => { setOpen(false); onSubmitEvent?.(); }}
                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     Submit Event
-                  </a>
+                  </button>
                   <button
                     onClick={() => {
                       trackSignOut();

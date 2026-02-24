@@ -23,6 +23,7 @@ import { TableView } from './TableView';
 import { MapViewWrapper } from './MapViewWrapper';
 import { Loading } from './Loading';
 import { AuthModal } from './AuthModal';
+import { SubmitEventModal } from './SubmitEventModal';
 import { FriendsPanel } from './FriendsPanel';
 import { SponsorsTicker } from './SponsorsTicker';
 
@@ -121,6 +122,8 @@ export function EventApp() {
 
   // Friends panel
   const [showFriends, setShowFriends] = useState(false);
+
+  const [showSubmitEvent, setShowSubmitEvent] = useState(false);
 
   // Auth-gated starring
   const [showAuthForStar, setShowAuthForStar] = useState(false);
@@ -353,6 +356,7 @@ export function EventApp() {
         events={events}
         itinerary={itinerary}
         onOpenFriends={() => setShowFriends(true)}
+        onSubmitEvent={() => setShowSubmitEvent(true)}
         refreshFriends={refreshFriends}
       />
 
@@ -444,6 +448,7 @@ export function EventApp() {
       )}
 
       <AuthModal isOpen={showAuthForStar} onClose={() => { pendingStarRef.current = null; setShowAuthForStar(false); }} />
+      <SubmitEventModal isOpen={showSubmitEvent} onClose={() => setShowSubmitEvent(false)} />
       <FriendsPanel
         isOpen={showFriends}
         onClose={() => setShowFriends(false)}
