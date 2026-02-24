@@ -1,5 +1,5 @@
 import type { ETHDenverEvent, FilterState } from './types';
-import { CONFERENCE_TIMEZONE } from './constants';
+import { getTabConfig } from './constants';
 
 /** Parse a time string like "12:00p", "6:00 PM", "2:30 AM" to minutes since midnight */
 export function parseTimeToMinutes(t: string): number | null {
@@ -18,8 +18,9 @@ export function parseTimeToMinutes(t: string): number | null {
 }
 
 /** Get current time in conference timezone */
-export function getConferenceNow(): Date {
-  return new Date(new Date().toLocaleString('en-US', { timeZone: CONFERENCE_TIMEZONE }));
+export function getConferenceNow(conference?: string): Date {
+  const tz = getTabConfig(conference ?? '').timezone;
+  return new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
 }
 
 /** Build a Date range from an event's dateISO + time strings */
@@ -117,7 +118,7 @@ export function applyFilters(
   friendEventIds?: Set<string>,
 ): ETHDenverEvent[] {
   // Create the "now" Date once using conference timezone
-  const now = nowTimestamp ? new Date(nowTimestamp) : getConferenceNow();
+  const now = nowTimestamp ? new Date(nowTimestamp) : getConferenceNow(filters.conference);
 
   // Pre-compute filter bounds outside the loop
   const filterStart = !filters.nowMode && filters.startDateTime ? new Date(filters.startDateTime) : null;

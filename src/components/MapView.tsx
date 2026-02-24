@@ -5,7 +5,7 @@ import MapGL, { NavigationControl, Marker } from 'react-map-gl/mapbox';
 import type { MapRef } from 'react-map-gl/mapbox';
 import { LocateFixed } from 'lucide-react';
 import type { ETHDenverEvent, POI, POICategory, ReactionEmoji, FriendLocation } from '@/lib/types';
-import { DENVER_CENTER } from '@/lib/constants';
+import { getTabConfig } from '@/lib/constants';
 import { parseTimeToMinutes } from '@/lib/filters';
 import { trackLocateMe } from '@/lib/analytics';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,6 +29,7 @@ interface MapViewProps {
   reactionsByEvent?: Map<string, { emoji: ReactionEmoji; count: number; reacted: boolean }[]>;
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
   friendLocations?: FriendLocation[];
+  conference?: string;
   pois?: POI[];
   onAddPOI?: (poi: { name: string; lat: number; lng: number; address?: string | null; category: POICategory; note?: string | null }) => Promise<unknown>;
   onRemovePOI?: (id: string) => void;
@@ -57,12 +58,14 @@ export function MapView({
   reactionsByEvent,
   onToggleReaction,
   friendLocations,
+  conference,
   pois,
   onAddPOI,
   onRemovePOI,
   onUpdatePOI,
   ownerNames,
 }: MapViewProps) {
+  const mapCenter = getTabConfig(conference ?? '').center;
   const { user } = useAuth();
   const mapRef = useRef<MapRef>(null);
   const hasFittedRef = useRef(false);
@@ -103,8 +106,8 @@ export function MapView({
   }, [events]);
 
   const [viewState, setViewState] = useState({
-    latitude: eventsCenter?.lat ?? DENVER_CENTER.lat,
-    longitude: eventsCenter?.lng ?? DENVER_CENTER.lng,
+    latitude: eventsCenter?.lat ?? mapCenter.lat,
+    longitude: eventsCenter?.lng ?? mapCenter.lng,
     zoom: 12,
   });
 

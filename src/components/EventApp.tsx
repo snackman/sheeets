@@ -290,7 +290,7 @@ export function EventApp() {
   }, [checkInUsersByEvent, friends]);
 
   const filteredEvents = useMemo(
-    () => applyFilters(events, filters, itinerary, filters.nowMode ? getConferenceNow().getTime() : undefined, selectedFriendEventIds),
+    () => applyFilters(events, filters, itinerary, filters.nowMode ? getConferenceNow(filters.conference).getTime() : undefined, selectedFriendEventIds),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [events, filters, itinerary, nowTick, selectedFriendEventIds]
   );
@@ -400,6 +400,7 @@ export function EventApp() {
             onToggleReaction={handleToggleReaction}
             commentCounts={commentCounts}
             friendLocations={friendLocations}
+            conference={filters.conference}
             pois={pois}
             onAddPOI={addPOI}
             onRemovePOI={removePOI}

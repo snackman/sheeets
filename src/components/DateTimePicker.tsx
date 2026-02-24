@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { EVENT_DATES } from '@/lib/constants';
+import { DEFAULT_TAB } from '@/lib/constants';
 
 // Generate time options in 30-minute intervals
 const TIME_OPTIONS: string[] = [];
@@ -101,12 +101,15 @@ function Dropdown({
 export function DateTimePicker({
   value,
   onChange,
+  dates,
 }: {
   value: string; // "YYYY-MM-DDTHH:mm"
   min?: string;
   max?: string;
+  dates?: string[];
   onChange: (value: string) => void;
 }) {
+  const dateOptions = dates ?? DEFAULT_TAB.dates;
   const [date, time] = value.split('T');
   const timeVal = time ?? '00:00';
 
@@ -114,7 +117,7 @@ export function DateTimePicker({
     <div className="flex items-center gap-1">
       <Dropdown
         value={date}
-        options={EVENT_DATES}
+        options={dateOptions}
         renderOption={formatDateShort}
         renderSelected={formatDateShort}
         onChange={(d) => onChange(`${d}T${timeVal}`)}

@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import clsx from 'clsx';
 import { X, SlidersHorizontal, Zap, Users, MapPin } from 'lucide-react';
 import type { FilterState } from '@/lib/types';
-import { EVENT_DATES, VIBE_COLORS } from '@/lib/constants';
+import { VIBE_COLORS, getTabConfig } from '@/lib/constants';
 import { TAG_ICONS } from './TagBadge';
 import { SearchBar } from './SearchBar';
 import { DateTimePicker } from './DateTimePicker';
@@ -185,32 +185,39 @@ export function FilterBar({
             )}
 
             {/* Datetime range */}
-            <div className={clsx('flex gap-2', filters.nowMode && 'opacity-30 pointer-events-none')}>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Start</div>
-                <DateTimePicker
-                  value={filters.startDateTime}
-                  min={`${EVENT_DATES[0]}T00:00`}
-                  max={filters.endDateTime}
-                  onChange={(v) => {
-                    trackDateTimeRange(v, filters.endDateTime);
-                    onSetDateTimeRange(v, filters.endDateTime);
-                  }}
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">End</div>
-                <DateTimePicker
-                  value={filters.endDateTime}
-                  min={filters.startDateTime}
-                  max={`${EVENT_DATES[EVENT_DATES.length - 1]}T23:30`}
-                  onChange={(v) => {
-                    trackDateTimeRange(filters.startDateTime, v);
-                    onSetDateTimeRange(filters.startDateTime, v);
-                  }}
-                />
-              </div>
-            </div>
+            {(() => {
+              const tabDates = getTabConfig(filters.conference).dates;
+              return (
+                <div className={clsx('flex gap-2', filters.nowMode && 'opacity-30 pointer-events-none')}>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Start</div>
+                    <DateTimePicker
+                      value={filters.startDateTime}
+                      min={`${tabDates[0]}T00:00`}
+                      max={filters.endDateTime}
+                      dates={tabDates}
+                      onChange={(v) => {
+                        trackDateTimeRange(v, filters.endDateTime);
+                        onSetDateTimeRange(v, filters.endDateTime);
+                      }}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">End</div>
+                    <DateTimePicker
+                      value={filters.endDateTime}
+                      min={filters.startDateTime}
+                      max={`${tabDates[tabDates.length - 1]}T23:30`}
+                      dates={tabDates}
+                      onChange={(v) => {
+                        trackDateTimeRange(filters.startDateTime, v);
+                        onSetDateTimeRange(filters.startDateTime, v);
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Friends filter */}
             {friendsForFilter.length > 0 && (

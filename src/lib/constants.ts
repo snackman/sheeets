@@ -1,19 +1,45 @@
 export const SHEET_ID = '1xWmIHyEyOmPHfkYuZkucPRlLGWbb9CF6Oqvfl8FUV6k';
 
-export const CONFERENCE_TIMEZONE = 'America/Denver';
-
 export const EVENT_TABS = [
-  { gid: 1543768695, name: 'SXSW 2026' },
-  { gid: 437576609, name: 'ETHCC 2026' },
+  {
+    gid: 1543768695,
+    name: 'SXSW 2026',
+    timezone: 'America/Chicago',
+    dates: [
+      '2026-03-05', '2026-03-06', '2026-03-07', '2026-03-08',
+      '2026-03-09', '2026-03-10', '2026-03-11', '2026-03-12',
+      '2026-03-13', '2026-03-14', '2026-03-15', '2026-03-16',
+      '2026-03-17', '2026-03-18',
+    ],
+    center: { lat: 30.2672, lng: -97.7431 },
+  },
+  {
+    gid: 437576609,
+    name: 'ETHCC 2026',
+    timezone: 'Europe/Paris',
+    dates: [
+      '2026-03-27', '2026-03-28', '2026-03-29', '2026-03-30',
+      '2026-03-31', '2026-04-01', '2026-04-02',
+    ],
+    center: { lat: 43.5528, lng: 7.0174 },
+  },
 ];
 
-export const EVENT_DATES = [
-  '2026-02-10', '2026-02-11', '2026-02-12', '2026-02-13',
-  '2026-02-14', '2026-02-15', '2026-02-16', '2026-02-17',
-  '2026-02-18', '2026-02-19', '2026-02-20', '2026-02-21',
-];
+export const DEFAULT_TAB = EVENT_TABS[0];
 
-export const DENVER_CENTER = { lat: 39.7392, lng: -104.9903 };
+/** Get tab config by conference name */
+export function getTabConfig(conference: string) {
+  return EVENT_TABS.find((t) => t.name === conference) ?? DEFAULT_TAB;
+}
+
+/** @deprecated Use getTabConfig(conference).timezone */
+export const CONFERENCE_TIMEZONE = DEFAULT_TAB.timezone;
+
+/** @deprecated Use getTabConfig(conference).dates */
+export const EVENT_DATES = DEFAULT_TAB.dates;
+
+/** @deprecated Use getTabConfig(conference).center */
+export const DENVER_CENTER = DEFAULT_TAB.center;
 
 export const VIBE_COLORS: Record<string, string> = {
   // Green group — event formats

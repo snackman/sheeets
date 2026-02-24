@@ -32,6 +32,7 @@ interface MapViewWrapperProps {
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
   commentCounts?: Map<string, number>;
   friendLocations?: FriendLocation[];
+  conference?: string;
   pois?: POI[];
   onAddPOI?: (poi: { name: string; lat: number; lng: number; address?: string | null; category: POICategory; note?: string | null }) => Promise<unknown>;
   onRemovePOI?: (id: string) => void;
@@ -53,6 +54,7 @@ export function MapViewWrapper({
   onToggleReaction,
   commentCounts,
   friendLocations,
+  conference,
   pois,
   onAddPOI,
   onRemovePOI,
@@ -83,6 +85,7 @@ export function MapViewWrapper({
         reactionsByEvent={reactionsByEvent}
         onToggleReaction={onToggleReaction}
         friendLocations={friendLocations}
+        conference={conference}
         pois={pois}
         onAddPOI={onAddPOI}
         onRemovePOI={onRemovePOI}

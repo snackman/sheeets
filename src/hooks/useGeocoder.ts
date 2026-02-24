@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { DENVER_CENTER } from '@/lib/constants';
+import { DEFAULT_TAB } from '@/lib/constants';
 
 export interface GeocoderResult {
   place_name: string;
@@ -40,7 +40,7 @@ export function useGeocoder() {
       timeout.current = setTimeout(async () => {
         setLoading(true);
         try {
-          const prox = options?.proximity ?? DENVER_CENTER;
+          const prox = options?.proximity ?? DEFAULT_TAB.center;
           let url = `https://api.mapbox.com/search/searchbox/v1/suggest?q=${encodeURIComponent(q)}&access_token=${token}&session_token=${sessionToken.current}&proximity=${prox.lng},${prox.lat}&limit=5&types=poi,address&country=US`;
           if (options?.bbox) {
             url += `&bbox=${options.bbox.join(',')}`;

@@ -2,32 +2,31 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import type { FilterState } from '@/lib/types';
-import { EVENT_DATES } from '@/lib/constants';
-import { getConferenceNow } from '@/lib/filters';
+import { DEFAULT_TAB, getTabConfig } from '@/lib/constants';
 
-function getDefaultDateTimeRange(): { startDateTime: string; endDateTime: string } {
-  const now = getConferenceNow();
+function getDateTimeRangeForConference(conference: string): { startDateTime: string; endDateTime: string } {
+  const tab = getTabConfig(conference);
+  const dates = tab.dates;
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: tab.timezone }));
   const pad = (n: number) => String(n).padStart(2, '0');
   const mins = now.getMinutes() < 30 ? 0 : 30;
   const nowISO = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(mins)}`;
 
-  const firstEventStart = `${EVENT_DATES[0]}T00:00`;
-  const lastEventEnd = `${EVENT_DATES[EVENT_DATES.length - 1]}T23:30`;
+  const firstEventStart = `${dates[0]}T00:00`;
+  const lastEventEnd = `${dates[dates.length - 1]}T23:30`;
 
-  // If now is past the last event, show all events
-  if (nowISO > lastEventEnd) {
+  // If now is before or after the event range, show all events
+  if (nowISO > lastEventEnd || nowISO < firstEventStart) {
     return { startDateTime: firstEventStart, endDateTime: lastEventEnd };
   }
 
-  const startDateTime = nowISO > firstEventStart ? nowISO : firstEventStart;
-
-  return { startDateTime, endDateTime: lastEventEnd };
+  return { startDateTime: nowISO, endDateTime: lastEventEnd };
 }
 
-const defaults = getDefaultDateTimeRange();
+const defaults = getDateTimeRangeForConference(DEFAULT_TAB.name);
 
 const defaultFilters: FilterState = {
-  conference: 'ETHDenver',
+  conference: DEFAULT_TAB.name,
   startDateTime: defaults.startDateTime,
   endDateTime: defaults.endDateTime,
   vibes: [],
@@ -48,7 +47,8 @@ export function useFilters() {
   );
 
   const setConference = useCallback((conf: string) => {
-    setFilters((prev) => ({ ...prev, conference: conf }));
+    const range = getDateTimeRangeForConference(conf);
+    setFilters((prev) => ({ ...prev, conference: conf, startDateTime: range.startDateTime, endDateTime: range.endDateTime }));
   }, []);
 
   const setDateTimeRange = useCallback((start: string, end: string) => {
