@@ -22,11 +22,6 @@ export function useEventReactions() {
   >([]);
 
   useEffect(() => {
-    if (!user) {
-      setRawReactions([]);
-      return;
-    }
-
     async function fetchReactions() {
       const { data, error } = await supabase
         .from('event_reactions')

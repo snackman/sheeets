@@ -15,7 +15,7 @@ export function useEventComments(eventId: string | null) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!eventId || !user) {
+    if (!eventId) {
       setComments([]);
       return;
     }

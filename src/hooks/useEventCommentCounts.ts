@@ -13,11 +13,6 @@ export function useEventCommentCounts() {
   const [commentCounts, setCommentCounts] = useState<Map<string, number>>(new Map());
 
   useEffect(() => {
-    if (!user) {
-      setCommentCounts(new Map());
-      return;
-    }
-
     async function fetchCounts() {
       const { data, error } = await supabase
         .from('event_comments')
