@@ -111,7 +111,19 @@ async function resolveImageUrl(url: string): Promise<string | null> {
       /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i
     );
 
-    return ogMatch?.[1] ? decodeHTMLEntities(ogMatch[1]) : null;
+    if (!ogMatch?.[1]) return null;
+
+    let imageUrl = decodeHTMLEntities(ogMatch[1]);
+
+    // Resolve relative URLs (e.g. Eventbrite uses /e/_next/image?...)
+    if (imageUrl.startsWith('/')) {
+      try {
+        const origin = new URL(url).origin;
+        imageUrl = `${origin}${imageUrl}`;
+      } catch {}
+    }
+
+    return imageUrl;
   } catch {
     return null;
   }
