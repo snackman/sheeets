@@ -177,18 +177,24 @@ export function EventApp() {
 
   const availableTypes = useMemo(
     () => {
-      const present = new Set(events.flatMap((e) => e.tags).filter(Boolean));
+      const confEvents = events.filter((e) => !filters.conference || e.conference === filters.conference);
+      const present = new Set(confEvents.flatMap((e) => e.tags).filter(Boolean));
       return TYPE_TAGS.filter((t) => present.has(t));
     },
-    [events]
+    [events, filters.conference]
   );
 
   const availableVibes = useMemo(
     () =>
-      [...new Set(events.flatMap((e) => e.tags).filter(Boolean))]
+      [...new Set(
+        events
+          .filter((e) => !filters.conference || e.conference === filters.conference)
+          .flatMap((e) => e.tags)
+          .filter(Boolean)
+      )]
         .filter((t) => !TYPE_TAGS.includes(t))
         .sort(),
-    [events]
+    [events, filters.conference]
   );
 
   const conferenceEventCount = useMemo(
@@ -248,6 +254,16 @@ export function EventApp() {
       setFilter('selectedFriends', filters.selectedFriends.filter((id) => friendIds.has(id)));
     }
   }, [friends, filters.selectedFriends, setFilter]);
+
+  // Clear stale vibes/types when conference changes
+  useEffect(() => {
+    if (filters.vibes.length === 0) return;
+    const available = new Set([...availableTypes, ...availableVibes]);
+    const stale = filters.vibes.filter((v) => !available.has(v));
+    if (stale.length > 0) {
+      setFilter('vibes', filters.vibes.filter((v) => available.has(v)));
+    }
+  }, [availableTypes, availableVibes, filters.vibes, setFilter]);
 
   // Count how many friends have each event on their itinerary
   const friendsCountByEvent = useMemo(() => {
