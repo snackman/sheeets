@@ -27,7 +27,7 @@ import { SubmitEventModal } from './SubmitEventModal';
 import { FriendsPanel } from './FriendsPanel';
 import { SponsorsTicker } from './SponsorsTicker';
 
-export function EventApp() {
+export function EventApp({ initialConference }: { initialConference?: string }) {
   const { events, loading, error } = useEvents();
   const {
     filters,
@@ -40,7 +40,7 @@ export function EventApp() {
     toggleNowMode,
     clearFilters,
     activeFilterCount,
-  } = useFilters();
+  } = useFilters(initialConference);
   const [viewMode, setViewMode] = useState<ViewMode>('map');
   const [viewRestored, setViewRestored] = useState(false);
   const [contentScrolled, setContentScrolled] = useState(false);

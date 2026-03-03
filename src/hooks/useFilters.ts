@@ -23,21 +23,29 @@ function getDateTimeRangeForConference(conference: string): { startDateTime: str
   return { startDateTime: nowISO, endDateTime: lastEventEnd };
 }
 
-const defaults = getDateTimeRangeForConference(DEFAULT_TAB.name);
+function buildDefaultFilters(conference: string): FilterState {
+  const range = getDateTimeRangeForConference(conference);
+  return {
+    conference,
+    startDateTime: range.startDateTime,
+    endDateTime: range.endDateTime,
+    vibes: [],
+    selectedFriends: [],
+    itineraryOnly: false,
+    searchQuery: '',
+    nowMode: false,
+  };
+}
 
-const defaultFilters: FilterState = {
-  conference: DEFAULT_TAB.name,
-  startDateTime: defaults.startDateTime,
-  endDateTime: defaults.endDateTime,
-  vibes: [],
-  selectedFriends: [],
-  itineraryOnly: false,
-  searchQuery: '',
-  nowMode: false,
-};
+const defaultFilters = buildDefaultFilters(DEFAULT_TAB.name);
 
-export function useFilters() {
-  const [filters, setFilters] = useState<FilterState>(defaultFilters);
+export function useFilters(initialConference?: string) {
+  const initialState = useMemo(
+    () => initialConference ? buildDefaultFilters(initialConference) : defaultFilters,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+  const [filters, setFilters] = useState<FilterState>(initialState);
 
   const setFilter = useCallback(
     <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
@@ -84,17 +92,17 @@ export function useFilters() {
     setFilters((prev) => ({ ...prev, nowMode: !prev.nowMode }));
   }, []);
 
-  const clearFilters = useCallback(() => setFilters(defaultFilters), []);
+  const clearFilters = useCallback(() => setFilters(initialState), [initialState]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (filters.startDateTime !== defaultFilters.startDateTime || filters.endDateTime !== defaultFilters.endDateTime) count++;
+    if (filters.startDateTime !== initialState.startDateTime || filters.endDateTime !== initialState.endDateTime) count++;
     if (filters.vibes.length > 0) count++;
     if (filters.selectedFriends.length > 0) count++;
     if (filters.searchQuery) count++;
     if (filters.nowMode) count++;
     return count;
-  }, [filters]);
+  }, [filters, initialState]);
 
   return {
     filters,

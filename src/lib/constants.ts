@@ -4,6 +4,7 @@ export const EVENT_TABS = [
   {
     gid: 1543768695,
     name: 'SXSW 2026',
+    slug: 'sxsw',
     timezone: 'America/Chicago',
     dates: [
       '2026-03-05', '2026-03-06', '2026-03-07', '2026-03-08',
@@ -16,6 +17,7 @@ export const EVENT_TABS = [
   {
     gid: 437576609,
     name: 'ETHCC 2026',
+    slug: 'ethcc',
     timezone: 'Europe/Paris',
     dates: [
       '2026-03-27', '2026-03-28', '2026-03-29', '2026-03-30',
@@ -30,6 +32,11 @@ export const DEFAULT_TAB = EVENT_TABS[0];
 /** Get tab config by conference name */
 export function getTabConfig(conference: string) {
   return EVENT_TABS.find((t) => t.name === conference) ?? DEFAULT_TAB;
+}
+
+/** Get tab config by URL slug */
+export function getTabBySlug(slug: string) {
+  return EVENT_TABS.find((t) => t.slug === slug.toLowerCase());
 }
 
 /** @deprecated Use getTabConfig(conference).timezone */
