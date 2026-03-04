@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { X, Loader2, Check, Link as LinkIcon, ExternalLink } from 'lucide-react';
 import { EVENT_TABS, VIBE_COLORS, TYPE_TAGS, SHEET_ID, getTabConfig } from '@/lib/constants';
 import { trackSubmitEventOpen, trackSubmitEventSuccess } from '@/lib/analytics';
-import { Dropdown, TIME_OPTIONS, formatDateShort, format12Hour } from './DateTimePicker';
+import { Dropdown, TIME_OPTIONS, format12Hour } from './DateTimePicker';
 import { AddressAutocomplete } from './AddressAutocomplete';
 
 interface SubmitEventModalProps {
@@ -16,6 +16,12 @@ interface SubmitEventModalProps {
 type Step = 'input' | 'form' | 'success';
 
 const LUMA_URL_RE = /^https?:\/\/(lu\.ma|luma\.com|www\.luma\.com)\/.+/i;
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function formatDateShort(iso: string): string {
+  const [, m, d] = iso.split('-').map(Number);
+  return `${MONTHS[m - 1]} ${d}`;
+}
 
 // Tags for the selector: TYPE_TAGS excluding '$$', 'Food', 'Bar' + topic tags from VIBE_COLORS
 const EXCLUDED_TAGS = ['$$', '🍕 Food', '🍺 Bar'];
@@ -207,7 +213,6 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
   if (!isOpen) return null;
 
   const sheetUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`;
-  const tab = getTabConfig(conference);
 
   return createPortal(
     <>
@@ -296,13 +301,7 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
                   <label className="block text-xs font-medium text-slate-400 mb-1">Conference</label>
                   <select
                     value={conference}
-                    onChange={(e) => {
-                      setConference(e.target.value);
-                      const newTab = getTabConfig(e.target.value);
-                      if (dateISO && !newTab.dates.includes(dateISO)) {
-                        setDateISO(newTab.dates[0] || '');
-                      }
-                    }}
+                    onChange={(e) => setConference(e.target.value)}
                     className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none"
                   >
                     {EVENT_TABS.map((t) => (
@@ -333,13 +332,12 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
                     <label className="block text-xs font-medium text-slate-400 mb-1">
                       Date <span className="text-red-400">*</span>
                     </label>
-                    <Dropdown
-                      value={dateISO || tab.dates[0]}
-                      options={tab.dates}
-                      renderOption={formatDateShort}
-                      renderSelected={(v) => v ? formatDateShort(v) : 'Date'}
-                      onChange={setDateISO}
-                      width="100px"
+                    <input
+                      type="date"
+                      value={dateISO}
+                      onChange={(e) => setDateISO(e.target.value)}
+                      className="bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-1.5 focus:border-orange-500 focus:outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:invert"
+                      style={{ colorScheme: 'dark' }}
                     />
                   </div>
                   <div>

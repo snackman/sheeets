@@ -57,7 +57,7 @@ export const VIBE_COLORS: Record<string, string> = {
   'Workshop': '#34D399',
   'Party': '#34D399',
   'Brunch': '#34D399',
-  'Bar/Pub': '#34D399',
+  'Bar': '#34D399',
   'Meetup': '#34D399',
   'Demo Day': '#34D399',
   'Dinner': '#34D399',
@@ -69,8 +69,8 @@ export const VIBE_COLORS: Record<string, string> = {
   '🍺 Bar': '#34D399',
   // Blue group — builders & business
   'Devs/Builders': '#3B82F6',
-  'VCs/Angels': '#3B82F6',
-  'Jobs/Hiring': '#3B82F6',
+  'VCs': '#3B82F6',
+  'Jobs': '#3B82F6',
   // Yellow group — crypto & topics
   'DePIN': '#FBBF24',
   'AI': '#FBBF24',
@@ -99,7 +99,7 @@ export const TYPE_TAGS = [
   'Workshop',
   'Party',
   'Brunch',
-  'Bar/Pub',
+  'Bar',
   'Meetup',
   'Demo Day',
   'Dinner',
