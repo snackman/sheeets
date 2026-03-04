@@ -401,6 +401,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
           searchQuery={filters.searchQuery}
           onSearchChange={(query) => setFilter('searchQuery', query)}
           eventCount={filteredEvents.length}
+          onSubmitEvent={() => setShowSubmitEvent(true)}
         />
       </div>
 

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import clsx from 'clsx';
-import { X, SlidersHorizontal, Zap, Users, MapPin } from 'lucide-react';
+import { X, SlidersHorizontal, Zap, Users, MapPin, Plus } from 'lucide-react';
 import type { FilterState } from '@/lib/types';
 import { VIBE_COLORS, getTabConfig } from '@/lib/constants';
 import { TAG_ICONS } from './TagBadge';
@@ -27,6 +27,7 @@ interface FilterBarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   eventCount: number;
+  onSubmitEvent?: () => void;
 }
 
 export function FilterBar({
@@ -46,6 +47,7 @@ export function FilterBar({
   searchQuery,
   onSearchChange,
   eventCount,
+  onSubmitEvent,
 }: FilterBarProps) {
   const [expanded, setExpanded] = useState(false);
   const [confOpen, setConfOpen] = useState(false);
@@ -122,8 +124,17 @@ export function FilterBar({
           )}
 
           {/* Desktop: inline search bar between conference tabs and Now */}
-          <div className="hidden md:block flex-1 max-w-sm">
+          <div className="hidden md:flex items-center gap-2 flex-1 max-w-sm">
             <SearchBar value={searchQuery} onChange={onSearchChange} eventCount={eventCount} />
+            {onSubmitEvent && (
+              <button
+                onClick={onSubmitEvent}
+                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors cursor-pointer"
+                aria-label="Submit event"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           {/* Spacer pushes Now + Filters to the right */}
@@ -169,8 +180,17 @@ export function FilterBar({
         </div>
 
         {/* Search bar — mobile only (desktop is inline in the row above) */}
-        <div className="md:hidden">
+        <div className="md:hidden flex items-center gap-2">
           <SearchBar value={searchQuery} onChange={onSearchChange} eventCount={eventCount} />
+          {onSubmitEvent && (
+            <button
+              onClick={onSubmitEvent}
+              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors cursor-pointer"
+              aria-label="Submit event"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Expandable filter content — overlays map on mobile */}
