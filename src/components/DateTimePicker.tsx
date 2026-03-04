@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { DEFAULT_TAB } from '@/lib/constants';
 
 // Generate time options in 30-minute intervals
-const TIME_OPTIONS: string[] = [];
+export const TIME_OPTIONS: string[] = [];
 for (let hour = 0; hour < 24; hour++) {
   for (let minute = 0; minute < 60; minute += 30) {
     TIME_OPTIONS.push(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
@@ -13,20 +13,20 @@ for (let hour = 0; hour < 24; hour++) {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-function formatDateShort(iso: string): string {
+export function formatDateShort(iso: string): string {
   // "2026-02-16" → "Feb 16"
   const [, m, d] = iso.split('-').map(Number);
   return `${MONTHS[m - 1]} ${d}`;
 }
 
-function format12Hour(time24: string): string {
+export function format12Hour(time24: string): string {
   const [hours, minutes] = time24.split(':').map(Number);
   const period = hours >= 12 ? 'PM' : 'AM';
   const h12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
   return `${h12}:${String(minutes).padStart(2, '0')} ${period}`;
 }
 
-function Dropdown({
+export function Dropdown({
   value,
   options,
   renderOption,

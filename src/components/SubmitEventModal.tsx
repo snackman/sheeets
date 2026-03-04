@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Loader2, Check, Link as LinkIcon, ExternalLink } from 'lucide-react';
-import { EVENT_TABS, VIBE_COLORS, TYPE_TAGS, SHEET_ID } from '@/lib/constants';
+import { EVENT_TABS, VIBE_COLORS, TYPE_TAGS, SHEET_ID, getTabConfig } from '@/lib/constants';
 import { trackSubmitEventOpen, trackSubmitEventSuccess } from '@/lib/analytics';
+import { Dropdown, TIME_OPTIONS, formatDateShort, format12Hour } from './DateTimePicker';
+import { AddressAutocomplete } from './AddressAutocomplete';
 
 interface SubmitEventModalProps {
   isOpen: boolean;
@@ -12,6 +14,8 @@ interface SubmitEventModalProps {
 }
 
 type Step = 'input' | 'form' | 'success';
+
+const LUMA_URL_RE = /^https?:\/\/(lu\.ma|luma\.com|www\.luma\.com)\/.+/i;
 
 // Tags for the selector: TYPE_TAGS excluding '$$', 'Food', 'Bar' + topic tags from VIBE_COLORS
 const EXCLUDED_TAGS = ['$$', '🍕 Food', '🍺 Bar'];
@@ -29,12 +33,12 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
-  // Form fields
+  // Form fields — date as ISO "2026-03-10", times as 24h "19:00"
   const [conference, setConference] = useState(EVENT_TABS[0]?.name || '');
   const [name, setName] = useState('');
-  const [date, setDate] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
+  const [dateISO, setDateISO] = useState('');
+  const [startTime24, setStartTime24] = useState('');
+  const [endTime24, setEndTime24] = useState('');
   const [organizer, setOrganizer] = useState('');
   const [address, setAddress] = useState('');
   const [cost, setCost] = useState('Free');
@@ -60,9 +64,9 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
     setSubmitError('');
     setConference(EVENT_TABS[0]?.name || '');
     setName('');
-    setDate('');
-    setStartTime('');
-    setEndTime('');
+    setDateISO('');
+    setStartTime24('');
+    setEndTime24('');
     setOrganizer('');
     setAddress('');
     setCost('Free');
@@ -78,8 +82,13 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
     onClose();
   }
 
-  async function handleFetchLuma() {
-    if (!lumaUrl.trim()) return;
+  // Fetch ref to prevent stale closure in auto-fetch debounce
+  const fetchingRef = useRef(false);
+
+  const handleFetchLuma = useCallback(async (url: string) => {
+    const trimmed = url.trim();
+    if (!trimmed || fetchingRef.current) return;
+    fetchingRef.current = true;
     setFetchLoading(true);
     setFetchError('');
 
@@ -87,7 +96,7 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
       const res = await fetch('/api/luma', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: lumaUrl.trim() }),
+        body: JSON.stringify({ url: trimmed }),
       });
 
       const data = await res.json();
@@ -95,27 +104,38 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
       if (!res.ok) {
         setFetchError(data.error || 'Failed to fetch event details.');
         setFetchLoading(false);
+        fetchingRef.current = false;
         return;
       }
 
-      // Pre-fill form
+      // Pre-fill form with ISO/24h values from API
       setName(data.name || '');
-      setDate(data.date || '');
-      setStartTime(data.startTime || '');
-      setEndTime(data.endTime || '');
+      setDateISO(data.dateISO || '');
+      setStartTime24(data.startTime24 || '');
+      setEndTime24(data.endTime24 || '');
       setOrganizer(data.organizer || '');
       setAddress(data.address || '');
       setCost(data.cost || 'Free');
-      setLink(data.link || lumaUrl.trim());
+      setLink(data.link || trimmed);
       setStep('form');
     } catch {
       setFetchError('Failed to fetch event details. Please try again.');
     }
 
     setFetchLoading(false);
-  }
+    fetchingRef.current = false;
+  }, []);
+
+  // Auto-fetch when a valid Luma URL is pasted/typed
+  useEffect(() => {
+    if (step !== 'input' || !LUMA_URL_RE.test(lumaUrl.trim())) return;
+    const timer = setTimeout(() => handleFetchLuma(lumaUrl), 300);
+    return () => clearTimeout(timer);
+  }, [lumaUrl, step, handleFetchLuma]);
 
   function handleEnterManually() {
+    const tab = getTabConfig(conference);
+    if (!dateISO && tab.dates.length > 0) setDateISO(tab.dates[0]);
     setLink(lumaUrl.trim());
     setStep('form');
   }
@@ -133,7 +153,7 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
   }
 
   async function handleSubmit() {
-    if (!name.trim() || !date.trim()) {
+    if (!name.trim() || !dateISO) {
       setSubmitError('Event name and date are required.');
       return;
     }
@@ -151,9 +171,9 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
           conference,
           event: {
             name: name.trim(),
-            date: date.trim(),
-            startTime: startTime.trim(),
-            endTime: endTime.trim(),
+            date: dateISO ? formatDateShort(dateISO) : '',
+            startTime: startTime24 ? format12Hour(startTime24) : '',
+            endTime: endTime24 ? format12Hour(endTime24) : '',
             organizer: organizer.trim(),
             address: address.trim(),
             cost: cost.trim() || 'Free',
@@ -187,6 +207,7 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
   if (!isOpen) return null;
 
   const sheetUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`;
+  const tab = getTabConfig(conference);
 
   return createPortal(
     <>
@@ -232,7 +253,7 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        handleFetchLuma();
+                        handleFetchLuma(lumaUrl);
                       }
                     }}
                     placeholder="https://lu.ma/your-event"
@@ -243,20 +264,20 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
 
                 {fetchError && <p className="text-red-400 text-xs">{fetchError}</p>}
 
-                <button
-                  onClick={handleFetchLuma}
-                  disabled={fetchLoading || !lumaUrl.trim()}
-                  className="w-full px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
-                >
-                  {fetchLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Fetching...
-                    </>
-                  ) : (
-                    'Fetch Event'
-                  )}
-                </button>
+                {fetchLoading ? (
+                  <div className="flex items-center justify-center gap-2 py-2.5 text-slate-400 text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Fetching event details...
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleFetchLuma(lumaUrl)}
+                    disabled={!lumaUrl.trim()}
+                    className="w-full px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    Fetch Event
+                  </button>
+                )}
 
                 <button
                   onClick={handleEnterManually}
@@ -275,12 +296,18 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
                   <label className="block text-xs font-medium text-slate-400 mb-1">Conference</label>
                   <select
                     value={conference}
-                    onChange={(e) => setConference(e.target.value)}
+                    onChange={(e) => {
+                      setConference(e.target.value);
+                      const newTab = getTabConfig(e.target.value);
+                      if (dateISO && !newTab.dates.includes(dateISO)) {
+                        setDateISO(newTab.dates[0] || '');
+                      }
+                    }}
                     className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none"
                   >
-                    {EVENT_TABS.map((tab) => (
-                      <option key={tab.gid} value={tab.name}>
-                        {tab.name}
+                    {EVENT_TABS.map((t) => (
+                      <option key={t.gid} value={t.name}>
+                        {t.name}
                       </option>
                     ))}
                   </select>
@@ -301,37 +328,40 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
                 </div>
 
                 {/* Date + Times row */}
-                <div className="grid grid-cols-3 gap-2">
+                <div className="flex items-end gap-3">
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1">
                       Date <span className="text-red-400">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      placeholder="Feb 16"
-                      className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-slate-500"
+                    <Dropdown
+                      value={dateISO || tab.dates[0]}
+                      options={tab.dates}
+                      renderOption={formatDateShort}
+                      renderSelected={(v) => v ? formatDateShort(v) : 'Date'}
+                      onChange={setDateISO}
+                      width="100px"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">Start Time</label>
-                    <input
-                      type="text"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      placeholder="7:00 PM"
-                      className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-slate-500"
+                    <label className="block text-xs font-medium text-slate-400 mb-1">Start</label>
+                    <Dropdown
+                      value={startTime24 || ''}
+                      options={['', ...TIME_OPTIONS]}
+                      renderOption={(v) => v ? format12Hour(v) : '—'}
+                      renderSelected={(v) => v ? format12Hour(v) : 'Start'}
+                      onChange={setStartTime24}
+                      width="110px"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">End Time</label>
-                    <input
-                      type="text"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      placeholder="10:00 PM"
-                      className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-slate-500"
+                    <label className="block text-xs font-medium text-slate-400 mb-1">End</label>
+                    <Dropdown
+                      value={endTime24 || ''}
+                      options={['', ...TIME_OPTIONS]}
+                      renderOption={(v) => v ? format12Hour(v) : '—'}
+                      renderSelected={(v) => v ? format12Hour(v) : 'End'}
+                      onChange={setEndTime24}
+                      width="110px"
                     />
                   </div>
                 </div>
@@ -351,13 +381,7 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
                 {/* Address */}
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1">Address</label>
-                  <input
-                    type="text"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="1234 Market St, Denver"
-                    className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-slate-500"
-                  />
+                  <AddressAutocomplete value={address} onChange={setAddress} />
                 </div>
 
                 {/* Cost */}
@@ -456,7 +480,7 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
 
                 <button
                   onClick={handleSubmit}
-                  disabled={submitLoading || !name.trim() || !date.trim()}
+                  disabled={submitLoading || !name.trim() || !dateISO}
                   className="w-full px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
                 >
                   {submitLoading ? (

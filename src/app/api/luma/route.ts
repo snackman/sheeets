@@ -14,28 +14,25 @@ function getLumaSlug(url: string): string | null {
   return null;
 }
 
-/** Format a date in the event's timezone as "Feb 16" */
-function formatDate(isoDate: string, timezone: string): string {
+/** Format a UTC ISO date as "YYYY-MM-DD" in the event's timezone */
+function formatDateISO(isoDate: string, timezone: string): string {
   try {
     const d = new Date(isoDate);
-    return d.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      timeZone: timezone,
-    });
+    const parts = d.toLocaleDateString('en-CA', { timeZone: timezone }).split('-');
+    return parts.join('-'); // "2026-03-10"
   } catch {
     return '';
   }
 }
 
-/** Format a time in the event's timezone as "7:00 PM" */
-function formatTime(isoDate: string, timezone: string): string {
+/** Format a UTC ISO date as "HH:mm" (24h) in the event's timezone */
+function formatTime24(isoDate: string, timezone: string): string {
   try {
     const d = new Date(isoDate);
-    return d.toLocaleTimeString('en-US', {
-      hour: 'numeric',
+    return d.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: true,
+      hour12: false,
       timeZone: timezone,
     });
   } catch {
@@ -90,7 +87,7 @@ export async function POST(request: NextRequest) {
     const event = data.data.event;
     const timezone = event.timezone || 'America/Denver';
 
-    // Parse address from geo_address_json
+    // Parse address from geo_address_json, fall back to geo_address_info
     let address = '';
     if (event.geo_address_json) {
       try {
@@ -102,6 +99,12 @@ export async function POST(request: NextRequest) {
         // ignore parse errors
       }
     }
+    if (!address && event.geo_address_info) {
+      const info = typeof event.geo_address_info === 'string'
+        ? JSON.parse(event.geo_address_info)
+        : event.geo_address_info;
+      address = info.full_address || info.city_state || info.city || '';
+    }
 
     // Get organizer from hosts
     const organizer = data.data.hosts?.[0]?.name || '';
@@ -111,9 +114,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       name: event.name || '',
-      date: formatDate(event.start_at, timezone),
-      startTime: formatTime(event.start_at, timezone),
-      endTime: event.end_at ? formatTime(event.end_at, timezone) : '',
+      dateISO: formatDateISO(event.start_at, timezone),
+      startTime24: formatTime24(event.start_at, timezone),
+      endTime24: event.end_at ? formatTime24(event.end_at, timezone) : '',
       address,
       organizer,
       cost,
