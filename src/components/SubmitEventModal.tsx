@@ -15,7 +15,7 @@ interface SubmitEventModalProps {
 
 type Step = 'input' | 'form' | 'success';
 
-const LUMA_URL_RE = /^https?:\/\/(lu\.ma|luma\.com|www\.luma\.com)\/.+/i;
+const EVENT_URL_RE = /^https?:\/\/(lu\.ma|luma\.com|www\.luma\.com|eventbrite\.\w+|www\.eventbrite\.\w+|partiful\.com|www\.partiful\.com|meetup\.com|www\.meetup\.com)\/.+/i;
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 function formatDateShort(iso: string): string {
@@ -99,7 +99,7 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
     setFetchError('');
 
     try {
-      const res = await fetch('/api/luma', {
+      const res = await fetch('/api/fetch-event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: trimmed }),
@@ -132,9 +132,9 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
     fetchingRef.current = false;
   }, []);
 
-  // Auto-fetch when a valid Luma URL is pasted/typed
+  // Auto-fetch when a valid event URL is pasted/typed
   useEffect(() => {
-    if (step !== 'input' || !LUMA_URL_RE.test(lumaUrl.trim())) return;
+    if (step !== 'input' || !EVENT_URL_RE.test(lumaUrl.trim())) return;
     const timer = setTimeout(() => handleFetchLuma(lumaUrl), 300);
     return () => clearTimeout(timer);
   }, [lumaUrl, step, handleFetchLuma]);
@@ -246,7 +246,7 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
             {step === 'input' && (
               <div className="space-y-4">
                 <p className="text-slate-400 text-sm">
-                  Paste a Luma event URL to auto-fill the details, or enter manually.
+                  Paste an event URL to auto-fill the details, or enter manually.
                 </p>
 
                 <div className="flex items-center gap-2 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 focus-within:border-orange-500 transition-colors">
@@ -261,7 +261,7 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
                         handleFetchLuma(lumaUrl);
                       }
                     }}
-                    placeholder="https://lu.ma/your-event"
+                    placeholder="Paste event URL (Luma, Eventbrite, Partiful, Meetup)"
                     className="flex-1 bg-transparent text-white text-sm outline-none placeholder:text-slate-500"
                     autoFocus
                   />
@@ -401,7 +401,7 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
                     type="url"
                     value={link}
                     onChange={(e) => setLink(e.target.value)}
-                    placeholder="https://lu.ma/your-event"
+                    placeholder="Paste event URL (Luma, Eventbrite, Partiful, Meetup)"
                     className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-slate-500"
                   />
                 </div>
