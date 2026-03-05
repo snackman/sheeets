@@ -472,6 +472,51 @@ async function parseMeetup(url: string): Promise<EventResult> {
 }
 
 // ---------------------------------------------------------------------------
+// Generic parser (JSON-LD + OG fallback for any URL)
+// ---------------------------------------------------------------------------
+
+async function parseGeneric(url: string): Promise<EventResult> {
+  const html = await fetchHtml(url);
+
+  const jsonLd = parseJsonLdEvent(html);
+  const og = parseOgMeta(html);
+
+  const name = jsonLd?.name || og.title || '';
+  if (!name) {
+    throw new Error(
+      'Could not find event details on this page. Try entering details manually.'
+    );
+  }
+
+  const DEFAULT_TZ = 'UTC';
+  const startDate = jsonLd?.startDate || '';
+  const endDate = jsonLd?.endDate || '';
+  const timezone = startDate ? guessTimezoneFromOffset(startDate, DEFAULT_TZ) : DEFAULT_TZ;
+
+  // Resolve relative og:image URLs to absolute
+  let image = jsonLd?.image || og.image || '';
+  if (image && !image.startsWith('http')) {
+    try {
+      image = new URL(image, url).href;
+    } catch {
+      // leave as-is
+    }
+  }
+
+  return {
+    name,
+    dateISO: startDate ? formatDateISO(startDate, timezone) : '',
+    startTime24: startDate ? formatTime24(startDate, timezone) : '',
+    endTime24: endDate ? formatTime24(endDate, timezone) : '',
+    address: jsonLd?.address || '',
+    organizer: jsonLd?.organizer || '',
+    cost: jsonLd?.cost || '',
+    link: url.trim(),
+    tags: '',
+  };
+}
+
+// ---------------------------------------------------------------------------
 // POST handler
 // ---------------------------------------------------------------------------
 
@@ -485,18 +530,15 @@ export async function POST(request: NextRequest) {
     }
 
     const trimmedUrl = url.trim();
-    const platform = detectPlatform(trimmedUrl);
 
-    if (!platform) {
-      return NextResponse.json(
-        {
-          error:
-            'Unsupported URL. Please provide a link from Luma, Eventbrite, Partiful, or Meetup.',
-        },
-        { status: 400 }
-      );
+    // Validate it looks like a URL
+    try {
+      new URL(trimmedUrl);
+    } catch {
+      return NextResponse.json({ error: 'Please enter a valid URL.' }, { status: 400 });
     }
 
+    const platform = detectPlatform(trimmedUrl);
     let result: EventResult;
 
     switch (platform) {
@@ -511,6 +553,9 @@ export async function POST(request: NextRequest) {
         break;
       case 'meetup':
         result = await parseMeetup(trimmedUrl);
+        break;
+      default:
+        result = await parseGeneric(trimmedUrl);
         break;
     }
 

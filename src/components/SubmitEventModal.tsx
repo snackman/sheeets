@@ -15,7 +15,7 @@ interface SubmitEventModalProps {
 
 type Step = 'input' | 'form' | 'success';
 
-const EVENT_URL_RE = /^https?:\/\/(lu\.ma|luma\.com|www\.luma\.com|eventbrite\.\w+|www\.eventbrite\.\w+|partiful\.com|www\.partiful\.com|meetup\.com|www\.meetup\.com)\/.+/i;
+const EVENT_URL_RE = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 function formatDateShort(iso: string): string {
@@ -261,7 +261,7 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
                         handleFetchLuma(lumaUrl);
                       }
                     }}
-                    placeholder="Paste event URL (Luma, Eventbrite, Partiful, Meetup)"
+                    placeholder="Paste any event URL"
                     className="flex-1 bg-transparent text-white text-sm outline-none placeholder:text-slate-500"
                     autoFocus
                   />
@@ -401,7 +401,7 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
                     type="url"
                     value={link}
                     onChange={(e) => setLink(e.target.value)}
-                    placeholder="Paste event URL (Luma, Eventbrite, Partiful, Meetup)"
+                    placeholder="Paste any event URL"
                     className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-slate-500"
                   />
                 </div>
