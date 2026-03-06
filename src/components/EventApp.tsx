@@ -378,7 +378,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
         refreshFriends={refreshFriends}
       />
 
-      <SponsorsTicker sponsors={config?.sponsors} ctaText={config?.sponsors_cta?.text} />
+      <SponsorsTicker sponsors={config?.sponsors} />
 
       {/* Filter bar — collapses on scroll down in table/list views */}
       <div className={

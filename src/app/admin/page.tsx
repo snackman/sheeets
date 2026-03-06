@@ -39,7 +39,6 @@ export default function AdminPage() {
 
   // Sponsors state
   const [sponsors, setSponsors] = useState<SponsorEntry[]>([]);
-  const [ctaText, setCtaText] = useState('');
   const [editingSponsorIndex, setEditingSponsorIndex] = useState<number | null>(null);
 
   // Native Ads state
@@ -79,7 +78,6 @@ export default function AdminPage() {
       .then((data: AdminConfig) => {
         setAdminConfig(data);
         setSponsors(data.sponsors || []);
-        setCtaText(data.sponsors_cta?.text || '');
         setNativeAds(data.native_ads || []);
         setUpsellCopy(data.upsell_copy || { heading: '', body: '', cta_text: '', cta_url: '' });
       })
@@ -344,25 +342,15 @@ export default function AdminPage() {
               </div>
             ) : (
               <>
-                {/* CTA Text */}
-                <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-                  <label className="block text-sm font-medium text-slate-300 mb-2">CTA Text (label before sponsor names)</label>
-                  <input
-                    type="text"
-                    value={ctaText}
-                    onChange={(e) => setCtaText(e.target.value)}
-                    placeholder="Supported by "
-                    className={inputClass}
-                  />
-                </div>
-
-                {/* Sponsor List */}
                 <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-white">Sponsors</h3>
+                    <div>
+                      <h3 className="text-sm font-semibold text-white">Sponsors</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">Each sponsor shows as: before text + <span className="text-blue-400">link text</span> + after text</p>
+                    </div>
                     <button
                       onClick={() => {
-                        setSponsors([...sponsors, { name: '', url: '' }]);
+                        setSponsors([...sponsors, { beforeText: '', linkText: '', afterText: '', url: '' }]);
                         setEditingSponsorIndex(sponsors.length);
                       }}
                       className={`${btnPrimary} flex items-center gap-1.5`}
@@ -378,21 +366,55 @@ export default function AdminPage() {
 
                   <div className="space-y-3">
                     {sponsors.map((sponsor, idx) => (
-                      <div key={idx} className="flex items-center gap-3 p-3 bg-slate-750 rounded-lg border border-slate-600">
+                      <div key={idx} className="p-3 bg-slate-750 rounded-lg border border-slate-600">
                         {editingSponsorIndex === idx ? (
-                          <>
-                            <div className="flex-1 space-y-2">
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs text-slate-400 mb-1">Before Text</label>
+                                <input
+                                  type="text"
+                                  value={sponsor.beforeText}
+                                  onChange={(e) => {
+                                    const updated = [...sponsors];
+                                    updated[idx] = { ...updated[idx], beforeText: e.target.value };
+                                    setSponsors(updated);
+                                  }}
+                                  placeholder="Supported by "
+                                  className={inputClass}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-slate-400 mb-1">Link Text</label>
+                                <input
+                                  type="text"
+                                  value={sponsor.linkText}
+                                  onChange={(e) => {
+                                    const updated = [...sponsors];
+                                    updated[idx] = { ...updated[idx], linkText: e.target.value };
+                                    setSponsors(updated);
+                                  }}
+                                  placeholder="Stand With Crypto"
+                                  className={inputClass}
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-xs text-slate-400 mb-1">After Text</label>
                               <input
                                 type="text"
-                                value={sponsor.name}
+                                value={sponsor.afterText}
                                 onChange={(e) => {
                                   const updated = [...sponsors];
-                                  updated[idx] = { ...updated[idx], name: e.target.value };
+                                  updated[idx] = { ...updated[idx], afterText: e.target.value };
                                   setSponsors(updated);
                                 }}
-                                placeholder="Sponsor name"
+                                placeholder=". Join the Fight for Sensible Crypto Policy!"
                                 className={inputClass}
                               />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-slate-400 mb-1">URL</label>
                               <input
                                 type="url"
                                 value={sponsor.url}
@@ -405,19 +427,25 @@ export default function AdminPage() {
                                 className={inputClass}
                               />
                             </div>
+                            {/* Inline preview */}
+                            <div className="text-xs text-slate-500 bg-slate-900/50 rounded-lg px-3 py-2">
+                              Preview: <span className="text-slate-300">{sponsor.beforeText}<span className="text-blue-400 underline">{sponsor.linkText}</span>{sponsor.afterText}</span>
+                            </div>
                             <button
                               onClick={() => setEditingSponsorIndex(null)}
-                              className="text-green-400 hover:text-green-300 cursor-pointer p-1"
-                              title="Done editing"
+                              className="text-green-400 hover:text-green-300 cursor-pointer p-1 flex items-center gap-1 text-sm"
                             >
                               <Save className="w-4 h-4" />
+                              Done
                             </button>
-                          </>
+                          </div>
                         ) : (
-                          <>
+                          <div className="flex items-center gap-3">
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-white truncate">{sponsor.name || '(unnamed)'}</p>
-                              <p className="text-xs text-slate-500 truncate">{sponsor.url || '(no url)'}</p>
+                              <p className="text-sm text-slate-300 truncate">
+                                {sponsor.beforeText}<span className="font-medium text-white">{sponsor.linkText || '(no link text)'}</span>{sponsor.afterText}
+                              </p>
+                              <p className="text-xs text-slate-500 truncate mt-0.5">{sponsor.url || '(no url)'}</p>
                             </div>
                             <button
                               onClick={() => setEditingSponsorIndex(idx)}
@@ -433,7 +461,7 @@ export default function AdminPage() {
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
-                          </>
+                          </div>
                         )}
                       </div>
                     ))}
@@ -443,10 +471,7 @@ export default function AdminPage() {
                 {/* Save button */}
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={async () => {
-                      await saveConfig('sponsors', sponsors);
-                      await saveConfig('sponsors_cta', { text: ctaText });
-                    }}
+                    onClick={() => saveConfig('sponsors', sponsors)}
                     disabled={saving}
                     className={`${btnPrimary} flex items-center gap-2 ${saving ? 'opacity-50' : ''}`}
                   >
