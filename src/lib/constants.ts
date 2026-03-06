@@ -68,7 +68,7 @@ export const VIBE_COLORS: Record<string, string> = {
   '🍕 Food': '#34D399',
   '🍺 Bar': '#34D399',
   // Blue group — builders & business
-  'Devs/Builders': '#3B82F6',
+  'Devs': '#3B82F6',
   'VCs': '#3B82F6',
   'Jobs': '#3B82F6',
   // Yellow group — crypto & topics

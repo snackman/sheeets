@@ -68,7 +68,7 @@ export const TAG_ICONS: Record<string, IconComponent> = {
   'Panel/Talk': Mic,
   'Hackathon': Trophy,
   'Networking': Handshake,
-  'Devs/Builders': Wrench,
+  'Devs': Wrench,
   'VCs': CircleDollarSign,
   'AI': Bot,
   'DeFi': ChartCandlestick,
