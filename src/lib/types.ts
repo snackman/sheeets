@@ -123,3 +123,33 @@ export interface POI {
   is_public: boolean;
   created_at: string;
 }
+
+export interface SponsorEntry {
+  name: string;
+  url: string;
+}
+
+export interface NativeAd {
+  id: string;
+  title: string;
+  description: string;
+  link: string;
+  imageUrl: string;
+  conference: string;
+  badge: string;
+  active: boolean;
+}
+
+export interface UpsellCopy {
+  heading: string;
+  body: string;
+  cta_text: string;
+  cta_url: string;
+}
+
+export interface AdminConfig {
+  sponsors: SponsorEntry[];
+  sponsors_cta: { text: string };
+  native_ads: NativeAd[];
+  upsell_copy: UpsellCopy;
+}

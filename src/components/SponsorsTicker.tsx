@@ -1,15 +1,23 @@
-const sponsors = [
+import { SponsorEntry } from '@/lib/types';
+
+const defaultSponsors: SponsorEntry[] = [
   {
     name: 'Stand With Crypto',
     url: 'https://www.standwithcrypto.org/join/BtPHAB2fFkJP?utm_source=swc-hub&utm_medium=referral&utm_campaign=eth-denver-2026',
   },
 ];
 
-export function SponsorsTicker() {
-  const text = 'Supported by ';
+interface SponsorsTickerProps {
+  sponsors?: SponsorEntry[];
+  ctaText?: string;
+}
+
+export function SponsorsTicker({ sponsors, ctaText }: SponsorsTickerProps) {
+  const sponsorList = sponsors && sponsors.length > 0 ? sponsors : defaultSponsors;
+  const text = ctaText || 'Supported by ';
 
   const renderSponsors = () =>
-    sponsors.map((s, i) => (
+    sponsorList.map((s, i) => (
       <span key={i}>
         {i > 0 && ', '}
         <a

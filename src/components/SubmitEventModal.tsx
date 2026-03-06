@@ -5,12 +5,14 @@ import { createPortal } from 'react-dom';
 import { X, Loader2, Check, Link as LinkIcon, ExternalLink } from 'lucide-react';
 import { EVENT_TABS, VIBE_COLORS, TYPE_TAGS, SHEET_ID, getTabConfig } from '@/lib/constants';
 import { trackSubmitEventOpen, trackSubmitEventSuccess } from '@/lib/analytics';
+import type { UpsellCopy } from '@/lib/types';
 import { Dropdown, TIME_OPTIONS, format12Hour } from './DateTimePicker';
 import { AddressAutocomplete } from './AddressAutocomplete';
 
 interface SubmitEventModalProps {
   isOpen: boolean;
   onClose: () => void;
+  upsellCopy?: UpsellCopy;
 }
 
 type Step = 'input' | 'form' | 'success';
@@ -31,7 +33,7 @@ const TOPIC_TAGS = Object.keys(VIBE_COLORS).filter(
 );
 const ALL_TAGS = [...FORMAT_TAGS, ...TOPIC_TAGS];
 
-export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
+export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventModalProps) {
   const [step, setStep] = useState<Step>('input');
   const [lumaUrl, setLumaUrl] = useState('');
   const [fetchLoading, setFetchLoading] = useState(false);
@@ -202,7 +204,7 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
 
       trackSubmitEventSuccess(conference);
       setStep('success');
-      setTimeout(() => handleClose(), 2000);
+      setTimeout(() => handleClose(), 8000);
     } catch {
       setSubmitError('Failed to submit event. Please try again.');
     }
@@ -510,6 +512,24 @@ export function SubmitEventModal({ isOpen, onClose }: SubmitEventModalProps) {
                 <p className="text-slate-400 text-sm mt-1">
                   It will appear on the schedule shortly.
                 </p>
+
+                {upsellCopy && (
+                  <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-orange-500/10 to-amber-500/10 border border-orange-500/30 text-left">
+                    <h4 className="text-sm font-semibold text-orange-300 mb-1">{upsellCopy.heading}</h4>
+                    <p className="text-xs text-slate-400 mb-3">{upsellCopy.body}</p>
+                    <a href={upsellCopy.cta_url} target="_blank" rel="noopener noreferrer"
+                       className="inline-block px-4 py-2 text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors">
+                      {upsellCopy.cta_text}
+                    </a>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleClose}
+                  className="mt-4 px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
               </div>
             )}
           </div>
