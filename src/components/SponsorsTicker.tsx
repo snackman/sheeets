@@ -19,18 +19,14 @@ export function SponsorsTicker({ sponsors }: SponsorsTickerProps) {
   const item = (
     <span className="inline-flex items-center">
       {sponsorList.map((s, i) => (
-        <span key={i} className="inline-flex items-center">
+        <span key={i}>
           {i > 0 && <span className="mx-6 text-slate-600">&#10022;</span>}
-          <span>{s.beforeText} </span>
-          <a
+          {s.beforeText} <a
             href={s.url}
             target="_blank"
             rel="noopener noreferrer"
             className="underline decoration-slate-500 underline-offset-2 hover:text-slate-200 hover:decoration-slate-300 transition-colors"
-          >
-            {s.linkText}
-          </a>
-          <span>{s.afterText}</span>
+          >{s.linkText}</a>{s.afterText}
         </span>
       ))}
       <span className="mx-6 text-slate-600">&#10022;</span>
