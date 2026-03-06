@@ -22,6 +22,7 @@ export interface ETHDenverEvent {
   matchedAddress?: string;
   timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' | 'all-day';
   isDuplicate?: boolean;
+  isFeatured?: boolean;
 }
 
 export interface FilterState {

@@ -26,6 +26,10 @@ interface DateGroup {
 }
 
 function sortByStartTime(a: ETHDenverEvent, b: ETHDenverEvent): number {
+  // Featured events come first
+  if (a.isFeatured && !b.isFeatured) return -1;
+  if (!a.isFeatured && b.isFeatured) return 1;
+
   // All-day events come first
   if (a.isAllDay && !b.isAllDay) return -1;
   if (!a.isAllDay && b.isAllDay) return 1;

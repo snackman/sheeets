@@ -146,6 +146,7 @@ export async function fetchEvents(): Promise<ETHDenverEvent[]> {
         hasFood: getCellBool(row.c[9]),
         hasBar: getCellBool(row.c[10]),
         note: getCellValue(row.c[11]),
+        isFeatured: getCellBool(row.c[12]),
         timeOfDay: isAllDay ? 'all-day' : getTimeOfDay(startTime),
         lat: geo?.lat,
         lng: geo?.lng,

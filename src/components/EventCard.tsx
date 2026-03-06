@@ -142,7 +142,11 @@ export function EventCard({
     : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 hover:bg-slate-750 hover:border-slate-600 active:bg-slate-750 active:border-slate-600 transition-colors group flex gap-4 overflow-hidden">
+    <div className={`rounded-lg p-4 transition-colors group flex gap-4 overflow-hidden ${
+      event.isFeatured
+        ? 'bg-orange-500/5 border border-orange-500/30 ring-1 ring-orange-500/40 hover:bg-orange-500/10 hover:border-orange-500/40'
+        : 'bg-slate-800 border border-slate-700 hover:bg-slate-750 hover:border-slate-600 active:bg-slate-750 active:border-slate-600'
+    }`}>
       {/* Left: cover image */}
       {event.link && <OGImage url={event.link} eventId={event.id} />}
 

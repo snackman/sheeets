@@ -136,6 +136,46 @@ export async function findNextEmptyRow(sheetName: string): Promise<number> {
   return rows.length + 1;
 }
 
+/** Read a range from a sheet tab. Returns a 2D array of strings. */
+export async function readRange(sheetName: string, range: string): Promise<string[][]> {
+  const token = await getAccessToken();
+  const fullRange = encodeURIComponent(`'${sheetName}'!${range}`);
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${fullRange}`;
+
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to read sheet: ${res.status} ${text}`);
+  }
+
+  const data = await res.json();
+  return data.values || [];
+}
+
+/** Write a single value to a specific cell. */
+export async function writeCell(sheetName: string, cell: string, value: string): Promise<void> {
+  const token = await getAccessToken();
+  const range = encodeURIComponent(`'${sheetName}'!${cell}`);
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}?valueInputOption=USER_ENTERED`;
+
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ values: [[value]] }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to write cell: ${res.status} ${text}`);
+  }
+}
+
 export interface EventRow {
   date: string;
   startTime: string;

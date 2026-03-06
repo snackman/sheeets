@@ -439,7 +439,7 @@ function DateGroup({
         return (
           <tr
             key={event.id}
-            className={`hover:bg-slate-800/70 transition-colors cursor-pointer ${event.isDuplicate ? 'bg-red-950/30' : 'bg-slate-900'}`}
+            className={`hover:bg-slate-800/70 transition-colors cursor-pointer ${event.isDuplicate ? 'bg-red-950/30' : event.isFeatured ? 'bg-orange-500/5 border-l-2 border-l-orange-500/40' : 'bg-slate-900'}`}
             title={event.isDuplicate ? 'Possible duplicate — same name, date, and time as another event' : undefined}
             onClick={(e) => {
               const target = e.target as HTMLElement;
