@@ -125,7 +125,9 @@ export interface POI {
 }
 
 export interface SponsorEntry {
-  name: string;
+  beforeText: string;
+  linkText: string;
+  afterText: string;
   url: string;
 }
 
