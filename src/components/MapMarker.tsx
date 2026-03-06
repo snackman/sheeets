@@ -20,6 +20,7 @@ interface MapMarkerProps {
   labelOffsetX?: number;
   labelOffsetY?: number;
   showLeaderLine?: boolean;
+  isFeatured?: boolean;
 }
 
 /** Get pin color based on start hour: white (morning/afternoon), transparent white (evening) */
@@ -115,6 +116,7 @@ export function MapMarker({
   labelOffsetX = 91,
   labelOffsetY = -14,
   showLeaderLine = false,
+  isFeatured = false,
 }: MapMarkerProps) {
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -142,7 +144,7 @@ export function MapMarker({
         >
           <div className="relative flex items-center justify-center">
             {/* Clock-face pin */}
-            <div className="rounded-full">
+            <div className={`rounded-full ${isFeatured ? 'ring-2 ring-orange-500/60' : ''}`}>
               <ClockPin
                 startMinutes={startMinutes}
                 endMinutes={endMinutes}
@@ -197,7 +199,11 @@ export function MapMarker({
             }}
             onClick={handleClick}
           >
-            <div className="px-2 py-0.5 rounded bg-slate-800/90 hover:bg-slate-700/90 text-[10px] text-white max-w-[140px] leading-tight transition-colors">
+            <div className={`px-2 py-0.5 rounded text-[10px] text-white max-w-[140px] leading-tight transition-colors ${
+              isFeatured
+                ? 'bg-orange-500/20 ring-1 ring-orange-500/40 hover:bg-orange-500/30'
+                : 'bg-slate-800/90 hover:bg-slate-700/90'
+            }`}>
               <div className="truncate whitespace-nowrap">{label}</div>
               {showOrganizer && organizer && (
                 <div className="truncate whitespace-nowrap text-slate-400">{organizer}</div>

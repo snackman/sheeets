@@ -509,6 +509,7 @@ export function MapView({
             labelOffsetX={placement?.offsetX}
             labelOffsetY={placement?.offsetY}
             showLeaderLine={placement?.leader}
+            isFeatured={event.isFeatured}
           />
         );
       })}
