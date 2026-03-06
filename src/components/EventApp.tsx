@@ -26,8 +26,10 @@ import { AuthModal } from './AuthModal';
 import { SubmitEventModal } from './SubmitEventModal';
 import { FriendsPanel } from './FriendsPanel';
 import { SponsorsTicker } from './SponsorsTicker';
+import { useAdminConfig } from '@/hooks/useAdminConfig';
 
 export function EventApp({ initialConference }: { initialConference?: string }) {
+  const { config } = useAdminConfig();
   const { events, loading, error } = useEvents();
   const {
     filters,
@@ -376,7 +378,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
         refreshFriends={refreshFriends}
       />
 
-      <SponsorsTicker />
+      <SponsorsTicker sponsors={config?.sponsors} ctaText={config?.sponsors_cta?.text} />
 
       {/* Filter bar — collapses on scroll down in table/list views */}
       <div className={
@@ -460,12 +462,13 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
             reactionsByEvent={reactionsByEvent}
             onToggleReaction={handleToggleReaction}
             commentCounts={commentCounts}
+            nativeAds={config?.native_ads}
           />
         </main>
       )}
 
       <AuthModal isOpen={showAuthForStar} onClose={() => { pendingStarRef.current = null; setShowAuthForStar(false); }} />
-      <SubmitEventModal isOpen={showSubmitEvent} onClose={() => setShowSubmitEvent(false)} />
+      <SubmitEventModal isOpen={showSubmitEvent} onClose={() => setShowSubmitEvent(false)} upsellCopy={config?.upsell_copy} />
       <FriendsPanel
         isOpen={showFriends}
         onClose={() => setShowFriends(false)}

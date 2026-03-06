@@ -1,9 +1,10 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
+import type { ETHDenverEvent, ReactionEmoji, NativeAd } from '@/lib/types';
 import { formatDateLabel } from '@/lib/utils';
 import { EventCard } from './EventCard';
+import NativeAdCard from './NativeAdCard';
 
 interface ListViewProps {
   events: ETHDenverEvent[];
@@ -17,6 +18,7 @@ interface ListViewProps {
   reactionsByEvent?: Map<string, { emoji: ReactionEmoji; count: number; reacted: boolean }[]>;
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
   commentCounts?: Map<string, number>;
+  nativeAds?: NativeAd[];
 }
 
 interface DateGroup {
@@ -64,7 +66,10 @@ export function ListView({
   reactionsByEvent,
   onToggleReaction,
   commentCounts,
+  nativeAds,
 }: ListViewProps) {
+  const activeAds = nativeAds?.filter(ad => ad.active) || [];
+
   const dateGroups: DateGroup[] = useMemo(() => {
     const groupMap = new Map<string, ETHDenverEvent[]>();
 
@@ -95,6 +100,8 @@ export function ListView({
     );
   }
 
+  let globalEventIndex = 0;
+
   return (
     <div className="max-w-3xl mx-auto px-2 sm:px-4 pb-8">
       {/* Date groups */}
@@ -114,21 +121,33 @@ export function ListView({
 
           {/* Event cards */}
           <div className="space-y-3 mt-3">
-            {group.events.map((event) => (
-              <EventCard
-                key={event.id}
-                event={event}
-                isInItinerary={itinerary?.has(event.id)}
-                onItineraryToggle={onItineraryToggle}
-                friendsCount={friendsCountByEvent?.get(event.id)}
-                friendsGoing={friendsByEvent?.get(event.id)}
-                checkedInFriends={checkedInFriendsByEvent?.get(event.id)}
-                checkInCount={checkInCounts?.get(event.id)}
-                reactions={reactionsByEvent?.get(event.id)}
-                onToggleReaction={onToggleReaction}
-                commentCount={commentCounts?.get(event.id)}
-              />
-            ))}
+            {group.events.map((event) => {
+              globalEventIndex++;
+              const shouldInsertAd = activeAds.length > 0 && globalEventIndex % 6 === 0;
+              const adIndex = shouldInsertAd ? (Math.floor(globalEventIndex / 6) - 1) % activeAds.length : 0;
+
+              return (
+                <div key={event.id}>
+                  <EventCard
+                    event={event}
+                    isInItinerary={itinerary?.has(event.id)}
+                    onItineraryToggle={onItineraryToggle}
+                    friendsCount={friendsCountByEvent?.get(event.id)}
+                    friendsGoing={friendsByEvent?.get(event.id)}
+                    checkedInFriends={checkedInFriendsByEvent?.get(event.id)}
+                    checkInCount={checkInCounts?.get(event.id)}
+                    reactions={reactionsByEvent?.get(event.id)}
+                    onToggleReaction={onToggleReaction}
+                    commentCount={commentCounts?.get(event.id)}
+                  />
+                  {shouldInsertAd && (
+                    <div className="mt-3">
+                      <NativeAdCard ad={activeAds[adIndex]} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </section>
       ))}
