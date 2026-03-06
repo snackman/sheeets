@@ -21,7 +21,7 @@ export function SponsorsTicker({ sponsors }: SponsorsTickerProps) {
       {sponsorList.map((s, i) => (
         <span key={i} className="inline-flex items-center">
           {i > 0 && <span className="mx-6 text-slate-600">&#10022;</span>}
-          <span>{s.beforeText}</span>
+          <span>{s.beforeText} </span>
           <a
             href={s.url}
             target="_blank"
