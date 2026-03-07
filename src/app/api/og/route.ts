@@ -59,15 +59,138 @@ function decodeHTMLEntities(str: string): string {
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/');
 }
 
-/** Resolve an image URL from a source URL (Luma API or og:image scraping) */
+/** Check whether a URL points to Eventbrite */
+function isEventbriteUrl(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, '');
+    return host.startsWith('eventbrite.');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Extract an event image from JSON-LD structured data in HTML.
+ * Eventbrite embeds `<script type="application/ld+json">` with an Event
+ * schema that contains the canonical event image. This is the same proven
+ * approach used in `fetch-event/route.ts` (`parseJsonLdEvent`).
+ */
+function extractJsonLdImage(html: string): string | null {
+  const regex = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(html)) !== null) {
+    try {
+      const json = JSON.parse(match[1]);
+      const items = Array.isArray(json) ? json : [json];
+
+      for (const item of items) {
+        const candidates = item['@graph'] ? [...item['@graph'], item] : [item];
+
+        for (const candidate of candidates) {
+          const type = candidate['@type'];
+          const isEvent =
+            type === 'Event' ||
+            type === 'SocialEvent' ||
+            (Array.isArray(type) &&
+              (type.includes('Event') || type.includes('SocialEvent')));
+
+          if (!isEvent) continue;
+
+          if (candidate.image && typeof candidate.image === 'string') {
+            return candidate.image;
+          }
+        }
+      }
+    } catch {
+      // Ignore invalid JSON blocks
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Fetch the event image from an Eventbrite URL.
+ *
+ * Eventbrite pages are server-rendered React apps where the JSON-LD Event
+ * schema lives in the <body>, not the <head>. The generic 50KB head-only
+ * scrape therefore misses both the JSON-LD image *and* the og:image (which
+ * Eventbrite often renders as a relative `/_next/image?...` URL that
+ * resolves to a low-quality placeholder). Fetching the full HTML and
+ * extracting the JSON-LD image yields the high-quality canonical image.
+ */
+async function fetchEventbriteImage(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (compatible; SheetsEventBot/1.0; +https://sheeets.com)',
+        Accept:
+          'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!res.ok) return null;
+
+    const html = await res.text();
+
+    // 1. Try JSON-LD image first (proven reliable for Eventbrite)
+    const jsonLdImage = extractJsonLdImage(html);
+    if (jsonLdImage) {
+      let imageUrl = decodeHTMLEntities(jsonLdImage);
+      // Resolve relative URLs
+      if (imageUrl.startsWith('/')) {
+        try {
+          imageUrl = new URL(imageUrl, url).href;
+        } catch {}
+      }
+      return imageUrl;
+    }
+
+    // 2. Fall back to og:image from the full HTML
+    const ogMatch =
+      html.match(
+        /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i
+      ) ||
+      html.match(
+        /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i
+      );
+
+    if (ogMatch?.[1]) {
+      let imageUrl = decodeHTMLEntities(ogMatch[1]);
+      if (imageUrl.startsWith('/')) {
+        try {
+          imageUrl = new URL(imageUrl, url).href;
+        } catch {}
+      }
+      return imageUrl;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** Resolve an image URL from a source URL (Luma API, Eventbrite, or og:image scraping) */
 async function resolveImageUrl(url: string): Promise<string | null> {
   // Luma: use their API for clean cover images
   const lumaSlug = getLumaSlug(url);
   if (lumaSlug) {
     return fetchLumaImage(lumaSlug);
+  }
+
+  // Eventbrite: fetch full HTML and extract JSON-LD image
+  if (isEventbriteUrl(url)) {
+    return fetchEventbriteImage(url);
   }
 
   // Generic: fetch HTML and extract og:image
@@ -115,7 +238,7 @@ async function resolveImageUrl(url: string): Promise<string | null> {
 
     let imageUrl = decodeHTMLEntities(ogMatch[1]);
 
-    // Resolve relative URLs (e.g. Eventbrite uses /e/_next/image?...)
+    // Resolve relative URLs
     if (imageUrl.startsWith('/')) {
       try {
         const origin = new URL(url).origin;
