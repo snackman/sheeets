@@ -45,8 +45,8 @@ export function EmojiReactions({
           }}
           className={`${pillSize} rounded-full border transition-colors cursor-pointer inline-flex items-center gap-1 ${
             r.reacted
-              ? 'border-orange-500/60 bg-orange-500/10 text-white'
-              : 'border-slate-600 bg-slate-700/50 text-slate-300 hover:border-slate-500'
+              ? 'border-cyan-500/60 bg-cyan-500/10 text-white'
+              : 'border-violet-700 bg-violet-800/50 text-violet-200 hover:border-violet-600'
           }`}
         >
           <span>{r.emoji}</span>
@@ -61,7 +61,7 @@ export function EmojiReactions({
             e.stopPropagation();
             setShowPicker(!showPicker);
           }}
-          className={`${pillSize} rounded-full border border-slate-600 bg-slate-700/50 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors cursor-pointer inline-flex items-center`}
+          className={`${pillSize} rounded-full border border-violet-700 bg-violet-800/50 text-violet-300 hover:text-violet-100 hover:border-violet-600 transition-colors cursor-pointer inline-flex items-center`}
         >
           <Plus className={compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
         </button>
@@ -75,7 +75,7 @@ export function EmojiReactions({
                 setShowPicker(false);
               }}
             />
-            <div className="absolute bottom-full left-0 mb-1 z-[41] bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-1.5 flex gap-1">
+            <div className="absolute bottom-full left-0 mb-1 z-[41] bg-violet-900 border border-violet-700 rounded-lg shadow-xl p-1.5 flex gap-1">
               {(availableEmojis.length > 0 ? availableEmojis : REACTION_EMOJIS).map((emoji) => (
                 <button
                   key={emoji}
@@ -84,7 +84,7 @@ export function EmojiReactions({
                     onToggle(eventId, emoji as ReactionEmoji);
                     setShowPicker(false);
                   }}
-                  className="p-1.5 rounded hover:bg-slate-700 transition-colors cursor-pointer text-base"
+                  className="p-1.5 rounded hover:bg-violet-800 transition-colors cursor-pointer text-base"
                 >
                   {emoji}
                 </button>

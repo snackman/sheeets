@@ -123,7 +123,7 @@ function SingleEventContent({
                   href={event.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-orange-400 transition-colors"
+                  className="hover:text-cyan-400 transition-colors"
                   onClick={() => trackEventClick(event.name, event.link!)}
                 >
                   {event.name}
@@ -133,7 +133,7 @@ function SingleEventContent({
               )}
             </h3>
             {event.organizer && (
-              <p className="text-xs text-slate-500 mt-0.5">{event.organizer}</p>
+              <p className="text-xs text-violet-400 mt-0.5">{event.organizer}</p>
             )}
           </div>
           {onItineraryToggle && (
@@ -149,7 +149,7 @@ function SingleEventContent({
 
         {/* Date + Time */}
         <div className="relative w-fit mt-1.5">
-          <p className="text-slate-400 text-xs flex items-center gap-1">
+          <p className="text-violet-300 text-xs flex items-center gap-1">
             <Calendar className="w-3 h-3 shrink-0" />
             <span>{event.date} · {timeDisplay}</span>
           </p>
@@ -164,7 +164,7 @@ function SingleEventContent({
         {event.address && (
           <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
             eventId={event.id} eventName={event.name}
-            className="w-full text-slate-500 hover:text-slate-300 text-xs mt-1 flex items-center gap-1 overflow-hidden transition-colors">
+            className="w-full text-violet-400 hover:text-violet-200 text-xs mt-1 flex items-center gap-1 overflow-hidden transition-colors">
             <MapPin className="w-3 h-3 shrink-0" />
             <span className="truncate">{event.address}</span>
           </AddressLink>
@@ -187,7 +187,7 @@ function SingleEventContent({
 
         {/* Note */}
         {event.note && (
-          <p className="text-slate-600 text-xs mt-1 italic line-clamp-2">{event.note}</p>
+          <p className="text-violet-500 text-xs mt-1 italic line-clamp-2">{event.note}</p>
         )}
 
         {/* Emoji reactions + Comments inline */}
@@ -281,7 +281,7 @@ export function MultiEventPopup({
           </h3>
           <button
             onClick={onClose}
-            className="shrink-0 p-1 text-slate-400 hover:text-white active:text-white transition-colors"
+            className="shrink-0 p-1 text-violet-300 hover:text-white active:text-white transition-colors"
             aria-label="Close popup"
           >
             <X size={14} />
@@ -298,7 +298,7 @@ export function MultiEventPopup({
             return (
               <div
                 key={event.id}
-                className="flex gap-2.5 p-2.5 bg-slate-700/50 hover:bg-slate-600/50 active:bg-slate-600/50 rounded-lg transition-colors cursor-pointer"
+                className="flex gap-2.5 p-2.5 bg-violet-800/50 hover:bg-violet-700/50 active:bg-violet-700/50 rounded-lg transition-colors cursor-pointer"
                 onClick={() => onSelectEvent?.(event)}
               >
                 {/* Cover image */}
@@ -321,12 +321,12 @@ export function MultiEventPopup({
                         {event.name}
                       </p>
                       {event.organizer && (
-                        <p className="text-[10px] text-slate-500 mt-0.5 truncate">{event.organizer}</p>
+                        <p className="text-[10px] text-violet-400 mt-0.5 truncate">{event.organizer}</p>
                       )}
                     </div>
                   </div>
                   <div className="relative w-fit mt-1">
-                    <p className="text-slate-400 text-[10px] flex items-center gap-1">
+                    <p className="text-violet-300 text-[10px] flex items-center gap-1">
                       <Calendar className="w-2.5 h-2.5 shrink-0" />
                       <span>{event.date} · {timeDisplay}</span>
                     </p>
@@ -339,7 +339,7 @@ export function MultiEventPopup({
                   {event.address && (
                     <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
                       eventId={event.id} eventName={event.name}
-                      className="w-full text-slate-500 hover:text-slate-300 text-[10px] mt-0.5 flex items-center gap-1 overflow-hidden transition-colors">
+                      className="w-full text-violet-400 hover:text-violet-200 text-[10px] mt-0.5 flex items-center gap-1 overflow-hidden transition-colors">
                       <MapPin className="w-2.5 h-2.5 shrink-0" />
                       <span className="truncate">{event.address}</span>
                     </AddressLink>

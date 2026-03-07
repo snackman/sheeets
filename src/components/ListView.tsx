@@ -89,7 +89,7 @@ export function ListView({
 
   if (events.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+      <div className="flex flex-col items-center justify-center py-20 text-violet-400">
         <p className="text-lg font-medium">No events found</p>
         <p className="text-sm mt-1">Try adjusting your filters</p>
       </div>
@@ -104,12 +104,12 @@ export function ListView({
       {dateGroups.map((group) => (
         <section key={group.dateISO} className="mb-6">
           {/* Sticky date header */}
-          <div className="sticky top-0 z-20 bg-slate-900 py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-slate-800">
+          <div className="sticky top-0 z-20 bg-violet-950 py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-violet-900">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-white">
                 {group.label}
               </h2>
-              <span className="text-xs text-slate-500 font-medium">
+              <span className="text-xs text-violet-400 font-medium">
                 {group.events.length} event{group.events.length !== 1 ? 's' : ''}
               </span>
             </div>

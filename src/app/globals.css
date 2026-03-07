@@ -9,14 +9,14 @@
   --safe-area-right: env(safe-area-inset-right, 0px);
 }
 
-/* Dark theme base */
+/* Dark theme base – Midnight Purple */
 :root {
-  --background: #0f172a;
-  --foreground: #f1f5f9;
-  --card: #1e293b;
-  --card-hover: #334155;
-  --accent: #f97316;
-  --accent-hover: #fb923c;
+  --background: #2e1065;
+  --foreground: #f5f3ff;
+  --card: #4c1d95;
+  --card-hover: #5b21b6;
+  --accent: #06b6d4;
+  --accent-hover: #22d3ee;
 }
 
 @theme inline {
@@ -45,21 +45,21 @@ input, select, textarea {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #2e1065;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #5b21b6;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #6d28d9;
 }
 
-/* Slate 750 custom shade for card hover (between 700 and 800) */
+/* Violet 750 custom shade for card hover (between 700 and 800) */
 .hover\:bg-slate-750:hover {
-  background-color: #283548;
+  background-color: #5332a0;
 }
 
 /* Ensure popup stays within map bounds */
@@ -69,8 +69,8 @@ input, select, textarea {
 
 /* Mapbox popup overrides for dark theme */
 .map-popup .mapboxgl-popup-content {
-  background-color: #1e293b;
-  border: 1px solid #334155;
+  background-color: #4c1d95;
+  border: 1px solid #5b21b6;
   border-radius: 8px;
   padding: 12px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
@@ -78,7 +78,7 @@ input, select, textarea {
 }
 
 .map-popup .mapboxgl-popup-tip {
-  border-top-color: #1e293b;
+  border-top-color: #4c1d95;
 }
 
 .map-popup .mapboxgl-popup-close-btn {
@@ -95,7 +95,7 @@ input, select, textarea {
 }
 
 .map-popup .mapboxgl-popup-content ::-webkit-scrollbar-thumb {
-  background-color: #475569;
+  background-color: #6d28d9;
   border-radius: 2px;
 }
 

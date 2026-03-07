@@ -31,7 +31,7 @@ export function StarButton({
         size === 'sm' ? 'p-1.5' : 'p-1',
         isStarred
           ? 'text-yellow-400'
-          : 'text-slate-600 hover:text-yellow-400/60 active:text-yellow-400/60'
+          : 'text-violet-500 hover:text-yellow-400/60 active:text-yellow-400/60'
       )}
       aria-label={isStarred ? 'Remove star' : 'Add star'}
       title={
@@ -50,7 +50,7 @@ export function StarButton({
         <span
           className={clsx(
             'absolute flex items-center justify-center rounded-full font-bold pointer-events-none',
-            'bg-orange-500 text-white',
+            'bg-cyan-500 text-white',
             size === 'sm'
               ? '-top-0.5 -right-0.5 min-w-[14px] h-[14px] text-[8px] px-0.5'
               : '-top-1 -right-1 min-w-[16px] h-[16px] text-[9px] px-0.5'
