@@ -65,7 +65,7 @@ export function Dropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-slate-700 border border-slate-600 rounded text-white text-sm font-medium px-2 py-1.5 focus:border-orange-500 focus:outline-none cursor-pointer whitespace-nowrap hover:bg-slate-600 transition-colors"
+        className="bg-stone-800 border border-stone-600 rounded text-white text-sm font-medium px-2 py-1.5 focus:border-amber-500 focus:outline-none cursor-pointer whitespace-nowrap hover:bg-stone-700 transition-colors"
       >
         {renderSelected(value)}
       </button>
@@ -73,7 +73,7 @@ export function Dropdown({
       {isOpen && (
         <div
           ref={listRef}
-          className="absolute top-full left-0 mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-52 overflow-y-auto z-50"
+          className="absolute top-full left-0 mt-1 bg-stone-900 border border-stone-600 rounded-lg shadow-xl max-h-52 overflow-y-auto z-50"
           style={width ? { width } : undefined}
         >
           {options.map((v) => (
@@ -84,8 +84,8 @@ export function Dropdown({
               onClick={() => { onChange(v); setIsOpen(false); }}
               className={`w-full text-left px-3 py-1.5 text-sm whitespace-nowrap transition-colors ${
                 v === value
-                  ? 'bg-orange-500 text-white font-medium'
-                  : 'text-slate-300 hover:bg-slate-700'
+                  ? 'bg-amber-500 text-white font-medium'
+                  : 'text-stone-300 hover:bg-stone-800'
               }`}
             >
               {renderOption(v)}

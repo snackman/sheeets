@@ -40,6 +40,7 @@ import {
   Projector,
   Sparkle,
   Laugh,
+  Pizza,
   type LucideIcon,
 } from 'lucide-react';
 import { VIBE_COLORS } from '@/lib/constants';
@@ -120,6 +121,8 @@ export const TAG_ICONS: Record<string, IconComponent> = {
   'Film/TV': Clapperboard,
   'Screening': Projector,
   'Vibe': Sparkle,
+  '🍕 Food': Pizza,
+  '🍺 Bar': Beer,
   'Comedy': Laugh,
 };
 
@@ -153,7 +156,7 @@ export function TagBadge({ tag, size = 'sm', iconOnly = false, iconClassName }: 
       title={tag}
     >
       {Icon && <Icon className={`${iconSize} flex-shrink-0`} style={{ color }} />}
-      <span className="text-slate-300">{tag}</span>
+      <span className="text-stone-300">{tag}</span>
     </span>
   );
 }

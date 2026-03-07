@@ -195,7 +195,16 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
           .filter(Boolean)
       )]
         .filter((t) => !TYPE_TAGS.includes(t))
-        .sort(),
+        .sort()
+        .sort((a, b) => {
+          const priority = ['🍕 Food', '🍺 Bar'];
+          const ai = priority.indexOf(a);
+          const bi = priority.indexOf(b);
+          if (ai !== -1 && bi !== -1) return ai - bi;
+          if (ai !== -1) return -1;
+          if (bi !== -1) return 1;
+          return 0;
+        }),
     [events, filters.conference]
   );
 
@@ -318,7 +327,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900">
+      <div className="min-h-screen bg-stone-950">
         <Header
           viewMode={viewMode}
           onViewChange={setViewMode}
@@ -337,7 +346,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-900">
+      <div className="min-h-screen bg-stone-950">
         <Header
           viewMode={viewMode}
           onViewChange={setViewMode}
@@ -351,10 +360,10 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
         />
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-4">
           <div className="text-red-400 text-lg font-medium">Failed to load events</div>
-          <p className="text-slate-500 text-sm text-center max-w-md">{error}</p>
+          <p className="text-stone-500 text-sm text-center max-w-md">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 active:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
+            className="mt-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
           >
             Retry
           </button>
@@ -364,7 +373,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
   }
 
   return (
-    <div className="h-dvh flex flex-col bg-slate-900 overflow-hidden">
+    <div className="h-dvh flex flex-col bg-stone-950 overflow-hidden">
       <Header
         viewMode={viewMode}
         onViewChange={setViewMode}
