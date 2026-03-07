@@ -9,6 +9,7 @@ import { AddressLink } from './AddressLink';
 import { TagBadge } from './TagBadge';
 import { OGImage } from './OGImage';
 import { EmojiReactions } from './EmojiReactions';
+import { CommentSection } from './CommentSection';
 
 interface FriendInfo {
   userId: string;
@@ -28,6 +29,7 @@ interface EventPopupProps {
   checkInCount?: number;
   reactions?: { emoji: ReactionEmoji; count: number; reacted: boolean }[];
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
+  commentCount?: number;
 }
 
 interface MultiEventPopupProps {
@@ -44,6 +46,7 @@ interface MultiEventPopupProps {
   checkInCounts?: Map<string, number>;
   reactionsByEvent?: Map<string, { emoji: ReactionEmoji; count: number; reacted: boolean }[]>;
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
+  commentCounts?: Map<string, number>;
 }
 
 function formatFriendsText(friends: FriendInfo[]): string {
@@ -88,6 +91,7 @@ function SingleEventContent({
   checkInCount,
   reactions,
   onToggleReaction,
+  commentCount,
 }: {
   event: ETHDenverEvent;
   onClose: () => void;
@@ -99,6 +103,7 @@ function SingleEventContent({
   checkInCount?: number;
   reactions?: { emoji: ReactionEmoji; count: number; reacted: boolean }[];
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
+  commentCount?: number;
 }) {
   const timeDisplay = event.isAllDay
     ? 'All Day'
@@ -205,6 +210,9 @@ function SingleEventContent({
         {event.note && (
           <p className="text-slate-600 text-xs mt-1 italic line-clamp-2">{event.note}</p>
         )}
+
+        {/* Comments */}
+        <CommentSection eventId={event.id} commentCount={commentCount} />
       </div>
     </div>
   );
@@ -223,6 +231,7 @@ export function EventPopup({
   checkInCount,
   reactions,
   onToggleReaction,
+  commentCount,
 }: EventPopupProps) {
   return (
     <Popup
@@ -246,6 +255,7 @@ export function EventPopup({
         checkInCount={checkInCount}
         reactions={reactions}
         onToggleReaction={onToggleReaction}
+        commentCount={commentCount}
       />
     </Popup>
   );
@@ -263,6 +273,7 @@ export function MultiEventPopup({
   friendsByEvent,
   checkedInFriendsByEvent,
   checkInCounts,
+  commentCounts,
 }: MultiEventPopupProps) {
   return (
     <Popup

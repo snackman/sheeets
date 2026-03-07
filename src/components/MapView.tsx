@@ -28,6 +28,7 @@ interface MapViewProps {
   checkInCounts?: Map<string, number>;
   reactionsByEvent?: Map<string, { emoji: ReactionEmoji; count: number; reacted: boolean }[]>;
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
+  commentCounts?: Map<string, number>;
   friendLocations?: FriendLocation[];
   conference?: string;
   pois?: POI[];
@@ -57,6 +58,7 @@ export function MapView({
   checkInCounts,
   reactionsByEvent,
   onToggleReaction,
+  commentCounts,
   friendLocations,
   conference,
   pois,
@@ -528,6 +530,7 @@ export function MapView({
           checkInCount={checkInCounts?.get(popupEvent.id)}
           reactions={reactionsByEvent?.get(popupEvent.id)}
           onToggleReaction={onToggleReaction}
+          commentCount={commentCounts?.get(popupEvent.id)}
         />
       )}
 
@@ -546,6 +549,7 @@ export function MapView({
           checkInCounts={checkInCounts}
           reactionsByEvent={reactionsByEvent}
           onToggleReaction={onToggleReaction}
+          commentCounts={commentCounts}
         />
       )}
 

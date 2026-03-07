@@ -84,6 +84,7 @@ export function MapViewWrapper({
         checkInCounts={checkInCounts}
         reactionsByEvent={reactionsByEvent}
         onToggleReaction={onToggleReaction}
+        commentCounts={commentCounts}
         friendLocations={friendLocations}
         conference={conference}
         pois={pois}

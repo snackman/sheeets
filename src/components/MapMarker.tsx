@@ -134,10 +134,10 @@ export function MapMarker({
   return (
     <Marker latitude={latitude} longitude={longitude}>
       {/* Zero-size anchor at lat/lng; everything positioned absolutely from here */}
-      <div className="relative" style={{ width: 0, height: 0 }}>
+      <div className="relative group" style={{ width: 0, height: 0 }}>
         {/* Clickable pin */}
         <button
-          className="absolute cursor-pointer transition-transform hover:scale-110 active:scale-95 focus:outline-none p-2"
+          className="absolute cursor-pointer transition-transform group-hover:scale-110 active:scale-95 focus:outline-none p-2"
           style={{ transform: 'translate(-50%, -50%)' }}
           onClick={handleClick}
           aria-label={`Event${eventCount > 1 ? ` (${eventCount} events)` : ''}`}
@@ -201,8 +201,8 @@ export function MapMarker({
           >
             <div className={`px-2 py-0.5 rounded text-[10px] text-white max-w-[140px] leading-tight transition-colors ${
               isFeatured
-                ? 'bg-orange-500/20 ring-1 ring-orange-500/40 hover:bg-orange-500/30'
-                : 'bg-slate-800/90 hover:bg-slate-700/90'
+                ? 'bg-orange-500/20 ring-1 ring-orange-500/40 group-hover:bg-orange-500/30'
+                : 'bg-slate-800/90 group-hover:bg-slate-700/90'
             }`}>
               <div className="truncate whitespace-nowrap">{label}</div>
               {showOrganizer && organizer && (
