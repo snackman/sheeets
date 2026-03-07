@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { ViewMode } from '@/lib/types';
 import { useEvents } from '@/hooks/useEvents';
 import { useFilters } from '@/hooks/useFilters';
-import { applyFilters, getConferenceNow } from '@/lib/filters';
+import { applyFilters, computeTagCounts, getConferenceNow } from '@/lib/filters';
 import { TYPE_TAGS, STORAGE_KEYS } from '@/lib/constants';
 import { useItinerary } from '@/hooks/useItinerary';
 import { usePOIs } from '@/hooks/usePOIs';
@@ -316,6 +316,19 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
     [events, filters, itinerary, nowTick, selectedFriendEventIds]
   );
 
+  // Events filtered by everything EXCEPT vibes — used to compute tag counts
+  const baseFilteredEvents = useMemo(
+    () => applyFilters(events, filters, itinerary, filters.nowMode ? getConferenceNow(filters.conference).getTime() : undefined, selectedFriendEventIds, { skipVibes: true }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [events, filters, itinerary, nowTick, selectedFriendEventIds]
+  );
+
+  // Count how many events each tag appears in (based on all filters except vibes)
+  const tagCounts = useMemo(
+    () => computeTagCounts(baseFilteredEvents),
+    [baseFilteredEvents]
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen bg-stone-950">
@@ -397,6 +410,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
           availableConferences={availableConferences}
           availableTypes={availableTypes}
           availableVibes={availableVibes}
+          tagCounts={tagCounts}
           friendsForFilter={friendsForFilter}
           selectedFriends={filters.selectedFriends}
           onToggleFriend={toggleFriend}
