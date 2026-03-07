@@ -149,7 +149,7 @@ export default function SharedItineraryPage() {
         <p className="text-stone-500 text-sm mb-4">This share link may have expired or is invalid.</p>
         <Link
           href="/"
-          className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors"
+          className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg text-sm font-medium transition-colors"
         >
           Browse Events
         </Link>
@@ -193,7 +193,7 @@ export default function SharedItineraryPage() {
                       className={clsx(
                         'flex items-center gap-1 px-2 py-1 text-xs font-medium transition-colors cursor-pointer',
                         viewMode === mode
-                          ? 'bg-amber-500 text-white'
+                          ? 'bg-amber-500 text-stone-900'
                           : 'bg-stone-900 text-stone-400 hover:text-stone-200 hover:bg-stone-800'
                       )}
                       aria-label={`${label} view`}
@@ -222,7 +222,7 @@ export default function SharedItineraryPage() {
                 'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
                 copyStatus === 'copied'
                   ? 'bg-emerald-500/20 text-emerald-400'
-                  : 'bg-amber-500 hover:bg-amber-600 text-white'
+                  : 'bg-amber-500 hover:bg-amber-600 text-stone-900'
               )}
             >
               {copyStatus === 'copied' ? (
@@ -251,7 +251,7 @@ export default function SharedItineraryPage() {
           </p>
           <Link
             href="/"
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors"
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg text-sm font-medium transition-colors"
           >
             Browse Events
           </Link>

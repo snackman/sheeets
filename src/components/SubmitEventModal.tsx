@@ -26,7 +26,7 @@ function formatDateShort(iso: string): string {
 }
 
 // Tags for the selector: TYPE_TAGS excluding '$$', 'Food', 'Bar' + topic tags from VIBE_COLORS
-const EXCLUDED_TAGS = ['$$', '🍕 Food', '🍺 Bar'];
+const EXCLUDED_TAGS = ['$$', '🍕 Food', 'Bar'];
 const FORMAT_TAGS = TYPE_TAGS.filter((t) => !EXCLUDED_TAGS.includes(t));
 const TOPIC_TAGS = Object.keys(VIBE_COLORS).filter(
   (t) => !TYPE_TAGS.includes(t) && t !== 'default'
@@ -280,7 +280,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
                   <button
                     onClick={() => handleFetchLuma(lumaUrl)}
                     disabled={!lumaUrl.trim()}
-                    className="w-full px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-stone-900 rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
                   >
                     Fetch Event
                   </button>
@@ -481,7 +481,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
                 <button
                   onClick={handleSubmit}
                   disabled={submitLoading || !name.trim() || !dateISO}
-                  className="w-full px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-stone-900 rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
                 >
                   {submitLoading ? (
                     <>
@@ -518,7 +518,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
                     <h4 className="text-sm font-semibold text-amber-300 mb-1">{upsellCopy.heading}</h4>
                     <p className="text-xs text-stone-400 mb-3">{upsellCopy.body}</p>
                     <a href={upsellCopy.cta_url} target="_blank" rel="noopener noreferrer"
-                       className="inline-block px-4 py-2 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors">
+                       className="inline-block px-4 py-2 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg transition-colors">
                       {upsellCopy.cta_text}
                     </a>
                   </div>

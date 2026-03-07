@@ -62,7 +62,7 @@ export function useConferenceData({
         .filter((t) => !TYPE_TAGS.includes(t))
         .sort()
         .sort((a, b) => {
-          const priority = ['🍕 Food', '🍺 Bar'];
+          const priority = ['🍕 Food', 'Bar'];
           const ai = priority.indexOf(a);
           const bi = priority.indexOf(b);
           if (ai !== -1 && bi !== -1) return ai - bi;

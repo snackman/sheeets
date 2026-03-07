@@ -112,7 +112,7 @@ export async function fetchEvents(): Promise<ETHDenverEvent[]> {
         syntheticTags.push('$$');
       }
       if (foodBool) syntheticTags.push('🍕 Food');
-      if (barBool) syntheticTags.push('🍺 Bar');
+      if (barBool) syntheticTags.push('Bar');
 
       const tags = [...rawTags, ...syntheticTags];
 

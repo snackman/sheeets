@@ -467,7 +467,7 @@ function DateGroup({
                       className={`w-4 h-4 ${isInItinerary ? 'text-yellow-400 fill-yellow-400' : 'text-stone-600 hover:text-stone-400'}`}
                     />
                     {fc > 0 && (
-                      <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-amber-500 text-white text-[8px] font-bold px-0.5 pointer-events-none">
+                      <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-amber-500 text-stone-900 text-[8px] font-bold px-0.5 pointer-events-none">
                         {fc}
                       </span>
                     )}

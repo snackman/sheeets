@@ -152,7 +152,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
           <p className="text-stone-500 text-sm text-center max-w-md">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
+            className="mt-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-600 text-stone-900 rounded-lg text-sm font-medium transition-colors cursor-pointer"
           >
             Retry
           </button>

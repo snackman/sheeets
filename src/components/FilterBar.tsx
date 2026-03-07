@@ -113,7 +113,7 @@ export function FilterBar({
 
   return (
     <div className="relative bg-stone-950 border-b border-stone-800 z-30">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 space-y-3">
+      <div className="px-2 sm:px-4 py-3 space-y-3">
         {/* Top row: Conference tabs + Filter toggle */}
         <div className="flex items-center gap-3 lg:justify-center">
           {/* Conference selector — dropdown on mobile, inline tabs on desktop */}
@@ -125,7 +125,7 @@ export function FilterBar({
                   ref={(el) => { confBtnRef.current = el; }}
                   onClick={() => setConfOpen(!confOpen)}
                   className={clsx(
-                    'flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 text-white font-semibold cursor-pointer',
+                    'flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 text-stone-900 font-semibold cursor-pointer',
                     (filters.conference || 'All').length > 12 ? 'text-xs' : 'text-sm'
                   )}
                 >
@@ -149,7 +149,7 @@ export function FilterBar({
                           className={clsx(
                             'w-full text-left px-4 py-3 text-sm font-semibold transition-colors cursor-pointer',
                             filters.conference === conf
-                              ? 'bg-amber-500 text-white'
+                              ? 'bg-amber-500 text-stone-900'
                               : 'text-stone-300 hover:bg-stone-800 active:bg-stone-800'
                           )}
                         >
@@ -170,7 +170,7 @@ export function FilterBar({
                     className={clsx(
                       'px-4 py-2 text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap',
                       filters.conference === conf
-                        ? 'bg-amber-500 text-white'
+                        ? 'bg-amber-500 text-stone-900'
                         : 'bg-stone-900 text-stone-400 hover:text-stone-200 hover:bg-stone-800 active:text-stone-200 active:bg-stone-800'
                     )}
                   >
@@ -187,7 +187,7 @@ export function FilterBar({
             {onSubmitEvent && (
               <button
                 onClick={onSubmitEvent}
-                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white transition-colors cursor-pointer"
+                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-stone-900 transition-colors cursor-pointer"
                 aria-label="Submit event"
               >
                 <Plus className="w-4 h-4" />
@@ -230,7 +230,7 @@ export function FilterBar({
             <SlidersHorizontal className="w-4 h-4" />
             Filters
             {activeFilterCount > 0 && (
-              <span className="bg-amber-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
+              <span className="bg-amber-500 text-stone-900 text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
                 {activeFilterCount}
               </span>
             )}
@@ -243,7 +243,7 @@ export function FilterBar({
           {onSubmitEvent && (
             <button
               onClick={onSubmitEvent}
-              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white transition-colors cursor-pointer"
+              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-stone-900 transition-colors cursor-pointer"
               aria-label="Submit event"
             >
               <Plus className="w-4 h-4" />
@@ -392,7 +392,7 @@ export function FilterBar({
                 <div className="bg-stone-700/50 rounded-lg p-4 flex items-center gap-3">
                   <Users className="w-5 h-5 text-stone-500 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-stone-400 text-sm">Invite friends to see their plans</p>
+                    <p className="text-stone-400 text-sm">Add friends to see their plans</p>
                   </div>
                   {user ? (
                     <button

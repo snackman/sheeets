@@ -84,7 +84,7 @@ export function Dropdown({
               onClick={() => { onChange(v); setIsOpen(false); }}
               className={`w-full text-left px-3 py-1.5 text-sm whitespace-nowrap transition-colors ${
                 v === value
-                  ? 'bg-amber-500 text-white font-medium'
+                  ? 'bg-amber-500 text-stone-900 font-medium'
                   : 'text-stone-300 hover:bg-stone-800'
               }`}
             >

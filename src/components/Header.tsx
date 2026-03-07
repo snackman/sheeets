@@ -62,7 +62,7 @@ export function Header({
               }}
               className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm cursor-pointer transition-colors ${
                 isItineraryActive
-                  ? 'bg-amber-500 text-white border-amber-500 hover:bg-amber-600 active:bg-amber-600'
+                  ? 'bg-amber-500 text-stone-900 border-amber-500 hover:bg-amber-600 active:bg-amber-600'
                   : 'border-stone-700 bg-stone-900 text-stone-400 hover:text-stone-200 hover:bg-stone-800 active:text-stone-200 active:bg-stone-800'
               }`}
               aria-label={`Itinerary: ${itineraryCount} events`}
@@ -72,7 +72,7 @@ export function Header({
                 <span className={`absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full px-1 ${
                   isItineraryActive
                     ? 'bg-stone-900 text-stone-400'
-                    : 'bg-amber-500 text-white'
+                    : 'bg-amber-500 text-stone-900'
                 }`}>
                   {itineraryCount}
                 </span>

@@ -239,7 +239,7 @@ export function POISearchBar({ onAddPOI, mapRef }: POISearchBarProps) {
             <button
               onClick={handleConfirm}
               disabled={!name.trim() || saving}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-600 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-600 disabled:opacity-50 text-stone-900 text-xs font-medium rounded-lg transition-colors cursor-pointer"
             >
               {saving ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />

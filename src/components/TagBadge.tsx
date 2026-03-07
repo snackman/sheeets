@@ -122,7 +122,6 @@ export const TAG_ICONS: Record<string, IconComponent> = {
   'Screening': Projector,
   'Vibe': Sparkle,
   '🍕 Food': Pizza,
-  '🍺 Bar': Beer,
   'Comedy': Laugh,
 };
 

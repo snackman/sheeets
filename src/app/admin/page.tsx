@@ -185,7 +185,7 @@ export default function AdminPage() {
           />
           <button
             type="submit"
-            className="w-full px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
+            className="w-full px-4 py-2 bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg text-sm font-medium transition-colors cursor-pointer"
           >
             Enter
           </button>
@@ -245,7 +245,7 @@ export default function AdminPage() {
                     onClick={() => setConference(tab.name)}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                       conference === tab.name
-                        ? 'bg-amber-500 text-white'
+                        ? 'bg-amber-500 text-stone-900'
                         : 'bg-stone-900 text-stone-400 hover:text-white'
                     }`}
                   >
@@ -772,7 +772,7 @@ export default function AdminPage() {
                         href={upsellCopy.cta_url || '#'}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-block px-4 py-2 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
+                        className="inline-block px-4 py-2 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg transition-colors"
                       >
                         {upsellCopy.cta_text || 'CTA Text'}
                       </a>

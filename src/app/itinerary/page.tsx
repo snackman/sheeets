@@ -219,7 +219,7 @@ export default function ItineraryPage() {
                   className={clsx(
                     'px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
                     activeConference === conf
-                      ? 'bg-amber-500 text-white'
+                      ? 'bg-amber-500 text-stone-900'
                       : 'bg-stone-900 text-stone-400 hover:text-stone-200 hover:bg-stone-800'
                   )}
                 >
@@ -243,7 +243,7 @@ export default function ItineraryPage() {
                       className={clsx(
                         'flex items-center gap-1 px-2 py-1 text-xs font-medium transition-colors cursor-pointer',
                         viewMode === mode
-                          ? 'bg-amber-500 text-white'
+                          ? 'bg-amber-500 text-stone-900'
                           : 'bg-stone-900 text-stone-400 hover:text-stone-200 hover:bg-stone-800'
                       )}
                       aria-label={`${label} view`}
@@ -300,7 +300,7 @@ export default function ItineraryPage() {
           </p>
           <Link
             href="/"
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors"
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg text-sm font-medium transition-colors"
           >
             Browse Events
           </Link>
