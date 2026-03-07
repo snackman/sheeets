@@ -151,6 +151,14 @@ export function ListView({
     if (!scrollEl) return;
 
     const scrollTop = scrollEl.scrollTop;
+
+    // Don't show sticky overlay when not scrolled — the first in-flow header is still visible
+    if (scrollTop <= 10) {
+      setStickyLabel(null);
+      setStickyCount(0);
+      return;
+    }
+
     // Offset for the wrapper's padding-top (32px = py-4 on the outer container)
     const wrapperOffsetTop = 0;
 

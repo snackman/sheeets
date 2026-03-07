@@ -263,7 +263,7 @@ export function TableView({
           <thead className="text-xs uppercase tracking-wider text-stone-400 bg-stone-900 border-b border-stone-700 sticky top-0 z-20">
             <tr>
               <th className="px-3 py-2.5"><Calendar className="w-3.5 h-3.5" /></th>
-              <th className="px-3 py-2.5">
+              <th className="px-3 py-2.5 whitespace-nowrap">
                 {currentDateLabel === 'Time' ? (
                   'WHEN'
                 ) : (
