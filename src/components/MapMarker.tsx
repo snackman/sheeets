@@ -134,7 +134,7 @@ export function MapMarker({
   return (
     <Marker latitude={latitude} longitude={longitude}>
       {/* Zero-size anchor at lat/lng; everything positioned absolutely from here */}
-      <div className="relative group" style={{ width: 0, height: 0 }}>
+      <div className="relative group" style={{ width: 0, height: 0, zIndex: isFeatured ? 10 : 1 }}>
         {/* Clickable pin */}
         <button
           className="absolute cursor-pointer transition-transform group-hover:scale-110 active:scale-95 focus:outline-none p-2"

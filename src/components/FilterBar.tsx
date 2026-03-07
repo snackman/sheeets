@@ -124,7 +124,7 @@ export function FilterBar({
           )}
 
           {/* Desktop: inline search bar between conference tabs and Now */}
-          <div className="hidden md:flex items-center gap-2 flex-1 max-w-sm">
+          <div className="hidden md:flex items-center gap-2 flex-1">
             <SearchBar value={searchQuery} onChange={onSearchChange} eventCount={eventCount} />
             {onSubmitEvent && (
               <button

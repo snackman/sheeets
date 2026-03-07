@@ -191,6 +191,8 @@ export function MapView({
       result.push({ event, key, count: colocated ? colocated.length : 1 });
     }
 
+    // Sort so featured events render last (on top)
+    result.sort((a, b) => (a.event.isFeatured ? 1 : 0) - (b.event.isFeatured ? 1 : 0));
     return result;
   }, [events, colocatedMap]);
 
