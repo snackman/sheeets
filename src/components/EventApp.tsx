@@ -472,6 +472,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
             onToggleReaction={handleToggleReaction}
             commentCounts={commentCounts}
             nativeAds={config?.native_ads}
+            scrollContainerRef={listMainRef}
           />
         </main>
       )}
