@@ -47,5 +47,4 @@ scripts/migrate-itinerary-ids.ts
 next-env.d.ts
 
 .vercel
-.claude/settings.local.json
-color-replace.js
+.env*.local

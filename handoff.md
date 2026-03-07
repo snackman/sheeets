@@ -14,9 +14,10 @@ A standalone Next.js app that displays crypto/tech conference side events with i
 ## Tech Stack
 - **Next.js 16** (App Router, Turbopack)
 - **TypeScript**
-- **Tailwind CSS** (dark theme)
+- **Tailwind CSS** (dark theme, warm-dark color scheme: stone backgrounds, amber accents)
 - **Mapbox GL JS** via `react-map-gl` (individual markers, zoom-aware labels)
 - **Supabase** (auth via email OTP, itinerary sync, friends, check-ins, reactions, comments, POIs, image caching)
+- **@tanstack/react-virtual** (list virtualization for scroll performance)
 - **Google Sheets API** (service account auth for event submission)
 - **Google Analytics** (GA4, measurement ID: `G-2WB3SFJ13V`, custom event tracking)
 - **html-to-image** for itinerary PNG export
@@ -71,9 +72,30 @@ Google Sheet (GViz API, multiple tabs)
     → useEvents hook (lazy-geocodes missing addresses via /api/geocode)
       → EventApp
           ├── MapView (Mapbox GL, auto-centers on events, friend location markers)
-          ├── ListView (cards grouped by date, OG images, reactions, comments)
+          ├── ListView (virtualized cards via @tanstack/react-virtual, grouped by date, OG images, reactions, comments)
           └── TableView (compact rows with icon-only tags)
 ```
+
+### Extracted Hooks (Architecture Refactor)
+| Hook | File | Purpose |
+|------|------|---------|
+| useViewMode | src/hooks/useViewMode.ts | View mode state (list/map/table) with localStorage |
+| useAuthGatedActions | src/hooks/useAuthGatedActions.ts | Auth-gated starring with pending action after login |
+| useConferenceData | src/hooks/useConferenceData.ts | Conference-scoped memos (types, vibes, counts, friends) |
+| useNowMode | src/hooks/useNowMode.ts | Auto-refresh tick for "Now" mode filtering |
+| useAdminConfig | src/hooks/useAdminConfig.ts | Admin config key-value store |
+
+### Extracted Modules
+| Module | File | Purpose |
+|--------|------|---------|
+| time-parse | src/lib/time-parse.ts | Time parsing and sorting helpers |
+| tags | src/lib/tags.ts | TYPE_TAGS, VIBE_TAGS constants |
+| conferences | src/lib/conferences.ts | Conference timezone helpers |
+| storage-keys | src/lib/storage-keys.ts | localStorage key constants |
+| user-display | src/lib/user-display.ts | Display name formatting |
+| pois | src/lib/pois.ts | Points of interest types |
+| json-ld | src/lib/json-ld.ts | JSON-LD structured data generation |
+| api-validation | src/lib/api-validation.ts | Zod schemas for API routes |
 
 ### Conference Tab System
 Each conference tab in `EVENT_TABS` (in `src/lib/constants.ts`) defines:
@@ -129,6 +151,11 @@ Users can submit events via the **SubmitEventModal** (accessible from UserMenu):
 
 The submission writes to the **"Add Events Here"** section of the Google Sheet tab. The `findNextEmptyRow()` function in `google-sheets.ts` scans for the marker cell containing "Add Events Here", finds the header row below it, and appends to the first empty row after that.
 
+**URL parsing**: Submit form auto-detects platform from pasted URLs:
+- **Luma** (lu.ma/*): Fetches event data via Luma API
+- **Posh.vip**: Extracts event details via posh.vip page scraping
+- **Eventbrite**: Standard og:image scraping with JSON-LD fallback
+
 **Service account**: `sheeets-writer@planwtf.iam.gserviceaccount.com` (GCP project: `planwtf`)
 - Google Sheets API enabled
 - Shared as Editor on the spreadsheet
@@ -176,23 +203,27 @@ The parser finds the header row by looking for `col B = "Start Time"`, then read
 src/
 ├── app/
 │   ├── page.tsx              # Renders EventApp
-│   ├── layout.tsx            # Inter font, dark theme, viewport config, GA4 script
-│   ├── globals.css           # Tailwind + Mapbox CSS + dark theme vars + safe-area insets
+│   ├── layout.tsx            # Inter font, dark theme, viewport config, GA4 script, JSON-LD
+│   ├── globals.css           # Tailwind + Mapbox CSS + warm-dark theme vars + safe-area insets
+│   ├── sitemap.ts            # Dynamic sitemap generation
+│   ├── robots.ts             # Robots.txt configuration
 │   ├── itinerary/
 │   │   ├── page.tsx          # Standalone itinerary page
 │   │   └── s/[code]/page.tsx # Shared itinerary viewer
+│   ├── admin/page.tsx        # Admin panel (sponsors, ticker, ad inventory, drag-reorder)
 │   └── api/
 │       ├── page.tsx          # Agent API documentation page
 │       ├── CodeBlock.tsx     # Tabbed code examples with copy button
 │       ├── geocode/route.ts  # Runtime geocoding via Mapbox (POST, batch up to 25)
-│       ├── og/route.ts       # OG image resolution (Luma API + HTML scraping, Supabase cache)
+│       ├── og/route.ts       # OG image resolution (Luma API + HTML scraping + JSON-LD, Supabase cache)
+│       ├── fetch-event/route.ts # Fetch single event details for posh.vip/other platforms
 │       ├── luma/route.ts     # Luma event scraper for submit form auto-fill
 │       └── submit-event/route.ts # Event submission to Google Sheet via service account
 ├── components/
-│   ├── EventApp.tsx          # Main orchestrator - state, hooks, view routing, auth guards
+│   ├── EventApp.tsx          # Main orchestrator - hooks, view routing, auth guards
 │   ├── Header.tsx            # Logo, view toggle, itinerary badge, auth (sticky)
 │   ├── AuthModal.tsx         # Email OTP auth, UserMenu with profile, friends, check-in, submit event
-│   ├── SubmitEventModal.tsx  # 3-step event submission: Luma URL → form → success
+│   ├── SubmitEventModal.tsx  # 3-step event submission: URL paste → form → success
 │   ├── ViewToggle.tsx        # Map | List | Table toggle
 │   ├── FilterBar.tsx         # Conference tabs, Now toggle, Filters (conference-aware date bounds)
 │   ├── DateTimePicker.tsx    # Custom date dropdown + 30-min time dropdown (accepts dates prop)
@@ -200,15 +231,16 @@ src/
 │   ├── SearchBar.tsx         # Debounced text search (300ms)
 │   ├── TagBadge.tsx          # Tag icon with color (supports iconOnly mode, custom SVG crypto icons)
 │   ├── EventCard.tsx         # Event card: OG image, details, friends going/checked-in, reactions, comments
-│   ├── ListView.tsx          # Cards grouped by date, sticky date headers
+│   ├── ListView.tsx          # Virtualized cards via @tanstack/react-virtual, grouped by date, sticky headers
 │   ├── TableView.tsx         # table-fixed layout, fills viewport, CSS truncate
 │   ├── MapView.tsx           # Mapbox map, auto-centers, friend markers, conference-aware center
 │   ├── MapViewWrapper.tsx    # Dynamic import wrapper (ssr: false)
-│   ├── MapMarker.tsx         # Clock-face SVG pin (white wedge, 19px)
+│   ├── MapMarker.tsx         # Clock-face SVG pin (white wedge, 19px), opaque amber featured labels
 │   ├── EventPopup.tsx        # Map popup with OG image, star, reactions, checked-in friends
 │   ├── EmojiReactions.tsx    # Row of emoji pills with picker dropdown
 │   ├── CommentSection.tsx    # Expandable comment list with input
 │   ├── FriendMarker.tsx      # Map marker for friend locations (avatar, pulse, time-ago)
+│   ├── NativeAdCard.tsx      # Native ad card interleaved in list view
 │   ├── POIPopup.tsx          # POI map popup with AddressLink, share toggle, delete
 │   ├── POIMarker.tsx         # POI map pin
 │   ├── POISearchBar.tsx      # Mapbox Search Box for adding POIs
@@ -235,19 +267,33 @@ src/
 │   ├── useFriendLocations.ts # Location sharing: upsert own, fetch friends via RPC
 │   ├── useProfile.ts         # Current user's profile
 │   ├── usePOIs.ts            # Points of interest CRUD
-│   └── useGeocoder.ts        # Mapbox Search Box API for POI search
+│   ├── useGeocoder.ts        # Mapbox Search Box API for POI search
+│   ├── useViewMode.ts        # View mode state with localStorage persistence
+│   ├── useAuthGatedActions.ts # Auth-gated starring with pending action
+│   ├── useConferenceData.ts  # Conference-scoped memos (types, vibes, counts, friends)
+│   ├── useNowMode.ts         # Auto-refresh tick for "Now" mode
+│   └── useAdminConfig.ts     # Admin config key-value store
 ├── lib/
 │   ├── geo.ts                # distanceMeters() — haversine distance
 │   ├── gviz.ts               # GViz response parser
-│   ├── types.ts              # TypeScript types (ETHDenverEvent, FilterState, ReactionEmoji, etc.)
+│   ├── types.ts              # TypeScript types (ETHDenverEvent, FilterState, ReactionEmoji, NativeAd, etc.)
 │   ├── constants.ts          # EVENT_TABS (with dates/tz/center), tag colors, REACTION_EMOJIS
 │   ├── analytics.ts          # GA4 custom event tracking (gtag wrapper)
 │   ├── supabase.ts           # Supabase client (singleton, anon key)
 │   ├── google-sheets.ts      # Service account auth, findNextEmptyRow, appendEventRow
 │   ├── fetch-events.ts       # GViz fetch + synthetic tag generation + geocode lookup
+│   ├── fetch-events-cached.ts # Cached event fetching for server-side use
 │   ├── filters.ts            # Filter logic (conference-aware timezone in getConferenceNow)
 │   ├── utils.ts              # Date formatting, normalizeAddress, time parsing
-│   └── calendar.ts           # ICS export for itinerary
+│   ├── calendar.ts           # ICS export for itinerary
+│   ├── json-ld.ts            # JSON-LD structured data generation (Schema.org Event, CollectionPage)
+│   ├── api-validation.ts     # Zod schemas for API route validation
+│   ├── time-parse.ts         # Time parsing and sorting helpers
+│   ├── tags.ts               # TYPE_TAGS, VIBE_TAGS constants
+│   ├── conferences.ts        # Conference timezone helpers
+│   ├── storage-keys.ts       # localStorage key constants
+│   ├── user-display.ts       # Display name formatting
+│   └── pois.ts               # Points of interest types
 ├── data/
 │   └── geocoded-addresses.json  # Cached geocoded addresses
 scripts/
@@ -289,6 +335,11 @@ interface FriendLocation {
   display_name?, x_handle?
 }
 
+interface NativeAd {
+  id, title, description, ctaText, ctaUrl,
+  imageUrl?, sponsor, active, position?
+}
+
 type ViewMode = 'map' | 'list' | 'table'
 
 interface FilterState {
@@ -323,8 +374,16 @@ interface FilterState {
 | `api_keys` | Agent API keys | user_id, key_hash (SHA-256), key_prefix, scopes, revoked_at |
 | `api_rate_limits` | Rate limiting | key_hash, window_start, request_count |
 | `events_cache` | 15-min TTL events cache for API | id, conference, date_iso, tags, link, cached_at |
+| `admin_config` | Key-value config store for admin settings | key (PK), value (jsonb), updated_at |
 
 **Supabase project**: `qsiukfwuwbpwyujfahtz` (sheeets)
+
+### Server-Side Aggregation RPCs
+| RPC | Purpose |
+|-----|---------|
+| `get_event_reaction_summaries` | Batch reaction counts for all events |
+| `get_event_comment_counts` | Batch comment counts for all events |
+| `get_event_checkin_counts` | Batch check-in counts for all events |
 
 ### RLS Policies (Social Features)
 
@@ -400,12 +459,43 @@ interface FilterState {
 
 ---
 
+## Recent Changes (2026-03-07)
+
+### Merged This Session
+| PR | Description |
+|----|-------------|
+| #45 | Drag-to-reorder sponsors in admin panel |
+| #47 | Friends filter empty state with invite link |
+| #54 | JSON-LD structured data, SEO metadata, sitemap, robots.txt |
+| #55 | Server-side aggregation RPCs for batch data fetching |
+| #56 | List virtualization with @tanstack/react-virtual |
+| #57 | Architecture refactor: extract hooks, split modules, Zod validation |
+| #58 | Fix Eventbrite image fetching via JSON-LD extraction |
+| #59 | Posh.vip link parsing for submit + image display |
+
+### Direct Master Commits
+- Opaque featured labels on map (solid amber instead of transparent)
+- Food/Bar priority in tags filter (sort to front)
+- Smaller emoji reaction pills (match comments button height)
+- Remove submit button pop-out icon
+
+### Open PRs (not yet merged)
+| PR | Branch | Description | Status |
+|----|--------|-------------|--------|
+| #60 | advertiser-page | /advertise page + admin Ad Inventory tab | Draft |
+| #53 | tag-count-badges | Tag count badges on filter pills | Has merge conflicts |
+| #46 | worktree-agent-a678de75 | Onboarding wizard for first-time users | Draft |
+| #40 | luma-rsvp-v2 | Luma RSVP with in-page checkout | Draft |
+
+---
+
 ## Development Notes
 
 ### tsconfig Excludes
 `packages/` and `supabase/` are excluded from the root tsconfig. They have their own TypeScript configs and dependencies. Next.js will fail to build if these are included.
 
 ### Key Patterns
+- **Warm-dark color scheme**: stone backgrounds (stone-950, stone-900, stone-800), amber accents. All slate references replaced with stone.
 - **Conference-aware defaults**: `useFilters` resets date range when switching conferences via `getDateTimeRangeForConference()`. `getConferenceNow(conference)` uses per-conference timezone. Map centers on conference city.
 - **Auth-gated actions**: Star and RSVP use the same pattern — `pendingRef` stores the action, shows AuthModal, completes after login via useEffect
 - **Profile fields**: Column is `rsvp_name` (NOT `farcaster_username`)
@@ -417,8 +507,10 @@ interface FilterState {
 - **Contained scroll**: All three views use `h-dvh flex flex-col overflow-hidden` layout
 - **Check-in badges**: Green numbered badges on the time field. Green friend rows on event cards.
 - **Check-in logic**: Gets GPS, finds itinerary events within 150m that pass "now" filter, upserts to `check_ins` table
-- **OG images**: Lazy-loaded via IntersectionObserver. Luma uses API for clean cover images. Other sites (Eventbrite, etc.) use HTML og:image scraping with relative URL resolution. Cached in Supabase `event_images` table.
+- **OG images**: Lazy-loaded via IntersectionObserver. Luma uses API for clean cover images. Eventbrite uses JSON-LD extraction with og:image fallback. Other sites use HTML og:image scraping with relative URL resolution. Cached in Supabase `event_images` table.
 - **Event submission**: Writes to "Add Events Here" section of the sheet. Finds marker cell, then header row below, appends to first empty row.
+- **List virtualization**: @tanstack/react-virtual with variable-height items via measureElement. Flat list interleaves date headers, event cards, and native ads.
+- **Food/Bar tag priority**: 🍕 Food and 🍺 Bar always sort to front of vibes filter list.
 - **Prop threading pattern**: Social data (reactions, comments, check-ins, friend locations) flows from hooks in EventApp through view components (ListView/TableView/MapViewWrapper/MapView) to card/popup components.
 
 ### Supabase Migrations
@@ -431,9 +523,14 @@ If remote has migrations not found locally, repair with:
 supabase migration repair <version> --status reverted
 ```
 
+**Pending migrations:**
+- `20260306120000_add_admin_config.sql` — admin_config table for admin settings
+- `20260307120000_add_aggregation_rpcs.sql` — server-side aggregation RPCs
+
 ### Known Issues
 - `search_users` has two overloaded versions in Supabase — the old one `(text, uuid)` is unused and should be dropped
 - `check_ins` RLS policies may block friends' check-ins — if so, create a `get_friends_check_ins()` SECURITY DEFINER RPC
 - Check-in/reaction/comment data is fetched once on mount — no realtime subscriptions
 - Eventbrite og:image URLs that were cached before the relative-URL fix may still be broken in `event_images` table — clear stale entries or wait for TTL
+- PR #53 (tag count badges) has merge conflicts from architecture refactor — needs resolution
 - The `lightningcss.darwin-arm64.node` module causes build issues locally — use `npx tsc --noEmit` for type checking instead of `npm run build`
