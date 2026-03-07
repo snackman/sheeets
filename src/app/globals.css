@@ -11,12 +11,12 @@
 
 /* Dark theme base */
 :root {
-  --background: #0f172a;
-  --foreground: #f1f5f9;
-  --card: #1e293b;
-  --card-hover: #334155;
-  --accent: #f97316;
-  --accent-hover: #fb923c;
+  --background: #0c0a09;
+  --foreground: #fafaf9;
+  --card: #1c1917;
+  --card-hover: #292524;
+  --accent: #f59e0b;
+  --accent-hover: #fbbf24;
 }
 
 @theme inline {
@@ -45,21 +45,21 @@ input, select, textarea {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #0c0a09;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #292524;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #44403c;
 }
 
-/* Slate 750 custom shade for card hover (between 700 and 800) */
+/* Stone 750 custom shade for card hover (between 700 and 800) */
 .hover\:bg-slate-750:hover {
-  background-color: #283548;
+  background-color: #262220;
 }
 
 /* Ensure popup stays within map bounds */
@@ -69,8 +69,8 @@ input, select, textarea {
 
 /* Mapbox popup overrides for dark theme */
 .map-popup .mapboxgl-popup-content {
-  background-color: #1e293b;
-  border: 1px solid #334155;
+  background-color: #1c1917;
+  border: 1px solid #292524;
   border-radius: 8px;
   padding: 12px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
@@ -78,7 +78,7 @@ input, select, textarea {
 }
 
 .map-popup .mapboxgl-popup-tip {
-  border-top-color: #1e293b;
+  border-top-color: #1c1917;
 }
 
 .map-popup .mapboxgl-popup-close-btn {
@@ -95,7 +95,7 @@ input, select, textarea {
 }
 
 .map-popup .mapboxgl-popup-content ::-webkit-scrollbar-thumb {
-  background-color: #475569;
+  background-color: #44403c;
   border-radius: 2px;
 }
 

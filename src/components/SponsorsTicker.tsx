@@ -20,22 +20,22 @@ export function SponsorsTicker({ sponsors }: SponsorsTickerProps) {
     <span className="inline-flex items-center">
       {sponsorList.map((s, i) => (
         <span key={i}>
-          {i > 0 && <span className="mx-6 text-slate-600">&#10022;</span>}
+          {i > 0 && <span className="mx-6 text-stone-600">&#10022;</span>}
           {s.beforeText} <a
             href={s.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="underline decoration-slate-500 underline-offset-2 hover:text-slate-200 hover:decoration-slate-300 transition-colors"
+            className="underline decoration-slate-500 underline-offset-2 hover:text-stone-200 hover:decoration-slate-300 transition-colors"
           >{s.linkText}</a>{s.afterText}
         </span>
       ))}
-      <span className="mx-6 text-slate-600">&#10022;</span>
+      <span className="mx-6 text-stone-600">&#10022;</span>
     </span>
   );
 
   return (
-    <div className="w-full overflow-hidden bg-slate-900/80 border-b border-slate-800/50 py-1.5">
-      <div className="sponsors-scroll inline-flex whitespace-nowrap text-xs text-slate-400">
+    <div className="w-full overflow-hidden bg-stone-950/80 border-b border-stone-800/50 py-1.5">
+      <div className="sponsors-scroll inline-flex whitespace-nowrap text-xs text-stone-400">
         {item}{item}{item}{item}{item}{item}{item}{item}
       </div>
     </div>
