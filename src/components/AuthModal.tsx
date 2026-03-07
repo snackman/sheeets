@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, Settings, ExternalLink, Link2 } from 'lucide-react';
+import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, Menu, ExternalLink, Link2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAuthSuccess, trackSignOut, trackFriendCodeGenerate, trackFriendCodeCopy } from '@/lib/analytics';
 
@@ -627,7 +627,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
         className="relative p-1.5 text-slate-400 hover:text-white transition-colors cursor-pointer"
         title="Settings"
       >
-        <Settings className="w-4 h-4" />
+        <Menu className="w-4 h-4" />
         {badgeCount > 0 && (
           <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center text-[9px] font-bold rounded-full bg-orange-500 text-white px-0.5">
             {badgeCount}

@@ -144,7 +144,7 @@ export function EventCard({
   return (
     <div className={`rounded-lg p-4 transition-colors group flex gap-4 overflow-hidden ${
       event.isFeatured
-        ? 'bg-slate-800 border border-orange-500/50 hover:bg-slate-750 hover:border-orange-500/70 active:bg-slate-750 active:border-orange-500/70'
+        ? 'bg-slate-800 border-2 border-orange-500/50 hover:bg-slate-750 hover:border-orange-500/70 active:bg-slate-750 active:border-orange-500/70'
         : 'bg-slate-800 border border-slate-700 hover:bg-slate-750 hover:border-slate-600 active:bg-slate-750 active:border-slate-600'
     }`}>
       {/* Left: cover image */}

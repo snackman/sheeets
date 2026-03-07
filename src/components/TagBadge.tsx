@@ -40,6 +40,7 @@ import {
   Projector,
   Sparkle,
   Laugh,
+  Pizza,
   type LucideIcon,
 } from 'lucide-react';
 import { VIBE_COLORS } from '@/lib/constants';
@@ -120,6 +121,8 @@ export const TAG_ICONS: Record<string, IconComponent> = {
   'Film/TV': Clapperboard,
   'Screening': Projector,
   'Vibe': Sparkle,
+  '🍕 Food': Pizza,
+  '🍺 Bar': Beer,
   'Comedy': Laugh,
 };
 

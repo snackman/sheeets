@@ -204,12 +204,12 @@ export function FilterBar({
               </div>
             )}
 
-            {/* Datetime range */}
+            {/* Start + Type row */}
             {(() => {
               const tabDates = getTabConfig(filters.conference).dates;
               return (
-                <div className={clsx('flex gap-2', filters.nowMode && 'opacity-30 pointer-events-none')}>
-                  <div className="flex-1 min-w-0">
+                <div className={clsx('flex gap-3 items-end', filters.nowMode && 'opacity-30 pointer-events-none')}>
+                  <div className="w-40 shrink-0">
                     <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Start</div>
                     <DateTimePicker
                       value={filters.startDateTime}
@@ -222,7 +222,44 @@ export function FilterBar({
                       }}
                     />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  {(availableTypes.length > 0) && (
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">Type</div>
+                      <div className="overflow-x-auto flex gap-2 pb-1">
+                        {availableTypes.map((vibe) => {
+                          const isActive = filters.vibes.includes(vibe);
+                          const vibeColor = VIBE_COLORS[vibe] || VIBE_COLORS['default'];
+                          const Icon = TAG_ICONS[vibe];
+                          return (
+                            <button
+                              key={vibe}
+                              onClick={() => { trackTagToggle(vibe, !filters.vibes.includes(vibe)); onToggleVibe(vibe); }}
+                              className={clsx(
+                                'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
+                                isActive
+                                  ? 'text-white'
+                                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600 active:bg-slate-600'
+                              )}
+                              style={isActive ? { backgroundColor: vibeColor } : undefined}
+                            >
+                              {Icon && <Icon className="w-3.5 h-3.5" />}
+                              {vibe}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* End + Tags row */}
+            {(() => {
+              const tabDates = getTabConfig(filters.conference).dates;
+              return (
+                <div className={clsx('flex gap-3 items-end', filters.nowMode && 'opacity-30 pointer-events-none')}>
+                  <div className="w-40 shrink-0">
                     <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">End</div>
                     <DateTimePicker
                       value={filters.endDateTime}
@@ -235,6 +272,34 @@ export function FilterBar({
                       }}
                     />
                   </div>
+                  {availableVibes.length > 0 && (
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">Tags</div>
+                      <div className="overflow-x-auto flex gap-2 pb-1">
+                        {availableVibes.map((vibe) => {
+                          const isActive = filters.vibes.includes(vibe);
+                          const vibeColor = VIBE_COLORS[vibe] || VIBE_COLORS['default'];
+                          const Icon = TAG_ICONS[vibe];
+                          return (
+                            <button
+                              key={vibe}
+                              onClick={() => { trackTagToggle(vibe, !filters.vibes.includes(vibe)); onToggleVibe(vibe); }}
+                              className={clsx(
+                                'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
+                                isActive
+                                  ? 'text-white'
+                                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600 active:bg-slate-600'
+                              )}
+                              style={isActive ? { backgroundColor: vibeColor } : undefined}
+                            >
+                              {Icon && <Icon className="w-3.5 h-3.5" />}
+                              {vibe}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -261,72 +326,6 @@ export function FilterBar({
                       >
                         <Users className="w-3.5 h-3.5" />
                         {friend.displayName}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Types (event format) + quick filters */}
-            {(availableTypes.length > 0 || true) && (
-              <div>
-                <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">
-                  Type
-                </div>
-                <div className="overflow-x-auto flex gap-2 pb-1">
-                  {availableTypes.map((vibe) => {
-                    const isActive = filters.vibes.includes(vibe);
-                    const vibeColor =
-                      VIBE_COLORS[vibe] || VIBE_COLORS['default'];
-                    const Icon = TAG_ICONS[vibe];
-                    return (
-                      <button
-                        key={vibe}
-                        onClick={() => { trackTagToggle(vibe, !filters.vibes.includes(vibe)); onToggleVibe(vibe); }}
-                        className={clsx(
-                          'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
-                          isActive
-                            ? 'text-white'
-                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600 active:bg-slate-600'
-                        )}
-                        style={isActive ? { backgroundColor: vibeColor } : undefined}
-                      >
-                        {Icon && <Icon className="w-3.5 h-3.5" />}
-                        {vibe}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Tags (topics/interests) */}
-            {availableVibes.length > 0 && (
-              <div>
-                <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">
-                  Tags
-                </div>
-                <div className="overflow-x-auto flex gap-2 pb-1">
-                  {availableVibes.map((vibe) => {
-                    const isActive = filters.vibes.includes(vibe);
-                    const vibeColor =
-                      VIBE_COLORS[vibe] || VIBE_COLORS['default'];
-                    const Icon = TAG_ICONS[vibe];
-                    return (
-                      <button
-                        key={vibe}
-                        onClick={() => { trackTagToggle(vibe, !filters.vibes.includes(vibe)); onToggleVibe(vibe); }}
-                        className={clsx(
-                          'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
-                          isActive
-                            ? 'text-white'
-                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600 active:bg-slate-600'
-                        )}
-                        style={isActive ? { backgroundColor: vibeColor } : undefined}
-                      >
-                        {Icon && <Icon className="w-3.5 h-3.5" />}
-                        {vibe}
                       </button>
                     );
                   })}
