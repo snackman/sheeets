@@ -123,8 +123,8 @@ export function ListView({
           <div className="space-y-3 mt-3">
             {group.events.map((event) => {
               globalEventIndex++;
-              const shouldInsertAd = activeAds.length > 0 && globalEventIndex % 6 === 0;
-              const adIndex = shouldInsertAd ? (Math.floor(globalEventIndex / 6) - 1) % activeAds.length : 0;
+              const shouldInsertAd = activeAds.length > 0 && globalEventIndex % 8 === 0;
+              const adIndex = shouldInsertAd ? (Math.floor(globalEventIndex / 8) - 1) % activeAds.length : 0;
 
               return (
                 <div key={event.id}>

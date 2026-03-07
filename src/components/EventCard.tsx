@@ -144,7 +144,7 @@ export function EventCard({
   return (
     <div className={`rounded-lg p-4 transition-colors group flex gap-4 overflow-hidden ${
       event.isFeatured
-        ? 'bg-orange-500/5 border border-orange-500/30 ring-1 ring-orange-500/40 hover:bg-orange-500/10 hover:border-orange-500/40'
+        ? 'bg-slate-800 border border-orange-500/50 hover:bg-slate-750 hover:border-orange-500/70 active:bg-slate-750 active:border-orange-500/70'
         : 'bg-slate-800 border border-slate-700 hover:bg-slate-750 hover:border-slate-600 active:bg-slate-750 active:border-slate-600'
     }`}>
       {/* Left: cover image */}
@@ -152,19 +152,8 @@ export function EventCard({
 
       {/* Right: event details */}
       <div className="flex-1 min-w-0">
-        {/* Top row: Star, Name */}
+        {/* Top row: Name + Star */}
         <div className="flex items-start gap-2">
-          {onItineraryToggle ? (
-            <StarButton
-              eventId={event.id}
-              isStarred={isInItinerary}
-              onToggle={onItineraryToggle}
-              friendsCount={friendsCount}
-            />
-          ) : (
-            <div className="w-5 shrink-0" />
-          )}
-
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-white text-sm sm:text-base leading-tight">
               {event.link ? (
@@ -186,19 +175,13 @@ export function EventCard({
             )}
           </div>
 
-          {event.link && (
-            <button
-              onClick={handleCopyLink}
-              className="p-1 shrink-0 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
-              aria-label="Copy event link"
-              title="Copy link"
-            >
-              {copied ? (
-                <Check className="w-3.5 h-3.5 text-green-400" />
-              ) : (
-                <Link className="w-3.5 h-3.5" />
-              )}
-            </button>
+          {onItineraryToggle && (
+            <StarButton
+              eventId={event.id}
+              isStarred={isInItinerary}
+              onToggle={onItineraryToggle}
+              friendsCount={friendsCount}
+            />
           )}
         </div>
 
@@ -231,17 +214,6 @@ export function EventCard({
             {event.tags.map((tag) => (
               <TagBadge key={tag} tag={tag} />
             ))}
-          </div>
-        )}
-
-        {/* Emoji reactions */}
-        {onToggleReaction && (
-          <div className="mt-2">
-            <EmojiReactions
-              eventId={event.id}
-              reactions={reactions}
-              onToggle={onToggleReaction}
-            />
           </div>
         )}
 
@@ -282,8 +254,35 @@ export function EventCard({
           <p className="text-slate-600 text-xs mt-1 italic truncate">{event.note}</p>
         )}
 
-        {/* Comments */}
-        <CommentSection eventId={event.id} commentCount={commentCount} />
+        {/* Link/copy button bottom-right */}
+        {event.link && (
+          <div className="flex justify-end mt-1">
+            <button
+              onClick={handleCopyLink}
+              className="p-1 shrink-0 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+              aria-label="Copy event link"
+              title="Copy link"
+            >
+              {copied ? (
+                <Check className="w-3.5 h-3.5 text-green-400" />
+              ) : (
+                <Link className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Emoji reactions + Comments inline */}
+        <div className="flex flex-wrap items-center gap-2 mt-2">
+          {onToggleReaction && (
+            <EmojiReactions
+              eventId={event.id}
+              reactions={reactions}
+              onToggle={onToggleReaction}
+            />
+          )}
+          <CommentSection eventId={event.id} commentCount={commentCount} />
+        </div>
       </div>
 
       {/* Friends going modal */}

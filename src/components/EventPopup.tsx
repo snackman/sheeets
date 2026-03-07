@@ -82,7 +82,6 @@ function CheckedInFriendsRow({ friends }: { friends: FriendInfo[] }) {
 
 function SingleEventContent({
   event,
-  onClose,
   isInItinerary = false,
   onItineraryToggle,
   friendsCount,
@@ -94,7 +93,6 @@ function SingleEventContent({
   commentCount,
 }: {
   event: ETHDenverEvent;
-  onClose: () => void;
   isInItinerary?: boolean;
   onItineraryToggle?: (eventId: string) => void;
   friendsCount?: number;
@@ -116,17 +114,8 @@ function SingleEventContent({
 
       {/* Right: event details */}
       <div className="flex-1 min-w-0">
-        {/* Top row: Star + Name + Close */}
+        {/* Top row: Name + Star */}
         <div className="flex items-start gap-1">
-          {onItineraryToggle && (
-            <StarButton
-              eventId={event.id}
-              isStarred={isInItinerary}
-              onToggle={onItineraryToggle}
-              size="sm"
-              friendsCount={friendsCount}
-            />
-          )}
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-sm text-white leading-tight line-clamp-2">
               {event.link ? (
@@ -147,13 +136,15 @@ function SingleEventContent({
               <p className="text-xs text-slate-500 mt-0.5">{event.organizer}</p>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="shrink-0 p-1 text-slate-400 hover:text-white active:text-white transition-colors"
-            aria-label="Close popup"
-          >
-            <X size={14} />
-          </button>
+          {onItineraryToggle && (
+            <StarButton
+              eventId={event.id}
+              isStarred={isInItinerary}
+              onToggle={onItineraryToggle}
+              size="sm"
+              friendsCount={friendsCount}
+            />
+          )}
         </div>
 
         {/* Date + Time */}
@@ -188,18 +179,6 @@ function SingleEventContent({
           </div>
         )}
 
-        {/* Compact emoji reactions */}
-        {onToggleReaction && (
-          <div className="mt-1.5">
-            <EmojiReactions
-              eventId={event.id}
-              reactions={reactions}
-              onToggle={onToggleReaction}
-              compact
-            />
-          </div>
-        )}
-
         {/* Friends going */}
         {friendsGoing && <FriendsRow friends={friendsGoing} />}
 
@@ -211,8 +190,18 @@ function SingleEventContent({
           <p className="text-slate-600 text-xs mt-1 italic line-clamp-2">{event.note}</p>
         )}
 
-        {/* Comments */}
-        <CommentSection eventId={event.id} commentCount={commentCount} />
+        {/* Emoji reactions + Comments inline */}
+        <div className="flex flex-wrap items-center gap-2 mt-1.5">
+          {onToggleReaction && (
+            <EmojiReactions
+              eventId={event.id}
+              reactions={reactions}
+              onToggle={onToggleReaction}
+              compact
+            />
+          )}
+          <CommentSection eventId={event.id} commentCount={commentCount} />
+        </div>
       </div>
     </div>
   );
@@ -246,7 +235,6 @@ export function EventPopup({
     >
       <SingleEventContent
         event={event}
-        onClose={onClose}
         isInItinerary={isInItinerary}
         onItineraryToggle={onItineraryToggle}
         friendsCount={friendsCount}
