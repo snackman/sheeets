@@ -105,9 +105,6 @@ export const VIBE_COLORS: Record<string, string> = {
 
 /** Tags that describe event format/type (vs topic/interest tags) */
 export const TYPE_TAGS = [
-  '$$',
-  '🍕 Food',
-  '🍺 Bar',
   'Conference',
   'Panel/Talk',
   'Hackathon',
