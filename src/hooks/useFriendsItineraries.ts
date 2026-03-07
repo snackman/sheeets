@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { Friend } from '@/lib/types';
+import { getDisplayName } from '@/lib/user-display';
 
 interface FriendItinerary {
   userId: string;
@@ -72,8 +73,7 @@ export function useFriendsItineraries(friends: Friend[]) {
       const friend = friendMap.get(ri.userId);
       return {
         userId: ri.userId,
-        displayName:
-          friend?.display_name || (friend?.x_handle ? `@${friend.x_handle}` : null) || friend?.email || ri.userId.slice(0, 8),
+        displayName: friend ? getDisplayName(friend, ri.userId.slice(0, 8)) : ri.userId.slice(0, 8),
         eventIds: new Set(ri.eventIds),
       };
     });

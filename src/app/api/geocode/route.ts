@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { parseBody, GeocodeSchema } from '@/lib/api-validation';
 
 const PROXIMITY: Record<string, { lat: number; lng: number; suffix: string }> = {
   Denver: { lat: 39.7392, lng: -104.9903, suffix: 'Denver, CO' },
@@ -18,13 +19,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Mapbox token not configured' }, { status: 500 });
   }
 
-  const { addresses } = (await req.json()) as {
-    addresses: Array<{ normalized: string; raw: string; conference: string }>;
-  };
+  const { data, error } = await parseBody(req, GeocodeSchema);
+  if (error) return error;
 
-  if (!addresses || !Array.isArray(addresses)) {
-    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
-  }
+  const { addresses } = data;
 
   // Cap at 25 addresses per request to avoid abuse
   const batch = addresses.slice(0, 25);

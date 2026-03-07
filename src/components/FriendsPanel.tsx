@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, Trash2, ExternalLink, Users, ChevronRight, Mail } from 'lucide-react';
 import type { Friend } from '@/lib/types';
+import { getDisplayName, getDisplayInitial } from '@/lib/user-display';
 
 interface FriendsPanelProps {
   isOpen: boolean;
@@ -19,7 +20,7 @@ function FriendCard({
   onRemove: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const displayName = friend.display_name || friend.email || 'Anonymous';
+  const displayName = getDisplayName(friend);
   const hasSocials = friend.x_handle || friend.rsvp_name;
 
   return (
@@ -32,7 +33,7 @@ function FriendCard({
         {/* Avatar circle with initial */}
         <div className="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center shrink-0">
           <span className="text-sm font-medium text-stone-300">
-            {(friend.display_name || friend.email || '?')[0].toUpperCase()}
+            {getDisplayInitial(friend)}
           </span>
         </div>
 

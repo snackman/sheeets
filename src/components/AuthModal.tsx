@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, Settings, ExternalLink, Link2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAuthSuccess, trackSignOut, trackFriendCodeGenerate, trackFriendCodeCopy } from '@/lib/analytics';
+import { getDisplayName, getDisplayInitial } from '@/lib/user-display';
 
 import { supabase } from '@/lib/supabase';
 import { distanceMeters } from '@/lib/geo';
@@ -219,7 +220,7 @@ function SearchResultRow({
   onAccept: (userId: string) => void;
   sending: string | null;
 }) {
-  const displayName = result.display_name || result.email || 'Anonymous';
+  const displayName = getDisplayName(result);
   const secondary = result.x_handle
     ? `@${result.x_handle}`
     : result.email
@@ -230,7 +231,7 @@ function SearchResultRow({
     <div className="flex items-center gap-3 py-2">
       <div className="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center shrink-0">
         <span className="text-sm font-medium text-stone-300">
-          {(result.display_name || result.email || '?')[0].toUpperCase()}
+          {getDisplayInitial(result)}
         </span>
       </div>
       <div className="flex-1 min-w-0">
@@ -284,13 +285,14 @@ function IncomingRequestRow({
   responding: boolean;
 }) {
   const profile = request.sender_profile;
-  const displayName = profile?.display_name || profile?.email || 'Anonymous';
+  const displayName = profile ? getDisplayName(profile) : 'Anonymous';
+  const initial = profile ? getDisplayInitial(profile) : '?';
 
   return (
     <div className="flex items-center gap-3 py-2">
       <div className="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center shrink-0">
         <span className="text-sm font-medium text-stone-300">
-          {(profile?.display_name || profile?.email || '?')[0].toUpperCase()}
+          {initial}
         </span>
       </div>
       <div className="flex-1 min-w-0">
@@ -331,13 +333,14 @@ function OutgoingRequestRow({
   cancelling: boolean;
 }) {
   const profile = request.receiver_profile;
-  const displayName = profile?.display_name || profile?.email || 'Anonymous';
+  const displayName = profile ? getDisplayName(profile) : 'Anonymous';
+  const initial = profile ? getDisplayInitial(profile) : '?';
 
   return (
     <div className="flex items-center gap-3 py-2">
       <div className="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center shrink-0">
         <span className="text-sm font-medium text-stone-300">
-          {(profile?.display_name || profile?.email || '?')[0].toUpperCase()}
+          {initial}
         </span>
       </div>
       <div className="flex-1 min-w-0">

@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import type { ETHDenverEvent, ReactionEmoji, NativeAd } from '@/lib/types';
 import { formatDateLabel } from '@/lib/utils';
+import { sortByStartTime } from '@/lib/time-parse';
 import { EventCard } from './EventCard';
 import NativeAdCard from './NativeAdCard';
 
@@ -25,29 +26,6 @@ interface DateGroup {
   dateISO: string;
   label: string;
   events: ETHDenverEvent[];
-}
-
-function sortByStartTime(a: ETHDenverEvent, b: ETHDenverEvent): number {
-  // All-day events come first
-  if (a.isAllDay && !b.isAllDay) return -1;
-  if (!a.isAllDay && b.isAllDay) return 1;
-  if (a.isAllDay && b.isAllDay) return a.name.localeCompare(b.name);
-
-  // Compare start times by parsing them
-  const timeToMinutes = (t: string): number => {
-    const normalized = t.toLowerCase().trim();
-    const match = normalized.match(/(\d{1,2}):?(\d{2})?\s*(am?|pm?)?/i);
-    if (!match) return 0;
-    let hour = parseInt(match[1]);
-    const min = match[2] ? parseInt(match[2]) : 0;
-    const isPM = match[3] && match[3].startsWith('p');
-    const isAM = match[3] && match[3].startsWith('a');
-    if (isPM && hour !== 12) hour += 12;
-    if (isAM && hour === 12) hour = 0;
-    return hour * 60 + min;
-  };
-
-  return timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
 }
 
 export function ListView({

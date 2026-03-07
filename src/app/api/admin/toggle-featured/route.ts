@@ -1,20 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readRange, writeCell } from '@/lib/google-sheets';
-import { EVENT_TABS } from '@/lib/constants';
+import { EVENT_TABS } from '@/lib/conferences';
+import { parseBody, ToggleFeaturedSchema } from '@/lib/api-validation';
 
 const ADMIN_PASSWORD = 'trusttheplan';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { password, conference, eventName, featured } = body;
+    const { data, error } = await parseBody(request, ToggleFeaturedSchema);
+    if (error) return error;
+
+    const { password, conference, eventName, featured } = data;
 
     if (password !== ADMIN_PASSWORD) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!conference || !eventName || typeof featured !== 'boolean') {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const tab = EVENT_TABS.find((t) => t.name === conference);

@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { MapPin, Calendar, Users, X, Link, Check } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
+import { formatFriendsText } from '@/lib/user-display';
 import { AddressLink } from './AddressLink';
 import { StarButton } from './StarButton';
 import { TagBadge } from './TagBadge';
@@ -102,14 +103,6 @@ function FriendsGoingModal({
     </div>,
     document.body
   );
-}
-
-function formatFriendsText(friends: FriendInfo[]): string {
-  const names = friends.map((f) => f.displayName.split(' ')[0] || f.displayName);
-  if (names.length === 1) return names[0];
-  if (names.length === 2) return `${names[0]} & ${names[1]}`;
-  if (names.length === 3) return `${names[0]}, ${names[1]} & ${names[2]}`;
-  return `${names[0]}, ${names[1]} +${names.length - 2} more`;
 }
 
 export function EventCard({

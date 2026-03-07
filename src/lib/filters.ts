@@ -1,21 +1,9 @@
 import type { ETHDenverEvent, FilterState } from './types';
-import { getTabConfig } from './constants';
+import { getTabConfig } from './conferences';
+import { parseTimeToMinutes } from './time-parse';
 
-/** Parse a time string like "12:00p", "6:00 PM", "2:30 AM" to minutes since midnight */
-export function parseTimeToMinutes(t: string): number | null {
-  if (!t) return null;
-  const s = t.toLowerCase().trim();
-  if (s === 'all day' || s === 'tbd') return null;
-  const m = s.match(/(\d{1,2}):?(\d{2})?\s*(am?|pm?)?/i);
-  if (!m) return null;
-  let h = parseInt(m[1]);
-  const min = m[2] ? parseInt(m[2]) : 0;
-  const isPM = m[3] && m[3].startsWith('p');
-  const isAM = m[3] && m[3].startsWith('a');
-  if (isPM && h !== 12) h += 12;
-  if (isAM && h === 12) h = 0;
-  return h * 60 + min;
-}
+// Re-export so existing consumers of `parseTimeToMinutes` from filters.ts still work
+export { parseTimeToMinutes } from './time-parse';
 
 /** Get current time in conference timezone */
 export function getConferenceNow(conference?: string): Date {

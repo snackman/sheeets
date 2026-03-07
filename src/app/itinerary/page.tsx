@@ -10,8 +10,9 @@ import { useEvents } from '@/hooks/useEvents';
 import { useItinerary } from '@/hooks/useItinerary';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { VIBE_COLORS } from '@/lib/constants';
+import { VIBE_COLORS } from '@/lib/tags';
 import { formatDateLabel } from '@/lib/utils';
+import { sortByStartTime, detectConflicts } from '@/lib/time-parse';
 import { downloadICS } from '@/lib/calendar';
 import type { ETHDenverEvent } from '@/lib/types';
 import { Loading } from '@/components/Loading';
@@ -31,54 +32,6 @@ const MapView = dynamic(
 );
 
 type ItineraryViewMode = 'list' | 'map';
-
-function timeToMinutes(t: string): number | null {
-  if (!t) return null;
-  const normalized = t.toLowerCase().trim();
-  if (normalized === 'all day' || normalized === 'tbd') return null;
-  const match = normalized.match(/(\d{1,2}):?(\d{2})?\s*(am?|pm?)?/i);
-  if (!match) return null;
-  let hour = parseInt(match[1]);
-  const min = match[2] ? parseInt(match[2]) : 0;
-  const isPM = match[3] && match[3].startsWith('p');
-  const isAM = match[3] && match[3].startsWith('a');
-  if (isPM && hour !== 12) hour += 12;
-  if (isAM && hour === 12) hour = 0;
-  return hour * 60 + min;
-}
-
-function detectConflicts(events: ETHDenverEvent[]): Set<string> {
-  const conflicts = new Set<string>();
-  const byDate = new Map<string, ETHDenverEvent[]>();
-  for (const event of events) {
-    const key = event.dateISO || 'unknown';
-    if (!byDate.has(key)) byDate.set(key, []);
-    byDate.get(key)!.push(event);
-  }
-  for (const dayEvents of byDate.values()) {
-    for (let i = 0; i < dayEvents.length; i++) {
-      for (let j = i + 1; j < dayEvents.length; j++) {
-        const a = dayEvents[i], b = dayEvents[j];
-        if (a.isAllDay || b.isAllDay) continue;
-        const aStart = timeToMinutes(a.startTime), aEnd = timeToMinutes(a.endTime);
-        const bStart = timeToMinutes(b.startTime), bEnd = timeToMinutes(b.endTime);
-        if (aStart === null || aEnd === null || bStart === null || bEnd === null) continue;
-        if (aStart < bEnd && bStart < aEnd) {
-          conflicts.add(a.id);
-          conflicts.add(b.id);
-        }
-      }
-    }
-  }
-  return conflicts;
-}
-
-function sortByStartTime(a: ETHDenverEvent, b: ETHDenverEvent): number {
-  if (a.isAllDay && !b.isAllDay) return -1;
-  if (!a.isAllDay && b.isAllDay) return 1;
-  if (a.isAllDay && b.isAllDay) return a.name.localeCompare(b.name);
-  return (timeToMinutes(a.startTime) ?? 0) - (timeToMinutes(b.startTime) ?? 0);
-}
 
 function generateShortCode(): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
