@@ -26,6 +26,7 @@ import { AuthModal } from './AuthModal';
 import { SubmitEventModal } from './SubmitEventModal';
 import { FriendsPanel } from './FriendsPanel';
 import { SponsorsTicker } from './SponsorsTicker';
+import { OnboardingWizard } from './OnboardingWizard';
 import { useAdminConfig } from '@/hooks/useAdminConfig';
 
 export function EventApp({ initialConference }: { initialConference?: string }) {
@@ -126,6 +127,35 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
   const [showFriends, setShowFriends] = useState(false);
 
   const [showSubmitEvent, setShowSubmitEvent] = useState(false);
+
+  // Onboarding wizard for first-time users
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  useEffect(() => {
+    if (!localStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETED)) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
+  const handleOnboardingComplete = useCallback(
+    (config: { conference: string; selectedTags: string[] }) => {
+      localStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETED, '1');
+      setShowOnboarding(false);
+      // Apply selected conference
+      if (config.conference) {
+        setConference(config.conference);
+      }
+      // Apply selected tags
+      for (const tag of config.selectedTags) {
+        toggleVibe(tag);
+      }
+    },
+    [setConference, toggleVibe]
+  );
+
+  const handleOnboardingDismiss = useCallback(() => {
+    localStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETED, '1');
+    setShowOnboarding(false);
+  }, []);
 
   // Auth-gated starring
   const [showAuthForStar, setShowAuthForStar] = useState(false);
@@ -474,6 +504,13 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
         onClose={() => setShowFriends(false)}
         friends={friends}
         onRemoveFriend={removeFriend}
+      />
+      <OnboardingWizard
+        isOpen={showOnboarding}
+        onComplete={handleOnboardingComplete}
+        onDismiss={handleOnboardingDismiss}
+        availableConferences={availableConferences}
+        onOpenAuth={() => { setShowOnboarding(false); setShowAuthForStar(true); }}
       />
     </div>
   );

@@ -82,3 +82,12 @@ export const trackFriendRequestRejected = () => track('friend_request_rejected')
 export const trackSubmitEventOpen = () => track('submit_event_open');
 export const trackSubmitEventSuccess = (conference: string) =>
   track('submit_event_success', { conference });
+
+// Onboarding
+export const trackOnboardingStart = () => track('onboarding_start');
+export const trackOnboardingStep = (step: string) =>
+  track('onboarding_step', { step });
+export const trackOnboardingComplete = (conference: string, tagCount: number) =>
+  track('onboarding_complete', { conference, tag_count: tagCount });
+export const trackOnboardingSkip = (step: string) =>
+  track('onboarding_skip', { step });
