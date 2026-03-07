@@ -201,7 +201,7 @@ export function MapMarker({
           >
             <div className={`px-2 py-0.5 rounded text-[10px] text-white max-w-[140px] leading-tight transition-colors ${
               isFeatured
-                ? 'bg-amber-500/20 ring-1 ring-amber-500/40 group-hover:bg-amber-500/30'
+                ? 'bg-amber-500 ring-1 ring-amber-500 group-hover:bg-amber-600'
                 : 'bg-stone-900/90 group-hover:bg-stone-800/90'
             }`}>
               <div className="truncate whitespace-nowrap">{label}</div>

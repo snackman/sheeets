@@ -31,7 +31,7 @@ export function EmojiReactions({
   // Emojis available to add
   const availableEmojis = REACTION_EMOJIS.filter((e) => !activeEmojis.has(e));
 
-  const pillSize = compact ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs';
+  const pillSize = compact ? 'px-1.5 py-0.5 text-[10px]' : 'px-1.5 py-0.5 text-xs';
   const gap = compact ? 'gap-1' : 'gap-1.5';
 
   return (

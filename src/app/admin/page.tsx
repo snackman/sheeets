@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Star, Search, Loader2, ArrowLeft, Plus, Trash2, Pencil, Save, X } from 'lucide-react';
+import { Star, Search, Loader2, ArrowLeft, Plus, Trash2, Pencil, Save, X, GripVertical } from 'lucide-react';
 import { fetchEvents } from '@/lib/fetch-events';
 import { EVENT_TABS } from '@/lib/constants';
 import type { ETHDenverEvent } from '@/lib/types';
@@ -40,6 +40,8 @@ export default function AdminPage() {
   // Sponsors state
   const [sponsors, setSponsors] = useState<SponsorEntry[]>([]);
   const [editingSponsorIndex, setEditingSponsorIndex] = useState<number | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   // Native Ads state
   const [nativeAds, setNativeAds] = useState<NativeAd[]>([]);
@@ -366,7 +368,43 @@ export default function AdminPage() {
 
                   <div className="space-y-3">
                     {sponsors.map((sponsor, idx) => (
-                      <div key={idx} className="p-3 bg-stone-800 rounded-lg border border-stone-600">
+                      <div
+                        key={idx}
+                        className={`p-3 bg-stone-800 rounded-lg border transition-colors ${
+                          dragOverIndex === idx && dragIndex !== idx
+                            ? 'border-amber-500 border-t-2'
+                            : 'border-stone-600'
+                        } ${dragIndex === idx ? 'opacity-40' : ''}`}
+                        draggable={editingSponsorIndex !== idx}
+                        onDragStart={(e) => {
+                          setDragIndex(idx);
+                          e.dataTransfer.effectAllowed = 'move';
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          if (dragIndex !== null && dragIndex !== idx) {
+                            setDragOverIndex(idx);
+                          }
+                        }}
+                        onDragLeave={() => {
+                          if (dragOverIndex === idx) setDragOverIndex(null);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (dragIndex !== null && dragIndex !== idx) {
+                            const updated = [...sponsors];
+                            const [moved] = updated.splice(dragIndex, 1);
+                            updated.splice(idx, 0, moved);
+                            setSponsors(updated);
+                          }
+                          setDragIndex(null);
+                          setDragOverIndex(null);
+                        }}
+                        onDragEnd={() => {
+                          setDragIndex(null);
+                          setDragOverIndex(null);
+                        }}
+                      >
                         {editingSponsorIndex === idx ? (
                           <div className="space-y-3">
                             <div className="grid grid-cols-2 gap-3">
@@ -441,6 +479,7 @@ export default function AdminPage() {
                           </div>
                         ) : (
                           <div className="flex items-center gap-3">
+                            <GripVertical className="w-4 h-4 text-stone-500 cursor-grab shrink-0" />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm text-stone-300 truncate">
                                 {sponsor.beforeText}<span className="font-medium text-white">{sponsor.linkText || '(no link text)'}</span>{sponsor.afterText}

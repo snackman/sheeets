@@ -60,7 +60,16 @@ export function useConferenceData({
           .filter(Boolean)
       )]
         .filter((t) => !TYPE_TAGS.includes(t))
-        .sort(),
+        .sort()
+        .sort((a, b) => {
+          const priority = ['🍕 Food', '🍺 Bar'];
+          const ai = priority.indexOf(a);
+          const bi = priority.indexOf(b);
+          if (ai !== -1 && bi !== -1) return ai - bi;
+          if (ai !== -1) return -1;
+          if (bi !== -1) return 1;
+          return 0;
+        }),
     [events, filters.conference]
   );
 
