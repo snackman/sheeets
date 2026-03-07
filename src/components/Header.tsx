@@ -39,7 +39,7 @@ export function Header({
 
   return (
     <>
-      <header className="sticky top-0 shrink-0 z-50 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800">
+      <header className="sticky top-0 shrink-0 z-50 bg-blue-950/95 backdrop-blur-sm border-b border-blue-800">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 flex items-center justify-between gap-4">
           {/* Left: Branding */}
           <div className="flex items-center min-w-0">
@@ -62,8 +62,8 @@ export function Header({
               }}
               className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm cursor-pointer transition-colors ${
                 isItineraryActive
-                  ? 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600 active:bg-orange-600'
-                  : 'border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700'
+                  ? 'bg-yellow-500 text-white border-yellow-500 hover:bg-yellow-600 active:bg-yellow-600'
+                  : 'border-blue-700 bg-blue-900 text-blue-400 hover:text-blue-200 hover:bg-blue-800 active:text-blue-200 active:bg-blue-800'
               }`}
               aria-label={`Itinerary: ${itineraryCount} events`}
             >
@@ -71,8 +71,8 @@ export function Header({
               {itineraryCount > 0 && (
                 <span className={`absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full px-1 ${
                   isItineraryActive
-                    ? 'bg-slate-800 text-slate-400'
-                    : 'bg-orange-500 text-white'
+                    ? 'bg-blue-900 text-blue-400'
+                    : 'bg-yellow-500 text-white'
                 }`}>
                   {itineraryCount}
                 </span>
@@ -86,7 +86,7 @@ export function Header({
               ) : (
                 <button
                   onClick={() => { trackAuthPrompt('sign_in_button'); setShowAuth(true); }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700 transition-colors text-sm cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-700 bg-blue-900 text-blue-400 hover:text-blue-200 hover:bg-blue-800 active:text-blue-200 active:bg-blue-800 transition-colors text-sm cursor-pointer"
                 >
                   <User className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Sign in</span>

@@ -46,7 +46,7 @@ export function POIPopup({ poi, onClose, onDelete, onUpdate, currentUserId, owne
           </div>
           <button
             onClick={onClose}
-            className="shrink-0 p-1 text-slate-400 hover:text-white active:text-white transition-colors"
+            className="shrink-0 p-1 text-blue-400 hover:text-white active:text-white transition-colors"
             aria-label="Close popup"
           >
             <X size={14} />
@@ -60,7 +60,7 @@ export function POIPopup({ poi, onClose, onDelete, onUpdate, currentUserId, owne
             lat={poi.lat}
             lng={poi.lng}
             isPrivatePin={!poi.is_public}
-            className="text-slate-500 hover:text-slate-300 text-xs mt-1.5 flex items-center gap-1 transition-colors"
+            className="text-blue-500 hover:text-blue-300 text-xs mt-1.5 flex items-center gap-1 transition-colors"
           >
             <MapPin className="w-3 h-3 shrink-0" />
             <span className="truncate">{poi.address}</span>
@@ -69,24 +69,24 @@ export function POIPopup({ poi, onClose, onDelete, onUpdate, currentUserId, owne
 
         {/* Note */}
         {poi.note && (
-          <p className="text-slate-400 text-xs mt-1.5 italic line-clamp-2">{poi.note}</p>
+          <p className="text-blue-400 text-xs mt-1.5 italic line-clamp-2">{poi.note}</p>
         )}
 
         {/* Friend attribution */}
         {!isOwn && ownerName && (
-          <p className="text-xs text-slate-500 mt-1">Shared by {ownerName}</p>
+          <p className="text-xs text-blue-500 mt-1">Shared by {ownerName}</p>
         )}
 
         {/* Share toggle & delete — own POIs only */}
         {isOwn && (
-          <div className="mt-2 pt-2 border-t border-slate-700">
+          <div className="mt-2 pt-2 border-t border-blue-700">
             {/* Share toggle */}
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400">Share with friends</span>
+              <span className="text-xs text-blue-400">Share with friends</span>
               <button
                 onClick={() => onUpdate?.(poi.id, { is_public: !poi.is_public })}
                 className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer ${
-                  poi.is_public ? 'bg-orange-500' : 'bg-slate-600'
+                  poi.is_public ? 'bg-yellow-500' : 'bg-blue-700'
                 }`}
               >
                 <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${

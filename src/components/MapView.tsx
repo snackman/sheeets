@@ -406,12 +406,12 @@ export function MapView({
 
   if (!mapboxToken) {
     return (
-      <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+      <div className="w-full h-full bg-blue-950 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-slate-400 text-lg mb-2">
+          <p className="text-blue-400 text-lg mb-2">
             Mapbox token not configured
           </p>
-          <p className="text-slate-500 text-sm">
+          <p className="text-blue-500 text-sm">
             Set NEXT_PUBLIC_MAPBOX_TOKEN in .env.local
           </p>
         </div>
@@ -442,7 +442,7 @@ export function MapView({
           className={`p-2 rounded-lg shadow-lg border transition-colors cursor-pointer ${
             userLocation
               ? 'bg-blue-500 border-blue-400 text-white'
-              : 'bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700'
+              : 'bg-blue-900 border-blue-600 text-blue-300 hover:bg-blue-800'
           } disabled:opacity-50`}
           title="Show my location"
           aria-label="Show my location"

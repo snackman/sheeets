@@ -47,3 +47,5 @@ scripts/migrate-itinerary-ids.ts
 next-env.d.ts
 
 .vercel
+color-replace.js
+fix-remaining.js
