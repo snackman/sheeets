@@ -88,7 +88,7 @@ function ClockPin({
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={cx} cy={cy} r={ir} fill="#1e293b" />
+      <circle cx={cx} cy={cy} r={ir} fill="#1c1917" />
       <path d={wedgePath} fill={color} />
       <circle cx={cx} cy={cy} r={ir} fill="none" stroke="white" strokeWidth={1.5} strokeOpacity={0.8} />
       {/* Clock tick marks at 12, 3, 6, 9 */}
@@ -134,7 +134,7 @@ export function MapMarker({
   return (
     <Marker latitude={latitude} longitude={longitude}>
       {/* Zero-size anchor at lat/lng; everything positioned absolutely from here */}
-      <div className="relative group" style={{ width: 0, height: 0 }}>
+      <div className="relative group" style={{ width: 0, height: 0, zIndex: isFeatured ? 10 : 1 }}>
         {/* Clickable pin */}
         <button
           className="absolute cursor-pointer transition-transform group-hover:scale-110 active:scale-95 focus:outline-none p-2"
@@ -144,7 +144,7 @@ export function MapMarker({
         >
           <div className="relative flex items-center justify-center">
             {/* Clock-face pin */}
-            <div className={`rounded-full ${isFeatured ? 'ring-2 ring-orange-500/60' : ''}`}>
+            <div className={`rounded-full ${isFeatured ? 'ring-2 ring-amber-500/60' : ''}`}>
               <ClockPin
                 startMinutes={startMinutes}
                 endMinutes={endMinutes}
@@ -201,12 +201,12 @@ export function MapMarker({
           >
             <div className={`px-2 py-0.5 rounded text-[10px] text-white max-w-[140px] leading-tight transition-colors ${
               isFeatured
-                ? 'bg-orange-500/20 ring-1 ring-orange-500/40 group-hover:bg-orange-500/30'
-                : 'bg-slate-800/90 group-hover:bg-slate-700/90'
+                ? 'bg-amber-500 ring-1 ring-amber-500 group-hover:bg-amber-600'
+                : 'bg-stone-900/90 group-hover:bg-stone-800/90'
             }`}>
               <div className="truncate whitespace-nowrap">{label}</div>
               {showOrganizer && organizer && (
-                <div className="truncate whitespace-nowrap text-slate-400">{organizer}</div>
+                <div className="truncate whitespace-nowrap text-stone-400">{organizer}</div>
               )}
               {showTagIcons && tags && tags.length > 0 && (
                 <div className="flex flex-wrap items-center gap-0.5 mt-0.5">

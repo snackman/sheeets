@@ -49,7 +49,7 @@ export function FriendMarker({ location, zoom = 12 }: FriendMarkerProps) {
           className={`w-8 h-8 rounded-full border-2 shadow-lg flex items-center justify-center overflow-hidden ${
             isRecent ? 'border-green-400' : 'border-slate-400'
           }`}
-          style={{ backgroundColor: '#1e293b' }}
+          style={{ backgroundColor: '#1c1917' }}
         >
           {avatarUrl && !imgError ? (
             <img
@@ -73,9 +73,9 @@ export function FriendMarker({ location, zoom = 12 }: FriendMarkerProps) {
 
         {/* Name + time label */}
         {showLabel && (
-          <div className="mt-1 px-1.5 py-0.5 rounded bg-slate-800/90 text-[9px] text-white whitespace-nowrap max-w-[100px] truncate text-center leading-tight">
+          <div className="mt-1 px-1.5 py-0.5 rounded bg-stone-900/90 text-[9px] text-white whitespace-nowrap max-w-[100px] truncate text-center leading-tight">
             <div className="font-medium truncate">{name.split(' ')[0]}</div>
-            <div className="text-slate-400">{timeAgo(location.updated_at)}</div>
+            <div className="text-stone-400">{timeAgo(location.updated_at)}</div>
           </div>
         )}
       </div>

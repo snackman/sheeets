@@ -64,6 +64,14 @@ export const VIBE_COLORS: Record<string, string> = {
   'Wellness': '#34D399',
   'Performance': '#34D399',
   'Art': '#34D399',
+  'Session': '#34D399',
+  'Showcase': '#34D399',
+  'Special Event': '#34D399',
+  'Activation': '#34D399',
+  'Lounge': '#34D399',
+  'Exhibition': '#34D399',
+  'Screening': '#34D399',
+  'Vibe': '#34D399',
   '$$': '#A855F7',
   '🍕 Food': '#34D399',
   '🍺 Bar': '#34D399',
@@ -84,14 +92,19 @@ export const VIBE_COLORS: Record<string, string> = {
   'DAOs': '#FBBF24',
   'RWA': '#FBBF24',
   'Gaming': '#FBBF24',
+  'Tech': '#FBBF24',
+  // Pink group — entertainment & culture
+  'Culture': '#F472B6',
+  'Music': '#F472B6',
+  'Film/TV': '#F472B6',
+  'Comedy': '#F472B6',
+  // Teal — education
+  'Education': '#2DD4BF',
   'default': '#6B7280',
 };
 
 /** Tags that describe event format/type (vs topic/interest tags) */
 export const TYPE_TAGS = [
-  '$$',
-  '🍕 Food',
-  '🍺 Bar',
   'Conference',
   'Panel/Talk',
   'Hackathon',
@@ -105,6 +118,14 @@ export const TYPE_TAGS = [
   'Dinner',
   'Wellness',
   'Performance',
+  'Session',
+  'Showcase',
+  'Special Event',
+  'Activation',
+  'Lounge',
+  'Exhibition',
+  'Screening',
+  'Vibe',
 ];
 
 export const STORAGE_KEYS = {
