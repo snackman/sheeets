@@ -142,6 +142,13 @@ export function ListView({
     },
   });
 
+  /* ---- force virtualizer to recalculate once scroll container is mounted ---- */
+  useEffect(() => {
+    if (containerRef.current) {
+      virtualizer.measure();
+    }
+  }, [virtualizer, containerRef]);
+
   /* ---- sticky date header overlay ---- */
   const [stickyLabel, setStickyLabel] = useState<string | null>(null);
   const [stickyCount, setStickyCount] = useState<number>(0);
