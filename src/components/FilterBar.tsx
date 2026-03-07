@@ -2,13 +2,15 @@
 
 import { useState, useRef } from 'react';
 import clsx from 'clsx';
-import { X, SlidersHorizontal, Zap, Users, MapPin, Plus } from 'lucide-react';
+import { X, SlidersHorizontal, Zap, Users, MapPin, Plus, Link2, Check, Loader2 } from 'lucide-react';
 import type { FilterState } from '@/lib/types';
 import { VIBE_COLORS, getTabConfig } from '@/lib/constants';
 import { TAG_ICONS } from './TagBadge';
 import { SearchBar } from './SearchBar';
 import { DateTimePicker } from './DateTimePicker';
-import { trackConferenceSelect, trackDateTimeRange, trackTagToggle, trackNowMode, trackClearFilters, trackFriendFilter } from '@/lib/analytics';
+import { trackConferenceSelect, trackDateTimeRange, trackTagToggle, trackNowMode, trackClearFilters, trackFriendFilter, trackFriendCodeGenerate, trackFriendCodeCopy } from '@/lib/analytics';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 interface FilterBarProps {
   filters: FilterState;
@@ -52,6 +54,62 @@ export function FilterBar({
   const [expanded, setExpanded] = useState(false);
   const [confOpen, setConfOpen] = useState(false);
   const confBtnRef = useRef<HTMLButtonElement | null>(null);
+
+  // Friend invite link state
+  const { user } = useAuth();
+  const [friendLinkCopied, setFriendLinkCopied] = useState(false);
+  const [friendLinkLoading, setFriendLinkLoading] = useState(false);
+
+  async function handleCopyFriendLink() {
+    if (!user || friendLinkLoading) return;
+    setFriendLinkLoading(true);
+
+    try {
+      // Try to fetch existing code
+      const { data: existing } = await supabase
+        .from('friend_codes')
+        .select('code')
+        .eq('user_id', user.id)
+        .single();
+
+      let code = existing?.code;
+
+      if (!code) {
+        // Generate a new code (8 char alphanumeric)
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const arr = new Uint8Array(8);
+        crypto.getRandomValues(arr);
+        code = Array.from(arr, (b) => chars[b % chars.length]).join('');
+
+        const { error } = await supabase
+          .from('friend_codes')
+          .insert({ user_id: user.id, code });
+
+        if (error) {
+          // Could be a race condition — try fetching again
+          const { data: retry } = await supabase
+            .from('friend_codes')
+            .select('code')
+            .eq('user_id', user.id)
+            .single();
+          code = retry?.code;
+          if (!code) throw error;
+        }
+
+        trackFriendCodeGenerate();
+      }
+
+      const link = `${window.location.origin}?fc=${code}`;
+      await navigator.clipboard.writeText(link);
+      trackFriendCodeCopy();
+      setFriendLinkCopied(true);
+      setTimeout(() => setFriendLinkCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy friend link:', err);
+    }
+
+    setFriendLinkLoading(false);
+  }
 
   return (
     <div className="relative bg-stone-950 border-b border-stone-800 z-30">
@@ -305,11 +363,11 @@ export function FilterBar({
             })()}
 
             {/* Friends filter */}
-            {friendsForFilter.length > 0 && (
-              <div>
-                <div className="text-xs uppercase tracking-wider text-stone-400 mb-1">
-                  Friends
-                </div>
+            <div>
+              <div className="text-xs uppercase tracking-wider text-stone-400 mb-1">
+                Friends
+              </div>
+              {friendsForFilter.length > 0 ? (
                 <div className="overflow-x-auto flex gap-2 pb-1">
                   {friendsForFilter.map((friend) => {
                     const isActive = selectedFriends.includes(friend.userId);
@@ -330,8 +388,46 @@ export function FilterBar({
                     );
                   })}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="bg-stone-700/50 rounded-lg p-4 flex items-center gap-3">
+                  <Users className="w-5 h-5 text-stone-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-stone-400 text-sm">Invite friends to see their plans</p>
+                  </div>
+                  {user ? (
+                    <button
+                      onClick={handleCopyFriendLink}
+                      disabled={friendLinkLoading}
+                      className={clsx(
+                        'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer',
+                        friendLinkCopied
+                          ? 'bg-green-500/20 text-green-400'
+                          : 'bg-orange-500 hover:bg-orange-600 text-white'
+                      )}
+                    >
+                      {friendLinkCopied ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          Copied!
+                        </>
+                      ) : friendLinkLoading ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          Copying...
+                        </>
+                      ) : (
+                        <>
+                          <Link2 className="w-3.5 h-3.5" />
+                          Copy invite link
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <span className="shrink-0 text-stone-500 text-sm">Sign in to invite</span>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Clear all */}
             {activeFilterCount > 0 && (
