@@ -85,7 +85,7 @@ function guessTimezoneFromOffset(isoDate: string, fallback: string): string {
 // Platform detection
 // ---------------------------------------------------------------------------
 
-type Platform = 'luma' | 'eventbrite' | 'partiful' | 'meetup';
+type Platform = 'luma' | 'eventbrite' | 'partiful' | 'meetup' | 'posh';
 
 function detectPlatform(url: string): Platform | null {
   try {
@@ -96,6 +96,7 @@ function detectPlatform(url: string): Platform | null {
     if (host.startsWith('eventbrite.')) return 'eventbrite';
     if (host === 'partiful.com') return 'partiful';
     if (host === 'meetup.com') return 'meetup';
+    if (host === 'posh.vip') return 'posh';
   } catch {
     // invalid URL
   }
@@ -472,6 +473,126 @@ async function parseMeetup(url: string): Promise<EventResult> {
 }
 
 // ---------------------------------------------------------------------------
+// Posh parser (JSON-LD + OG + __NEXT_DATA__ fallback)
+// ---------------------------------------------------------------------------
+
+async function parsePosh(url: string): Promise<EventResult> {
+  const html = await fetchHtml(url);
+
+  const jsonLd = parseJsonLdEvent(html);
+  const og = parseOgMeta(html);
+
+  // Try __NEXT_DATA__ as an additional data source (posh.vip is a Next.js app)
+  let nextData: Record<string, unknown> | null = null;
+  const nextDataMatch = html.match(
+    /<script[^>]+id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i
+  );
+  if (nextDataMatch) {
+    try {
+      nextData = JSON.parse(nextDataMatch[1]);
+    } catch {
+      // ignore invalid JSON
+    }
+  }
+
+  // Extract event data from __NEXT_DATA__ props if available
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let nextEvent: any = null;
+  if (nextData) {
+    try {
+      // Navigate through Next.js page props to find event data
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pageProps = (nextData as any)?.props?.pageProps;
+      // Posh may nest event data under various keys
+      nextEvent =
+        pageProps?.event ||
+        pageProps?.eventData ||
+        pageProps?.initialEvent ||
+        null;
+    } catch {
+      // ignore
+    }
+  }
+
+  // Resolve name: JSON-LD > OG > __NEXT_DATA__
+  const name =
+    jsonLd?.name ||
+    og.title ||
+    nextEvent?.name ||
+    nextEvent?.title ||
+    '';
+  if (!name) throw new Error('Could not parse event details from Posh.');
+
+  const DEFAULT_TZ = 'America/New_York';
+
+  // Resolve dates: JSON-LD > __NEXT_DATA__
+  const startDate =
+    jsonLd?.startDate ||
+    nextEvent?.startUtc ||
+    nextEvent?.start ||
+    nextEvent?.startDate ||
+    '';
+  const endDate =
+    jsonLd?.endDate ||
+    nextEvent?.endUtc ||
+    nextEvent?.end ||
+    nextEvent?.endDate ||
+    '';
+
+  // Resolve timezone: __NEXT_DATA__ may include a timezone field
+  const eventTz = nextEvent?.timezone || '';
+  const timezone = eventTz || (startDate ? guessTimezoneFromOffset(startDate, DEFAULT_TZ) : DEFAULT_TZ);
+
+  // Resolve address: JSON-LD > __NEXT_DATA__
+  let address = jsonLd?.address || '';
+  if (!address && nextEvent) {
+    const venue = nextEvent.venueName || nextEvent.venue?.name || '';
+    const loc =
+      nextEvent.venueAddress ||
+      nextEvent.venue?.address ||
+      nextEvent.location ||
+      '';
+    if (venue && loc) {
+      address = `${venue}, ${loc}`;
+    } else {
+      address = venue || loc || '';
+    }
+  }
+
+  // Resolve organizer: JSON-LD > __NEXT_DATA__
+  const organizer =
+    jsonLd?.organizer ||
+    nextEvent?.organizer?.name ||
+    nextEvent?.organizerName ||
+    nextEvent?.group?.name ||
+    '';
+
+  // Resolve cost: JSON-LD > __NEXT_DATA__
+  let cost = jsonLd?.cost || '';
+  if (!cost && nextEvent) {
+    const price = nextEvent.price ?? nextEvent.ticketPrice;
+    if (price === 0 || price === '0' || price === 'free' || price === 'Free') {
+      cost = 'Free';
+    } else if (price != null && price !== '') {
+      cost = typeof price === 'number' ? `$${price}` : String(price);
+    }
+  }
+  if (!cost) cost = 'Free';
+
+  return {
+    name,
+    dateISO: startDate ? formatDateISO(startDate, timezone) : '',
+    startTime24: startDate ? formatTime24(startDate, timezone) : '',
+    endTime24: endDate ? formatTime24(endDate, timezone) : '',
+    address,
+    organizer,
+    cost,
+    link: url.trim(),
+    tags: '',
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Generic parser (JSON-LD + OG fallback for any URL)
 // ---------------------------------------------------------------------------
 
@@ -553,6 +674,9 @@ export async function POST(request: NextRequest) {
         break;
       case 'meetup':
         result = await parseMeetup(trimmedUrl);
+        break;
+      case 'posh':
+        result = await parsePosh(trimmedUrl);
         break;
       default:
         result = await parseGeneric(trimmedUrl);
