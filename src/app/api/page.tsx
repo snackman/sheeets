@@ -23,7 +23,7 @@ function MethodBadge({ method }: { method: string }) {
   };
   return (
     <span
-      className={`inline-block px-2 py-0.5 text-xs font-bold rounded border ${colors[method] ?? 'bg-slate-700 text-slate-300 border-slate-600'}`}
+      className={`inline-block px-2 py-0.5 text-xs font-bold rounded border ${colors[method] ?? 'bg-sky-800 text-sky-300 border-sky-700'}`}
     >
       {method}
     </span>
@@ -99,29 +99,29 @@ function EndpointCard({
   response?: string;
 }) {
   return (
-    <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5 mb-4">
+    <div className="bg-sky-900/50 border border-sky-800 rounded-lg p-5 mb-4">
       <div className="flex flex-wrap items-center gap-2 mb-3">
         <MethodBadge method={method} />
-        <code className="text-sm font-mono text-orange-300 break-all">
+        <code className="text-sm font-mono text-teal-300 break-all">
           {path}
         </code>
         <AuthBadge auth={auth} />
         {scopes && (
-          <span className="text-[10px] text-slate-500 font-mono">
+          <span className="text-[10px] text-sky-500 font-mono">
             {scopes}
           </span>
         )}
       </div>
-      <p className="text-sm text-slate-300 mb-3">{description}</p>
+      <p className="text-sm text-sky-300 mb-3">{description}</p>
       {params && params.length > 0 && (
         <div className="mb-3">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+          <p className="text-xs font-semibold text-sky-400 uppercase tracking-wider mb-2">
             Query Parameters
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-slate-500 text-xs">
+                <tr className="text-left text-sky-500 text-xs">
                   <th className="pb-1 pr-4 font-medium">Param</th>
                   <th className="pb-1 pr-4 font-medium">Type</th>
                   <th className="pb-1 font-medium">Description</th>
@@ -129,16 +129,16 @@ function EndpointCard({
               </thead>
               <tbody>
                 {params.map((p) => (
-                  <tr key={p.name} className="border-t border-slate-700/50">
+                  <tr key={p.name} className="border-t border-sky-800/50">
                     <td className="py-1.5 pr-4">
-                      <code className="text-xs text-orange-300 font-mono">
+                      <code className="text-xs text-teal-300 font-mono">
                         {p.name}
                       </code>
                     </td>
-                    <td className="py-1.5 pr-4 text-xs text-slate-400">
+                    <td className="py-1.5 pr-4 text-xs text-sky-400">
                       {p.type}
                     </td>
-                    <td className="py-1.5 text-xs text-slate-400">
+                    <td className="py-1.5 text-xs text-sky-400">
                       {p.description}
                     </td>
                   </tr>
@@ -150,11 +150,11 @@ function EndpointCard({
       )}
       {body && (
         <div className="mb-3">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+          <p className="text-xs font-semibold text-sky-400 uppercase tracking-wider mb-2">
             Request Body
           </p>
-          <div className="bg-slate-900 rounded p-3 overflow-x-auto">
-            <pre className="text-xs text-slate-300 font-mono whitespace-pre">
+          <div className="bg-sky-950 rounded p-3 overflow-x-auto">
+            <pre className="text-xs text-sky-300 font-mono whitespace-pre">
               {body}
             </pre>
           </div>
@@ -162,11 +162,11 @@ function EndpointCard({
       )}
       {response && (
         <div>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+          <p className="text-xs font-semibold text-sky-400 uppercase tracking-wider mb-2">
             Response
           </p>
-          <div className="bg-slate-900 rounded p-3 overflow-x-auto">
-            <pre className="text-xs text-slate-300 font-mono whitespace-pre">
+          <div className="bg-sky-950 rounded p-3 overflow-x-auto">
+            <pre className="text-xs text-sky-300 font-mono whitespace-pre">
               {response}
             </pre>
           </div>
@@ -182,17 +182,17 @@ function EndpointCard({
 
 export default function ApiDocsPage() {
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-sky-950">
       {/* Nav bar */}
-      <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800">
+      <header className="sticky top-0 z-50 bg-sky-950/95 backdrop-blur-sm border-b border-sky-900">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <Link
             href="/"
-            className="text-sm font-bold text-white hover:text-orange-400 transition-colors"
+            className="text-sm font-bold text-white hover:text-teal-400 transition-colors"
           >
             sheeets.xyz
           </Link>
-          <span className="text-xs text-slate-500 font-mono">
+          <span className="text-xs text-sky-500 font-mono">
             API v0.4.0
           </span>
         </div>
@@ -206,7 +206,7 @@ export default function ApiDocsPage() {
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">
             sheeets API
           </h1>
-          <p className="text-lg text-slate-400 max-w-2xl mb-6">
+          <p className="text-lg text-sky-400 max-w-2xl mb-6">
             A RESTful API for browsing crypto conference side events, managing
             itineraries, and building AI agent integrations. All event data is
             public. Authenticated endpoints let agents act on behalf of users.
@@ -214,19 +214,19 @@ export default function ApiDocsPage() {
           <div className="flex flex-wrap gap-3">
             <a
               href="#quick-start"
-              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors"
+              className="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium rounded-lg transition-colors"
             >
               Quick Start
             </a>
             <a
               href="#endpoints"
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-medium rounded-lg transition-colors"
+              className="px-4 py-2 bg-sky-900 hover:bg-sky-800 border border-sky-800 text-sky-300 text-sm font-medium rounded-lg transition-colors"
             >
               Endpoints
             </a>
             <a
               href="#mcp-server"
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-medium rounded-lg transition-colors"
+              className="px-4 py-2 bg-sky-900 hover:bg-sky-800 border border-sky-800 text-sky-300 text-sm font-medium rounded-lg transition-colors"
             >
               MCP Server
             </a>
@@ -234,8 +234,8 @@ export default function ApiDocsPage() {
         </div>
 
         {/* Table of contents */}
-        <nav className="mb-12 p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+        <nav className="mb-12 p-4 bg-sky-900/50 border border-sky-800 rounded-lg">
+          <p className="text-xs font-semibold text-sky-400 uppercase tracking-wider mb-3">
             On this page
           </p>
           <ul className="space-y-1.5 text-sm">
@@ -256,7 +256,7 @@ export default function ApiDocsPage() {
               <li key={href}>
                 <a
                   href={href}
-                  className="text-slate-400 hover:text-orange-400 transition-colors"
+                  className="text-sky-400 hover:text-teal-400 transition-colors"
                 >
                   {label}
                 </a>
@@ -270,7 +270,7 @@ export default function ApiDocsPage() {
         {/* ============================================================ */}
         <SectionHeading id="quick-start">Quick Start</SectionHeading>
 
-        <p className="text-sm text-slate-300 mb-4">
+        <p className="text-sm text-sky-300 mb-4">
           The event endpoints are public and require no authentication. Try it
           now:
         </p>
@@ -306,9 +306,9 @@ print(data["events"])`,
           ]}
         />
 
-        <p className="text-sm text-slate-400 mt-4">
+        <p className="text-sm text-sky-400 mt-4">
           For authenticated endpoints (itinerary, friends, RSVPs), you need an{' '}
-          <a href="#authentication" className="text-orange-400 hover:underline">
+          <a href="#authentication" className="text-teal-400 hover:underline">
             API key
           </a>
           .
@@ -319,39 +319,39 @@ print(data["events"])`,
         {/* ============================================================ */}
         <SectionHeading id="authentication">Authentication</SectionHeading>
 
-        <p className="text-sm text-slate-300 mb-4">
+        <p className="text-sm text-sky-300 mb-4">
           The API uses two authentication methods depending on the endpoint:
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2 mb-6">
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
+          <div className="bg-sky-900/50 border border-sky-800 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
               <AuthBadge auth="API Key" />
             </div>
-            <p className="text-sm text-slate-300 mb-2">
+            <p className="text-sm text-sky-300 mb-2">
               For most authenticated endpoints. Create an API key from the
               sheeets app or via the{' '}
-              <a href="#api-keys" className="text-orange-400 hover:underline">
+              <a href="#api-keys" className="text-teal-400 hover:underline">
                 key management endpoints
               </a>
               .
             </p>
-            <div className="bg-slate-900 rounded p-3 overflow-x-auto">
-              <code className="text-xs text-slate-300 font-mono">
+            <div className="bg-sky-950 rounded p-3 overflow-x-auto">
+              <code className="text-xs text-sky-300 font-mono">
                 Authorization: Bearer shts_a1b2c3d4...
               </code>
             </div>
           </div>
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
+          <div className="bg-sky-900/50 border border-sky-800 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
               <AuthBadge auth="JWT" />
             </div>
-            <p className="text-sm text-slate-300 mb-2">
+            <p className="text-sm text-sky-300 mb-2">
               For API key management only. Use a Supabase session JWT from the
               web app.
             </p>
-            <div className="bg-slate-900 rounded p-3 overflow-x-auto">
-              <code className="text-xs text-slate-300 font-mono">
+            <div className="bg-sky-950 rounded p-3 overflow-x-auto">
+              <code className="text-xs text-sky-300 font-mono">
                 Authorization: Bearer eyJhbGciOi...
               </code>
             </div>
@@ -360,7 +360,7 @@ print(data["events"])`,
 
         <SubHeading id="auth-flow">How API Key Auth Works</SubHeading>
 
-        <ol className="list-decimal list-inside space-y-2 text-sm text-slate-300 mb-6">
+        <ol className="list-decimal list-inside space-y-2 text-sm text-sky-300 mb-6">
           <li>
             API keys have the format{' '}
             <InlineCode>shts_</InlineCode> + 32 hex characters
@@ -417,13 +417,13 @@ print(data)`,
         {/* ============================================================ */}
         <SubHeading id="base-url">Base URL</SubHeading>
 
-        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 mb-6">
-          <code className="text-sm text-orange-300 font-mono break-all">
+        <div className="bg-sky-900/50 border border-sky-800 rounded-lg p-4 mb-6">
+          <code className="text-sm text-teal-300 font-mono break-all">
             {BASE_URL}
           </code>
         </div>
 
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-sky-400">
           All endpoint paths below are relative to this base URL.
         </p>
 
@@ -434,7 +434,7 @@ print(data)`,
 
         {/* --- Events ------------------------------------------------ */}
         <SubHeading id="events">Events</SubHeading>
-        <p className="text-sm text-slate-400 mb-4">
+        <p className="text-sm text-sky-400 mb-4">
           All event endpoints are public and require no authentication.
         </p>
 
@@ -557,7 +557,7 @@ print(data)`,
 
         {/* --- Itinerary --------------------------------------------- */}
         <SubHeading id="itinerary">Itinerary</SubHeading>
-        <p className="text-sm text-slate-400 mb-4">
+        <p className="text-sm text-sky-400 mb-4">
           Manage the authenticated user&apos;s starred/saved events.
         </p>
 
@@ -672,7 +672,7 @@ print(data)`,
 
         {/* --- Friends ----------------------------------------------- */}
         <SubHeading id="friends">Friends</SubHeading>
-        <p className="text-sm text-slate-400 mb-4">
+        <p className="text-sm text-sky-400 mb-4">
           Read-only access to the authenticated user&apos;s friends list.
         </p>
 
@@ -719,7 +719,7 @@ print(data)`,
 
         {/* --- RSVPs ------------------------------------------------- */}
         <SubHeading id="rsvps">RSVPs</SubHeading>
-        <p className="text-sm text-slate-400 mb-4">
+        <p className="text-sm text-sky-400 mb-4">
           Manage RSVPs for Luma-powered events.
         </p>
 
@@ -760,7 +760,7 @@ print(data)`,
 
         {/* --- Recommendations --------------------------------------- */}
         <SubHeading id="recommendations">Recommendations</SubHeading>
-        <p className="text-sm text-slate-400 mb-4">
+        <p className="text-sm text-sky-400 mb-4">
           Get personalized event suggestions based on the user&apos;s itinerary
           tags and friends&apos; attendance.
         </p>
@@ -788,7 +788,7 @@ print(data)`,
 
         {/* --- API Keys ---------------------------------------------- */}
         <SubHeading id="api-keys">API Key Management</SubHeading>
-        <p className="text-sm text-slate-400 mb-4">
+        <p className="text-sm text-sky-400 mb-4">
           Create and manage API keys. These endpoints require JWT authentication
           (Supabase session token), not API key auth.
         </p>
@@ -850,7 +850,7 @@ print(data)`,
         {/* ============================================================ */}
         <SectionHeading id="scopes">Scopes</SectionHeading>
 
-        <p className="text-sm text-slate-300 mb-4">
+        <p className="text-sm text-sky-300 mb-4">
           API keys are scoped to limit access. Assign only the scopes your agent
           needs.
         </p>
@@ -858,12 +858,12 @@ print(data)`,
         <div className="overflow-x-auto mb-6">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-slate-400 border-b border-slate-700">
+              <tr className="text-left text-sky-400 border-b border-sky-800">
                 <th className="pb-2 pr-4 font-semibold">Scope</th>
                 <th className="pb-2 pr-4 font-semibold">Grants Access To</th>
               </tr>
             </thead>
-            <tbody className="text-slate-300">
+            <tbody className="text-sky-300">
               {[
                 [
                   'events:read',
@@ -888,13 +888,13 @@ print(data)`,
                   'Get personalized event recommendations',
                 ],
               ].map(([scope, desc]) => (
-                <tr key={scope} className="border-b border-slate-700/50">
+                <tr key={scope} className="border-b border-sky-800/50">
                   <td className="py-2.5 pr-4">
-                    <code className="text-xs text-orange-300 font-mono">
+                    <code className="text-xs text-teal-300 font-mono">
                       {scope}
                     </code>
                   </td>
-                  <td className="py-2.5 text-slate-400">{desc}</td>
+                  <td className="py-2.5 text-sky-400">{desc}</td>
                 </tr>
               ))}
             </tbody>
@@ -906,34 +906,34 @@ print(data)`,
         {/* ============================================================ */}
         <SectionHeading id="rate-limits">Rate Limits</SectionHeading>
 
-        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5 mb-6">
+        <div className="bg-sky-900/50 border border-sky-800 rounded-lg p-5 mb-6">
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
               <p className="text-2xl font-bold text-white">60</p>
-              <p className="text-xs text-slate-400">requests per minute</p>
+              <p className="text-xs text-sky-400">requests per minute</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-white">Per Key</p>
-              <p className="text-xs text-slate-400">rate limit scope</p>
+              <p className="text-xs text-sky-400">rate limit scope</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-white">Atomic</p>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-sky-400">
                 Postgres counter (no race conditions)
               </p>
             </div>
           </div>
         </div>
 
-        <p className="text-sm text-slate-300 mb-4">
+        <p className="text-sm text-sky-300 mb-4">
           When rate limited, the API returns{' '}
           <InlineCode>429 Too Many Requests</InlineCode> with a{' '}
           <InlineCode>Retry-After</InlineCode> header indicating seconds to
           wait.
         </p>
 
-        <div className="bg-slate-900 border border-slate-700 rounded-lg p-4 overflow-x-auto mb-6">
-          <pre className="text-sm text-slate-300 font-mono whitespace-pre">{`HTTP/1.1 429 Too Many Requests
+        <div className="bg-sky-950 border border-sky-800 rounded-lg p-4 overflow-x-auto mb-6">
+          <pre className="text-sm text-sky-300 font-mono whitespace-pre">{`HTTP/1.1 429 Too Many Requests
 Retry-After: 45
 Content-Type: application/json
 
@@ -943,7 +943,7 @@ Content-Type: application/json
 }`}</pre>
         </div>
 
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-sky-400">
           Public endpoints (events) are not rate limited per key but are subject
           to Supabase Edge Function concurrency limits.
         </p>
@@ -953,7 +953,7 @@ Content-Type: application/json
         {/* ============================================================ */}
         <SectionHeading id="response-format">Response Format</SectionHeading>
 
-        <p className="text-sm text-slate-300 mb-4">
+        <p className="text-sm text-sky-300 mb-4">
           All responses are JSON. Successful responses return the requested data
           directly. Errors follow a consistent format:
         </p>
@@ -963,8 +963,8 @@ Content-Type: application/json
             <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">
               Success (200)
             </p>
-            <div className="bg-slate-900 border border-slate-700 rounded-lg p-4 overflow-x-auto">
-              <pre className="text-sm text-slate-300 font-mono whitespace-pre">{`{
+            <div className="bg-sky-950 border border-sky-800 rounded-lg p-4 overflow-x-auto">
+              <pre className="text-sm text-sky-300 font-mono whitespace-pre">{`{
   "events": [...],
   "total": 42
 }`}</pre>
@@ -974,8 +974,8 @@ Content-Type: application/json
             <p className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-2">
               Error (4xx / 5xx)
             </p>
-            <div className="bg-slate-900 border border-slate-700 rounded-lg p-4 overflow-x-auto">
-              <pre className="text-sm text-slate-300 font-mono whitespace-pre">{`{
+            <div className="bg-sky-950 border border-sky-800 rounded-lg p-4 overflow-x-auto">
+              <pre className="text-sm text-sky-300 font-mono whitespace-pre">{`{
   "error": "Invalid API key",
   "status": 401
 }`}</pre>
@@ -983,17 +983,17 @@ Content-Type: application/json
           </div>
         </div>
 
-        <p className="text-sm text-slate-300 mb-4">Common HTTP status codes:</p>
+        <p className="text-sm text-sky-300 mb-4">Common HTTP status codes:</p>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm mb-6">
             <thead>
-              <tr className="text-left text-slate-400 border-b border-slate-700">
+              <tr className="text-left text-sky-400 border-b border-sky-800">
                 <th className="pb-2 pr-4 font-semibold">Code</th>
                 <th className="pb-2 font-semibold">Meaning</th>
               </tr>
             </thead>
-            <tbody className="text-slate-300">
+            <tbody className="text-sky-300">
               {[
                 ['200', 'Success'],
                 ['400', 'Bad request (missing or invalid parameters)'],
@@ -1003,13 +1003,13 @@ Content-Type: application/json
                 ['429', 'Rate limited'],
                 ['500', 'Internal server error'],
               ].map(([code, meaning]) => (
-                <tr key={code} className="border-b border-slate-700/50">
+                <tr key={code} className="border-b border-sky-800/50">
                   <td className="py-2 pr-4">
-                    <code className="text-xs font-mono text-orange-300">
+                    <code className="text-xs font-mono text-teal-300">
                       {code}
                     </code>
                   </td>
-                  <td className="py-2 text-slate-400">{meaning}</td>
+                  <td className="py-2 text-sky-400">{meaning}</td>
                 </tr>
               ))}
             </tbody>
@@ -1021,13 +1021,13 @@ Content-Type: application/json
         {/* ============================================================ */}
         <SectionHeading id="mcp-server">MCP Server</SectionHeading>
 
-        <p className="text-sm text-slate-300 mb-4">
+        <p className="text-sm text-sky-300 mb-4">
           The sheeets MCP server wraps this REST API as{' '}
           <a
             href="https://modelcontextprotocol.io"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-orange-400 hover:underline"
+            className="text-teal-400 hover:underline"
           >
             Model Context Protocol
           </a>{' '}
@@ -1054,7 +1054,7 @@ Content-Type: application/json
 
         <SubHeading id="mcp-config">Configuration</SubHeading>
 
-        <p className="text-sm text-slate-300 mb-4">
+        <p className="text-sm text-sky-300 mb-4">
           Add the server to your MCP client config (e.g. Claude Desktop):
         </p>
 
@@ -1080,19 +1080,19 @@ Content-Type: application/json
 
         <SubHeading id="mcp-tools">Available Tools</SubHeading>
 
-        <p className="text-sm text-slate-300 mb-4">
+        <p className="text-sm text-sky-300 mb-4">
           The MCP server exposes the following tools to AI assistants:
         </p>
 
         <div className="overflow-x-auto mb-6">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-slate-400 border-b border-slate-700">
+              <tr className="text-left text-sky-400 border-b border-sky-800">
                 <th className="pb-2 pr-4 font-semibold">Tool</th>
                 <th className="pb-2 font-semibold">Description</th>
               </tr>
             </thead>
-            <tbody className="text-slate-300">
+            <tbody className="text-sky-300">
               {[
                 ['search_events', 'Search and filter events'],
                 ['get_event', 'Get a single event by ID'],
@@ -1112,13 +1112,13 @@ Content-Type: application/json
                 ['rsvp_to_event', 'RSVP to an event'],
                 ['get_recommendations', 'Get personalized suggestions'],
               ].map(([tool, desc]) => (
-                <tr key={tool} className="border-b border-slate-700/50">
+                <tr key={tool} className="border-b border-sky-800/50">
                   <td className="py-2 pr-4">
-                    <code className="text-xs text-orange-300 font-mono">
+                    <code className="text-xs text-teal-300 font-mono">
                       {tool}
                     </code>
                   </td>
-                  <td className="py-2 text-slate-400">{desc}</td>
+                  <td className="py-2 text-sky-400">{desc}</td>
                 </tr>
               ))}
             </tbody>
@@ -1128,21 +1128,21 @@ Content-Type: application/json
         {/* ============================================================ */}
         {/*  Footer                                                      */}
         {/* ============================================================ */}
-        <div className="mt-16 pt-8 border-t border-slate-800">
+        <div className="mt-16 pt-8 border-t border-sky-900">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-sky-400">
                 Built by{' '}
                 <a
                   href="https://sheeets.xyz"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-orange-400 hover:underline"
+                  className="text-teal-400 hover:underline"
                 >
                   sheeets.xyz
                 </a>
               </p>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-sky-500 mt-1">
                 API version 0.4.0
               </p>
             </div>
@@ -1151,13 +1151,13 @@ Content-Type: application/json
                 href="https://github.com/snackman/sheeets"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-slate-400 hover:text-orange-400 transition-colors"
+                className="text-sm text-sky-400 hover:text-teal-400 transition-colors"
               >
                 GitHub
               </a>
               <Link
                 href="/"
-                className="text-sm text-slate-400 hover:text-orange-400 transition-colors"
+                className="text-sm text-sky-400 hover:text-teal-400 transition-colors"
               >
                 Back to App
               </Link>

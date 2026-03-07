@@ -54,7 +54,7 @@ export function FilterBar({
   const confBtnRef = useRef<HTMLButtonElement | null>(null);
 
   return (
-    <div className="relative bg-slate-900 border-b border-slate-800 z-30">
+    <div className="relative bg-sky-950 border-b border-sky-900 z-30">
       <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 space-y-3">
         {/* Top row: Conference tabs + Filter toggle */}
         <div className="flex items-center gap-3 lg:justify-center">
@@ -67,7 +67,7 @@ export function FilterBar({
                   ref={(el) => { confBtnRef.current = el; }}
                   onClick={() => setConfOpen(!confOpen)}
                   className={clsx(
-                    'flex items-center gap-1.5 px-3 py-2 rounded-lg bg-orange-500 text-white font-semibold cursor-pointer',
+                    'flex items-center gap-1.5 px-3 py-2 rounded-lg bg-teal-500 text-white font-semibold cursor-pointer',
                     (filters.conference || 'All').length > 12 ? 'text-xs' : 'text-sm'
                   )}
                 >
@@ -78,7 +78,7 @@ export function FilterBar({
                   <>
                     <div className="fixed inset-0 z-[60]" onClick={() => setConfOpen(false)} />
                     <div
-                      className="fixed z-[70] bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden min-w-[180px]"
+                      className="fixed z-[70] bg-sky-900 border border-sky-800 rounded-lg shadow-xl overflow-hidden min-w-[180px]"
                       style={{
                         top: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().bottom + 4 : 0,
                         left: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().left : 16,
@@ -91,8 +91,8 @@ export function FilterBar({
                           className={clsx(
                             'w-full text-left px-4 py-3 text-sm font-semibold transition-colors cursor-pointer',
                             filters.conference === conf
-                              ? 'bg-orange-500 text-white'
-                              : 'text-slate-300 hover:bg-slate-700 active:bg-slate-700'
+                              ? 'bg-teal-500 text-white'
+                              : 'text-sky-300 hover:bg-sky-800 active:bg-sky-800'
                           )}
                         >
                           {conf}
@@ -104,7 +104,7 @@ export function FilterBar({
               </div>
 
               {/* Desktop: inline tabs */}
-              <div className="hidden sm:flex rounded-lg border border-slate-700 overflow-hidden">
+              <div className="hidden sm:flex rounded-lg border border-sky-800 overflow-hidden">
                 {availableConferences.map((conf) => (
                   <button
                     key={conf}
@@ -112,8 +112,8 @@ export function FilterBar({
                     className={clsx(
                       'px-4 py-2 text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap',
                       filters.conference === conf
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700'
+                        ? 'bg-teal-500 text-white'
+                        : 'bg-sky-900 text-sky-400 hover:text-sky-200 hover:bg-sky-800 active:text-sky-200 active:bg-sky-800'
                     )}
                   >
                     {conf}
@@ -129,7 +129,7 @@ export function FilterBar({
             {onSubmitEvent && (
               <button
                 onClick={onSubmitEvent}
-                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors cursor-pointer"
+                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-teal-500 hover:bg-teal-600 text-white transition-colors cursor-pointer"
                 aria-label="Submit event"
               >
                 <Plus className="w-4 h-4" />
@@ -147,7 +147,7 @@ export function FilterBar({
               'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer',
               filters.nowMode
                 ? 'bg-green-500 text-white shadow-[0_0_12px_rgba(34,197,94,0.4)]'
-                : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700 border border-slate-700'
+                : 'bg-sky-900 text-sky-400 hover:text-sky-200 hover:bg-sky-800 active:text-sky-200 active:bg-sky-800 border border-sky-800'
             )}
           >
             <span className="relative flex items-center">
@@ -165,14 +165,14 @@ export function FilterBar({
             className={clsx(
               'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
               expanded || activeFilterCount > 0
-                ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
-                : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 active:text-slate-200 active:bg-slate-700 border border-slate-700'
+                ? 'bg-teal-500/15 text-teal-400 border border-teal-500/30'
+                : 'bg-sky-900 text-sky-400 hover:text-sky-200 hover:bg-sky-800 active:text-sky-200 active:bg-sky-800 border border-sky-800'
             )}
           >
             <SlidersHorizontal className="w-4 h-4" />
             Filters
             {activeFilterCount > 0 && (
-              <span className="bg-orange-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
+              <span className="bg-teal-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
                 {activeFilterCount}
               </span>
             )}
@@ -185,7 +185,7 @@ export function FilterBar({
           {onSubmitEvent && (
             <button
               onClick={onSubmitEvent}
-              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors cursor-pointer"
+              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-teal-500 hover:bg-teal-600 text-white transition-colors cursor-pointer"
               aria-label="Submit event"
             >
               <Plus className="w-4 h-4" />
@@ -195,7 +195,7 @@ export function FilterBar({
 
         {/* Expandable filter content — overlays map on mobile */}
         {expanded && (
-          <div className="space-y-3 pt-1 sm:relative absolute left-0 right-0 sm:bg-transparent bg-slate-900 sm:px-0 px-2 sm:pb-0 pb-4 sm:shadow-none shadow-lg shadow-black/40">
+          <div className="space-y-3 pt-1 sm:relative absolute left-0 right-0 sm:bg-transparent bg-sky-950 sm:px-0 px-2 sm:pb-0 pb-4 sm:shadow-none shadow-lg shadow-black/40">
             {/* Now mode notice */}
             {filters.nowMode && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
@@ -210,7 +210,7 @@ export function FilterBar({
               return (
                 <div className={clsx('flex gap-3 items-end', filters.nowMode && 'opacity-30 pointer-events-none')}>
                   <div className="w-40 shrink-0">
-                    <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Start</div>
+                    <div className="text-xs uppercase tracking-wider text-sky-400 mb-2">Start</div>
                     <DateTimePicker
                       value={filters.startDateTime}
                       min={`${tabDates[0]}T00:00`}
@@ -224,7 +224,7 @@ export function FilterBar({
                   </div>
                   {(availableTypes.length > 0) && (
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">Type</div>
+                      <div className="text-xs uppercase tracking-wider text-sky-400 mb-1">Type</div>
                       <div className="overflow-x-auto flex gap-2 pb-1">
                         {availableTypes.map((vibe) => {
                           const isActive = filters.vibes.includes(vibe);
@@ -238,7 +238,7 @@ export function FilterBar({
                                 'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                                 isActive
                                   ? 'text-white'
-                                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600 active:bg-slate-600'
+                                  : 'bg-sky-800 text-sky-300 hover:bg-sky-700 active:bg-sky-700'
                               )}
                               style={isActive ? { backgroundColor: vibeColor } : undefined}
                             >
@@ -260,7 +260,7 @@ export function FilterBar({
               return (
                 <div className={clsx('flex gap-3 items-end', filters.nowMode && 'opacity-30 pointer-events-none')}>
                   <div className="w-40 shrink-0">
-                    <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">End</div>
+                    <div className="text-xs uppercase tracking-wider text-sky-400 mb-2">End</div>
                     <DateTimePicker
                       value={filters.endDateTime}
                       min={filters.startDateTime}
@@ -274,7 +274,7 @@ export function FilterBar({
                   </div>
                   {availableVibes.length > 0 && (
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">Tags</div>
+                      <div className="text-xs uppercase tracking-wider text-sky-400 mb-1">Tags</div>
                       <div className="overflow-x-auto flex gap-2 pb-1">
                         {availableVibes.map((vibe) => {
                           const isActive = filters.vibes.includes(vibe);
@@ -288,7 +288,7 @@ export function FilterBar({
                                 'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                                 isActive
                                   ? 'text-white'
-                                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600 active:bg-slate-600'
+                                  : 'bg-sky-800 text-sky-300 hover:bg-sky-700 active:bg-sky-700'
                               )}
                               style={isActive ? { backgroundColor: vibeColor } : undefined}
                             >
@@ -307,7 +307,7 @@ export function FilterBar({
             {/* Friends filter */}
             {friendsForFilter.length > 0 && (
               <div>
-                <div className="text-xs uppercase tracking-wider text-slate-400 mb-1">
+                <div className="text-xs uppercase tracking-wider text-sky-400 mb-1">
                   Friends
                 </div>
                 <div className="overflow-x-auto flex gap-2 pb-1">
@@ -321,7 +321,7 @@ export function FilterBar({
                           'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                           isActive
                             ? 'bg-blue-500 text-white'
-                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600 active:bg-slate-600'
+                            : 'bg-sky-800 text-sky-300 hover:bg-sky-700 active:bg-sky-700'
                         )}
                       >
                         <Users className="w-3.5 h-3.5" />
@@ -338,7 +338,7 @@ export function FilterBar({
               <div className="flex items-center">
                 <button
                   onClick={() => { trackClearFilters(); onClearFilters(); }}
-                  className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 active:text-orange-300 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 text-teal-400 hover:text-teal-300 active:text-teal-300 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                   Clear all

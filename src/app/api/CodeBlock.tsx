@@ -23,8 +23,8 @@ export function CodeBlock({ tabs }: { tabs: Tab[] }) {
   };
 
   return (
-    <div className="rounded-lg border border-slate-700 overflow-hidden">
-      <div className="flex items-center justify-between bg-slate-800 border-b border-slate-700">
+    <div className="rounded-lg border border-sky-800 overflow-hidden">
+      <div className="flex items-center justify-between bg-sky-900 border-b border-sky-800">
         <div className="flex">
           {tabs.map((tab, i) => (
             <button
@@ -32,8 +32,8 @@ export function CodeBlock({ tabs }: { tabs: Tab[] }) {
               onClick={() => setActiveTab(i)}
               className={`px-4 py-2 text-xs font-medium transition-colors cursor-pointer ${
                 activeTab === i
-                  ? 'bg-slate-700 text-white'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-750'
+                  ? 'bg-sky-800 text-white'
+                  : 'text-sky-400 hover:text-sky-200 hover:bg-sky-850'
               }`}
             >
               {tab.label}
@@ -42,14 +42,14 @@ export function CodeBlock({ tabs }: { tabs: Tab[] }) {
         </div>
         <button
           onClick={handleCopy}
-          className="px-3 py-1.5 mr-2 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
+          className="px-3 py-1.5 mr-2 text-xs text-sky-400 hover:text-white transition-colors cursor-pointer"
         >
           {copied ? 'Copied!' : 'Copy'}
         </button>
       </div>
-      <div className="bg-slate-900 p-4 overflow-x-auto">
+      <div className="bg-sky-950 p-4 overflow-x-auto">
         <pre className="text-sm leading-relaxed">
-          <code className="text-slate-300 whitespace-pre">{tabs[activeTab].code}</code>
+          <code className="text-sky-300 whitespace-pre">{tabs[activeTab].code}</code>
         </pre>
       </div>
     </div>
@@ -58,7 +58,7 @@ export function CodeBlock({ tabs }: { tabs: Tab[] }) {
 
 export function InlineCode({ children }: { children: React.ReactNode }) {
   return (
-    <code className="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-sm text-orange-300 font-mono">
+    <code className="px-1.5 py-0.5 bg-sky-900 border border-sky-800 rounded text-sm text-teal-300 font-mono">
       {children}
     </code>
   );

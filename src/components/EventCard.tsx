@@ -64,18 +64,18 @@ function FriendsGoingModal({
 
       {/* Modal */}
       <div
-        className="relative bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-sm"
+        className="relative bg-sky-900 border border-sky-800 rounded-xl shadow-2xl w-full max-w-sm"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-sky-800">
           <div className="min-w-0 flex-1">
             <h3 className="text-sm font-bold text-white">{title}</h3>
-            <p className="text-xs text-slate-400 truncate">{eventName}</p>
+            <p className="text-xs text-sky-400 truncate">{eventName}</p>
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0 ml-2"
+            className="p-1 text-sky-400 hover:text-white transition-colors cursor-pointer shrink-0 ml-2"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -87,7 +87,7 @@ function FriendsGoingModal({
           {friends.map((friend) => (
             <div
               key={friend.userId}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-750 hover:bg-slate-700 transition-colors"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg bg-sky-800 hover:bg-sky-800 transition-colors"
             >
               <div className={`w-8 h-8 rounded-full ${avatarBg} flex items-center justify-center shrink-0`}>
                 <span className={`text-sm font-medium ${avatarText}`}>
@@ -144,8 +144,8 @@ export function EventCard({
   return (
     <div className={`rounded-lg p-4 transition-colors group flex gap-4 overflow-hidden ${
       event.isFeatured
-        ? 'bg-slate-800 border-2 border-orange-500/50 hover:bg-slate-750 hover:border-orange-500/70 active:bg-slate-750 active:border-orange-500/70'
-        : 'bg-slate-800 border border-slate-700 hover:bg-slate-750 hover:border-slate-600 active:bg-slate-750 active:border-slate-600'
+        ? 'bg-sky-900 border-2 border-teal-500/50 hover:bg-sky-800 hover:border-teal-500/70 active:bg-sky-800 active:border-teal-500/70'
+        : 'bg-sky-900 border border-sky-800 hover:bg-sky-800 hover:border-sky-700 active:bg-sky-800 active:border-sky-700'
     }`}>
       {/* Left: cover image */}
       {event.link && <OGImage url={event.link} eventId={event.id} />}
@@ -161,7 +161,7 @@ export function EventCard({
                   href={event.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-orange-400 active:text-orange-400 transition-colors"
+                  className="hover:text-teal-400 active:text-teal-400 transition-colors"
                   onClick={() => trackEventClick(event.name, event.link!)}
                 >
                   {event.name}
@@ -171,7 +171,7 @@ export function EventCard({
               )}
             </h3>
             {event.organizer && (
-              <p className="text-slate-500 text-xs mt-0.5">{event.organizer}</p>
+              <p className="text-sky-500 text-xs mt-0.5">{event.organizer}</p>
             )}
           </div>
 
@@ -187,7 +187,7 @@ export function EventCard({
             {event.link && (
               <button
                 onClick={handleCopyLink}
-                className="p-1 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+                className="p-1 text-sky-500 hover:text-sky-300 transition-colors cursor-pointer"
                 aria-label="Copy event link"
                 title="Copy link"
               >
@@ -203,7 +203,7 @@ export function EventCard({
 
         {/* Date + Time */}
         <div className="relative w-fit mt-1">
-          <p className="text-slate-400 text-sm flex items-start gap-1">
+          <p className="text-sky-400 text-sm flex items-start gap-1">
             <Calendar className="w-3.5 h-3.5 mt-0.5 shrink-0" />
             <span>{event.date} · {timeDisplay}</span>
           </p>
@@ -218,7 +218,7 @@ export function EventCard({
         {event.address && (
           <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
             eventId={event.id} eventName={event.name}
-            className="w-full text-slate-500 hover:text-slate-300 text-sm mt-1 flex items-start gap-1 overflow-hidden transition-colors min-w-0">
+            className="w-full text-sky-500 hover:text-sky-300 text-sm mt-1 flex items-start gap-1 overflow-hidden transition-colors min-w-0">
             <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
             <span className="truncate">{event.address}</span>
           </AddressLink>
@@ -240,7 +240,7 @@ export function EventCard({
               e.stopPropagation();
               setShowFriendsModal(true);
             }}
-            className="flex items-center gap-2 mt-2 px-2 py-1.5 -mx-1 rounded-lg hover:bg-slate-700/50 transition-colors cursor-pointer group/friends w-fit"
+            className="flex items-center gap-2 mt-2 px-2 py-1.5 -mx-1 rounded-lg hover:bg-sky-800/50 transition-colors cursor-pointer group/friends w-fit"
           >
             <Users className="w-3.5 h-3.5 text-blue-400 shrink-0" />
             <span className="text-xs text-blue-400 group-hover/friends:text-blue-300 transition-colors">
@@ -256,7 +256,7 @@ export function EventCard({
               e.stopPropagation();
               setShowCheckedInModal(true);
             }}
-            className="flex items-center gap-2 mt-1 px-2 py-1.5 -mx-1 rounded-lg hover:bg-slate-700/50 transition-colors cursor-pointer group/checkin w-fit"
+            className="flex items-center gap-2 mt-1 px-2 py-1.5 -mx-1 rounded-lg hover:bg-sky-800/50 transition-colors cursor-pointer group/checkin w-fit"
           >
             <MapPin className="w-3.5 h-3.5 text-green-400 shrink-0" />
             <span className="text-xs text-green-400 group-hover/checkin:text-green-300 transition-colors">
@@ -267,7 +267,7 @@ export function EventCard({
 
         {/* Note */}
         {event.note && (
-          <p className="text-slate-600 text-xs mt-1 italic truncate">{event.note}</p>
+          <p className="text-sky-600 text-xs mt-1 italic truncate">{event.note}</p>
         )}
 
         {/* Emoji reactions + Comments inline */}

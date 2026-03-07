@@ -224,11 +224,11 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
       {/* Modal */}
       <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
         <div
-          className="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col"
+          className="bg-sky-900 border border-sky-800 rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 shrink-0">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-sky-800 shrink-0">
             <h2 className="text-base font-bold text-white">
               {step === 'input' && 'Submit Event'}
               {step === 'form' && 'Event Details'}
@@ -236,7 +236,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
             </h2>
             <button
               onClick={handleClose}
-              className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1 text-sky-400 hover:text-white transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -247,12 +247,12 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
             {/* Step 1: Luma URL Input */}
             {step === 'input' && (
               <div className="space-y-4">
-                <p className="text-slate-400 text-sm">
+                <p className="text-sky-400 text-sm">
                   Paste an event URL to auto-fill the details, or enter manually.
                 </p>
 
-                <div className="flex items-center gap-2 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 focus-within:border-orange-500 transition-colors">
-                  <LinkIcon className="w-4 h-4 text-slate-500 shrink-0" />
+                <div className="flex items-center gap-2 bg-sky-950 border border-sky-700 rounded-lg px-3 py-2.5 focus-within:border-teal-500 transition-colors">
+                  <LinkIcon className="w-4 h-4 text-sky-500 shrink-0" />
                   <input
                     type="url"
                     value={lumaUrl}
@@ -264,7 +264,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
                       }
                     }}
                     placeholder="Paste any event URL"
-                    className="flex-1 bg-transparent text-white text-sm outline-none placeholder:text-slate-500"
+                    className="flex-1 bg-transparent text-white text-sm outline-none placeholder:text-sky-500"
                     autoFocus
                   />
                 </div>
@@ -272,7 +272,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
                 {fetchError && <p className="text-red-400 text-xs">{fetchError}</p>}
 
                 {fetchLoading ? (
-                  <div className="flex items-center justify-center gap-2 py-2.5 text-slate-400 text-sm">
+                  <div className="flex items-center justify-center gap-2 py-2.5 text-sky-400 text-sm">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Fetching event details...
                   </div>
@@ -280,7 +280,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
                   <button
                     onClick={() => handleFetchLuma(lumaUrl)}
                     disabled={!lumaUrl.trim()}
-                    className="w-full px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full px-4 py-2.5 bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
                   >
                     Fetch Event
                   </button>
@@ -288,7 +288,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
 
                 <button
                   onClick={handleEnterManually}
-                  className="w-full text-slate-400 hover:text-slate-300 text-xs text-center cursor-pointer"
+                  className="w-full text-sky-400 hover:text-sky-300 text-xs text-center cursor-pointer"
                 >
                   or enter details manually
                 </button>
@@ -300,11 +300,11 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
               <div className="space-y-4">
                 {/* Conference selector */}
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Conference</label>
+                  <label className="block text-xs font-medium text-sky-400 mb-1">Conference</label>
                   <select
                     value={conference}
                     onChange={(e) => setConference(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none"
+                    className="w-full bg-sky-950 border border-sky-700 rounded-lg text-white text-sm px-3 py-2 focus:border-teal-500 focus:outline-none"
                   >
                     {EVENT_TABS.map((t) => (
                       <option key={t.gid} value={t.name}>
@@ -316,7 +316,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
 
                 {/* Event name */}
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-medium text-sky-400 mb-1">
                     Event Name <span className="text-red-400">*</span>
                   </label>
                   <input
@@ -324,26 +324,26 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Builders Night"
-                    className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-slate-500"
+                    className="w-full bg-sky-950 border border-sky-700 rounded-lg text-white text-sm px-3 py-2 focus:border-teal-500 focus:outline-none placeholder:text-sky-500"
                   />
                 </div>
 
                 {/* Date + Times row */}
                 <div className="flex items-end gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                    <label className="block text-xs font-medium text-sky-400 mb-1">
                       Date <span className="text-red-400">*</span>
                     </label>
                     <input
                       type="date"
                       value={dateISO}
                       onChange={(e) => setDateISO(e.target.value)}
-                      className="bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-1.5 focus:border-orange-500 focus:outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:invert"
+                      className="bg-sky-950 border border-sky-700 rounded-lg text-white text-sm px-3 py-1.5 focus:border-teal-500 focus:outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:invert"
                       style={{ colorScheme: 'dark' }}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">Start</label>
+                    <label className="block text-xs font-medium text-sky-400 mb-1">Start</label>
                     <Dropdown
                       value={startTime24 || ''}
                       options={['', ...TIME_OPTIONS]}
@@ -354,7 +354,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">End</label>
+                    <label className="block text-xs font-medium text-sky-400 mb-1">End</label>
                     <Dropdown
                       value={endTime24 || ''}
                       options={['', ...TIME_OPTIONS]}
@@ -368,49 +368,49 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
 
                 {/* Organizer */}
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Organizer</label>
+                  <label className="block text-xs font-medium text-sky-400 mb-1">Organizer</label>
                   <input
                     type="text"
                     value={organizer}
                     onChange={(e) => setOrganizer(e.target.value)}
                     placeholder="DeFi Alliance"
-                    className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-slate-500"
+                    className="w-full bg-sky-950 border border-sky-700 rounded-lg text-white text-sm px-3 py-2 focus:border-teal-500 focus:outline-none placeholder:text-sky-500"
                   />
                 </div>
 
                 {/* Address */}
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Address</label>
+                  <label className="block text-xs font-medium text-sky-400 mb-1">Address</label>
                   <AddressAutocomplete value={address} onChange={setAddress} />
                 </div>
 
                 {/* Cost */}
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Cost</label>
+                  <label className="block text-xs font-medium text-sky-400 mb-1">Cost</label>
                   <input
                     type="text"
                     value={cost}
                     onChange={(e) => setCost(e.target.value)}
                     placeholder="Free"
-                    className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-slate-500"
+                    className="w-full bg-sky-950 border border-sky-700 rounded-lg text-white text-sm px-3 py-2 focus:border-teal-500 focus:outline-none placeholder:text-sky-500"
                   />
                 </div>
 
                 {/* Link */}
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Link</label>
+                  <label className="block text-xs font-medium text-sky-400 mb-1">Link</label>
                   <input
                     type="url"
                     value={link}
                     onChange={(e) => setLink(e.target.value)}
                     placeholder="Paste any event URL"
-                    className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-slate-500"
+                    className="w-full bg-sky-950 border border-sky-700 rounded-lg text-white text-sm px-3 py-2 focus:border-teal-500 focus:outline-none placeholder:text-sky-500"
                   />
                 </div>
 
                 {/* Tags */}
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1.5">Tags</label>
+                  <label className="block text-xs font-medium text-sky-400 mb-1.5">Tags</label>
                   <div className="flex flex-wrap gap-1.5">
                     {ALL_TAGS.map((tag) => {
                       const isSelected = selectedTags.has(tag);
@@ -430,8 +430,8 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
                                 }
                               : {
                                   backgroundColor: 'transparent',
-                                  borderColor: '#475569', // slate-600
-                                  color: '#94A3B8', // slate-400
+                                  borderColor: '#0369a1', // sky-700
+                                  color: '#7dd3fc', // sky-300
                                 }
                           }
                         >
@@ -449,30 +449,30 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
                       type="checkbox"
                       checked={hasFood}
                       onChange={(e) => setHasFood(e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-orange-500 focus:ring-orange-500 focus:ring-offset-0 cursor-pointer"
+                      className="w-4 h-4 rounded border-sky-700 bg-sky-950 text-teal-500 focus:ring-teal-500 focus:ring-offset-0 cursor-pointer"
                     />
-                    <span className="text-sm text-slate-300">Food</span>
+                    <span className="text-sm text-sky-300">Food</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={hasBar}
                       onChange={(e) => setHasBar(e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-orange-500 focus:ring-orange-500 focus:ring-offset-0 cursor-pointer"
+                      className="w-4 h-4 rounded border-sky-700 bg-sky-950 text-teal-500 focus:ring-teal-500 focus:ring-offset-0 cursor-pointer"
                     />
-                    <span className="text-sm text-slate-300">Bar</span>
+                    <span className="text-sm text-sky-300">Bar</span>
                   </label>
                 </div>
 
                 {/* Note */}
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Note</label>
+                  <label className="block text-xs font-medium text-sky-400 mb-1">Note</label>
                   <textarea
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="Any additional details..."
                     rows={2}
-                    className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm px-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-slate-500 resize-none"
+                    className="w-full bg-sky-950 border border-sky-700 rounded-lg text-white text-sm px-3 py-2 focus:border-teal-500 focus:outline-none placeholder:text-sky-500 resize-none"
                   />
                 </div>
 
@@ -481,7 +481,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
                 <button
                   onClick={handleSubmit}
                   disabled={submitLoading || !name.trim() || !dateISO}
-                  className="w-full px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full px-4 py-2.5 bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
                 >
                   {submitLoading ? (
                     <>
@@ -495,7 +495,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
 
                 <button
                   onClick={() => setStep('input')}
-                  className="w-full text-slate-400 hover:text-slate-300 text-xs text-center cursor-pointer"
+                  className="w-full text-sky-400 hover:text-sky-300 text-xs text-center cursor-pointer"
                 >
                   Back
                 </button>
@@ -509,16 +509,16 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
                   <Check className="w-6 h-6 text-green-400" />
                 </div>
                 <p className="text-white font-medium">Event submitted!</p>
-                <p className="text-slate-400 text-sm mt-1">
+                <p className="text-sky-400 text-sm mt-1">
                   It will appear on the schedule shortly.
                 </p>
 
                 {upsellCopy && (
-                  <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-orange-500/10 to-amber-500/10 border border-orange-500/30 text-left">
-                    <h4 className="text-sm font-semibold text-orange-300 mb-1">{upsellCopy.heading}</h4>
-                    <p className="text-xs text-slate-400 mb-3">{upsellCopy.body}</p>
+                  <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-teal-500/10 to-sky-500/10 border border-teal-500/30 text-left">
+                    <h4 className="text-sm font-semibold text-teal-300 mb-1">{upsellCopy.heading}</h4>
+                    <p className="text-xs text-sky-400 mb-3">{upsellCopy.body}</p>
                     <a href={upsellCopy.cta_url} target="_blank" rel="noopener noreferrer"
-                       className="inline-block px-4 py-2 text-xs font-semibold bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors">
+                       className="inline-block px-4 py-2 text-xs font-semibold bg-teal-500 hover:bg-teal-600 text-white rounded-lg transition-colors">
                       {upsellCopy.cta_text}
                     </a>
                   </div>
@@ -526,7 +526,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
 
                 <button
                   onClick={handleClose}
-                  className="mt-4 px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  className="mt-4 px-4 py-2 text-sm text-sky-400 hover:text-white transition-colors cursor-pointer"
                 >
                   Close
                 </button>
@@ -536,12 +536,12 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
 
           {/* Footer */}
           {step !== 'success' && (
-            <div className="px-4 py-3 border-t border-slate-700 shrink-0">
+            <div className="px-4 py-3 border-t border-sky-800 shrink-0">
               <a
                 href={sheetUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1.5 text-xs text-slate-500 hover:text-slate-400 transition-colors"
+                className="flex items-center justify-center gap-1.5 text-xs text-sky-500 hover:text-sky-400 transition-colors"
               >
                 <ExternalLink className="w-3 h-3" />
                 or edit spreadsheet directly

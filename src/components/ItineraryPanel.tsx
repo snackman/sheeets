@@ -185,7 +185,7 @@ export function ItineraryPanel({
       hideEls.forEach((el) => (el as HTMLElement).style.display = 'none');
 
       const blob = await toBlob(captureRef.current, {
-        backgroundColor: '#0f172a',
+        backgroundColor: '#082f49',
         pixelRatio: 2,
       });
 
@@ -266,15 +266,15 @@ export function ItineraryPanel({
 
       {/* Panel */}
       <div
-        className={`fixed top-0 right-0 z-[70] h-full w-full max-w-md bg-slate-900 border-l border-slate-700 shadow-2xl transition-transform duration-300 ease-in-out pt-[var(--safe-area-top)] ${
+        className={`fixed top-0 right-0 z-[70] h-full w-full max-w-md bg-sky-950 border-l border-sky-800 shadow-2xl transition-transform duration-300 ease-in-out pt-[var(--safe-area-top)] ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-sky-900">
           <h2 className="text-lg font-bold text-white">
             My Itinerary{' '}
-            <span className="text-sm font-normal text-slate-400">
+            <span className="text-sm font-normal text-sky-400">
               ({itineraryEvents.length} event
               {itineraryEvents.length !== 1 ? 's' : ''})
             </span>
@@ -284,7 +284,7 @@ export function ItineraryPanel({
               <>
                 <Link
                   href="/itinerary"
-                  className="p-1.5 text-slate-400 hover:text-orange-400 active:text-orange-400 transition-colors"
+                  className="p-1.5 text-sky-400 hover:text-teal-400 active:text-teal-400 transition-colors"
                   aria-label="Open full page"
                   title="Open full page"
                 >
@@ -292,7 +292,7 @@ export function ItineraryPanel({
                 </Link>
                 <button
                   onClick={() => downloadICS(itineraryEvents)}
-                  className="p-1.5 text-slate-400 hover:text-orange-400 active:text-orange-400 transition-colors cursor-pointer"
+                  className="p-1.5 text-sky-400 hover:text-teal-400 active:text-teal-400 transition-colors cursor-pointer"
                   aria-label="Export to calendar"
                   title="Export to calendar (.ics)"
                 >
@@ -301,7 +301,7 @@ export function ItineraryPanel({
                 <button
                   onClick={handleSharePNG}
                   disabled={exporting}
-                  className="p-1.5 text-slate-400 hover:text-orange-400 active:text-orange-400 transition-colors cursor-pointer disabled:opacity-50"
+                  className="p-1.5 text-sky-400 hover:text-teal-400 active:text-teal-400 transition-colors cursor-pointer disabled:opacity-50"
                   aria-label="Share as PNG"
                   title="Share as PNG"
                 >
@@ -311,7 +311,7 @@ export function ItineraryPanel({
             )}
             <button
               onClick={onClose}
-              className="p-1 text-slate-400 hover:text-white active:text-white transition-colors cursor-pointer"
+              className="p-1 text-sky-400 hover:text-white active:text-white transition-colors cursor-pointer"
               aria-label="Close itinerary"
             >
               <X className="w-5 h-5" />
@@ -321,15 +321,15 @@ export function ItineraryPanel({
 
         {/* Conference tabs */}
         {conferences.length > 1 && (
-          <div className="flex border-b border-slate-800 px-4">
+          <div className="flex border-b border-sky-900 px-4">
             {conferences.map((conf) => (
               <button
                 key={conf}
                 onClick={() => setSelectedConference(conf)}
                 className={`px-3 py-2 text-xs font-medium transition-colors cursor-pointer border-b-2 ${
                   selectedConference === conf
-                    ? 'border-orange-500 text-white'
-                    : 'border-transparent text-slate-400 hover:text-slate-200 active:text-slate-200'
+                    ? 'border-teal-500 text-white'
+                    : 'border-transparent text-sky-400 hover:text-sky-200 active:text-sky-200'
                 }`}
               >
                 {conf.replace(/ 2026$/, '')}
@@ -343,23 +343,23 @@ export function ItineraryPanel({
           {itineraryEvents.length === 0 ? (
             /* Empty state */
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <CalendarX className="w-12 h-12 text-slate-600 mb-4" />
-              <p className="text-slate-400 font-medium mb-2">
+              <CalendarX className="w-12 h-12 text-sky-600 mb-4" />
+              <p className="text-sky-400 font-medium mb-2">
                 No events in your itinerary yet
               </p>
-              <p className="text-slate-500 text-sm max-w-xs">
+              <p className="text-sky-500 text-sm max-w-xs">
                 Star events and add them to build your schedule!
               </p>
             </div>
           ) : (
             <>
               {/* Capturable content for PNG export */}
-              <div ref={captureRef} className="bg-slate-900">
+              <div ref={captureRef} className="bg-sky-950">
                 {/* Branding header (visible in PNG) */}
                 <div className="pt-3 pb-1 px-1 flex items-center gap-2">
                   <span className="text-base">📅</span>
                   <span className="text-sm font-bold text-white">sheeets.xyz</span>
-                  <span className="text-xs text-slate-500">— My Itinerary</span>
+                  <span className="text-xs text-sky-500">— My Itinerary</span>
                 </div>
 
                 {/* Conflict warning */}
@@ -378,11 +378,11 @@ export function ItineraryPanel({
                   <section key={group.dateISO} className="mt-4">
                     {/* Date header */}
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="h-px flex-1 bg-slate-700" />
-                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                      <div className="h-px flex-1 bg-sky-800" />
+                      <h3 className="text-xs font-bold text-sky-400 uppercase tracking-wider whitespace-nowrap">
                         {group.label}
                       </h3>
-                      <div className="h-px flex-1 bg-slate-700" />
+                      <div className="h-px flex-1 bg-sky-800" />
                     </div>
 
                     {/* Event cards */}
@@ -406,14 +406,14 @@ export function ItineraryPanel({
                           >
                             {/* Drop indicator - above */}
                             {dropIndicator.showAbove && (
-                              <div className="absolute -top-1.5 left-0 right-0 h-0.5 bg-orange-500 rounded-full z-10" />
+                              <div className="absolute -top-1.5 left-0 right-0 h-0.5 bg-teal-500 rounded-full z-10" />
                             )}
 
                             <div
-                              className={`bg-slate-800 rounded-lg p-3 border transition-opacity ${
+                              className={`bg-sky-900 rounded-lg p-3 border transition-opacity ${
                                 hasConflict
                                   ? 'border-amber-500/40'
-                                  : 'border-slate-700'
+                                  : 'border-sky-800'
                               } ${isBeingDragged ? 'opacity-40' : 'opacity-100'}`}
                             >
                               {/* Conflict warning */}
@@ -432,7 +432,7 @@ export function ItineraryPanel({
                                   <div
                                     data-export-hide
                                     {...getDragHandleProps(event.id)}
-                                    className="shrink-0 pt-0.5 text-slate-600 hover:text-slate-400 active:text-slate-400 cursor-grab active:cursor-grabbing touch-none select-none"
+                                    className="shrink-0 pt-0.5 text-sky-600 hover:text-sky-400 active:text-sky-400 cursor-grab active:cursor-grabbing touch-none select-none"
                                     aria-label="Drag to reorder"
                                     title="Drag to reorder"
                                   >
@@ -445,7 +445,7 @@ export function ItineraryPanel({
                                 <button
                                   data-export-hide
                                   onClick={() => onItineraryToggle(event.id)}
-                                  className="shrink-0 p-1 text-slate-500 hover:text-red-400 active:text-red-400 transition-colors cursor-pointer"
+                                  className="shrink-0 p-1 text-sky-500 hover:text-red-400 active:text-red-400 transition-colors cursor-pointer"
                                   aria-label="Remove from itinerary"
                                   title="Remove from itinerary"
                                 >
@@ -454,7 +454,7 @@ export function ItineraryPanel({
                               </div>
 
                               {/* Time */}
-                              <p className={`text-slate-400 text-xs mt-1 ${canDrag ? 'ml-6' : ''}`}>
+                              <p className={`text-sky-400 text-xs mt-1 ${canDrag ? 'ml-6' : ''}`}>
                                 {timeDisplay}
                               </p>
 
@@ -478,7 +478,7 @@ export function ItineraryPanel({
 
                             {/* Drop indicator - below */}
                             {dropIndicator.showBelow && (
-                              <div className="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-orange-500 rounded-full z-10" />
+                              <div className="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-teal-500 rounded-full z-10" />
                             )}
                           </div>
                         );
@@ -489,17 +489,17 @@ export function ItineraryPanel({
 
                 {/* Footer in PNG */}
                 <div className="pt-3 pb-2 text-center">
-                  <span className="text-[10px] text-slate-600">sheeets.xyz — side event guide</span>
+                  <span className="text-[10px] text-sky-600">sheeets.xyz — side event guide</span>
                 </div>
               </div>
 
               {/* Interactive controls (outside capture area) */}
 
               {/* Clear all button */}
-              <div className="mt-6 pt-4 border-t border-slate-800">
+              <div className="mt-6 pt-4 border-t border-sky-900">
                 {showClearConfirm ? (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-slate-400">
+                    <span className="text-sm text-sky-400">
                       Clear all events?
                     </span>
                     <button
@@ -510,7 +510,7 @@ export function ItineraryPanel({
                     </button>
                     <button
                       onClick={() => setShowClearConfirm(false)}
-                      className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 active:bg-slate-600 text-slate-300 text-xs font-medium rounded transition-colors cursor-pointer"
+                      className="px-3 py-1.5 bg-sky-800 hover:bg-sky-700 active:bg-sky-700 text-sky-300 text-xs font-medium rounded transition-colors cursor-pointer"
                     >
                       Cancel
                     </button>
@@ -518,7 +518,7 @@ export function ItineraryPanel({
                 ) : (
                   <button
                     onClick={() => setShowClearConfirm(true)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-300 active:text-slate-300 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-sky-900 hover:bg-sky-800 active:bg-sky-800 border border-sky-800 text-sky-400 hover:text-sky-300 active:text-sky-300 rounded-lg text-sm font-medium transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                     Clear Itinerary

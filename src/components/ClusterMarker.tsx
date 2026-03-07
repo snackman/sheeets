@@ -29,11 +29,11 @@ export function ClusterMarker({
   return (
     <Marker latitude={latitude} longitude={longitude}>
       <button
-        className="flex items-center justify-center rounded-full border-2 border-orange-300/50 cursor-pointer transition-transform hover:scale-110"
+        className="flex items-center justify-center rounded-full border-2 border-teal-300/50 cursor-pointer transition-transform hover:scale-110"
         style={{
           width: size,
           height: size,
-          backgroundColor: 'rgba(249, 115, 22, 0.75)',
+          backgroundColor: 'rgba(20, 184, 166, 0.75)',
         }}
         onClick={handleClick}
         aria-label={`Cluster of ${pointCount} events`}

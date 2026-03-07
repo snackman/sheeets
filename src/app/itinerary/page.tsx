@@ -23,8 +23,8 @@ const MapView = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full bg-slate-900 flex items-center justify-center">
-        <div className="text-slate-400">Loading map...</div>
+      <div className="w-full h-full bg-sky-950 flex items-center justify-center">
+        <div className="text-sky-400">Loading map...</div>
       </div>
     ),
   }
@@ -179,7 +179,7 @@ export default function ItineraryPage() {
       const { toBlob } = await import('html-to-image');
       const hideEls = captureRef.current.querySelectorAll('[data-export-hide]');
       hideEls.forEach((el) => ((el as HTMLElement).style.display = 'none'));
-      const blob = await toBlob(captureRef.current, { backgroundColor: '#0f172a', pixelRatio: 2 });
+      const blob = await toBlob(captureRef.current, { backgroundColor: '#082f49', pixelRatio: 2 });
       hideEls.forEach((el) => ((el as HTMLElement).style.display = ''));
       if (!blob) return;
       const file = new File([blob], 'itinerary.png', { type: 'image/png' });
@@ -230,35 +230,35 @@ export default function ItineraryPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900">
+      <div className="min-h-screen bg-sky-950">
         <Loading />
       </div>
     );
   }
 
   return (
-    <div className={viewMode === 'map' ? 'h-screen flex flex-col bg-slate-900' : 'min-h-screen bg-slate-900'}>
+    <div className={viewMode === 'map' ? 'h-screen flex flex-col bg-sky-950' : 'min-h-screen bg-sky-950'}>
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800">
+      <header className="sticky top-0 z-50 bg-sky-950/95 backdrop-blur-sm border-b border-sky-900">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="p-1.5 text-slate-400 hover:text-white transition-colors"
+              className="p-1.5 text-sky-400 hover:text-white transition-colors"
               aria-label="Back to events"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <h1 className="text-lg font-bold text-white">
               My Itinerary{' '}
-              <span className="text-sm font-normal text-slate-400">
+              <span className="text-sm font-normal text-sky-400">
                 ({itineraryEvents.length} event{itineraryEvents.length !== 1 ? 's' : ''})
               </span>
             </h1>
           </div>
           {/* Conference tabs */}
           {conferences.length > 1 && (
-            <div className="flex rounded-lg border border-slate-700 overflow-hidden">
+            <div className="flex rounded-lg border border-sky-800 overflow-hidden">
               {conferences.map((conf) => (
                 <button
                   key={conf}
@@ -266,8 +266,8 @@ export default function ItineraryPage() {
                   className={clsx(
                     'px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
                     activeConference === conf
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                      ? 'bg-teal-500 text-white'
+                      : 'bg-sky-900 text-sky-400 hover:text-sky-200 hover:bg-sky-800'
                   )}
                 >
                   {conf.replace(/ 2026$/, '')}
@@ -279,7 +279,7 @@ export default function ItineraryPage() {
             {itineraryEvents.length > 0 && (
               <>
                 {/* View toggle */}
-                <div className="flex rounded-lg border border-slate-700 overflow-hidden mr-1">
+                <div className="flex rounded-lg border border-sky-800 overflow-hidden mr-1">
                   {([
                     { mode: 'list' as const, icon: List, label: 'List' },
                     { mode: 'map' as const, icon: MapIcon, label: 'Map' },
@@ -290,8 +290,8 @@ export default function ItineraryPage() {
                       className={clsx(
                         'flex items-center gap-1 px-2 py-1 text-xs font-medium transition-colors cursor-pointer',
                         viewMode === mode
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                          ? 'bg-teal-500 text-white'
+                          : 'bg-sky-900 text-sky-400 hover:text-sky-200 hover:bg-sky-800'
                       )}
                       aria-label={`${label} view`}
                     >
@@ -303,7 +303,7 @@ export default function ItineraryPage() {
 
                 <button
                   onClick={() => downloadICS(itineraryEvents)}
-                  className="p-1.5 text-slate-400 hover:text-orange-400 transition-colors cursor-pointer"
+                  className="p-1.5 text-sky-400 hover:text-teal-400 transition-colors cursor-pointer"
                   aria-label="Export to calendar"
                   title="Export to calendar (.ics)"
                 >
@@ -312,7 +312,7 @@ export default function ItineraryPage() {
                 <button
                   onClick={handleSharePNG}
                   disabled={exporting}
-                  className="p-1.5 text-slate-400 hover:text-orange-400 transition-colors cursor-pointer disabled:opacity-50"
+                  className="p-1.5 text-sky-400 hover:text-teal-400 transition-colors cursor-pointer disabled:opacity-50"
                   aria-label="Share as PNG"
                   title="Share as PNG"
                 >
@@ -325,7 +325,7 @@ export default function ItineraryPage() {
                     'px-2 py-1 text-xs font-medium rounded transition-colors cursor-pointer',
                     shareStatus === 'copied'
                       ? 'bg-emerald-500/20 text-emerald-400'
-                      : 'bg-slate-800 border border-slate-700 text-slate-400 hover:text-orange-400 hover:border-slate-600'
+                      : 'bg-sky-900 border border-sky-800 text-sky-400 hover:text-teal-400 hover:border-sky-700'
                   )}
                   title="Share link"
                 >
@@ -340,14 +340,14 @@ export default function ItineraryPage() {
       {/* Content */}
       {itineraryEvents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-          <CalendarX className="w-12 h-12 text-slate-600 mb-4" />
-          <p className="text-slate-400 font-medium mb-2">No events in your itinerary yet</p>
-          <p className="text-slate-500 text-sm max-w-xs mb-4">
+          <CalendarX className="w-12 h-12 text-sky-600 mb-4" />
+          <p className="text-sky-400 font-medium mb-2">No events in your itinerary yet</p>
+          <p className="text-sky-500 text-sm max-w-xs mb-4">
             Star events from the main page to build your schedule!
           </p>
           <Link
             href="/"
-            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors"
+            className="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg text-sm font-medium transition-colors"
           >
             Browse Events
           </Link>
@@ -362,11 +362,11 @@ export default function ItineraryPage() {
         </main>
       ) : (
         <div className="max-w-2xl mx-auto px-4 pb-8">
-          <div ref={captureRef} className="bg-slate-900">
+          <div ref={captureRef} className="bg-sky-950">
             <div className="pt-3 pb-1 px-1 flex items-center gap-2">
               <span className="text-base">📅</span>
               <span className="text-sm font-bold text-white">sheeets.xyz</span>
-              <span className="text-xs text-slate-500">— My Itinerary</span>
+              <span className="text-xs text-sky-500">— My Itinerary</span>
             </div>
 
             {conflicts.size > 0 && (
@@ -381,11 +381,11 @@ export default function ItineraryPage() {
             {dateGroups.map((group) => (
               <section key={group.dateISO} className="mt-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="h-px flex-1 bg-slate-700" />
-                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                  <div className="h-px flex-1 bg-sky-800" />
+                  <h3 className="text-xs font-bold text-sky-400 uppercase tracking-wider whitespace-nowrap">
                     {group.label}
                   </h3>
-                  <div className="h-px flex-1 bg-slate-700" />
+                  <div className="h-px flex-1 bg-sky-800" />
                 </div>
 
                 <div className="space-y-2">
@@ -407,12 +407,12 @@ export default function ItineraryPage() {
                       >
                         {/* Drop indicator - above */}
                         {dropIndicator.showAbove && (
-                          <div className="absolute -top-1.5 left-0 right-0 h-0.5 bg-orange-500 rounded-full z-10" />
+                          <div className="absolute -top-1.5 left-0 right-0 h-0.5 bg-teal-500 rounded-full z-10" />
                         )}
 
                         <div
-                          className={`bg-slate-800 rounded-lg p-3 border transition-opacity ${
-                            hasConflict ? 'border-amber-500/40' : 'border-slate-700'
+                          className={`bg-sky-900 rounded-lg p-3 border transition-opacity ${
+                            hasConflict ? 'border-amber-500/40' : 'border-sky-800'
                           } ${isBeingDragged ? 'opacity-40' : 'opacity-100'}`}
                         >
                           {hasConflict && (
@@ -428,7 +428,7 @@ export default function ItineraryPage() {
                             <div
                               data-export-hide
                               {...getDragHandleProps(event.id)}
-                              className="shrink-0 pt-0.5 text-slate-600 hover:text-slate-400 active:text-slate-400 cursor-grab active:cursor-grabbing touch-none select-none"
+                              className="shrink-0 pt-0.5 text-sky-600 hover:text-sky-400 active:text-sky-400 cursor-grab active:cursor-grabbing touch-none select-none"
                               aria-label="Drag to reorder"
                               title="Drag to reorder"
                             >
@@ -440,7 +440,7 @@ export default function ItineraryPage() {
                                   href={event.link}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="hover:text-orange-400 transition-colors"
+                                  className="hover:text-teal-400 transition-colors"
                                 >
                                   {event.name}
                                 </a>
@@ -451,7 +451,7 @@ export default function ItineraryPage() {
                             <button
                               data-export-hide
                               onClick={() => toggleItinerary(event.id)}
-                              className="shrink-0 p-1 text-slate-500 hover:text-red-400 transition-colors cursor-pointer"
+                              className="shrink-0 p-1 text-sky-500 hover:text-red-400 transition-colors cursor-pointer"
                               aria-label="Remove from itinerary"
                               title="Remove from itinerary"
                             >
@@ -460,15 +460,15 @@ export default function ItineraryPage() {
                           </div>
 
                           {event.organizer && (
-                            <p className="text-slate-500 text-xs mt-0.5 ml-6">By {event.organizer}</p>
+                            <p className="text-sky-500 text-xs mt-0.5 ml-6">By {event.organizer}</p>
                           )}
 
-                          <p className="text-slate-400 text-xs mt-1 ml-6">{timeDisplay}</p>
+                          <p className="text-sky-400 text-xs mt-1 ml-6">{timeDisplay}</p>
 
                           {event.address && (
                             <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
                               eventId={event.id} eventName={event.name}
-                              className="text-slate-500 hover:text-slate-300 text-xs mt-0.5 truncate block transition-colors ml-6">
+                              className="text-sky-500 hover:text-sky-300 text-xs mt-0.5 truncate block transition-colors ml-6">
                               {event.address}
                             </AddressLink>
                           )}
@@ -492,7 +492,7 @@ export default function ItineraryPage() {
 
                         {/* Drop indicator - below */}
                         {dropIndicator.showBelow && (
-                          <div className="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-orange-500 rounded-full z-10" />
+                          <div className="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-teal-500 rounded-full z-10" />
                         )}
                       </div>
                     );
@@ -502,15 +502,15 @@ export default function ItineraryPage() {
             ))}
 
             <div className="pt-3 pb-2 text-center">
-              <span className="text-[10px] text-slate-600">sheeets.xyz — side event guide</span>
+              <span className="text-[10px] text-sky-600">sheeets.xyz — side event guide</span>
             </div>
           </div>
 
           {/* Clear button */}
-          <div className="mt-6 pt-4 border-t border-slate-800">
+          <div className="mt-6 pt-4 border-t border-sky-900">
             {showClearConfirm ? (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-400">Clear all events?</span>
+                <span className="text-sm text-sky-400">Clear all events?</span>
                 <button
                   onClick={() => { clearItinerary(); setShowClearConfirm(false); }}
                   className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded transition-colors cursor-pointer"
@@ -519,7 +519,7 @@ export default function ItineraryPage() {
                 </button>
                 <button
                   onClick={() => setShowClearConfirm(false)}
-                  className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium rounded transition-colors cursor-pointer"
+                  className="px-3 py-1.5 bg-sky-800 hover:bg-sky-700 text-sky-300 text-xs font-medium rounded transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -527,7 +527,7 @@ export default function ItineraryPage() {
             ) : (
               <button
                 onClick={() => setShowClearConfirm(true)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-300 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-sky-900 hover:bg-sky-800 border border-sky-800 text-sky-400 hover:text-sky-300 rounded-lg text-sm font-medium transition-colors cursor-pointer"
               >
                 <Trash2 className="w-4 h-4" />
                 Clear Itinerary
