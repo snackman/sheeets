@@ -175,14 +175,30 @@ export function EventCard({
             )}
           </div>
 
-          {onItineraryToggle && (
-            <StarButton
-              eventId={event.id}
-              isStarred={isInItinerary}
-              onToggle={onItineraryToggle}
-              friendsCount={friendsCount}
-            />
-          )}
+          <div className="flex flex-col items-center shrink-0">
+            {onItineraryToggle && (
+              <StarButton
+                eventId={event.id}
+                isStarred={isInItinerary}
+                onToggle={onItineraryToggle}
+                friendsCount={friendsCount}
+              />
+            )}
+            {event.link && (
+              <button
+                onClick={handleCopyLink}
+                className="p-1 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+                aria-label="Copy event link"
+                title="Copy link"
+              >
+                {copied ? (
+                  <Check className="w-3.5 h-3.5 text-green-400" />
+                ) : (
+                  <Link className="w-3.5 h-3.5" />
+                )}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Date + Time */}
@@ -252,24 +268,6 @@ export function EventCard({
         {/* Note */}
         {event.note && (
           <p className="text-slate-600 text-xs mt-1 italic truncate">{event.note}</p>
-        )}
-
-        {/* Link/copy button bottom-right */}
-        {event.link && (
-          <div className="flex justify-end mt-1">
-            <button
-              onClick={handleCopyLink}
-              className="p-1 shrink-0 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
-              aria-label="Copy event link"
-              title="Copy link"
-            >
-              {copied ? (
-                <Check className="w-3.5 h-3.5 text-green-400" />
-              ) : (
-                <Link className="w-3.5 h-3.5" />
-              )}
-            </button>
-          </div>
         )}
 
         {/* Emoji reactions + Comments inline */}
