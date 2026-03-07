@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEventComments } from '@/hooks/useEventComments';
 import { timeAgo } from '@/lib/time-parse';
 import { getDisplayName, getDisplayInitial } from '@/lib/user-display';
+import { trackCommentExpand, trackCommentAdd, trackCommentDelete, trackCommentVisibilityToggle } from '@/lib/analytics';
 
 interface CommentSectionProps {
   eventId: string;
@@ -24,6 +25,7 @@ export function CommentSection({ eventId, commentCount = 0 }: CommentSectionProp
   const handleSubmit = async () => {
     if (!text.trim()) return;
     await addComment(text, visibility);
+    trackCommentAdd(eventId, visibility);
     setText('');
   };
 
@@ -32,6 +34,7 @@ export function CommentSection({ eventId, commentCount = 0 }: CommentSectionProp
       <button
         onClick={(e) => {
           e.stopPropagation();
+          trackCommentExpand(eventId);
           setExpanded(true);
         }}
         className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-300 transition-colors cursor-pointer"
@@ -78,7 +81,7 @@ export function CommentSection({ eventId, commentCount = 0 }: CommentSectionProp
                     )}
                     {user && comment.user_id === user.id && (
                       <button
-                        onClick={() => deleteComment(comment.id)}
+                        onClick={() => { trackCommentDelete(eventId); deleteComment(comment.id); }}
                         className="opacity-0 group-hover/comment:opacity-100 p-0.5 text-stone-600 hover:text-red-400 transition-all cursor-pointer"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -115,7 +118,7 @@ export function CommentSection({ eventId, commentCount = 0 }: CommentSectionProp
               className="flex-1 bg-transparent text-xs text-white placeholder-slate-500 outline-none min-w-0"
             />
             <button
-              onClick={() => setVisibility(visibility === 'public' ? 'friends' : 'public')}
+              onClick={() => { const next = visibility === 'public' ? 'friends' : 'public'; trackCommentVisibilityToggle(next); setVisibility(next); }}
               className={`text-[9px] px-1.5 py-0.5 rounded border shrink-0 cursor-pointer transition-colors ${
                 visibility === 'friends'
                   ? 'border-blue-400/40 text-blue-400 bg-blue-400/10'

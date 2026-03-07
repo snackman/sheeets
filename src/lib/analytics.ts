@@ -82,3 +82,70 @@ export const trackFriendRequestRejected = () => track('friend_request_rejected')
 export const trackSubmitEventOpen = () => track('submit_event_open');
 export const trackSubmitEventSuccess = (conference: string) =>
   track('submit_event_success', { conference });
+export const trackSubmitEventFetch = (success: boolean) =>
+  track('submit_event_fetch', { success });
+export const trackSubmitEventTagToggle = (tag: string, active: boolean) =>
+  track('submit_event_tag_toggle', { tag, active });
+
+// Reactions
+export const trackReactionToggle = (eventId: string, emoji: string, active: boolean) =>
+  track('reaction_toggle', { event_id: eventId, emoji, active });
+export const trackReactionPickerOpen = () => track('reaction_picker_open');
+
+// Comments
+export const trackCommentExpand = (eventId: string) =>
+  track('comment_expand', { event_id: eventId });
+export const trackCommentAdd = (eventId: string, visibility: string) =>
+  track('comment_add', { event_id: eventId, visibility });
+export const trackCommentDelete = (eventId: string) =>
+  track('comment_delete', { event_id: eventId });
+export const trackCommentVisibilityToggle = (visibility: string) =>
+  track('comment_visibility_toggle', { visibility });
+
+// Event Card
+export const trackCopyEventLink = (eventName: string) =>
+  track('copy_event_link', { event_name: eventName });
+export const trackFriendsGoingOpen = (eventName: string) =>
+  track('friends_going_open', { event_name: eventName });
+export const trackFriendsCheckedInOpen = (eventName: string) =>
+  track('friends_checked_in_open', { event_name: eventName });
+
+// Address / Navigation
+export const trackAddressClick = (address: string) =>
+  track('address_click', { address });
+export const trackCopyAddress = (address: string) =>
+  track('copy_address', { address });
+export const trackNavigation = (provider: string) =>
+  track('navigation', { provider });
+export const trackCheckIn = (eventId: string, success: boolean) =>
+  track('check_in', { event_id: eventId, success });
+export const trackCheckOut = (success: boolean) =>
+  track('check_out', { success });
+
+// Friends Panel
+export const trackFriendExpand = (friendName: string) =>
+  track('friend_expand', { friend_name: friendName });
+export const trackFriendXProfileClick = (xHandle: string) =>
+  track('friend_x_profile_click', { x_handle: xHandle });
+export const trackFriendRemove = () => track('friend_remove');
+
+// Itinerary
+export const trackItineraryClear = () => track('itinerary_clear');
+export const trackItineraryConferenceTab = (conference: string) =>
+  track('itinerary_conference_tab', { conference });
+export const trackItineraryExportIcs = () => track('itinerary_export_ics');
+export const trackItinerarySharePng = () => track('itinerary_share_png');
+export const trackItineraryShareLink = () => track('itinerary_share_link');
+export const trackItineraryReorder = () => track('itinerary_reorder');
+
+// POI
+export const trackPoiAdd = (category: string) =>
+  track('poi_add', { category });
+export const trackPoiCategorySelect = (category: string) =>
+  track('poi_category_select', { category });
+export const trackPoiShareToggle = (isPublic: boolean) =>
+  track('poi_share_toggle', { is_public: isPublic });
+
+// Modals
+export const trackModalDismiss = (modal: string) =>
+  track('modal_dismiss', { modal });

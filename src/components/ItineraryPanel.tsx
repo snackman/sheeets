@@ -9,6 +9,7 @@ import { formatDateLabel } from '@/lib/utils';
 import { sortByStartTime, detectConflicts } from '@/lib/time-parse';
 import { downloadICS } from '@/lib/calendar';
 import { useDragReorder } from '@/hooks/useDragReorder';
+import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryExportIcs, trackItinerarySharePng, trackItineraryReorder } from '@/lib/analytics';
 
 interface ItineraryPanelProps {
   isOpen: boolean;
@@ -139,6 +140,7 @@ export function ItineraryPanel({
   }, [itineraryEvents.length]);
 
   const handleClear = () => {
+    trackItineraryClear();
     onItineraryClear();
     setShowClearConfirm(false);
   };
@@ -152,6 +154,7 @@ export function ItineraryPanel({
   const handleReorder = useCallback(
     (orderedIds: string[]) => {
       if (!onReorder) return;
+      trackItineraryReorder();
       // The drag reorder gives us the visible (conference-filtered) IDs in new order.
       // We need to preserve IDs from other conferences that aren't visible.
       const allIds = [...itinerary];
@@ -215,7 +218,7 @@ export function ItineraryPanel({
                   <ExternalLink className="w-4 h-4" />
                 </Link>
                 <button
-                  onClick={() => downloadICS(itineraryEvents)}
+                  onClick={() => { trackItineraryExportIcs(); downloadICS(itineraryEvents); }}
                   className="p-1.5 text-stone-400 hover:text-amber-400 active:text-amber-400 transition-colors cursor-pointer"
                   aria-label="Export to calendar"
                   title="Export to calendar (.ics)"
@@ -223,7 +226,7 @@ export function ItineraryPanel({
                   <Download className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={handleSharePNG}
+                  onClick={() => { trackItinerarySharePng(); handleSharePNG(); }}
                   disabled={exporting}
                   className="p-1.5 text-stone-400 hover:text-amber-400 active:text-amber-400 transition-colors cursor-pointer disabled:opacity-50"
                   aria-label="Share as PNG"
@@ -249,7 +252,7 @@ export function ItineraryPanel({
             {conferences.map((conf) => (
               <button
                 key={conf}
-                onClick={() => setSelectedConference(conf)}
+                onClick={() => { trackItineraryConferenceTab(conf); setSelectedConference(conf); }}
                 className={`px-3 py-2 text-xs font-medium transition-colors cursor-pointer border-b-2 ${
                   selectedConference === conf
                     ? 'border-amber-500 text-white'

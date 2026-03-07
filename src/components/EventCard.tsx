@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { MapPin, Calendar, Users, X, Link, Check } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
-import { trackEventClick } from '@/lib/analytics';
+import { trackEventClick, trackCopyEventLink, trackFriendsGoingOpen, trackFriendsCheckedInOpen } from '@/lib/analytics';
 import { formatFriendsText } from '@/lib/user-display';
 import { AddressLink } from './AddressLink';
 import { StarButton } from './StarButton';
@@ -125,6 +125,7 @@ export function EventCard({
     e.stopPropagation();
     if (!event.link) return;
     navigator.clipboard.writeText(event.link).then(() => {
+      trackCopyEventLink(event.name);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -231,6 +232,7 @@ export function EventCard({
           <button
             onClick={(e) => {
               e.stopPropagation();
+              trackFriendsGoingOpen(event.name);
               setShowFriendsModal(true);
             }}
             className="flex items-center gap-2 mt-2 px-2 py-1.5 -mx-1 rounded-lg hover:bg-stone-800/50 transition-colors cursor-pointer group/friends w-fit"
@@ -247,6 +249,7 @@ export function EventCard({
           <button
             onClick={(e) => {
               e.stopPropagation();
+              trackFriendsCheckedInOpen(event.name);
               setShowCheckedInModal(true);
             }}
             className="flex items-center gap-2 mt-1 px-2 py-1.5 -mx-1 rounded-lg hover:bg-stone-800/50 transition-colors cursor-pointer group/checkin w-fit"

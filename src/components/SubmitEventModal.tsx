@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Loader2, Check, Link as LinkIcon, ExternalLink } from 'lucide-react';
 import { EVENT_TABS, VIBE_COLORS, TYPE_TAGS, SHEET_ID, getTabConfig } from '@/lib/constants';
-import { trackSubmitEventOpen, trackSubmitEventSuccess } from '@/lib/analytics';
+import { trackSubmitEventOpen, trackSubmitEventSuccess, trackSubmitEventFetch, trackSubmitEventTagToggle, trackModalDismiss } from '@/lib/analytics';
 import type { UpsellCopy } from '@/lib/types';
 import { Dropdown, TIME_OPTIONS, format12Hour } from './DateTimePicker';
 import { AddressAutocomplete } from './AddressAutocomplete';
@@ -86,6 +86,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
   }
 
   function handleClose() {
+    trackModalDismiss('submit_event');
     resetForm();
     onClose();
   }
@@ -110,6 +111,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
       const data = await res.json();
 
       if (!res.ok) {
+        trackSubmitEventFetch(false);
         setFetchError(data.error || 'Failed to fetch event details.');
         setFetchLoading(false);
         fetchingRef.current = false;
@@ -117,6 +119,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
       }
 
       // Pre-fill form with ISO/24h values from API
+      trackSubmitEventFetch(true);
       setName(data.name || '');
       setDateISO(data.dateISO || '');
       setStartTime24(data.startTime24 || '');
@@ -127,6 +130,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
       setLink(data.link || trimmed);
       setStep('form');
     } catch {
+      trackSubmitEventFetch(false);
       setFetchError('Failed to fetch event details. Please try again.');
     }
 
@@ -153,8 +157,10 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
       const next = new Set(prev);
       if (next.has(tag)) {
         next.delete(tag);
+        trackSubmitEventTagToggle(tag, false);
       } else {
         next.add(tag);
+        trackSubmitEventTagToggle(tag, true);
       }
       return next;
     });

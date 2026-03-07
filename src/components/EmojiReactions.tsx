@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { REACTION_EMOJIS } from '@/lib/constants';
 import type { ReactionEmoji } from '@/lib/types';
+import { trackReactionToggle, trackReactionPickerOpen } from '@/lib/analytics';
 
 interface ReactionSummary {
   emoji: ReactionEmoji;
@@ -41,6 +42,7 @@ export function EmojiReactions({
           key={r.emoji}
           onClick={(e) => {
             e.stopPropagation();
+            trackReactionToggle(eventId, r.emoji, !r.reacted);
             onToggle(eventId, r.emoji);
           }}
           className={`${pillSize} rounded-full border transition-colors cursor-pointer inline-flex items-center gap-1 ${
@@ -59,6 +61,7 @@ export function EmojiReactions({
         <button
           onClick={(e) => {
             e.stopPropagation();
+            if (!showPicker) trackReactionPickerOpen();
             setShowPicker(!showPicker);
           }}
           className={`${pillSize} rounded-full border border-stone-600 bg-stone-800/50 text-stone-400 hover:text-stone-200 hover:border-stone-500 transition-colors cursor-pointer inline-flex items-center`}
@@ -81,6 +84,7 @@ export function EmojiReactions({
                   key={emoji}
                   onClick={(e) => {
                     e.stopPropagation();
+                    trackReactionToggle(eventId, emoji, true);
                     onToggle(eventId, emoji as ReactionEmoji);
                     setShowPicker(false);
                   }}

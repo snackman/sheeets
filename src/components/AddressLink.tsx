@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { Navigation, Car, X, MapPinCheck, MapPinOff, Loader2, LogIn, Copy, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { trackAddressClick, trackCopyAddress, trackNavigation, trackCheckIn, trackCheckOut } from '@/lib/analytics';
 
 function buildNavUrls(address: string, lat?: number, lng?: number) {
   const encoded = encodeURIComponent(address);
@@ -114,11 +115,13 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
 
       if (error) throw error;
 
+      trackCheckIn(eventId!, true);
       setCheckInResult({
         ok: true,
         message: eventName ? `Checked in at ${eventName}!` : 'Checked in!',
       });
     } catch (err: unknown) {
+      trackCheckIn(eventId!, false);
       const msg =
         err instanceof GeolocationPositionError
           ? 'Location access denied'
@@ -144,9 +147,11 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
 
       if (error) throw error;
 
+      trackCheckOut(true);
       setCheckInResult({ ok: true, message: 'Checked out!' });
       setActiveCheckIn(null);
     } catch (err: unknown) {
+      trackCheckOut(false);
       const msg = err instanceof Error ? err.message : 'Check-out failed';
       setCheckInResult({ ok: false, message: msg });
     }
@@ -157,6 +162,7 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
   const handleCopyAddress = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(address);
+      trackCopyAddress(address);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -169,9 +175,9 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
   const urls = buildNavUrls(address, lat, lng);
 
   const options = [
-    { label: 'Google Maps', url: urls.google, icon: <Navigation className="w-5 h-5" />, color: 'text-blue-400' },
-    { label: 'Lyft', url: urls.lyft, icon: <Car className="w-5 h-5" />, color: 'text-pink-400' },
-    { label: 'Uber', url: urls.uber, icon: <Car className="w-5 h-5" />, color: 'text-white' },
+    { label: 'Google Maps', url: urls.google, icon: <Navigation className="w-5 h-5" />, color: 'text-blue-400', provider: 'google_maps' },
+    { label: 'Lyft', url: urls.lyft, icon: <Car className="w-5 h-5" />, color: 'text-pink-400', provider: 'lyft' },
+    { label: 'Uber', url: urls.uber, icon: <Car className="w-5 h-5" />, color: 'text-white', provider: 'uber' },
   ];
 
   // Determine which check-in/check-out button to show
@@ -200,7 +206,7 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
               href={opt.url}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={onClose}
+              onClick={() => { trackNavigation(opt.provider); onClose(); }}
               className="flex items-center gap-3 w-full px-4 py-3 text-white hover:bg-stone-800/50 transition-colors rounded-lg"
             >
               <span className={opt.color}>{opt.icon}</span>
@@ -321,10 +327,12 @@ export function AddressLink({ address, navAddress, lat, lng, className, children
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    trackAddressClick(destination);
 
     // Desktop: open Google Maps directly
     const isDesktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     if (isDesktop) {
+      trackNavigation('google_maps');
       const encoded = encodeURIComponent(destination);
       const dest = destination ? encoded : (lat != null ? `${lat},${lng}` : encoded);
       window.open(`https://www.google.com/maps/dir/?api=1&destination=${dest}`, '_blank');

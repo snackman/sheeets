@@ -14,6 +14,7 @@ import { VIBE_COLORS } from '@/lib/tags';
 import { formatDateLabel } from '@/lib/utils';
 import { sortByStartTime, detectConflicts } from '@/lib/time-parse';
 import { downloadICS } from '@/lib/calendar';
+import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryExportIcs, trackItinerarySharePng, trackItineraryShareLink, trackItineraryReorder } from '@/lib/analytics';
 import type { ETHDenverEvent } from '@/lib/types';
 import { Loading } from '@/components/Loading';
 import { EventCard } from '@/components/EventCard';
@@ -101,6 +102,7 @@ export default function ItineraryPage() {
 
   const handleReorder = useCallback(
     (orderedIds: string[]) => {
+      trackItineraryReorder();
       // The drag reorder gives us the visible (conference-filtered) IDs in new order.
       // Preserve IDs from other conferences that aren't visible.
       const allIds = [...itinerary];
@@ -215,7 +217,7 @@ export default function ItineraryPage() {
               {conferences.map((conf) => (
                 <button
                   key={conf}
-                  onClick={() => setActiveConference(conf)}
+                  onClick={() => { trackItineraryConferenceTab(conf); setActiveConference(conf); }}
                   className={clsx(
                     'px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
                     activeConference === conf
@@ -255,7 +257,7 @@ export default function ItineraryPage() {
                 </div>
 
                 <button
-                  onClick={() => downloadICS(itineraryEvents)}
+                  onClick={() => { trackItineraryExportIcs(); downloadICS(itineraryEvents); }}
                   className="p-1.5 text-stone-400 hover:text-amber-400 transition-colors cursor-pointer"
                   aria-label="Export to calendar"
                   title="Export to calendar (.ics)"
@@ -263,7 +265,7 @@ export default function ItineraryPage() {
                   <Download className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={handleSharePNG}
+                  onClick={() => { trackItinerarySharePng(); handleSharePNG(); }}
                   disabled={exporting}
                   className="p-1.5 text-stone-400 hover:text-amber-400 transition-colors cursor-pointer disabled:opacity-50"
                   aria-label="Share as PNG"
@@ -272,7 +274,7 @@ export default function ItineraryPage() {
                   <Share2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={handleShareLink}
+                  onClick={() => { trackItineraryShareLink(); handleShareLink(); }}
                   disabled={shareStatus === 'sharing'}
                   className={clsx(
                     'px-2 py-1 text-xs font-medium rounded transition-colors cursor-pointer',
@@ -465,7 +467,7 @@ export default function ItineraryPage() {
               <div className="flex items-center gap-2">
                 <span className="text-sm text-stone-400">Clear all events?</span>
                 <button
-                  onClick={() => { clearItinerary(); setShowClearConfirm(false); }}
+                  onClick={() => { trackItineraryClear(); clearItinerary(); setShowClearConfirm(false); }}
                   className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded transition-colors cursor-pointer"
                 >
                   Yes, clear

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { X, Trash2, ExternalLink, Users, ChevronRight, Mail } from 'lucide-react';
 import type { Friend } from '@/lib/types';
 import { getDisplayName, getDisplayInitial } from '@/lib/user-display';
+import { trackFriendExpand, trackFriendXProfileClick, trackFriendRemove, trackModalDismiss } from '@/lib/analytics';
 
 interface FriendsPanelProps {
   isOpen: boolean;
@@ -27,7 +28,7 @@ function FriendCard({
     <div className="bg-stone-900 rounded-lg border border-stone-700 overflow-hidden">
       {/* Tappable header */}
       <button
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => { if (!expanded) trackFriendExpand(displayName); setExpanded(!expanded); }}
         className="w-full flex items-center gap-3 p-3 text-left cursor-pointer hover:bg-stone-800 transition-colors"
       >
         {/* Avatar circle with initial */}
@@ -64,6 +65,7 @@ function FriendCard({
               href={`https://twitter.com/${friend.x_handle}`}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackFriendXProfileClick(friend.x_handle!)}
               className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-stone-200 transition-colors"
             >
               <span>X: @{friend.x_handle}</span>
@@ -84,6 +86,7 @@ function FriendCard({
           <button
             onClick={(e) => {
               e.stopPropagation();
+              trackFriendRemove();
               onRemove();
             }}
             className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-red-400 transition-colors cursor-pointer mt-1"
@@ -110,7 +113,7 @@ export function FriendsPanel({
         className={`fixed inset-0 z-[60] bg-black/50 transition-opacity duration-300 ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
-        onClick={onClose}
+        onClick={() => { trackModalDismiss('friends_panel'); onClose(); }}
       />
 
       {/* Panel */}

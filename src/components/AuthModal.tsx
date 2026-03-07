@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, Settings, Link2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { trackAuthSuccess, trackSignOut, trackFriendCodeGenerate, trackFriendCodeCopy } from '@/lib/analytics';
+import { trackAuthSuccess, trackSignOut, trackFriendCodeGenerate, trackFriendCodeCopy, trackModalDismiss } from '@/lib/analytics';
 import { getDisplayName, getDisplayInitial } from '@/lib/user-display';
 
 import { supabase } from '@/lib/supabase';
@@ -40,6 +40,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   }, []);
 
   const handleClose = useCallback(() => {
+    trackModalDismiss('auth');
     reset();
     onClose();
   }, [reset, onClose]);

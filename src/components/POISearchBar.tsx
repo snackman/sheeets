@@ -8,6 +8,7 @@ import {
 import type { MapRef } from 'react-map-gl/mapbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGeocoder } from '@/hooks/useGeocoder';
+import { trackPoiAdd, trackPoiCategorySelect, trackPoiShareToggle } from '@/lib/analytics';
 import type { GeocoderResult } from '@/hooks/useGeocoder';
 import { POI_CATEGORIES } from '@/lib/constants';
 import type { POICategory } from '@/lib/types';
@@ -110,6 +111,7 @@ export function POISearchBar({ onAddPOI, mapRef }: POISearchBarProps) {
       category,
       is_public: isPublic,
     });
+    trackPoiAdd(category);
     setSaving(false);
     handleClose();
   }, [selectedResult, name, category, isPublic, onAddPOI, handleClose]);
@@ -203,7 +205,7 @@ export function POISearchBar({ onAddPOI, mapRef }: POISearchBarProps) {
               return (
                 <button
                   key={cat.value}
-                  onClick={() => setCategory(cat.value as POICategory)}
+                  onClick={() => { trackPoiCategorySelect(cat.value); setCategory(cat.value as POICategory); }}
                   className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-colors cursor-pointer ${
                     isActive
                       ? 'border-white/30 bg-stone-700'
@@ -223,7 +225,7 @@ export function POISearchBar({ onAddPOI, mapRef }: POISearchBarProps) {
             <span className="text-xs text-stone-400">Share with friends</span>
             <button
               type="button"
-              onClick={() => setIsPublic(v => !v)}
+              onClick={() => setIsPublic(v => { trackPoiShareToggle(!v); return !v; })}
               className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer ${
                 isPublic ? 'bg-amber-500' : 'bg-stone-700'
               }`}
