@@ -4,6 +4,7 @@ import { useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { ETHDenverEvent, ReactionEmoji, NativeAd } from '@/lib/types';
 import { formatDateLabel } from '@/lib/utils';
+import { sortByStartTime } from '@/lib/time-parse';
 import { EventCard } from './EventCard';
 import NativeAdCard from './NativeAdCard';
 
@@ -43,27 +44,6 @@ type VirtualListItem =
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-function sortByStartTime(a: ETHDenverEvent, b: ETHDenverEvent): number {
-  if (a.isAllDay && !b.isAllDay) return -1;
-  if (!a.isAllDay && b.isAllDay) return 1;
-  if (a.isAllDay && b.isAllDay) return a.name.localeCompare(b.name);
-
-  const timeToMinutes = (t: string): number => {
-    const normalized = t.toLowerCase().trim();
-    const match = normalized.match(/(\d{1,2}):?(\d{2})?\s*(am?|pm?)?/i);
-    if (!match) return 0;
-    let hour = parseInt(match[1]);
-    const min = match[2] ? parseInt(match[2]) : 0;
-    const isPM = match[3] && match[3].startsWith('p');
-    const isAM = match[3] && match[3].startsWith('a');
-    if (isPM && hour !== 12) hour += 12;
-    if (isAM && hour === 12) hour = 0;
-    return hour * 60 + min;
-  };
-
-  return timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
-}
-
 /** Build the flat virtual list from date-grouped events, interleaving ads. */
 function buildFlatList(
   dateGroups: DateGroup[],
@@ -98,6 +78,7 @@ function buildFlatList(
 /* ------------------------------------------------------------------ */
 /* Component                                                           */
 /* ------------------------------------------------------------------ */
+
 
 export function ListView({
   events,

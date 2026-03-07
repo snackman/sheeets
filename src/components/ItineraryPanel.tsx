@@ -4,8 +4,9 @@ import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { X, AlertTriangle, Trash2, CalendarX, Share2, ExternalLink, Download, GripVertical } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
-import { VIBE_COLORS } from '@/lib/constants';
+import { VIBE_COLORS } from '@/lib/tags';
 import { formatDateLabel } from '@/lib/utils';
+import { sortByStartTime, detectConflicts } from '@/lib/time-parse';
 import { downloadICS } from '@/lib/calendar';
 import { useDragReorder } from '@/hooks/useDragReorder';
 
@@ -24,83 +25,6 @@ interface DateGroup {
   dateISO: string;
   label: string;
   events: ETHDenverEvent[];
-}
-
-/**
- * Parse a time string like "12:00p", "6:00 PM", "2:00p" to minutes since midnight.
- */
-function timeToMinutes(t: string): number | null {
-  if (!t) return null;
-  const normalized = t.toLowerCase().trim();
-  if (normalized === 'all day' || normalized === 'tbd') return null;
-
-  const match = normalized.match(/(\d{1,2}):?(\d{2})?\s*(am?|pm?)?/i);
-  if (!match) return null;
-
-  let hour = parseInt(match[1]);
-  const min = match[2] ? parseInt(match[2]) : 0;
-  const isPM = match[3] && match[3].startsWith('p');
-  const isAM = match[3] && match[3].startsWith('a');
-
-  if (isPM && hour !== 12) hour += 12;
-  if (isAM && hour === 12) hour = 0;
-
-  return hour * 60 + min;
-}
-
-/**
- * Detect events that have time conflicts (overlapping times on the same day).
- */
-function detectConflicts(events: ETHDenverEvent[]): Set<string> {
-  const conflicts = new Set<string>();
-
-  // Group by date
-  const byDate = new Map<string, ETHDenverEvent[]>();
-  for (const event of events) {
-    const key = event.dateISO || 'unknown';
-    if (!byDate.has(key)) byDate.set(key, []);
-    byDate.get(key)!.push(event);
-  }
-
-  // Check overlaps within each day
-  for (const dayEvents of byDate.values()) {
-    for (let i = 0; i < dayEvents.length; i++) {
-      for (let j = i + 1; j < dayEvents.length; j++) {
-        const a = dayEvents[i];
-        const b = dayEvents[j];
-
-        // Skip all-day events for conflict detection
-        if (a.isAllDay || b.isAllDay) continue;
-
-        const aStart = timeToMinutes(a.startTime);
-        const aEnd = timeToMinutes(a.endTime);
-        const bStart = timeToMinutes(b.startTime);
-        const bEnd = timeToMinutes(b.endTime);
-
-        // Can't determine overlap without both start and end times
-        if (aStart === null || aEnd === null || bStart === null || bEnd === null)
-          continue;
-
-        // Two events conflict if: A starts before B ends AND B starts before A ends
-        if (aStart < bEnd && bStart < aEnd) {
-          conflicts.add(a.id);
-          conflicts.add(b.id);
-        }
-      }
-    }
-  }
-
-  return conflicts;
-}
-
-function sortByStartTime(a: ETHDenverEvent, b: ETHDenverEvent): number {
-  if (a.isAllDay && !b.isAllDay) return -1;
-  if (!a.isAllDay && b.isAllDay) return 1;
-  if (a.isAllDay && b.isAllDay) return a.name.localeCompare(b.name);
-
-  const aMin = timeToMinutes(a.startTime) ?? 0;
-  const bMin = timeToMinutes(b.startTime) ?? 0;
-  return aMin - bMin;
 }
 
 export function ItineraryPanel({

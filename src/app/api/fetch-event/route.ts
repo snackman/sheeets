@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { parseBody, FetchEventSchema } from '@/lib/api-validation';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -643,14 +644,10 @@ async function parseGeneric(url: string): Promise<EventResult> {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { url } = body;
+    const { data, error } = await parseBody(request, FetchEventSchema);
+    if (error) return error;
 
-    if (!url || typeof url !== 'string') {
-      return NextResponse.json({ error: 'URL is required' }, { status: 400 });
-    }
-
-    const trimmedUrl = url.trim();
+    const trimmedUrl = data.url.trim();
 
     // Validate it looks like a URL
     try {

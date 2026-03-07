@@ -3,19 +3,8 @@
 import { useState } from 'react';
 import { Marker } from 'react-map-gl/mapbox';
 import type { FriendLocation } from '@/lib/types';
-
-function timeAgo(dateStr: string): string {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diffMs = now - then;
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return 'just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  const diffDay = Math.floor(diffHr / 24);
-  return `${diffDay}d ago`;
-}
+import { timeAgo } from '@/lib/time-parse';
+import { getDisplayName, getDisplayInitial } from '@/lib/user-display';
 
 interface FriendMarkerProps {
   location: FriendLocation;
@@ -25,8 +14,8 @@ interface FriendMarkerProps {
 export function FriendMarker({ location, zoom = 12 }: FriendMarkerProps) {
   const [imgError, setImgError] = useState(false);
 
-  const name = location.display_name || (location.x_handle ? `@${location.x_handle}` : null) || 'Friend';
-  const initial = (location.display_name || location.x_handle || 'F')[0].toUpperCase();
+  const name = getDisplayName(location, 'Friend');
+  const initial = getDisplayInitial(location);
   const showLabel = zoom >= 13;
 
   // Stale if >1h old

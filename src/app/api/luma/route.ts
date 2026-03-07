@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { parseBody, LumaSchema } from '@/lib/api-validation';
 
 /** Extract the slug from a Luma URL (lu.ma/xxx or luma.com/xxx) */
 function getLumaSlug(url: string): string | null {
@@ -49,12 +50,10 @@ function formatCost(priceCents: number | null | undefined): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { url } = body;
+    const { data, error } = await parseBody(request, LumaSchema);
+    if (error) return error;
 
-    if (!url || typeof url !== 'string') {
-      return NextResponse.json({ error: 'URL is required' }, { status: 400 });
-    }
+    const { url } = data;
 
     const slug = getLumaSlug(url.trim());
     if (!slug) {
@@ -75,16 +74,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const data = await res.json();
+    const lumaData = await res.json();
 
-    if (data.kind !== 'event' || !data.data?.event) {
+    if (lumaData.kind !== 'event' || !lumaData.data?.event) {
       return NextResponse.json(
         { error: 'URL does not point to a Luma event.' },
         { status: 422 }
       );
     }
 
-    const event = data.data.event;
+    const event = lumaData.data.event;
     const timezone = event.timezone || 'America/Denver';
 
     // Parse address from geo_address_json, fall back to geo_address_info
@@ -107,7 +106,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get organizer from hosts
-    const organizer = data.data.hosts?.[0]?.name || '';
+    const organizer = lumaData.data.hosts?.[0]?.name || '';
 
     // Format cost
     const cost = formatCost(event.ticket_price_cents);

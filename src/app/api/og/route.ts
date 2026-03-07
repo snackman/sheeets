@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { parseBody, OgBatchSchema } from '@/lib/api-validation';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -319,12 +320,10 @@ export async function GET(request: NextRequest) {
 /** Batch endpoint: resolve and cache multiple event images at once */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const items: { eventId: string; url: string }[] = body.items;
+    const { data, error } = await parseBody(request, OgBatchSchema);
+    if (error) return error;
 
-    if (!Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ results: {} }, { status: 400 });
-    }
+    const { items } = data;
 
     // Limit batch size
     const batch = items.slice(0, 20);

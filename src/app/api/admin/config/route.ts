@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { parseBody, AdminConfigSchema } from '@/lib/api-validation';
 
 function getSupabase() {
   return createClient(
@@ -27,18 +28,16 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = getSupabase();
-  const body = await req.json();
-  const { password, key, value } = body;
+  const { data, error: parseError } = await parseBody(req, AdminConfigSchema);
+  if (parseError) return parseError;
+
+  const { password, key, value } = data;
 
   if (password !== 'trusttheplan') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!key || value === undefined) {
-    return NextResponse.json({ error: 'Missing key or value' }, { status: 400 });
-  }
-
+  const supabase = getSupabase();
   const { error } = await supabase
     .from('admin_config')
     .upsert({ key, value, updated_at: new Date().toISOString() });

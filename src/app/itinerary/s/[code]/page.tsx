@@ -11,8 +11,9 @@ import { useEvents } from '@/hooks/useEvents';
 import { useItinerary } from '@/hooks/useItinerary';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { VIBE_COLORS } from '@/lib/constants';
+import { VIBE_COLORS } from '@/lib/tags';
 import { formatDateLabel } from '@/lib/utils';
+import { sortByStartTime } from '@/lib/time-parse';
 import type { ETHDenverEvent } from '@/lib/types';
 import { Loading } from '@/components/Loading';
 import { AuthModal } from '@/components/AuthModal';
@@ -30,27 +31,6 @@ const MapView = dynamic(
 );
 
 type SharedViewMode = 'list' | 'map';
-
-function sortByStartTime(a: ETHDenverEvent, b: ETHDenverEvent): number {
-  if (a.isAllDay && !b.isAllDay) return -1;
-  if (!a.isAllDay && b.isAllDay) return 1;
-  if (a.isAllDay && b.isAllDay) return a.name.localeCompare(b.name);
-
-  const timeToMinutes = (t: string): number => {
-    const normalized = t.toLowerCase().trim();
-    const match = normalized.match(/(\d{1,2}):?(\d{2})?\s*(am?|pm?)?/i);
-    if (!match) return 0;
-    let hour = parseInt(match[1]);
-    const min = match[2] ? parseInt(match[2]) : 0;
-    const isPM = match[3] && match[3].startsWith('p');
-    const isAM = match[3] && match[3].startsWith('a');
-    if (isPM && hour !== 12) hour += 12;
-    if (isAM && hour === 12) hour = 0;
-    return hour * 60 + min;
-  };
-
-  return timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
-}
 
 export default function SharedItineraryPage() {
   const params = useParams();

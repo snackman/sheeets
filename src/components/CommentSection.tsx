@@ -4,19 +4,8 @@ import { useState } from 'react';
 import { Send, Trash2, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEventComments } from '@/hooks/useEventComments';
-
-function timeAgo(dateStr: string): string {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diffMs = now - then;
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return 'just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  const diffDay = Math.floor(diffHr / 24);
-  return `${diffDay}d ago`;
-}
+import { timeAgo } from '@/lib/time-parse';
+import { getDisplayName, getDisplayInitial } from '@/lib/user-display';
 
 interface CommentSectionProps {
   eventId: string;
@@ -72,10 +61,8 @@ export function CommentSection({ eventId, commentCount = 0 }: CommentSectionProp
       ) : (
         <div className="max-h-[200px] overflow-y-auto space-y-2 mb-2">
           {comments.map((comment) => {
-            const name =
-              comment.display_name ||
-              (comment.x_handle ? `@${comment.x_handle}` : 'Anonymous');
-            const initial = name[0]?.toUpperCase() ?? '?';
+            const name = getDisplayName(comment);
+            const initial = getDisplayInitial(comment);
 
             return (
               <div key={comment.id} className="flex gap-2 group/comment">
