@@ -249,7 +249,7 @@ export function TableView({
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="overflow-auto rounded-lg border border-slate-700 flex-1 min-h-0 min-w-0 overscroll-none"
+        className="overflow-auto rounded-lg border border-blue-700 flex-1 min-h-0 min-w-0 overscroll-none"
       >
         <table className="w-full text-sm text-left md:table-fixed" style={{ minWidth: Math.max(640, 142 + tagsColWidth + 420) }}>
           <colgroup>
@@ -260,7 +260,7 @@ export function TableView({
             <col style={{ width: `calc((100% - 32px - 100px - ${tagsColWidth}px) * 0.28)` }} />                    {/* where */}
             <col style={{ width: tagsColWidth }} />                                                                {/* tags */}
           </colgroup>
-          <thead className="text-xs uppercase tracking-wider text-slate-400 bg-slate-800 border-b border-slate-700 sticky top-0 z-20">
+          <thead className="text-xs uppercase tracking-wider text-blue-400 bg-blue-900 border-b border-blue-700 sticky top-0 z-20">
             <tr>
               <th className="px-3 py-2.5"><Calendar className="w-3.5 h-3.5" /></th>
               <th className="px-3 py-2.5">
@@ -281,7 +281,7 @@ export function TableView({
                   <div className="flex items-center gap-1">
                     <button
                       onClick={downloadCSV}
-                      className="p-1 rounded text-slate-500 hover:text-slate-200 transition-colors cursor-pointer"
+                      className="p-1 rounded text-blue-500 hover:text-blue-200 transition-colors cursor-pointer"
                       title="Download CSV"
                       aria-label="Download CSV"
                     >
@@ -291,7 +291,7 @@ export function TableView({
                       href="https://plan.wtf/data"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1 rounded text-slate-500 hover:text-slate-200 transition-colors"
+                      className="p-1 rounded text-blue-500 hover:text-blue-200 transition-colors"
                       title="Open spreadsheet"
                       aria-label="Open spreadsheet"
                     >
@@ -302,7 +302,7 @@ export function TableView({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-700/50">
+          <tbody className="divide-y divide-blue-700/50">
             {groups.map((group) => (
               <DateGroup
                 key={group.dateISO}
@@ -319,7 +319,7 @@ export function TableView({
         </table>
       </div>
       {events.length === 0 && (
-        <div className="text-center py-12 text-slate-500">
+        <div className="text-center py-12 text-blue-500">
           No events match your filters.
         </div>
       )}
@@ -386,7 +386,7 @@ function EventDetailModal({
           />
           <button
             onClick={onClose}
-            className="absolute top-2 right-2 p-1.5 rounded-full bg-slate-700/80 hover:bg-slate-600 text-slate-300 hover:text-white transition-colors cursor-pointer z-10"
+            className="absolute top-2 right-2 p-1.5 rounded-full bg-blue-800/80 hover:bg-blue-700 text-blue-300 hover:text-white transition-colors cursor-pointer z-10"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -420,13 +420,13 @@ function DateGroup({
       {/* Date separator row */}
       <tr
         ref={(el) => setSeparatorRef(group.dateISO, el)}
-        className="bg-slate-800/80"
+        className="bg-blue-900/80"
         data-date={group.dateISO}
       >
-        <td className="border-b border-slate-700/70"></td>
+        <td className="border-b border-blue-700/70"></td>
         <td
           colSpan={COLUMN_COUNT - 1}
-          className="px-3 py-1.5 text-xs font-semibold text-orange-400/80 uppercase tracking-wider border-b border-slate-700/70"
+          className="px-3 py-1.5 text-xs font-semibold text-orange-400/80 uppercase tracking-wider border-b border-blue-700/70"
         >
           {group.label}
         </td>
@@ -439,7 +439,7 @@ function DateGroup({
         return (
           <tr
             key={event.id}
-            className={`hover:bg-slate-800/70 transition-colors cursor-pointer ${event.isDuplicate ? 'bg-red-950/30' : event.isFeatured ? 'bg-orange-500/5 border-l-2 border-l-orange-500/40' : 'bg-slate-900'}`}
+            className={`hover:bg-blue-900/70 transition-colors cursor-pointer ${event.isDuplicate ? 'bg-red-950/30' : event.isFeatured ? 'bg-orange-500/5 border-l-2 border-l-orange-500/40' : 'bg-blue-950'}`}
             title={event.isDuplicate ? 'Possible duplicate — same name, date, and time as another event' : undefined}
             onClick={(e) => {
               const target = e.target as HTMLElement;
@@ -464,7 +464,7 @@ function DateGroup({
                     }
                   >
                     <Star
-                      className={`w-4 h-4 ${isInItinerary ? 'text-yellow-400 fill-yellow-400' : 'text-slate-600 hover:text-slate-400'}`}
+                      className={`w-4 h-4 ${isInItinerary ? 'text-yellow-400 fill-yellow-400' : 'text-blue-600 hover:text-blue-400'}`}
                     />
                     {fc > 0 && (
                       <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-orange-500 text-white text-[8px] font-bold px-0.5 pointer-events-none">
@@ -477,7 +477,7 @@ function DateGroup({
             </td>
 
             {/* Time */}
-            <td className="px-3 py-2 text-slate-400 whitespace-nowrap">
+            <td className="px-3 py-2 text-blue-400 whitespace-nowrap">
               <span className="relative inline-block">
                 <span>
                   {event.startTime}
@@ -492,12 +492,12 @@ function DateGroup({
             </td>
 
             {/* Organizer (hidden on mobile portrait — shown inside Event cell instead) */}
-            <td className="px-3 py-2 text-slate-400 truncate hidden sm:table-cell" title={event.organizer}>
+            <td className="px-3 py-2 text-blue-400 truncate hidden sm:table-cell" title={event.organizer}>
               {event.organizer}
             </td>
 
             {/* Event Name (+ organizer on mobile portrait) */}
-            <td className="px-3 py-2 font-medium text-slate-100 overflow-hidden truncate max-w-[25ch] sm:max-w-none" title={event.name}>
+            <td className="px-3 py-2 font-medium text-blue-100 overflow-hidden truncate max-w-[25ch] sm:max-w-none" title={event.name}>
               <span className="inline-flex items-center gap-1 max-w-full truncate">
                 {event.isDuplicate && (
                   <span title="Duplicate entry in sheet"><AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" /></span>
@@ -517,14 +517,14 @@ function DateGroup({
                 )}
               </span>
               {event.organizer && (
-                <div className="sm:hidden text-slate-400 text-xs font-normal truncate mt-0.5">
+                <div className="sm:hidden text-blue-400 text-xs font-normal truncate mt-0.5">
                   {event.organizer}
                 </div>
               )}
             </td>
 
             {/* Location */}
-            <td className="px-3 py-2 text-slate-400 truncate max-w-[20ch] sm:max-w-none" title={event.address}>
+            <td className="px-3 py-2 text-blue-400 truncate max-w-[20ch] sm:max-w-none" title={event.address}>
               {event.address ? (
                 <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
                   eventId={event.id} eventName={event.name}

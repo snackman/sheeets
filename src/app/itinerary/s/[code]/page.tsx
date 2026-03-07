@@ -22,8 +22,8 @@ const MapView = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full bg-slate-900 flex items-center justify-center">
-        <div className="text-slate-400">Loading map...</div>
+      <div className="w-full h-full bg-blue-950 flex items-center justify-center">
+        <div className="text-blue-400">Loading map...</div>
       </div>
     ),
   }
@@ -156,7 +156,7 @@ export default function SharedItineraryPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900">
+      <div className="min-h-screen bg-blue-950">
         <Loading />
       </div>
     );
@@ -164,9 +164,9 @@ export default function SharedItineraryPage() {
 
   if (notFound) {
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center px-4">
-        <p className="text-slate-400 text-lg font-medium mb-2">Itinerary not found</p>
-        <p className="text-slate-500 text-sm mb-4">This share link may have expired or is invalid.</p>
+      <div className="min-h-screen bg-blue-950 flex flex-col items-center justify-center px-4">
+        <p className="text-blue-400 text-lg font-medium mb-2">Itinerary not found</p>
+        <p className="text-blue-500 text-sm mb-4">This share link may have expired or is invalid.</p>
         <Link
           href="/"
           className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors"
@@ -178,21 +178,21 @@ export default function SharedItineraryPage() {
   }
 
   return (
-    <div className={viewMode === 'map' ? 'h-screen flex flex-col bg-slate-900' : 'min-h-screen bg-slate-900'}>
+    <div className={viewMode === 'map' ? 'h-screen flex flex-col bg-blue-950' : 'min-h-screen bg-blue-950'}>
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800">
+      <header className="sticky top-0 z-50 bg-blue-950/95 backdrop-blur-sm border-b border-blue-800">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="p-1.5 text-slate-400 hover:text-white transition-colors"
+              className="p-1.5 text-blue-400 hover:text-white transition-colors"
               aria-label="Back to events"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div>
               <h1 className="text-lg font-bold text-white">Shared Itinerary</h1>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-blue-400">
                 {sharedEvents.length} event{sharedEvents.length !== 1 ? 's' : ''}
                 {dateRange && ` · ${dateRange}`}
               </p>
@@ -202,7 +202,7 @@ export default function SharedItineraryPage() {
             {sharedEvents.length > 0 && (
               <>
                 {/* View toggle */}
-                <div className="flex rounded-lg border border-slate-700 overflow-hidden mr-1">
+                <div className="flex rounded-lg border border-blue-700 overflow-hidden mr-1">
                   {([
                     { mode: 'list' as const, icon: List, label: 'List' },
                     { mode: 'map' as const, icon: MapIcon, label: 'Map' },
@@ -214,7 +214,7 @@ export default function SharedItineraryPage() {
                         'flex items-center gap-1 px-2 py-1 text-xs font-medium transition-colors cursor-pointer',
                         viewMode === mode
                           ? 'bg-orange-500 text-white'
-                          : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                          : 'bg-blue-900 text-blue-400 hover:text-blue-200 hover:bg-blue-800'
                       )}
                       aria-label={`${label} view`}
                     >
@@ -231,9 +231,9 @@ export default function SharedItineraryPage() {
 
       {/* Copy to itinerary banner */}
       {sharedEvents.length > 0 && (
-        <div className="bg-slate-800/50 border-b border-slate-800">
+        <div className="bg-blue-900/50 border-b border-blue-800">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-            <p className="text-sm text-slate-300">
+            <p className="text-sm text-blue-300">
               Add these events to your itinerary
             </p>
             <button
@@ -264,9 +264,9 @@ export default function SharedItineraryPage() {
       {/* Content */}
       {sharedEvents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-          <Calendar className="w-12 h-12 text-slate-600 mb-4" />
-          <p className="text-slate-400 font-medium mb-2">No matching events found</p>
-          <p className="text-slate-500 text-sm max-w-xs mb-4">
+          <Calendar className="w-12 h-12 text-blue-600 mb-4" />
+          <p className="text-blue-400 font-medium mb-2">No matching events found</p>
+          <p className="text-blue-500 text-sm max-w-xs mb-4">
             The events in this itinerary may no longer be available.
           </p>
           <Link
@@ -289,11 +289,11 @@ export default function SharedItineraryPage() {
           {dateGroups.map((group) => (
             <section key={group.dateISO} className="mt-4">
               <div className="flex items-center gap-2 mb-2">
-                <div className="h-px flex-1 bg-slate-700" />
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                <div className="h-px flex-1 bg-blue-800" />
+                <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider whitespace-nowrap">
                   {group.label}
                 </h3>
-                <div className="h-px flex-1 bg-slate-700" />
+                <div className="h-px flex-1 bg-blue-800" />
               </div>
 
               <div className="space-y-2">
@@ -306,7 +306,7 @@ export default function SharedItineraryPage() {
                   return (
                     <div
                       key={event.id}
-                      className="bg-slate-800 rounded-lg p-3 border border-slate-700"
+                      className="bg-blue-900 rounded-lg p-3 border border-blue-700"
                     >
                       <h4 className="text-sm font-semibold text-white leading-tight">
                         {event.link ? (
@@ -324,15 +324,15 @@ export default function SharedItineraryPage() {
                       </h4>
 
                       {event.organizer && (
-                        <p className="text-slate-500 text-xs mt-0.5">By {event.organizer}</p>
+                        <p className="text-blue-500 text-xs mt-0.5">By {event.organizer}</p>
                       )}
 
-                      <p className="text-slate-400 text-xs mt-1">{timeDisplay}</p>
+                      <p className="text-blue-400 text-xs mt-1">{timeDisplay}</p>
 
                       {event.address && (
                         <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
                           eventId={event.id} eventName={event.name}
-                          className="text-slate-500 hover:text-slate-300 text-xs mt-0.5 truncate block transition-colors">
+                          className="text-blue-500 hover:text-blue-300 text-xs mt-0.5 truncate block transition-colors">
                           {event.address}
                         </AddressLink>
                       )}
@@ -360,7 +360,7 @@ export default function SharedItineraryPage() {
           ))}
 
           <div className="pt-3 pb-2 text-center">
-            <span className="text-[10px] text-slate-600">sheeets.xyz — side event guide</span>
+            <span className="text-[10px] text-blue-600">sheeets.xyz — side event guide</span>
           </div>
         </div>
       )}

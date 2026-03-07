@@ -80,14 +80,14 @@ export function AddressAutocomplete({
 
   return (
     <div className="relative">
-      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none z-10" />
+      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500 pointer-events-none z-10" />
       <input
         ref={inputRef}
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-slate-900 border border-slate-600 rounded-lg text-white text-sm pl-9 pr-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-slate-500"
+        className="w-full bg-blue-950 border border-blue-600 rounded-lg text-white text-sm pl-9 pr-3 py-2 focus:border-orange-500 focus:outline-none placeholder:text-blue-500"
       />
     </div>
   );

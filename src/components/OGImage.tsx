@@ -55,7 +55,7 @@ export function OGImage({ url, eventId }: OGImageProps) {
   if (error) return null;
 
   return (
-    <div ref={ref} className="shrink-0 w-[88px] sm:w-[106px] rounded-lg overflow-hidden bg-slate-700/30 self-center">
+    <div ref={ref} className="shrink-0 w-[88px] sm:w-[106px] rounded-lg overflow-hidden bg-blue-800/30 self-center">
       {imageUrl && (
         <img
           src={imageUrl}
@@ -66,7 +66,7 @@ export function OGImage({ url, eventId }: OGImageProps) {
         />
       )}
       {!loaded && (
-        <div className="w-full h-[88px] sm:h-[106px] animate-pulse bg-slate-700/50" />
+        <div className="w-full h-[88px] sm:h-[106px] animate-pulse bg-blue-800/50" />
       )}
     </div>
   );
