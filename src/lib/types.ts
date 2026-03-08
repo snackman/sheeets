@@ -191,4 +191,5 @@ export interface AdminConfig {
   upsell_copy: UpsellCopy;
   ad_inventory?: AdInventoryItem[];
   advertise_page?: AdvertisePageConfig;
+  [key: string]: unknown;
 }

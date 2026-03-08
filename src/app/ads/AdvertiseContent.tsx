@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { useAdminConfig } from '@/hooks/useAdminConfig';
+import { EVENT_TABS } from '@/lib/constants';
 import type { AdInventoryItem, AdvertisePageConfig, SponsorshipTier } from '@/lib/types';
 import { Check, ArrowRight, Loader2 } from 'lucide-react';
 
@@ -261,16 +263,19 @@ function TierCard({ tier }: { tier: SponsorshipTier }) {
 
 export function AdvertiseContent() {
   const { config, loading } = useAdminConfig();
+  const [selectedConference, setSelectedConference] = useState(EVENT_TABS[0]?.name || '');
 
-  // Merge admin config with defaults
+  // Load per-conference config, falling back to defaults
+  const rawPageConfig = config?.[`advertise_page:${selectedConference}`] as AdvertisePageConfig | undefined;
   const pageConfig: AdvertisePageConfig = {
     ...DEFAULT_PAGE_CONFIG,
-    ...(config?.advertise_page || {}),
+    ...(rawPageConfig || {}),
   };
 
+  const rawInventory = config?.[`ad_inventory:${selectedConference}`] as AdInventoryItem[] | undefined;
   const inventory: AdInventoryItem[] =
-    config?.ad_inventory && config.ad_inventory.length > 0
-      ? [...config.ad_inventory].sort((a, b) => a.sortOrder - b.sortOrder)
+    rawInventory && rawInventory.length > 0
+      ? [...rawInventory].sort((a, b) => a.sortOrder - b.sortOrder)
       : DEFAULT_INVENTORY;
 
   const tiers = pageConfig.tiers.length > 0
@@ -288,6 +293,23 @@ export function AdvertiseContent() {
 
   return (
     <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 pb-24">
+      {/* Conference selector */}
+      <div className="flex gap-2 mb-8">
+        {EVENT_TABS.map((tab) => (
+          <button
+            key={tab.gid}
+            onClick={() => setSelectedConference(tab.name)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+              selectedConference === tab.name
+                ? 'bg-amber-500 text-stone-900'
+                : 'bg-stone-900 text-stone-400 hover:text-white border border-stone-700'
+            }`}
+          >
+            {tab.name}
+          </button>
+        ))}
+      </div>
+
       {/* ============================================================ */}
       {/*  Hero                                                        */}
       {/* ============================================================ */}
