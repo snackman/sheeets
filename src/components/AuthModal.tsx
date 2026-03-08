@@ -139,7 +139,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             {step === 'email' && (
               <form onSubmit={handleEmailSubmit}>
                 <p className="text-stone-400 text-sm mb-4">
-                  Enter your email to save your itinerary across devices.
+                  Enter your email to save your itinerary, add friends, and add points of interest to the map.
                 </p>
                 <div className="flex items-center gap-2 bg-stone-950 border border-stone-600 rounded-lg px-3 py-2.5 focus-within:border-amber-500 transition-colors">
                   <Mail className="w-4 h-4 text-stone-500 shrink-0" />
