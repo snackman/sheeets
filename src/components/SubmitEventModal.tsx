@@ -13,6 +13,7 @@ interface SubmitEventModalProps {
   isOpen: boolean;
   onClose: () => void;
   upsellCopy?: UpsellCopy;
+  initialConference?: string;
 }
 
 type Step = 'input' | 'form' | 'success';
@@ -25,15 +26,15 @@ function formatDateShort(iso: string): string {
   return `${MONTHS[m - 1]} ${d}`;
 }
 
-// Tags for the selector: TYPE_TAGS excluding '$$', 'Food', 'Bar' + topic tags from VIBE_COLORS
-const EXCLUDED_TAGS = ['$$', '🍕 Food', 'Bar'];
+// Tags for the selector: TYPE_TAGS excluding synthetic tags + topic tags from VIBE_COLORS
+const EXCLUDED_TAGS = ['$$', '🍕 Food', 'Food', 'Bar', 'Drinks'];
 const FORMAT_TAGS = TYPE_TAGS.filter((t) => !EXCLUDED_TAGS.includes(t));
 const TOPIC_TAGS = Object.keys(VIBE_COLORS).filter(
   (t) => !TYPE_TAGS.includes(t) && t !== 'default'
 );
 const ALL_TAGS = [...FORMAT_TAGS, ...TOPIC_TAGS];
 
-export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventModalProps) {
+export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConference }: SubmitEventModalProps) {
   const [step, setStep] = useState<Step>('input');
   const [lumaUrl, setLumaUrl] = useState('');
   const [fetchLoading, setFetchLoading] = useState(false);
@@ -42,7 +43,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
   const [submitError, setSubmitError] = useState('');
 
   // Form fields — date as ISO "2026-03-10", times as 24h "19:00"
-  const [conference, setConference] = useState(EVENT_TABS[0]?.name || '');
+  const [conference, setConference] = useState(initialConference || EVENT_TABS[0]?.name || '');
   const [name, setName] = useState('');
   const [dateISO, setDateISO] = useState('');
   const [startTime24, setStartTime24] = useState('');
@@ -70,7 +71,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
     setFetchError('');
     setSubmitLoading(false);
     setSubmitError('');
-    setConference(EVENT_TABS[0]?.name || '');
+    setConference(initialConference || EVENT_TABS[0]?.name || '');
     setName('');
     setDateISO('');
     setStartTime24('');
@@ -414,11 +415,11 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
                   />
                 </div>
 
-                {/* Tags */}
+                {/* Type */}
                 <div>
-                  <label className="block text-xs font-medium text-stone-400 mb-1.5">Tags</label>
+                  <label className="block text-xs font-medium text-stone-400 mb-1.5">Type</label>
                   <div className="flex flex-wrap gap-1.5">
-                    {ALL_TAGS.map((tag) => {
+                    {FORMAT_TAGS.map((tag) => {
                       const isSelected = selectedTags.has(tag);
                       const color = VIBE_COLORS[tag] || VIBE_COLORS.default;
                       return (
@@ -429,16 +430,8 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
                           className="px-2 py-1 rounded-full text-xs font-medium transition-all cursor-pointer border"
                           style={
                             isSelected
-                              ? {
-                                  backgroundColor: `${color}20`,
-                                  borderColor: color,
-                                  color: color,
-                                }
-                              : {
-                                  backgroundColor: 'transparent',
-                                  borderColor: '#44403c', // slate-600
-                                  color: '#a8a29e', // slate-400
-                                }
+                              ? { backgroundColor: `${color}20`, borderColor: color, color }
+                              : { backgroundColor: 'transparent', borderColor: '#44403c', color: '#a8a29e' }
                           }
                         >
                           {tag}
@@ -448,26 +441,58 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy }: SubmitEventMod
                   </div>
                 </div>
 
-                {/* Food / Bar checkboxes */}
-                <div className="flex items-center gap-6">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={hasFood}
-                      onChange={(e) => setHasFood(e.target.checked)}
-                      className="w-4 h-4 rounded border-stone-600 bg-stone-950 text-amber-500 focus:ring-amber-500 focus:ring-offset-0 cursor-pointer"
-                    />
-                    <span className="text-sm text-stone-300">Food</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={hasBar}
-                      onChange={(e) => setHasBar(e.target.checked)}
-                      className="w-4 h-4 rounded border-stone-600 bg-stone-950 text-amber-500 focus:ring-amber-500 focus:ring-offset-0 cursor-pointer"
-                    />
-                    <span className="text-sm text-stone-300">Bar</span>
-                  </label>
+                {/* Tags */}
+                <div>
+                  <label className="block text-xs font-medium text-stone-400 mb-1.5">Tags</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {TOPIC_TAGS.map((tag) => {
+                      const isSelected = selectedTags.has(tag);
+                      const color = VIBE_COLORS[tag] || VIBE_COLORS.default;
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => toggleTag(tag)}
+                          className="px-2 py-1 rounded-full text-xs font-medium transition-all cursor-pointer border"
+                          style={
+                            isSelected
+                              ? { backgroundColor: `${color}20`, borderColor: color, color }
+                              : { backgroundColor: 'transparent', borderColor: '#44403c', color: '#a8a29e' }
+                          }
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Food / Drinks toggles */}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setHasFood(!hasFood)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
+                      hasFood
+                        ? 'bg-amber-500 text-stone-900'
+                        : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
+                    }`}
+                  >
+                    <span className="text-xs">{hasFood ? '✓' : '+'}</span>
+                    Food
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHasBar(!hasBar)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
+                      hasBar
+                        ? 'bg-amber-500 text-stone-900'
+                        : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
+                    }`}
+                  >
+                    <span className="text-xs">{hasBar ? '✓' : '+'}</span>
+                    Drinks
+                  </button>
                 </div>
 
                 {/* Note */}

@@ -270,7 +270,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
       )}
 
       <AuthModal isOpen={showAuthForStar || showSignIn} onClose={() => { dismissAuth(); setShowSignIn(false); }} />
-      <SubmitEventModal isOpen={showSubmitEvent} onClose={() => setShowSubmitEvent(false)} upsellCopy={config?.upsell_copy} />
+      <SubmitEventModal isOpen={showSubmitEvent} onClose={() => setShowSubmitEvent(false)} upsellCopy={config?.upsell_copy} initialConference={filters.conference} />
       <FriendsPanel
         isOpen={showFriends}
         onClose={() => setShowFriends(false)}
