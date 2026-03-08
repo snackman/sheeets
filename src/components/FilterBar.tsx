@@ -196,7 +196,38 @@ export function FilterBar({
           </div>
 
           {/* Spacer pushes Now + Filters to the right */}
-          <div className="flex-1 md:hidden" />
+          <div className="flex-1 lg:hidden" />
+
+          {/* Desktop inline Start/End pickers */}
+          {(() => {
+            const tabDates = getTabConfig(filters.conference).dates;
+            return (
+              <div className={clsx('hidden lg:flex items-center gap-2', filters.nowMode && 'opacity-30 pointer-events-none')}>
+                <span className="text-xs uppercase text-stone-400">Start</span>
+                <DateTimePicker
+                  value={filters.startDateTime}
+                  min={`${tabDates[0]}T00:00`}
+                  max={filters.endDateTime}
+                  dates={tabDates}
+                  onChange={(v) => {
+                    trackDateTimeRange(v, filters.endDateTime);
+                    onSetDateTimeRange(v, filters.endDateTime);
+                  }}
+                />
+                <span className="text-xs uppercase text-stone-400 ml-1">End</span>
+                <DateTimePicker
+                  value={filters.endDateTime}
+                  min={filters.startDateTime}
+                  max={`${tabDates[tabDates.length - 1]}T23:30`}
+                  dates={tabDates}
+                  onChange={(v) => {
+                    trackDateTimeRange(filters.startDateTime, v);
+                    onSetDateTimeRange(filters.startDateTime, v);
+                  }}
+                />
+              </div>
+            );
+          })()}
 
           {/* Now toggle button */}
           <button
@@ -267,7 +298,7 @@ export function FilterBar({
               const tabDates = getTabConfig(filters.conference).dates;
               return (
                 <div className={clsx('flex gap-3 items-end', filters.nowMode && 'opacity-30 pointer-events-none')}>
-                  <div className="w-40 shrink-0">
+                  <div className="w-40 shrink-0 lg:hidden">
                     <div className="text-xs uppercase tracking-wider text-stone-400 mb-2">Start</div>
                     <DateTimePicker
                       value={filters.startDateTime}
@@ -317,7 +348,7 @@ export function FilterBar({
               const tabDates = getTabConfig(filters.conference).dates;
               return (
                 <div className={clsx('flex gap-3 items-end', filters.nowMode && 'opacity-30 pointer-events-none')}>
-                  <div className="w-40 shrink-0">
+                  <div className="w-40 shrink-0 lg:hidden">
                     <div className="text-xs uppercase tracking-wider text-stone-400 mb-2">End</div>
                     <DateTimePicker
                       value={filters.endDateTime}
