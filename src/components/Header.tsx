@@ -40,7 +40,7 @@ export function Header({
   return (
     <>
       <header className="sticky top-0 shrink-0 z-50 bg-stone-950/95 backdrop-blur-sm border-b border-stone-800">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 flex items-center justify-between gap-4">
+        <div className="px-2 sm:px-4 py-3 flex items-center justify-between gap-4">
           {/* Left: Branding */}
           <div className="flex items-center min-w-0">
             <Image src="/logo.png" alt="plan.wtf" width={130} height={36} className="invert" priority />
