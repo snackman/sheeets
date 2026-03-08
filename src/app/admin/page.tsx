@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Star, Search, Loader2, ArrowLeft, Plus, Trash2, Pencil, Save, X, GripVertical } from 'lucide-react';
+import { Star, Search, Loader2, ArrowLeft, Plus, Trash2, Pencil, Save, X, GripVertical, Copy, MapPin, ChevronDown } from 'lucide-react';
 import { fetchEvents } from '@/lib/fetch-events';
 import { EVENT_TABS } from '@/lib/constants';
 import type { ETHDenverEvent } from '@/lib/types';
@@ -57,6 +57,7 @@ export default function AdminPage() {
   });
 
   // Ad Inventory state
+  const [adConference, setAdConference] = useState(EVENT_TABS[0]?.name || '');
   const [adInventory, setAdInventory] = useState<AdInventoryItem[]>([]);
   const [editingInventoryId, setEditingInventoryId] = useState<string | null>(null);
   const [adPageConfig, setAdPageConfig] = useState<AdvertisePageConfig>({
@@ -71,6 +72,8 @@ export default function AdminPage() {
     tiersEnabled: true,
     tiers: [],
   });
+  const [showCopyFrom, setShowCopyFrom] = useState(false);
+  const [adConfOpen, setAdConfOpen] = useState(false);
 
   // Check session on mount
   useEffect(() => {
@@ -99,23 +102,54 @@ export default function AdminPage() {
         setSponsors(data.sponsors || []);
         setNativeAds(data.native_ads || []);
         setUpsellCopy(data.upsell_copy || { heading: '', body: '', cta_text: '', cta_url: '' });
-        setAdInventory(data.ad_inventory || []);
-        setAdPageConfig(data.advertise_page || {
-          heroHeading: '',
-          heroSubheading: '',
-          statsLine: '',
-          ctaText: '',
-          ctaUrl: '',
-          ctaSecondaryText: '',
-          ctaSecondaryUrl: '',
-          footerText: '',
-          tiersEnabled: true,
-          tiers: [],
-        });
       })
       .catch(() => {})
       .finally(() => setConfigLoading(false));
   }, [authed]);
+
+  // Conference list for ad inventory tab (EVENT_TABS + any from config keys)
+  const adConferenceList = useMemo(() => {
+    const names = new Set(EVENT_TABS.map(t => t.name));
+    if (adminConfig) {
+      for (const key of Object.keys(adminConfig)) {
+        const match = key.match(/^(?:ad_inventory|advertise_page):(.+)$/);
+        if (match) names.add(match[1]);
+      }
+    }
+    return Array.from(names);
+  }, [adminConfig]);
+
+  // Other conferences that have saved config (for copy-from)
+  const copyFromConferences = useMemo(() => {
+    if (!adminConfig) return [];
+    return adConferenceList.filter(c => c !== adConference && (
+      adminConfig[`ad_inventory:${c}`] || adminConfig[`advertise_page:${c}`]
+    ));
+  }, [adminConfig, adConference, adConferenceList]);
+
+  // Load per-conference ad config when conference changes
+  useEffect(() => {
+    if (!adminConfig) return;
+    const inv = adminConfig[`ad_inventory:${adConference}`] as AdInventoryItem[] | undefined;
+    setAdInventory(inv && Array.isArray(inv) ? inv : []);
+    const page = adminConfig[`advertise_page:${adConference}`] as AdvertisePageConfig | undefined;
+    setAdPageConfig(page || {
+      heroHeading: '', heroSubheading: '', statsLine: '',
+      ctaText: '', ctaUrl: '', ctaSecondaryText: '', ctaSecondaryUrl: '',
+      footerText: '', tiersEnabled: true, tiers: [],
+    });
+    setEditingInventoryId(null);
+    setShowCopyFrom(false);
+  }, [adConference, adminConfig]);
+
+  function handleCopyFrom(sourceConf: string) {
+    if (!adminConfig) return;
+    const inv = adminConfig[`ad_inventory:${sourceConf}`] as AdInventoryItem[] | undefined;
+    const page = adminConfig[`advertise_page:${sourceConf}`] as AdvertisePageConfig | undefined;
+    if (inv) setAdInventory(structuredClone(inv));
+    if (page) setAdPageConfig(structuredClone(page));
+    setShowCopyFrom(false);
+  }
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -833,12 +867,72 @@ export default function AdminPage() {
               </div>
             ) : (
               <>
+                {/* Conference selector dropdown */}
+                <div className="relative inline-block">
+                  <button
+                    onClick={() => setAdConfOpen(!adConfOpen)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 text-stone-900 text-sm font-semibold cursor-pointer"
+                  >
+                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                    <span className="whitespace-nowrap">{adConference}</span>
+                    <ChevronDown className="w-3.5 h-3.5 shrink-0" />
+                  </button>
+                  {adConfOpen && (
+                    <>
+                      <div className="fixed inset-0 z-[60]" onClick={() => setAdConfOpen(false)} />
+                      <div className="absolute left-0 top-full mt-1 bg-stone-900 border border-stone-700 rounded-lg shadow-xl overflow-hidden min-w-[180px] z-[70]">
+                        {adConferenceList.map((name) => (
+                          <button
+                            key={name}
+                            onClick={() => { setAdConference(name); setAdConfOpen(false); }}
+                            className={`w-full text-left px-4 py-3 text-sm font-semibold transition-colors cursor-pointer ${
+                              adConference === name
+                                ? 'bg-amber-500 text-stone-900'
+                                : 'text-stone-300 hover:bg-stone-800'
+                            }`}
+                          >
+                            {name}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+
                 {/* Section A: Page Settings */}
                 <div className="bg-stone-900 rounded-xl p-4 border border-stone-700 space-y-4">
-                  <h3 className="text-sm font-semibold text-white">Advertise Page Settings</h3>
-                  <p className="text-xs text-stone-500">
-                    Configure the /ads page hero, CTA buttons, and footer. Leave blank to use defaults.
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-white">Advertise Page Settings</h3>
+                      <p className="text-xs text-stone-500 mt-0.5">
+                        Configure the /ads page for {adConference}. Leave blank to use defaults.
+                      </p>
+                    </div>
+                    {copyFromConferences.length > 0 && (
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowCopyFrom(!showCopyFrom)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-stone-300 bg-stone-800 border border-stone-600 rounded-lg hover:border-stone-500 transition-colors cursor-pointer"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          Copy from...
+                        </button>
+                        {showCopyFrom && (
+                          <div className="absolute right-0 top-full mt-1 bg-stone-800 border border-stone-600 rounded-lg shadow-xl z-10 py-1 min-w-[160px]">
+                            {copyFromConferences.map(c => (
+                              <button
+                                key={c}
+                                onClick={() => handleCopyFrom(c)}
+                                className="w-full text-left px-3 py-2 text-sm text-stone-300 hover:bg-stone-700 cursor-pointer"
+                              >
+                                {c}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   <div>
                     <label className="block text-xs text-stone-400 mb-1">Hero Heading</label>
@@ -1036,7 +1130,7 @@ export default function AdminPage() {
                   )}
 
                   <button
-                    onClick={() => saveConfig('advertise_page', adPageConfig)}
+                    onClick={() => saveConfig(`advertise_page:${adConference}`, adPageConfig)}
                     disabled={saving}
                     className={`${btnPrimary} flex items-center gap-2 ${saving ? 'opacity-50' : ''}`}
                   >
@@ -1250,7 +1344,7 @@ export default function AdminPage() {
                 </div>
 
                 <button
-                  onClick={() => saveConfig('ad_inventory', adInventory)}
+                  onClick={() => saveConfig(`ad_inventory:${adConference}`, adInventory)}
                   disabled={saving}
                   className={`${btnPrimary} flex items-center gap-2 ${saving ? 'opacity-50' : ''}`}
                 >
