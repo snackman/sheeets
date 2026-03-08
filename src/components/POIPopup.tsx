@@ -60,7 +60,7 @@ export function POIPopup({ poi, onClose, onDelete, onUpdate, currentUserId, owne
             lat={poi.lat}
             lng={poi.lng}
             isPrivatePin={!poi.is_public}
-            className="text-stone-500 hover:text-stone-300 text-xs mt-1.5 flex items-center gap-1 transition-colors"
+            className="text-stone-500 hover:text-stone-300 text-xs mt-1.5 flex items-center gap-1 transition-colors min-w-0 overflow-hidden"
           >
             <MapPin className="w-3 h-3 shrink-0" />
             <span className="truncate">{poi.address}</span>
