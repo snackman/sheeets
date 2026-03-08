@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+import Link from 'next/link';
 import { useAdminConfig } from '@/hooks/useAdminConfig';
 import type { AdInventoryItem, AdvertisePageConfig, SponsorshipTier } from '@/lib/types';
 import { Check, ArrowRight, Loader2 } from 'lucide-react';
@@ -288,6 +290,11 @@ export function AdvertiseContent() {
 
   return (
     <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 pb-24">
+      {/* Logo */}
+      <Link href="/" className="inline-block mb-8">
+        <Image src="/logo.png" alt="plan.wtf" width={130} height={36} className="invert" priority />
+      </Link>
+
       {/* ============================================================ */}
       {/*  Hero                                                        */}
       {/* ============================================================ */}
