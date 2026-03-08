@@ -149,9 +149,46 @@ export interface UpsellCopy {
   cta_url: string;
 }
 
+export interface AdInventoryItem {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  price: string;
+  priceNote?: string;
+  stats?: string;
+  features: string[];
+  imageUrl?: string;
+  badge?: string;
+  available: boolean;
+  sortOrder: number;
+}
+
+export interface SponsorshipTier {
+  name: string;
+  price: string;
+  features: string[];
+  highlighted: boolean;
+}
+
+export interface AdvertisePageConfig {
+  heroHeading: string;
+  heroSubheading: string;
+  statsLine: string;
+  ctaText: string;
+  ctaUrl: string;
+  ctaSecondaryText: string;
+  ctaSecondaryUrl: string;
+  footerText: string;
+  tiersEnabled: boolean;
+  tiers: SponsorshipTier[];
+}
+
 export interface AdminConfig {
   sponsors: SponsorEntry[];
   sponsors_cta: { text: string };
   native_ads: NativeAd[];
   upsell_copy: UpsellCopy;
+  ad_inventory?: AdInventoryItem[];
+  advertise_page?: AdvertisePageConfig;
 }
