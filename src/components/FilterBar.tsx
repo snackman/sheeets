@@ -269,7 +269,7 @@ export function FilterBar({
             {filters.nowMode && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
                 <Zap className="w-4 h-4 shrink-0" />
-                <span>Showing events happening now or starting within 1 hour. Day and time filters are overridden.</span>
+                <span>Showing events happening now or starting within 1 hour. Start/end filters are overridden.</span>
               </div>
             )}
 
@@ -277,8 +277,8 @@ export function FilterBar({
             {(() => {
               const tabDates = getTabConfig(filters.conference).dates;
               return (
-                <div className={clsx('flex gap-3 items-end', filters.nowMode && 'opacity-30 pointer-events-none')}>
-                  <div className="w-40 shrink-0 lg:hidden">
+                <div className="flex gap-3 items-end">
+                  <div className={clsx('w-40 shrink-0 lg:hidden', filters.nowMode && 'opacity-30 pointer-events-none')}>
                     <div className="text-xs uppercase tracking-wider text-stone-400 mb-2">Start</div>
                     <DateTimePicker
                       value={filters.startDateTime}
@@ -327,8 +327,8 @@ export function FilterBar({
             {(() => {
               const tabDates = getTabConfig(filters.conference).dates;
               return (
-                <div className={clsx('flex gap-3 items-end', filters.nowMode && 'opacity-30 pointer-events-none')}>
-                  <div className="w-40 shrink-0 lg:hidden">
+                <div className="flex gap-3 items-end">
+                  <div className={clsx('w-40 shrink-0 lg:hidden', filters.nowMode && 'opacity-30 pointer-events-none')}>
                     <div className="text-xs uppercase tracking-wider text-stone-400 mb-2">End</div>
                     <DateTimePicker
                       value={filters.endDateTime}
