@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import clsx from 'clsx';
-import { X, SlidersHorizontal, Zap, Users, MapPin, Plus, Link2, Check, Loader2 } from 'lucide-react';
+import { X, SlidersHorizontal, Zap, Users, MapPin, Plus, Link2, Check, Loader2, ChevronDown } from 'lucide-react';
 import type { FilterState } from '@/lib/types';
 import { VIBE_COLORS, getTabConfig } from '@/lib/constants';
 import { TAG_ICONS } from './TagBadge';
@@ -116,72 +116,52 @@ export function FilterBar({
       <div className="px-2 sm:px-4 py-3 space-y-3">
         {/* Top row: Conference tabs + Filter toggle */}
         <div className="flex items-center gap-3 lg:justify-center">
-          {/* Conference selector — dropdown on mobile, inline tabs on desktop */}
+          {/* Conference selector — dropdown on all screen sizes */}
           {availableConferences.length > 1 && (
-            <>
-              {/* Mobile: dropdown button */}
-              <div className="sm:hidden shrink-0">
-                <button
-                  ref={(el) => { confBtnRef.current = el; }}
-                  onClick={() => setConfOpen(!confOpen)}
-                  className={clsx(
-                    'flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 text-stone-900 font-semibold cursor-pointer',
-                    (filters.conference || 'All').length > 12 ? 'text-xs' : 'text-sm'
-                  )}
-                >
-                  <MapPin className="w-3.5 h-3.5 shrink-0" />
-                  <span className="whitespace-nowrap">{filters.conference || 'All'}</span>
-                </button>
-                {confOpen && (
-                  <>
-                    <div className="fixed inset-0 z-[60]" onClick={() => setConfOpen(false)} />
-                    <div
-                      className="fixed z-[70] bg-stone-900 border border-stone-700 rounded-lg shadow-xl overflow-hidden min-w-[180px]"
-                      style={{
-                        top: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().bottom + 4 : 0,
-                        left: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().left : 16,
-                      }}
-                    >
-                      {availableConferences.map((conf) => (
-                        <button
-                          key={conf}
-                          onClick={() => { trackConferenceSelect(conf); onSetConference(conf); setConfOpen(false); }}
-                          className={clsx(
-                            'w-full text-left px-4 py-3 text-sm font-semibold transition-colors cursor-pointer',
-                            filters.conference === conf
-                              ? 'bg-amber-500 text-stone-900'
-                              : 'text-stone-300 hover:bg-stone-800 active:bg-stone-800'
-                          )}
-                        >
-                          {conf}
-                        </button>
-                      ))}
-                    </div>
-                  </>
+            <div className="shrink-0">
+              <button
+                ref={(el) => { confBtnRef.current = el; }}
+                onClick={() => setConfOpen(!confOpen)}
+                className={clsx(
+                  'flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 text-stone-900 font-semibold cursor-pointer',
+                  (filters.conference || 'All').length > 12 ? 'text-xs' : 'text-sm'
                 )}
-              </div>
-
-              {/* Desktop: inline tabs */}
-              <div className="hidden sm:flex rounded-lg border border-stone-700 overflow-hidden">
-                {availableConferences.map((conf) => (
-                  <button
-                    key={conf}
-                    onClick={() => { trackConferenceSelect(conf); onSetConference(conf); }}
-                    className={clsx(
-                      'px-4 py-2 text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap',
-                      filters.conference === conf
-                        ? 'bg-amber-500 text-stone-900'
-                        : 'bg-stone-900 text-stone-400 hover:text-stone-200 hover:bg-stone-800 active:text-stone-200 active:bg-stone-800'
-                    )}
+              >
+                <MapPin className="w-3.5 h-3.5 shrink-0" />
+                <span className="whitespace-nowrap">{filters.conference || 'All'}</span>
+                <ChevronDown className="w-3.5 h-3.5 shrink-0" />
+              </button>
+              {confOpen && (
+                <>
+                  <div className="fixed inset-0 z-[60]" onClick={() => setConfOpen(false)} />
+                  <div
+                    className="fixed z-[70] bg-stone-900 border border-stone-700 rounded-lg shadow-xl overflow-hidden min-w-[180px]"
+                    style={{
+                      top: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().bottom + 4 : 0,
+                      left: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().left : 16,
+                    }}
                   >
-                    {conf}
-                  </button>
-                ))}
-              </div>
-            </>
+                    {availableConferences.map((conf) => (
+                      <button
+                        key={conf}
+                        onClick={() => { trackConferenceSelect(conf); onSetConference(conf); setConfOpen(false); }}
+                        className={clsx(
+                          'w-full text-left px-4 py-3 text-sm font-semibold transition-colors cursor-pointer',
+                          filters.conference === conf
+                            ? 'bg-amber-500 text-stone-900'
+                            : 'text-stone-300 hover:bg-stone-800 active:bg-stone-800'
+                        )}
+                      >
+                        {conf}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           )}
 
-          {/* Desktop: inline search bar between conference tabs and Now */}
+          {/* Desktop: inline search bar between conference dropdown and Now */}
           <div className="hidden md:flex items-center gap-2 flex-1">
             <SearchBar value={searchQuery} onChange={onSearchChange} eventCount={eventCount} />
             {onSubmitEvent && (
