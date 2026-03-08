@@ -36,6 +36,7 @@ interface MapViewProps {
   onRemovePOI?: (id: string) => void;
   onUpdatePOI?: (id: string, updates: Partial<Pick<POI, 'name' | 'category' | 'note' | 'is_public'>>) => void;
   ownerNames?: Map<string, string>;
+  onSignIn?: () => void;
 }
 
 /**
@@ -66,6 +67,7 @@ export function MapView({
   onRemovePOI,
   onUpdatePOI,
   ownerNames,
+  onSignIn,
 }: MapViewProps) {
   const mapCenter = getTabConfig(conference ?? '').center;
   const { user } = useAuth();
@@ -462,7 +464,7 @@ export function MapView({
       )}
 
       {/* POI Search Bar */}
-      <POISearchBar onAddPOI={onAddPOI} mapRef={mapRef} />
+      <POISearchBar onAddPOI={onAddPOI} mapRef={mapRef} onSignIn={onSignIn} />
 
       {/* Friend location markers (rendered first, below POIs and events) */}
       {friendLocations?.map((loc) => (

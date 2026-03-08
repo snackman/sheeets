@@ -42,9 +42,10 @@ interface POISearchBarProps {
     is_public?: boolean;
   }) => Promise<unknown>;
   mapRef?: React.RefObject<MapRef | null>;
+  onSignIn?: () => void;
 }
 
-export function POISearchBar({ onAddPOI, mapRef }: POISearchBarProps) {
+export function POISearchBar({ onAddPOI, mapRef, onSignIn }: POISearchBarProps) {
   const { user } = useAuth();
   const { query, search, results, loading, select, clear } = useGeocoder();
 
@@ -116,13 +117,11 @@ export function POISearchBar({ onAddPOI, mapRef }: POISearchBarProps) {
     handleClose();
   }, [selectedResult, name, category, isPublic, onAddPOI, handleClose]);
 
-  if (!user) return null;
-
   if (!expanded) {
     return (
       <div className="absolute top-2 left-12 z-10">
         <button
-          onClick={() => setExpanded(true)}
+          onClick={() => user ? setExpanded(true) : onSignIn?.()}
           className="flex items-center gap-1.5 px-3 py-2 bg-stone-900 border border-stone-600 rounded-lg text-xs text-stone-300 hover:text-white hover:bg-stone-800 active:bg-stone-800 transition-colors cursor-pointer shadow-lg"
         >
           <Plus className="w-3.5 h-3.5" />

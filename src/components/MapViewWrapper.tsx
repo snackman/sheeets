@@ -38,6 +38,7 @@ interface MapViewWrapperProps {
   onRemovePOI?: (id: string) => void;
   onUpdatePOI?: (id: string, updates: Partial<Pick<POI, 'name' | 'category' | 'note' | 'is_public'>>) => void;
   ownerNames?: Map<string, string>;
+  onSignIn?: () => void;
 }
 
 export function MapViewWrapper({
@@ -60,6 +61,7 @@ export function MapViewWrapper({
   onRemovePOI,
   onUpdatePOI,
   ownerNames,
+  onSignIn,
 }: MapViewWrapperProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -92,6 +94,7 @@ export function MapViewWrapper({
         onRemovePOI={onRemovePOI}
         onUpdatePOI={onUpdatePOI}
         ownerNames={ownerNames}
+        onSignIn={onSignIn}
       />
 
       {/* No-location drawer */}

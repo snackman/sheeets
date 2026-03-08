@@ -229,6 +229,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
             onRemovePOI={removePOI}
             onUpdatePOI={updatePOI}
             ownerNames={ownerNames}
+            onSignIn={() => setShowSignIn(true)}
           />
         </main>
       ) : viewMode === 'table' ? (
