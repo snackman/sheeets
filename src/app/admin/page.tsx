@@ -978,48 +978,18 @@ export default function AdminPage() {
                             <label className="text-xs text-stone-400">Highlighted (featured styling)</label>
                           </div>
                           <div>
-                            <div className="flex items-center justify-between mb-1">
-                              <label className="text-xs text-stone-500">Features</label>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const tiers = [...adPageConfig.tiers];
-                                  tiers[ti] = { ...tiers[ti], features: [...tiers[ti].features, ''] };
-                                  setAdPageConfig({ ...adPageConfig, tiers });
-                                }}
-                                className="text-xs text-amber-400 hover:text-amber-300 cursor-pointer"
-                              >
-                                + Feature
-                              </button>
-                            </div>
-                            {tier.features.map((feat, fi) => (
-                              <div key={fi} className="flex gap-1 mb-1">
-                                <input
-                                  type="text"
-                                  value={feat}
-                                  onChange={(e) => {
-                                    const tiers = [...adPageConfig.tiers];
-                                    const features = [...tiers[ti].features];
-                                    features[fi] = e.target.value;
-                                    tiers[ti] = { ...tiers[ti], features };
-                                    setAdPageConfig({ ...adPageConfig, tiers });
-                                  }}
-                                  placeholder="Feature description"
-                                  className={inputClass}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const tiers = [...adPageConfig.tiers];
-                                    tiers[ti] = { ...tiers[ti], features: tiers[ti].features.filter((_, i) => i !== fi) };
-                                    setAdPageConfig({ ...adPageConfig, tiers });
-                                  }}
-                                  className="text-xs text-red-400 hover:text-red-300 px-1 cursor-pointer"
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            ))}
+                            <label className="block text-xs text-stone-500 mb-1">Features (one per line)</label>
+                            <textarea
+                              value={tier.features.join('\n')}
+                              onChange={(e) => {
+                                const tiers = [...adPageConfig.tiers];
+                                tiers[ti] = { ...tiers[ti], features: e.target.value.split('\n') };
+                                setAdPageConfig({ ...adPageConfig, tiers });
+                              }}
+                              rows={4}
+                              placeholder={"Logo on homepage ticker\nFeatured event badge\n1 native ad slot"}
+                              className={inputClass}
+                            />
                           </div>
                         </div>
                       ))}
