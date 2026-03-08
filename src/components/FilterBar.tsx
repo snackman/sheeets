@@ -30,6 +30,7 @@ interface FilterBarProps {
   onSearchChange: (query: string) => void;
   eventCount: number;
   onSubmitEvent?: () => void;
+  onSignIn?: () => void;
 }
 
 export function FilterBar({
@@ -50,6 +51,7 @@ export function FilterBar({
   onSearchChange,
   eventCount,
   onSubmitEvent,
+  onSignIn,
 }: FilterBarProps) {
   const [expanded, setExpanded] = useState(false);
   const [confOpen, setConfOpen] = useState(false);
@@ -400,12 +402,15 @@ export function FilterBar({
                   })}
                 </div>
               ) : (
-                <div className="bg-stone-700/50 rounded-lg p-4 flex items-center gap-3">
+                <div
+                  className={clsx('bg-stone-700/50 rounded-lg p-4 flex items-center gap-3', !user && 'cursor-pointer hover:bg-stone-700/70 transition-colors')}
+                  onClick={!user ? onSignIn : undefined}
+                >
                   <Users className="w-5 h-5 text-stone-500 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-stone-400 text-sm">Add friends to see their plans</p>
+                    <p className="text-stone-400 text-sm">{user ? 'Add friends to see their plans' : 'Sign in to add friends'}</p>
                   </div>
-                  {user ? (
+                  {user && (
                     <button
                       onClick={handleCopyFriendLink}
                       disabled={friendLinkLoading}
@@ -433,8 +438,6 @@ export function FilterBar({
                         </>
                       )}
                     </button>
-                  ) : (
-                    <span className="shrink-0 text-stone-500 text-sm">Sign in to invite</span>
                   )}
                 </div>
               )}

@@ -113,6 +113,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
   // Friends panel
   const [showFriends, setShowFriends] = useState(false);
   const [showSubmitEvent, setShowSubmitEvent] = useState(false);
+  const [showSignIn, setShowSignIn] = useState(false);
 
   if (loading) {
     return (
@@ -202,6 +203,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
           onSearchChange={(query) => setFilter('searchQuery', query)}
           eventCount={filteredEvents.length}
           onSubmitEvent={() => setShowSubmitEvent(true)}
+          onSignIn={() => setShowSignIn(true)}
         />
       </div>
 
@@ -266,7 +268,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
         </main>
       )}
 
-      <AuthModal isOpen={showAuthForStar} onClose={dismissAuth} />
+      <AuthModal isOpen={showAuthForStar || showSignIn} onClose={() => { dismissAuth(); setShowSignIn(false); }} />
       <SubmitEventModal isOpen={showSubmitEvent} onClose={() => setShowSubmitEvent(false)} upsellCopy={config?.upsell_copy} />
       <FriendsPanel
         isOpen={showFriends}
