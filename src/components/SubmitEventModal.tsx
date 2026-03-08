@@ -57,12 +57,13 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
   const [hasFood, setHasFood] = useState(false);
   const [hasBar, setHasBar] = useState(false);
 
-  // Track open
+  // Sync conference when modal opens
   useEffect(() => {
     if (isOpen) {
       trackSubmitEventOpen();
+      if (initialConference) setConference(initialConference);
     }
-  }, [isOpen]);
+  }, [isOpen, initialConference]);
 
   function resetForm() {
     setStep('input');
