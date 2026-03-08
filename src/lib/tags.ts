@@ -23,7 +23,8 @@ export const VIBE_COLORS: Record<string, string> = {
   'Screening': '#34D399',
   'Vibe': '#34D399',
   '$$': '#A855F7',
-  '\uD83C\uDF55 Food': '#3B82F6',
+  'Food': '#3B82F6',
+  'Drinks': '#3B82F6',
   // Blue group -- builders & business
   'Devs': '#3B82F6',
   'VCs': '#3B82F6',
