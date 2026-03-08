@@ -69,9 +69,9 @@ export function Header({
             >
               <Calendar className="w-4 h-4" />
               {itineraryCount > 0 && (
-                <span className={`absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full px-1 ${
+                <span className={`absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full px-1 border border-amber-500 ${
                   isItineraryActive
-                    ? 'bg-stone-900 text-stone-400'
+                    ? 'bg-stone-900 text-amber-400'
                     : 'bg-amber-500 text-stone-900'
                 }`}>
                   {itineraryCount}
