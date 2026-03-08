@@ -1,7 +1,5 @@
 'use client';
 
-import Image from 'next/image';
-import Link from 'next/link';
 import { useAdminConfig } from '@/hooks/useAdminConfig';
 import type { AdInventoryItem, AdvertisePageConfig, SponsorshipTier } from '@/lib/types';
 import { Check, ArrowRight, Loader2 } from 'lucide-react';
@@ -179,7 +177,7 @@ function InventoryCard({ item }: { item: AdInventoryItem }) {
       }`}
     >
       {item.badge && (
-        <span className="absolute -top-2.5 right-4 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-500 text-white rounded-full">
+        <span className="absolute -top-2.5 right-4 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-500 text-stone-900 rounded-full">
           {item.badge}
         </span>
       )}
@@ -290,11 +288,6 @@ export function AdvertiseContent() {
 
   return (
     <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 pb-24">
-      {/* Logo */}
-      <Link href="/" className="inline-block mb-8">
-        <Image src="/logo.png" alt="plan.wtf" width={130} height={36} className="invert" priority />
-      </Link>
-
       {/* ============================================================ */}
       {/*  Hero                                                        */}
       {/* ============================================================ */}

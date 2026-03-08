@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { AdvertiseContent } from './AdvertiseContent';
 
@@ -26,11 +27,8 @@ export default function AdvertisePage() {
       {/* Sticky nav bar */}
       <header className="sticky top-0 z-50 bg-stone-950/95 backdrop-blur-sm border-b border-stone-800">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <Link
-            href="/"
-            className="text-sm font-bold text-white hover:text-amber-400 transition-colors"
-          >
-            plan.wtf
+          <Link href="/">
+            <Image src="/logo.png" alt="plan.wtf" width={100} height={28} className="invert" priority />
           </Link>
           <span className="text-xs text-stone-500 font-mono">
             Advertise
