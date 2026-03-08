@@ -231,7 +231,7 @@ export function EventPopup({
       closeOnClick={false}
       anchor="bottom"
       offset={16}
-      className="map-popup"
+      className={`map-popup${event.isFeatured ? ' map-popup-featured' : ''}`}
     >
       <SingleEventContent
         event={event}
