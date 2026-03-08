@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Star, Search, Loader2, ArrowLeft, Plus, Trash2, Pencil, Save, X, GripVertical, Copy } from 'lucide-react';
+import { Star, Search, Loader2, ArrowLeft, Plus, Trash2, Pencil, Save, X, GripVertical, Copy, MapPin, ChevronDown } from 'lucide-react';
 import { fetchEvents } from '@/lib/fetch-events';
 import { EVENT_TABS } from '@/lib/constants';
 import type { ETHDenverEvent } from '@/lib/types';
@@ -73,6 +73,7 @@ export default function AdminPage() {
     tiers: [],
   });
   const [showCopyFrom, setShowCopyFrom] = useState(false);
+  const [adConfOpen, setAdConfOpen] = useState(false);
 
   // Check session on mount
   useEffect(() => {
@@ -866,21 +867,36 @@ export default function AdminPage() {
               </div>
             ) : (
               <>
-                {/* Conference selector */}
-                <div className="flex flex-wrap gap-2">
-                  {adConferenceList.map((name) => (
-                    <button
-                      key={name}
-                      onClick={() => setAdConference(name)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                        adConference === name
-                          ? 'bg-amber-500 text-stone-900'
-                          : 'bg-stone-900 text-stone-400 hover:text-white'
-                      }`}
-                    >
-                      {name}
-                    </button>
-                  ))}
+                {/* Conference selector dropdown */}
+                <div className="relative inline-block">
+                  <button
+                    onClick={() => setAdConfOpen(!adConfOpen)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 text-stone-900 text-sm font-semibold cursor-pointer"
+                  >
+                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                    <span className="whitespace-nowrap">{adConference}</span>
+                    <ChevronDown className="w-3.5 h-3.5 shrink-0" />
+                  </button>
+                  {adConfOpen && (
+                    <>
+                      <div className="fixed inset-0 z-[60]" onClick={() => setAdConfOpen(false)} />
+                      <div className="absolute left-0 top-full mt-1 bg-stone-900 border border-stone-700 rounded-lg shadow-xl overflow-hidden min-w-[180px] z-[70]">
+                        {adConferenceList.map((name) => (
+                          <button
+                            key={name}
+                            onClick={() => { setAdConference(name); setAdConfOpen(false); }}
+                            className={`w-full text-left px-4 py-3 text-sm font-semibold transition-colors cursor-pointer ${
+                              adConference === name
+                                ? 'bg-amber-500 text-stone-900'
+                                : 'text-stone-300 hover:bg-stone-800'
+                            }`}
+                          >
+                            {name}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Section A: Page Settings */}
