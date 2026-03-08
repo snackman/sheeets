@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAdminConfig } from '@/hooks/useAdminConfig';
 import { EVENT_TABS } from '@/lib/constants';
 import type { AdInventoryItem, AdvertisePageConfig, SponsorshipTier } from '@/lib/types';
-import { Check, ArrowRight, Loader2 } from 'lucide-react';
+import { Check, ArrowRight, Loader2, MapPin, ChevronDown } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
 /*  Defaults (used when no admin config exists yet)                    */
@@ -264,6 +264,8 @@ function TierCard({ tier }: { tier: SponsorshipTier }) {
 export function AdvertiseContent() {
   const { config, loading } = useAdminConfig();
   const [selectedConference, setSelectedConference] = useState(EVENT_TABS[0]?.name || '');
+  const [confOpen, setConfOpen] = useState(false);
+  const confBtnRef = useRef<HTMLButtonElement | null>(null);
 
   // Load per-conference config, falling back to defaults
   const rawPageConfig = config?.[`advertise_page:${selectedConference}`] as AdvertisePageConfig | undefined;
@@ -293,23 +295,6 @@ export function AdvertiseContent() {
 
   return (
     <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 pb-24">
-      {/* Conference selector */}
-      <div className="flex gap-2 mb-8">
-        {EVENT_TABS.map((tab) => (
-          <button
-            key={tab.gid}
-            onClick={() => setSelectedConference(tab.name)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-              selectedConference === tab.name
-                ? 'bg-amber-500 text-stone-900'
-                : 'bg-stone-900 text-stone-400 hover:text-white border border-stone-700'
-            }`}
-          >
-            {tab.name}
-          </button>
-        ))}
-      </div>
-
       {/* ============================================================ */}
       {/*  Hero                                                        */}
       {/* ============================================================ */}
@@ -352,9 +337,44 @@ export function AdvertiseContent() {
       {/*  Ad Inventory Grid                                           */}
       {/* ============================================================ */}
       <section className="mb-16">
-        <h2 className="text-2xl font-bold text-white mb-2">
-          Ad Inventory
-        </h2>
+        <div className="flex items-center gap-3 mb-2">
+          <h2 className="text-2xl font-bold text-white">
+            Ad Inventory
+          </h2>
+          {EVENT_TABS.length > 1 && (
+            <div className="relative">
+              <button
+                ref={(el) => { confBtnRef.current = el; }}
+                onClick={() => setConfOpen(!confOpen)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-stone-900 text-sm font-semibold cursor-pointer"
+              >
+                <MapPin className="w-3.5 h-3.5 shrink-0" />
+                <span className="whitespace-nowrap">{selectedConference}</span>
+                <ChevronDown className="w-3.5 h-3.5 shrink-0" />
+              </button>
+              {confOpen && (
+                <>
+                  <div className="fixed inset-0 z-[60]" onClick={() => setConfOpen(false)} />
+                  <div className="absolute left-0 top-full mt-1 bg-stone-900 border border-stone-700 rounded-lg shadow-xl overflow-hidden min-w-[180px] z-[70]">
+                    {EVENT_TABS.map((tab) => (
+                      <button
+                        key={tab.gid}
+                        onClick={() => { setSelectedConference(tab.name); setConfOpen(false); }}
+                        className={`w-full text-left px-4 py-3 text-sm font-semibold transition-colors cursor-pointer ${
+                          selectedConference === tab.name
+                            ? 'bg-amber-500 text-stone-900'
+                            : 'text-stone-300 hover:bg-stone-800'
+                        }`}
+                      >
+                        {tab.name}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
         <p className="text-sm text-stone-400 mb-8">
           Choose from a range of placement options to match your goals and budget.
         </p>
