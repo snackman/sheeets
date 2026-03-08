@@ -798,7 +798,7 @@ export default function AdminPage() {
                 <div className="bg-stone-900 rounded-xl p-4 border border-stone-700 space-y-4">
                   <h3 className="text-sm font-semibold text-white">Advertise Page Settings</h3>
                   <p className="text-xs text-stone-500">
-                    Configure the /advertise page hero, CTA buttons, and footer. Leave blank to use defaults.
+                    Configure the /ads page hero, CTA buttons, and footer. Leave blank to use defaults.
                   </p>
 
                   <div>
@@ -891,6 +891,141 @@ export default function AdminPage() {
                     />
                   </div>
 
+                  {/* Tiers Toggle */}
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-stone-400">Show Sponsorship Tiers</label>
+                    <button
+                      type="button"
+                      onClick={() => setAdPageConfig({ ...adPageConfig, tiersEnabled: !adPageConfig.tiersEnabled })}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer ${adPageConfig.tiersEnabled ? 'bg-amber-500' : 'bg-stone-600'}`}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${adPageConfig.tiersEnabled ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+
+                  {/* Tiers Editor */}
+                  {adPageConfig.tiersEnabled && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs text-stone-400">Sponsorship Tiers ({adPageConfig.tiers.length})</label>
+                        <button
+                          type="button"
+                          onClick={() => setAdPageConfig({
+                            ...adPageConfig,
+                            tiers: [...adPageConfig.tiers, { name: '', price: '', features: [''], highlighted: false }],
+                          })}
+                          className="text-xs text-amber-400 hover:text-amber-300 cursor-pointer"
+                        >
+                          + Add Tier
+                        </button>
+                      </div>
+                      {adPageConfig.tiers.map((tier, ti) => (
+                        <div key={ti} className="bg-stone-800 rounded-lg p-3 space-y-2 border border-stone-700">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-stone-500">Tier {ti + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => setAdPageConfig({
+                                ...adPageConfig,
+                                tiers: adPageConfig.tiers.filter((_, i) => i !== ti),
+                              })}
+                              className="text-xs text-red-400 hover:text-red-300 cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-xs text-stone-500 mb-0.5">Name</label>
+                              <input
+                                type="text"
+                                value={tier.name}
+                                onChange={(e) => {
+                                  const tiers = [...adPageConfig.tiers];
+                                  tiers[ti] = { ...tiers[ti], name: e.target.value };
+                                  setAdPageConfig({ ...adPageConfig, tiers });
+                                }}
+                                placeholder="Gold Sponsor"
+                                className={inputClass}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-stone-500 mb-0.5">Price</label>
+                              <input
+                                type="text"
+                                value={tier.price}
+                                onChange={(e) => {
+                                  const tiers = [...adPageConfig.tiers];
+                                  tiers[ti] = { ...tiers[ti], price: e.target.value };
+                                  setAdPageConfig({ ...adPageConfig, tiers });
+                                }}
+                                placeholder="$2,500"
+                                className={inputClass}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={tier.highlighted}
+                              onChange={(e) => {
+                                const tiers = [...adPageConfig.tiers];
+                                tiers[ti] = { ...tiers[ti], highlighted: e.target.checked };
+                                setAdPageConfig({ ...adPageConfig, tiers });
+                              }}
+                              className="accent-amber-500"
+                            />
+                            <label className="text-xs text-stone-400">Highlighted (featured styling)</label>
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="text-xs text-stone-500">Features</label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const tiers = [...adPageConfig.tiers];
+                                  tiers[ti] = { ...tiers[ti], features: [...tiers[ti].features, ''] };
+                                  setAdPageConfig({ ...adPageConfig, tiers });
+                                }}
+                                className="text-xs text-amber-400 hover:text-amber-300 cursor-pointer"
+                              >
+                                + Feature
+                              </button>
+                            </div>
+                            {tier.features.map((feat, fi) => (
+                              <div key={fi} className="flex gap-1 mb-1">
+                                <input
+                                  type="text"
+                                  value={feat}
+                                  onChange={(e) => {
+                                    const tiers = [...adPageConfig.tiers];
+                                    const features = [...tiers[ti].features];
+                                    features[fi] = e.target.value;
+                                    tiers[ti] = { ...tiers[ti], features };
+                                    setAdPageConfig({ ...adPageConfig, tiers });
+                                  }}
+                                  placeholder="Feature description"
+                                  className={inputClass}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const tiers = [...adPageConfig.tiers];
+                                    tiers[ti] = { ...tiers[ti], features: tiers[ti].features.filter((_, i) => i !== fi) };
+                                    setAdPageConfig({ ...adPageConfig, tiers });
+                                  }}
+                                  className="text-xs text-red-400 hover:text-red-300 px-1 cursor-pointer"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <button
                     onClick={() => saveConfig('advertise_page', adPageConfig)}
                     disabled={saving}
@@ -906,7 +1041,7 @@ export default function AdminPage() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h3 className="text-sm font-semibold text-white">Inventory Items ({adInventory.length})</h3>
-                      <p className="text-xs text-stone-500 mt-0.5">Ad placements shown on the /advertise page</p>
+                      <p className="text-xs text-stone-500 mt-0.5">Ad placements shown on the /ads page</p>
                     </div>
                     <button
                       onClick={() => {
