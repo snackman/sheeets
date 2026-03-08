@@ -30,7 +30,7 @@ function formatDateShort(iso: string): string {
 const EXCLUDED_TAGS = ['$$', '🍕 Food', 'Food', 'Bar', 'Drinks'];
 const FORMAT_TAGS = TYPE_TAGS.filter((t) => !EXCLUDED_TAGS.includes(t));
 const TOPIC_TAGS = Object.keys(VIBE_COLORS).filter(
-  (t) => !TYPE_TAGS.includes(t) && t !== 'default'
+  (t) => !TYPE_TAGS.includes(t) && t !== 'default' && !EXCLUDED_TAGS.includes(t)
 );
 const ALL_TAGS = [...FORMAT_TAGS, ...TOPIC_TAGS];
 
@@ -416,6 +416,34 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                   />
                 </div>
 
+                {/* Food / Drinks toggles */}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setHasFood(!hasFood)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
+                      hasFood
+                        ? 'bg-amber-500 text-stone-900'
+                        : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
+                    }`}
+                  >
+                    <span className="text-xs">{hasFood ? '✓' : '+'}</span>
+                    Food
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHasBar(!hasBar)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
+                      hasBar
+                        ? 'bg-amber-500 text-stone-900'
+                        : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
+                    }`}
+                  >
+                    <span className="text-xs">{hasBar ? '✓' : '+'}</span>
+                    Drinks
+                  </button>
+                </div>
+
                 {/* Type */}
                 <div>
                   <label className="block text-xs font-medium text-stone-400 mb-1.5">Type</label>
@@ -466,34 +494,6 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                       );
                     })}
                   </div>
-                </div>
-
-                {/* Food / Drinks toggles */}
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setHasFood(!hasFood)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
-                      hasFood
-                        ? 'bg-amber-500 text-stone-900'
-                        : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
-                    }`}
-                  >
-                    <span className="text-xs">{hasFood ? '✓' : '+'}</span>
-                    Food
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setHasBar(!hasBar)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
-                      hasBar
-                        ? 'bg-amber-500 text-stone-900'
-                        : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
-                    }`}
-                  >
-                    <span className="text-xs">{hasBar ? '✓' : '+'}</span>
-                    Drinks
-                  </button>
                 </div>
 
                 {/* Note */}
