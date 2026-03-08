@@ -96,13 +96,15 @@ export function useFilters(initialConference?: string) {
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (filters.startDateTime !== initialState.startDateTime || filters.endDateTime !== initialState.endDateTime) count++;
+    // Compare dates against the *current* conference's defaults, not the initial conference
+    const currentDefaults = getDateTimeRangeForConference(filters.conference);
+    if (filters.startDateTime !== currentDefaults.startDateTime || filters.endDateTime !== currentDefaults.endDateTime) count++;
     if (filters.vibes.length > 0) count++;
     if (filters.selectedFriends.length > 0) count++;
     if (filters.searchQuery) count++;
     if (filters.nowMode) count++;
     return count;
-  }, [filters, initialState]);
+  }, [filters]);
 
   return {
     filters,
