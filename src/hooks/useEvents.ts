@@ -2,7 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { ETHDenverEvent } from '@/lib/types';
-import { fetchEvents } from '@/lib/fetch-events';
+import { fetchEvents, GeoAddressMap } from '@/lib/fetch-events';
+
+async function fetchRuntimeAddresses(): Promise<GeoAddressMap> {
+  try {
+    const res = await fetch('/api/geocoded-addresses');
+    if (!res.ok) return {};
+    const data = await res.json();
+    return data.addresses || {};
+  } catch {
+    return {};
+  }
+}
 
 export function useEvents() {
   const [events, setEvents] = useState<ETHDenverEvent[]>([]);
@@ -12,7 +23,10 @@ export function useEvents() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await fetchEvents();
+        // Fetch runtime geocoded addresses first (fast, small payload),
+        // then pass them to fetchEvents so it can merge them with the static cache
+        const runtimeAddresses = await fetchRuntimeAddresses();
+        const data = await fetchEvents(runtimeAddresses);
         setEvents(data);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load events');

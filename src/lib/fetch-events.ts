@@ -4,6 +4,8 @@ import { SHEET_ID, EVENT_TABS } from './constants';
 import { parseDateToISO, getTimeOfDay, isFreeEvent, normalizeAddress } from './utils';
 import geocodedData from '@/data/geocoded-addresses.json';
 
+export type GeoAddressMap = Record<string, { lat: number; lng: number; matchedAddress?: string }>;
+
 const TAG_ALIASES: Record<string, string> = {
   'Fitness/Wellness': 'Wellness',
   'Devs/Builders': 'Devs',
@@ -59,7 +61,7 @@ async function fetchPage(gid: number, offset: number): Promise<string> {
   return response.text();
 }
 
-export async function fetchEvents(): Promise<ETHDenverEvent[]> {
+export async function fetchEvents(runtimeAddresses?: GeoAddressMap): Promise<ETHDenverEvent[]> {
   const events: ETHDenverEvent[] = [];
   // Track seen IDs to detect collisions (duplicate data in sheet)
   const seenIds = new Map<string, number>();
@@ -127,8 +129,11 @@ export async function fetchEvents(): Promise<ETHDenverEvent[]> {
       const tags = [...rawTags, ...syntheticTags];
 
       const address = getCellValue(row.c[5]);
-      const geo = address
-        ? (geocodedData.addresses as Record<string, { lat: number; lng: number; matchedAddress?: string }>)[normalizeAddress(address)]
+      const staticAddresses = geocodedData.addresses as GeoAddressMap;
+      const normalizedAddr = address ? normalizeAddress(address) : '';
+      // Check runtime addresses first (fresher, from Supabase), then fall back to static cache
+      const geo = normalizedAddr
+        ? (runtimeAddresses?.[normalizedAddr] || staticAddresses[normalizedAddr])
         : undefined;
 
       // Generate ID and flag duplicates (same name/date/time = data error)

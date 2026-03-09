@@ -56,6 +56,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [hasFood, setHasFood] = useState(false);
   const [hasBar, setHasBar] = useState(false);
+  const [addressCoords, setAddressCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   // Sync conference when modal opens
   useEffect(() => {
@@ -85,6 +86,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
     setSelectedTags(new Set());
     setHasFood(false);
     setHasBar(false);
+    setAddressCoords(null);
   }
 
   function handleClose() {
@@ -185,6 +187,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conference,
+          coords: addressCoords,
           event: {
             name: name.trim(),
             date: dateISO ? formatDateShort(dateISO) : '',
@@ -389,7 +392,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                 {/* Address */}
                 <div>
                   <label className="block text-xs font-medium text-stone-400 mb-1">Address</label>
-                  <AddressAutocomplete value={address} onChange={setAddress} />
+                  <AddressAutocomplete value={address} onChange={setAddress} onCoordsChange={setAddressCoords} />
                 </div>
 
                 {/* Cost */}

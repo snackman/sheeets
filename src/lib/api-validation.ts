@@ -44,6 +44,7 @@ export async function parseBody<T>(
 /** Schema for POST /api/submit-event */
 export const SubmitEventSchema = z.object({
   conference: z.string().min(1, 'Conference is required'),
+  coords: z.object({ lat: z.number(), lng: z.number() }).optional().nullable(),
   event: z.object({
     name: z.string().min(1, 'Event name is required'),
     date: z.string().min(1, 'Event date is required'),
