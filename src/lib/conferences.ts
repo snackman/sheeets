@@ -25,6 +25,17 @@ export const EVENT_TABS = [
     ],
     center: { lat: 43.5528, lng: 7.0174 },
   },
+  {
+    gid: 1672479012,
+    name: 'GDC 2026',
+    slug: 'gdc',
+    timezone: 'America/Los_Angeles',
+    dates: [
+      '2026-03-07', '2026-03-08', '2026-03-09', '2026-03-10',
+      '2026-03-11', '2026-03-12', '2026-03-13', '2026-03-14',
+    ],
+    center: { lat: 37.7749, lng: -122.4194 },
+  },
 ];
 
 export const DEFAULT_TAB = EVENT_TABS[0];
