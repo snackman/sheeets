@@ -17,8 +17,10 @@ const CACHE_FILE = path.join(__dirname, '..', 'src', 'data', 'geocoded-addresses
 const MAPBOX_TOKEN = process.env.MAPBOX_SECRET_TOKEN;
 
 const PROXIMITY_CENTERS: Record<string, { lat: number; lng: number; suffix: string }> = {
-  'Denver':   { lat: 39.7392, lng: -104.9903, suffix: 'Denver, CO' },
-  'Hong Kong': { lat: 22.3193, lng: 114.1694, suffix: 'Hong Kong' },
+  'Denver':        { lat: 39.7392, lng: -104.9903, suffix: 'Denver, CO' },
+  'Hong Kong':     { lat: 22.3193, lng: 114.1694, suffix: 'Hong Kong' },
+  'San Francisco': { lat: 37.7749, lng: -122.4194, suffix: 'San Francisco, CA' },
+  'GDC':           { lat: 37.7749, lng: -122.4194, suffix: 'San Francisco, CA' },
 };
 
 function getProximity(tabName: string) {
