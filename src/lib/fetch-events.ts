@@ -67,18 +67,28 @@ export async function fetchEvents(): Promise<ETHDenverEvent[]> {
   for (const tab of EVENT_TABS) {
     // Paginate to get all rows from this tab
     let allRows: GVizRow[] = [];
+    let firstTableCols: { id: string; label: string; type: string }[] = [];
 
     for (let offset = 0; offset < 5000; offset += 500) {
       const text = await fetchPage(tab.gid, offset);
       const table = parseGVizResponse(text);
+      if (offset === 0) firstTableCols = table.cols;
       if (table.rows.length === 0) break;
       allRows = allRows.concat(table.rows);
       if (table.rows.length < 500) break;
     }
 
-    // Find header row, events start right after
-    const headerIdx = findHeaderIndex(allRows);
-    if (headerIdx === -1) continue;
+    // Find header row, events start right after.
+    // If no header row found in data, check if Google Sheets already consumed it
+    // as column labels (happens when the sheet has no promo rows above the header).
+    let headerIdx = findHeaderIndex(allRows);
+    if (headerIdx === -1) {
+      // If Google Sheets already consumed the header as column labels
+      // (sheet has no promo rows above the header), all rows are data.
+      // headerIdx stays -1 so the loop below starts at index 0.
+      const colBLabel = firstTableCols[1]?.label?.toLowerCase().trim();
+      if (colBLabel !== 'start time') continue;
+    }
 
     let currentDate = '';
 
