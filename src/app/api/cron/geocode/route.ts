@@ -9,6 +9,8 @@ const PROXIMITY: Record<string, { lat: number; lng: number; suffix: string }> = 
   'Hong Kong': { lat: 22.3193, lng: 114.1694, suffix: 'Hong Kong' },
   'San Francisco': { lat: 37.7749, lng: -122.4194, suffix: 'San Francisco, CA' },
   GDC: { lat: 37.7749, lng: -122.4194, suffix: 'San Francisco, CA' },
+  SXSW: { lat: 30.2672, lng: -97.7431, suffix: 'Austin, TX' },
+  ETHCC: { lat: 43.5528, lng: 7.0174, suffix: 'Cannes, France' },
 };
 
 function getProximity(tabName: string) {
