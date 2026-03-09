@@ -6,21 +6,28 @@ import { MapPin } from 'lucide-react';
 interface AddressAutocompleteProps {
   value: string;
   onChange: (value: string) => void;
+  onCoordsChange?: (coords: { lat: number; lng: number } | null) => void;
   placeholder?: string;
 }
 
 export function AddressAutocomplete({
   value,
   onChange,
+  onCoordsChange,
   placeholder = '1234 Market St, Denver',
 }: AddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const onChangeRef = useRef(onChange);
+  const onCoordsChangeRef = useRef(onCoordsChange);
 
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
+
+  useEffect(() => {
+    onCoordsChangeRef.current = onCoordsChange;
+  }, [onCoordsChange]);
 
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -36,7 +43,7 @@ export function AddressAutocomplete({
         inputRef.current,
         {
           types: ['geocode', 'establishment'],
-          fields: ['formatted_address', 'name'],
+          fields: ['formatted_address', 'name', 'geometry'],
         }
       );
 
@@ -44,6 +51,15 @@ export function AddressAutocomplete({
         const place = autocomplete.getPlace();
         const address = place.formatted_address || place.name || '';
         if (address) onChangeRef.current(address);
+
+        // Extract coordinates from geometry if available
+        const location = place.geometry?.location;
+        if (location && onCoordsChangeRef.current) {
+          onCoordsChangeRef.current({
+            lat: location.lat(),
+            lng: location.lng(),
+          });
+        }
       });
 
       setIsLoaded(true);
@@ -85,7 +101,11 @@ export function AddressAutocomplete({
         ref={inputRef}
         type="text"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          onChange(e.target.value);
+          // Clear coords when user types manually (no longer from autocomplete)
+          if (onCoordsChange) onCoordsChange(null);
+        }}
         placeholder={placeholder}
         className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm pl-9 pr-3 py-2 focus:border-amber-500 focus:outline-none placeholder:text-stone-500"
       />

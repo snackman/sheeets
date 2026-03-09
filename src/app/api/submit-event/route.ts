@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { appendEventRow } from '@/lib/google-sheets';
 import { EVENT_TABS } from '@/lib/conferences';
 import { parseBody, SubmitEventSchema } from '@/lib/api-validation';
+import { normalizeAddress } from '@/lib/utils';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
   try {
     const { data, error } = await parseBody(request, SubmitEventSchema);
     if (error) return error;
 
-    const { conference, event } = data;
+    const { conference, coords, event } = data;
 
     const tab = EVENT_TABS.find((t) => t.name === conference);
     if (!tab) {
@@ -32,6 +34,26 @@ export async function POST(request: NextRequest) {
       bar: event.bar,
       note: event.note.trim(),
     });
+
+    // Upsert geocoded address to Supabase for instant map pin display
+    if (coords && event.address.trim()) {
+      try {
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+        await supabase.from('geocoded_addresses').upsert({
+          normalized_address: normalizeAddress(event.address.trim()),
+          lat: coords.lat,
+          lng: coords.lng,
+          matched_address: event.address.trim(),
+          conference,
+        });
+      } catch (geoErr) {
+        // Non-fatal: log but don't fail the submission
+        console.error('Failed to save geocoded address:', geoErr);
+      }
+    }
 
     return NextResponse.json({ success: true, row });
   } catch (err) {
