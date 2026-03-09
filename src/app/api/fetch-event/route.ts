@@ -138,6 +138,7 @@ interface JsonLdEvent {
   organizer?: string;
   cost?: string;
   image?: string;
+  timezone?: string;
 }
 
 function parseJsonLdEvent(html: string): JsonLdEvent | null {
@@ -222,6 +223,14 @@ function parseJsonLdEvent(html: string): JsonLdEvent | null {
             }
           }
 
+          // Extract timezone if available (Partiful and others may embed it)
+          const locObj2 = Array.isArray(loc) ? loc?.[0] : loc;
+          const timezone =
+            candidate.timezone ||
+            candidate.eventSchedule?.scheduleTimezone ||
+            locObj2?.timezone ||
+            '';
+
           return {
             name: candidate.name || '',
             startDate: candidate.startDate || '',
@@ -230,6 +239,7 @@ function parseJsonLdEvent(html: string): JsonLdEvent | null {
             organizer,
             cost,
             image: candidate.image || '',
+            timezone,
           };
         }
       }
@@ -396,7 +406,9 @@ async function parseEventbrite(url: string): Promise<EventResult> {
   const DEFAULT_TZ = 'America/Chicago';
   const startDate = jsonLd?.startDate || '';
   const endDate = jsonLd?.endDate || '';
-  const timezone = startDate ? guessTimezoneFromOffset(startDate, DEFAULT_TZ) : DEFAULT_TZ;
+  const eventTz = jsonLd?.timezone || '';
+  const guessedTz = startDate ? guessTimezoneFromOffset(startDate, DEFAULT_TZ) : DEFAULT_TZ;
+  const timezone = eventTz || (guessedTz === 'UTC' ? DEFAULT_TZ : guessedTz);
 
   return {
     name,
@@ -421,13 +433,39 @@ async function parsePartiful(url: string): Promise<EventResult> {
   const jsonLd = parseJsonLdEvent(html);
   const og = parseOgMeta(html);
 
+  // Try __NEXT_DATA__ for timezone (Partiful is a Next.js app)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let nextEvent: any = null;
+  const nextDataMatch = html.match(
+    /<script[^>]+id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i
+  );
+  if (nextDataMatch) {
+    try {
+      const nextData = JSON.parse(nextDataMatch[1]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pageProps = (nextData as any)?.props?.pageProps;
+      nextEvent =
+        pageProps?.event ||
+        pageProps?.eventData ||
+        pageProps?.initialEvent ||
+        null;
+    } catch {
+      // ignore
+    }
+  }
+
   const name = jsonLd?.name || og.title || '';
   if (!name) throw new Error('Could not parse event details from Partiful.');
 
   const DEFAULT_TZ = 'America/Chicago';
   const startDate = jsonLd?.startDate || '';
   const endDate = jsonLd?.endDate || '';
-  const timezone = startDate ? guessTimezoneFromOffset(startDate, DEFAULT_TZ) : DEFAULT_TZ;
+
+  // Prefer event timezone from JSON-LD or __NEXT_DATA__ over guessing from offset
+  // This is critical when dates are UTC (Z suffix) but the event is in a local timezone
+  const eventTz = jsonLd?.timezone || nextEvent?.timezone || '';
+  const guessedTz = startDate ? guessTimezoneFromOffset(startDate, DEFAULT_TZ) : DEFAULT_TZ;
+  const timezone = eventTz || (guessedTz === 'UTC' ? DEFAULT_TZ : guessedTz);
 
   return {
     name,
@@ -458,7 +496,9 @@ async function parseMeetup(url: string): Promise<EventResult> {
   const DEFAULT_TZ = 'America/Chicago';
   const startDate = jsonLd?.startDate || '';
   const endDate = jsonLd?.endDate || '';
-  const timezone = startDate ? guessTimezoneFromOffset(startDate, DEFAULT_TZ) : DEFAULT_TZ;
+  const eventTz = jsonLd?.timezone || '';
+  const guessedTz = startDate ? guessTimezoneFromOffset(startDate, DEFAULT_TZ) : DEFAULT_TZ;
+  const timezone = eventTz || (guessedTz === 'UTC' ? DEFAULT_TZ : guessedTz);
 
   return {
     name,
