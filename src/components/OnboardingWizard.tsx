@@ -18,6 +18,7 @@ interface OnboardingWizardProps {
   onComplete: (config: { conference: string; selectedTags: string[] }) => void;
   onDismiss: () => void;
   availableConferences: string[];
+  conferenceEventCounts?: Record<string, number>;
   onOpenAuth: () => void;
 }
 
@@ -44,11 +45,11 @@ const TIPS = [
   {
     icon: Users,
     title: 'Find Friends',
-    description: 'Add friends to see which events they\'re attending.',
+    description: 'Add friends to see which events they plan to attend.',
   },
   {
     icon: Map,
-    title: 'Map & List Views',
+    title: 'Map, List, and Table Views',
     description: 'Switch between map, list, and table views to find events your way.',
   },
 ];
@@ -58,6 +59,7 @@ export function OnboardingWizard({
   onComplete,
   onDismiss,
   availableConferences,
+  conferenceEventCounts = {},
   onOpenAuth,
 }: OnboardingWizardProps) {
   const [currentStep, setCurrentStep] = useState(0);
@@ -237,8 +239,15 @@ export function OnboardingWizard({
                             : 'bg-slate-900 border-slate-700 hover:border-slate-600'
                         }`}
                       >
-                        <div className={`font-semibold ${isSelected ? 'text-orange-400' : 'text-white'}`}>
-                          {tab.name}
+                        <div className="flex items-center justify-between">
+                          <div className={`font-semibold ${isSelected ? 'text-orange-400' : 'text-white'}`}>
+                            {tab.name}
+                          </div>
+                          {conferenceEventCounts[tab.name] != null && (
+                            <div className={`text-xs ${isSelected ? 'text-orange-400/70' : 'text-slate-500'}`}>
+                              {conferenceEventCounts[tab.name]} events
+                            </div>
+                          )}
                         </div>
                         <div className="text-slate-400 text-xs mt-0.5">
                           {getConferenceDates(tab.name)}
@@ -362,8 +371,8 @@ export function OnboardingWizard({
             )}
           </div>
 
-          {/* Footer navigation — hidden on welcome and signin steps */}
-          {stepId !== 'welcome' && stepId !== 'signin' && (
+          {/* Footer navigation — hidden on welcome step */}
+          {stepId !== 'welcome' && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-slate-700 shrink-0">
               <button
                 onClick={handleBack}
@@ -374,20 +383,25 @@ export function OnboardingWizard({
                 Back
               </button>
 
-              <button
-                onClick={handleSkip}
-                className="text-xs text-slate-500 hover:text-slate-400 transition-colors cursor-pointer"
-              >
-                Skip
-              </button>
+              {stepId !== 'signin' && (
+                <>
+                  <button
+                    onClick={handleSkip}
+                    className="text-xs text-slate-500 hover:text-slate-400 transition-colors cursor-pointer"
+                  >
+                    Skip
+                  </button>
 
-              <button
-                onClick={handleNext}
-                className="flex items-center gap-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
-              >
-                Next
-                <ChevronRight className="w-4 h-4" />
-              </button>
+                  <button
+                    onClick={handleNext}
+                    className="flex items-center gap-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+              {stepId === 'signin' && <div />}
             </div>
           )}
 

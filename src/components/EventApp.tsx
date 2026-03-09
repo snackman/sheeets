@@ -207,6 +207,16 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
     [events]
   );
 
+  const conferenceEventCounts = useMemo(
+    () => events.reduce<Record<string, number>>((acc, e) => {
+      if (e.conference) {
+        acc[e.conference] = (acc[e.conference] || 0) + 1;
+      }
+      return acc;
+    }, {}),
+    [events]
+  );
+
   const availableTypes = useMemo(
     () => {
       const confEvents = events.filter((e) => !filters.conference || e.conference === filters.conference);
@@ -510,6 +520,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
         onComplete={handleOnboardingComplete}
         onDismiss={handleOnboardingDismiss}
         availableConferences={availableConferences}
+        conferenceEventCounts={conferenceEventCounts}
         onOpenAuth={() => { setShowOnboarding(false); setShowAuthForStar(true); }}
       />
     </div>
