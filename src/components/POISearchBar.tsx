@@ -226,7 +226,7 @@ export function POISearchBar({ onAddPOI, mapRef, onSignIn }: POISearchBarProps) 
               type="button"
               onClick={() => setIsPublic(v => { trackPoiShareToggle(!v); return !v; })}
               className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer ${
-                isPublic ? 'bg-amber-500' : 'bg-stone-700'
+                isPublic ? 'bg-[var(--accent)]' : 'bg-stone-700'
               }`}
             >
               <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
@@ -240,7 +240,7 @@ export function POISearchBar({ onAddPOI, mapRef, onSignIn }: POISearchBarProps) 
             <button
               onClick={handleConfirm}
               disabled={!name.trim() || saving}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-600 disabled:opacity-50 text-stone-900 text-xs font-medium rounded-lg transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--accent)] hover:bg-[var(--accent-hover)] active:bg-[var(--accent-hover)] disabled:opacity-50 text-[var(--accent-on-accent)] text-xs font-medium rounded-lg transition-colors cursor-pointer"
             >
               {saving ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />

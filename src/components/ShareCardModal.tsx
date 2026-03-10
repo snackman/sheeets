@@ -252,7 +252,7 @@ export function ShareCardModal({
                             type="checkbox"
                             checked={isIncluded}
                             onChange={() => toggleEvent(event.id)}
-                            className="w-4 h-4 rounded border-stone-600 bg-stone-950 text-amber-500 focus:ring-amber-500 focus:ring-offset-0 cursor-pointer accent-amber-500"
+                            className="w-4 h-4 rounded border-stone-600 bg-[var(--background)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-offset-0 cursor-pointer accent-[var(--accent)]"
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
@@ -283,7 +283,7 @@ export function ShareCardModal({
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                 copyStatus === 'copied'
                   ? 'bg-green-600 text-white'
-                  : 'bg-amber-500 hover:bg-amber-600 text-stone-900'
+                  : 'bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-on-accent)]'
               }`}
             >
               {copyStatus === 'copying' ? (

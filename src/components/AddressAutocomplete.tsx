@@ -107,7 +107,7 @@ export function AddressAutocomplete({
           if (onCoordsChange) onCoordsChange(null);
         }}
         placeholder={placeholder}
-        className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm pl-9 pr-3 py-2 focus:border-amber-500 focus:outline-none placeholder:text-stone-500"
+        className="w-full bg-[var(--background)] border border-stone-600 rounded-lg text-white text-sm pl-9 pr-3 py-2 focus:border-[var(--accent)] focus:outline-none placeholder:text-stone-500"
       />
     </div>
   );

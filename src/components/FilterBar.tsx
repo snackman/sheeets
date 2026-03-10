@@ -114,7 +114,7 @@ export function FilterBar({
   }
 
   return (
-    <div className="relative bg-stone-950 border-b border-stone-800 z-30">
+    <div className="relative bg-[var(--background)] border-b border-[var(--border-muted)] z-30">
       <div className="px-2 sm:px-4 py-3 space-y-3">
         {/* Top row: Conference tabs + Filter toggle */}
         <div className="flex items-center gap-3 lg:justify-center">
@@ -125,7 +125,7 @@ export function FilterBar({
                 ref={(el) => { confBtnRef.current = el; }}
                 onClick={() => setConfOpen(!confOpen)}
                 className={clsx(
-                  'flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 text-stone-900 font-semibold cursor-pointer',
+                  'flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[var(--accent)] text-[var(--accent-on-accent)] font-semibold cursor-pointer',
                   (filters.conference || 'All').length > 12 ? 'text-xs' : 'text-sm'
                 )}
               >
@@ -137,7 +137,7 @@ export function FilterBar({
                 <>
                   <div className="fixed inset-0 z-[60]" onClick={() => setConfOpen(false)} />
                   <div
-                    className="fixed z-[70] bg-stone-900 border border-stone-700 rounded-lg shadow-xl overflow-hidden min-w-[180px]"
+                    className="fixed z-[70] bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-xl overflow-hidden min-w-[180px]"
                     style={{
                       top: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().bottom + 4 : 0,
                       left: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().left : 16,
@@ -150,8 +150,8 @@ export function FilterBar({
                         className={clsx(
                           'w-full text-left px-4 py-3 text-sm font-semibold transition-colors cursor-pointer',
                           filters.conference === conf
-                            ? 'bg-amber-500 text-stone-900'
-                            : 'text-stone-300 hover:bg-stone-800 active:bg-stone-800'
+                            ? 'bg-[var(--accent)] text-[var(--accent-on-accent)]'
+                            : 'text-stone-300 hover:bg-[var(--card-hover)] active:bg-[var(--card-hover)]'
                         )}
                       >
                         {conf}
@@ -169,7 +169,7 @@ export function FilterBar({
             {onSubmitEvent && (
               <button
                 onClick={onSubmitEvent}
-                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-stone-900 transition-colors cursor-pointer"
+                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-on-accent)] transition-colors cursor-pointer"
                 aria-label="Submit event"
               >
                 <Plus className="w-4 h-4" />
@@ -218,7 +218,7 @@ export function FilterBar({
               'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer',
               filters.nowMode
                 ? 'bg-green-500 text-white shadow-[0_0_12px_rgba(34,197,94,0.4)]'
-                : 'bg-stone-900 text-stone-400 hover:text-stone-200 hover:bg-stone-800 active:text-stone-200 active:bg-stone-800 border border-stone-700'
+                : 'bg-[var(--card)] text-[var(--muted)] hover:text-stone-200 hover:bg-[var(--card-hover)] active:text-stone-200 active:bg-[var(--card-hover)] border border-[var(--border)]'
             )}
           >
             <span className="relative flex items-center">
@@ -236,14 +236,14 @@ export function FilterBar({
             className={clsx(
               'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
               expanded || activeFilterCount > 0
-                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                : 'bg-stone-900 text-stone-400 hover:text-stone-200 hover:bg-stone-800 active:text-stone-200 active:bg-stone-800 border border-stone-700'
+                ? 'bg-[var(--accent-muted)] text-[var(--accent-text)] border border-[var(--accent)]/30'
+                : 'bg-[var(--card)] text-[var(--muted)] hover:text-stone-200 hover:bg-[var(--card-hover)] active:text-stone-200 active:bg-[var(--card-hover)] border border-[var(--border)]'
             )}
           >
             <SlidersHorizontal className="w-4 h-4" />
             Filters
             {activeFilterCount > 0 && (
-              <span className="bg-amber-500 text-stone-900 text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
+              <span className="bg-[var(--accent)] text-[var(--accent-on-accent)] text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
                 {activeFilterCount}
               </span>
             )}
@@ -256,7 +256,7 @@ export function FilterBar({
           {onSubmitEvent && (
             <button
               onClick={onSubmitEvent}
-              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-stone-900 transition-colors cursor-pointer"
+              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-on-accent)] transition-colors cursor-pointer"
               aria-label="Submit event"
             >
               <Plus className="w-4 h-4" />
@@ -266,7 +266,7 @@ export function FilterBar({
 
         {/* Expandable filter content — overlays map on mobile */}
         {expanded && (
-          <div className="space-y-3 pt-1 sm:relative absolute left-0 right-0 sm:bg-transparent bg-stone-950 sm:px-0 px-2 sm:pb-0 pb-4 sm:shadow-none shadow-lg shadow-black/40">
+          <div className="space-y-3 pt-1 sm:relative absolute left-0 right-0 sm:bg-transparent bg-[var(--background)] sm:px-0 px-2 sm:pb-0 pb-4 sm:shadow-none shadow-lg shadow-black/40">
             {/* Now mode notice */}
             {filters.nowMode && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
@@ -448,7 +448,7 @@ export function FilterBar({
               <div className="flex items-center">
                 <button
                   onClick={() => { trackClearFilters(); onClearFilters(); }}
-                  className="flex items-center gap-1.5 text-amber-400 hover:text-amber-300 active:text-amber-300 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 text-[var(--accent-text)] hover:text-[var(--accent)] active:text-[var(--accent)] text-sm font-medium whitespace-nowrap transition-colors cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                   Clear all

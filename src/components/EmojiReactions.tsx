@@ -47,7 +47,7 @@ export function EmojiReactions({
           }}
           className={`${pillSize} rounded-full border transition-colors cursor-pointer inline-flex items-center gap-1 ${
             r.reacted
-              ? 'border-amber-500/60 bg-amber-500/10 text-white'
+              ? 'border-[var(--accent)]/60 bg-[var(--accent-muted)] text-white'
               : 'border-stone-600 bg-stone-800/50 text-stone-300 hover:border-stone-500'
           }`}
         >
