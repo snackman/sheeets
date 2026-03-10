@@ -262,7 +262,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                   Paste an event URL to auto-fill the details, or enter manually.
                 </p>
 
-                <div className="flex items-center gap-2 bg-stone-950 border border-stone-600 rounded-lg px-3 py-2.5 focus-within:border-amber-500 transition-colors">
+                <div className="flex items-center gap-2 bg-stone-950 border border-stone-600 rounded-lg px-3 py-2.5 focus-within:border-[var(--accent)] transition-colors">
                   <LinkIcon className="w-4 h-4 text-stone-500 shrink-0" />
                   <input
                     type="url"
@@ -291,7 +291,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                   <button
                     onClick={() => handleFetchLuma(lumaUrl)}
                     disabled={!lumaUrl.trim()}
-                    className="w-full px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-stone-900 rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full px-4 py-2.5 bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-[var(--accent-on-accent)] rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
                   >
                     Fetch Event
                   </button>
@@ -315,7 +315,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                   <select
                     value={conference}
                     onChange={(e) => setConference(e.target.value)}
-                    className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-amber-500 focus:outline-none"
+                    className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-[var(--accent)] focus:outline-none"
                   >
                     {EVENT_TABS.map((t) => (
                       <option key={t.gid} value={t.name}>
@@ -335,7 +335,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Builders Night"
-                    className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-amber-500 focus:outline-none placeholder:text-stone-500"
+                    className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-[var(--accent)] focus:outline-none placeholder:text-stone-500"
                   />
                 </div>
 
@@ -349,7 +349,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                       type="date"
                       value={dateISO}
                       onChange={(e) => setDateISO(e.target.value)}
-                      className="bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-1.5 focus:border-amber-500 focus:outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:invert"
+                      className="bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-1.5 focus:border-[var(--accent)] focus:outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:invert"
                       style={{ colorScheme: 'dark' }}
                     />
                   </div>
@@ -385,7 +385,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                     value={organizer}
                     onChange={(e) => setOrganizer(e.target.value)}
                     placeholder="DeFi Alliance"
-                    className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-amber-500 focus:outline-none placeholder:text-stone-500"
+                    className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-[var(--accent)] focus:outline-none placeholder:text-stone-500"
                   />
                 </div>
 
@@ -403,7 +403,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                     value={cost}
                     onChange={(e) => setCost(e.target.value)}
                     placeholder="Free"
-                    className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-amber-500 focus:outline-none placeholder:text-stone-500"
+                    className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-[var(--accent)] focus:outline-none placeholder:text-stone-500"
                   />
                 </div>
 
@@ -415,7 +415,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                     value={link}
                     onChange={(e) => setLink(e.target.value)}
                     placeholder="Paste any event URL"
-                    className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-amber-500 focus:outline-none placeholder:text-stone-500"
+                    className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-[var(--accent)] focus:outline-none placeholder:text-stone-500"
                   />
                 </div>
 
@@ -426,7 +426,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                     onClick={() => setHasFood(!hasFood)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
                       hasFood
-                        ? 'bg-amber-500 text-stone-900'
+                        ? 'bg-[var(--accent)] text-[var(--accent-on-accent)]'
                         : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
                     }`}
                   >
@@ -438,7 +438,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                     onClick={() => setHasBar(!hasBar)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
                       hasBar
-                        ? 'bg-amber-500 text-stone-900'
+                        ? 'bg-[var(--accent)] text-[var(--accent-on-accent)]'
                         : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
                     }`}
                   >
@@ -507,7 +507,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="Any additional details..."
                     rows={2}
-                    className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-amber-500 focus:outline-none placeholder:text-stone-500 resize-none"
+                    className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-[var(--accent)] focus:outline-none placeholder:text-stone-500 resize-none"
                   />
                 </div>
 
@@ -516,7 +516,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                 <button
                   onClick={handleSubmit}
                   disabled={submitLoading || !name.trim() || !dateISO}
-                  className="w-full px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-stone-900 rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full px-4 py-2.5 bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-[var(--accent-on-accent)] rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
                 >
                   {submitLoading ? (
                     <>
@@ -549,11 +549,11 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                 </p>
 
                 {upsellCopy && (
-                  <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-500/10 border border-amber-500/30 text-left">
-                    <h4 className="text-sm font-semibold text-amber-300 mb-1">{upsellCopy.heading}</h4>
+                  <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-[var(--accent-muted)] to-[var(--accent-muted)] border border-[var(--accent)]/30 text-left">
+                    <h4 className="text-sm font-semibold text-[var(--accent-text)] mb-1">{upsellCopy.heading}</h4>
                     <p className="text-xs text-stone-400 mb-3">{upsellCopy.body}</p>
                     <a href={upsellCopy.cta_url} target="_blank" rel="noopener noreferrer"
-                       className="inline-block px-4 py-2 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg transition-colors">
+                       className="inline-block px-4 py-2 text-xs font-semibold bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-stone-900 rounded-lg transition-colors">
                       {upsellCopy.cta_text}
                     </a>
                   </div>

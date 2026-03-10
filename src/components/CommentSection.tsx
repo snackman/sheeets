@@ -132,7 +132,7 @@ export function CommentSection({ eventId, commentCount = 0 }: CommentSectionProp
           <button
             onClick={handleSubmit}
             disabled={!text.trim()}
-            className="p-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-800 disabled:text-stone-500 text-stone-900 transition-colors cursor-pointer disabled:cursor-not-allowed"
+            className="p-1.5 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:bg-stone-800 disabled:text-stone-500 text-[var(--accent-on-accent)] transition-colors cursor-pointer disabled:cursor-not-allowed"
           >
             <Send className="w-3.5 h-3.5" />
           </button>

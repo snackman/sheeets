@@ -16,6 +16,7 @@ import { useAuthGatedActions } from '@/hooks/useAuthGatedActions';
 import { useConferenceData } from '@/hooks/useConferenceData';
 import { useNowMode } from '@/hooks/useNowMode';
 import { useAdminConfig } from '@/hooks/useAdminConfig';
+import { useConferenceTheme } from '@/hooks/useConferenceTheme';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
@@ -44,6 +45,8 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
     clearFilters,
     activeFilterCount,
   } = useFilters(initialConference);
+
+  useConferenceTheme(filters.conference);
 
   const {
     viewMode,
@@ -156,7 +159,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-950">
+      <div className="min-h-screen bg-[var(--background)]">
         <Header
           viewMode={viewMode}
           onViewChange={setViewMode}
@@ -175,7 +178,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
 
   if (error) {
     return (
-      <div className="min-h-screen bg-stone-950">
+      <div className="min-h-screen bg-[var(--background)]">
         <Header
           viewMode={viewMode}
           onViewChange={setViewMode}
@@ -192,7 +195,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
           <p className="text-stone-500 text-sm text-center max-w-md">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-600 text-stone-900 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+            className="mt-2 px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] active:bg-[var(--accent-hover)] text-[var(--accent-on-accent)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
           >
             Retry
           </button>
@@ -202,7 +205,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
   }
 
   return (
-    <div className="h-dvh flex flex-col bg-stone-950 overflow-hidden">
+    <div className="h-dvh flex flex-col bg-[var(--background)] overflow-hidden">
       <Header
         viewMode={viewMode}
         onViewChange={setViewMode}

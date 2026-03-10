@@ -138,8 +138,8 @@ export function EventCard({
   return (
     <div className={`rounded-lg p-4 transition-colors group flex gap-4 overflow-hidden ${
       event.isFeatured
-        ? 'bg-stone-900 border-2 border-amber-500/50 hover:bg-stone-800 hover:border-amber-500/70 active:bg-stone-800 active:border-amber-500/70'
-        : 'bg-stone-900 border border-stone-700 hover:bg-stone-800 hover:border-stone-600 active:bg-stone-800 active:border-stone-600'
+        ? 'bg-[var(--card)] border-2 border-[var(--accent-warm)]/50 hover:bg-[var(--card-hover)] hover:border-[var(--accent-warm)]/70 active:bg-[var(--card-hover)] active:border-[var(--accent-warm)]/70'
+        : 'bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--card-hover)] hover:border-stone-600 active:bg-[var(--card-hover)] active:border-stone-600'
     }`}>
       {/* Left: cover image */}
       {event.link && <OGImage url={event.link} eventId={event.id} />}
@@ -155,7 +155,7 @@ export function EventCard({
                   href={event.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-amber-400 active:text-amber-400 transition-colors"
+                  className="hover:text-[var(--accent-text)] active:text-[var(--accent-text)] transition-colors"
                   onClick={() => trackEventClick(event.name, event.link!)}
                 >
                   {event.name}

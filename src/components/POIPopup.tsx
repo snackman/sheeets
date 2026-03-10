@@ -86,7 +86,7 @@ export function POIPopup({ poi, onClose, onDelete, onUpdate, currentUserId, owne
               <button
                 onClick={() => onUpdate?.(poi.id, { is_public: !poi.is_public })}
                 className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer ${
-                  poi.is_public ? 'bg-amber-500' : 'bg-stone-700'
+                  poi.is_public ? 'bg-[var(--accent)]' : 'bg-stone-700'
                 }`}
               >
                 <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${

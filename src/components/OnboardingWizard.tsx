@@ -194,7 +194,7 @@ export function OnboardingWizard({
                 <div
                   key={i}
                   className={`w-2 h-2 rounded-full transition-colors ${
-                    i === currentStep ? 'bg-amber-500' : 'bg-stone-600'
+                    i === currentStep ? 'bg-[var(--accent)]' : 'bg-stone-600'
                   }`}
                 />
               ))}
@@ -231,7 +231,7 @@ export function OnboardingWizard({
                 </div>
                 <button
                   onClick={handleNext}
-                  className="w-full max-w-xs px-6 py-3 bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                  className="w-full max-w-xs px-6 py-3 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-on-accent)] rounded-lg text-sm font-semibold transition-colors cursor-pointer"
                 >
                   Get Started
                 </button>
@@ -266,16 +266,16 @@ export function OnboardingWizard({
                         onClick={() => setSelectedConference(tab.name)}
                         className={`w-full text-left p-4 rounded-lg border transition-all cursor-pointer ${
                           isSelected
-                            ? 'bg-amber-500/15 border-amber-500 ring-1 ring-amber-500/50'
+                            ? 'bg-[var(--accent-muted)] border-[var(--accent)] ring-1 ring-[var(--accent)]/50'
                             : 'bg-stone-950 border-stone-700 hover:border-stone-600'
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <div className={`font-semibold ${isSelected ? 'text-amber-400' : 'text-white'}`}>
+                          <div className={`font-semibold ${isSelected ? 'text-[var(--accent-text)]' : 'text-white'}`}>
                             {tab.name}
                           </div>
                           {conferenceEventCounts[tab.name] != null && (
-                            <div className={`text-xs ${isSelected ? 'text-amber-400/70' : 'text-stone-500'}`}>
+                            <div className={`text-xs ${isSelected ? 'text-[var(--accent-text)]/70' : 'text-stone-500'}`}>
                               {conferenceEventCounts[tab.name]} events
                             </div>
                           )}
@@ -353,8 +353,8 @@ export function OnboardingWizard({
                         key={tip.title}
                         className="flex items-start gap-3 p-3 rounded-lg bg-stone-950 border border-stone-700"
                       >
-                        <div className="shrink-0 w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center">
-                          <TipIcon className="w-4.5 h-4.5 text-amber-400" />
+                        <div className="shrink-0 w-9 h-9 rounded-lg bg-[var(--accent)]/15 flex items-center justify-center">
+                          <TipIcon className="w-4.5 h-4.5 text-[var(--accent-text)]" />
                         </div>
                         <div>
                           <div className="text-sm font-semibold text-white">{tip.title}</div>
@@ -370,8 +370,8 @@ export function OnboardingWizard({
             {/* Step 5: Optional Sign In */}
             {stepId === 'signin' && (
               <div className="flex flex-col items-center text-center space-y-5 py-4">
-                <div className="w-14 h-14 rounded-full bg-amber-500/15 flex items-center justify-center">
-                  <Users className="w-7 h-7 text-amber-400" />
+                <div className="w-14 h-14 rounded-full bg-[var(--accent)]/15 flex items-center justify-center">
+                  <Users className="w-7 h-7 text-[var(--accent-text)]" />
                 </div>
                 <div className="space-y-2">
                   <h2 className="text-lg font-bold text-white">
@@ -383,7 +383,7 @@ export function OnboardingWizard({
                 </div>
                 <button
                   onClick={handleSignIn}
-                  className="w-full max-w-xs px-6 py-3 bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                  className="w-full max-w-xs px-6 py-3 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-on-accent)] rounded-lg text-sm font-semibold transition-colors cursor-pointer"
                 >
                   Sign in with email
                 </button>
@@ -423,7 +423,7 @@ export function OnboardingWizard({
 
                   <button
                     onClick={handleNext}
-                    className="flex items-center gap-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                    className="flex items-center gap-1 px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-on-accent)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
                   >
                     Next
                     <ChevronRight className="w-4 h-4" />
@@ -440,7 +440,7 @@ export function OnboardingWizard({
               <div
                 key={i}
                 className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                  i === currentStep ? 'bg-amber-500' : 'bg-stone-600'
+                  i === currentStep ? 'bg-[var(--accent)]' : 'bg-stone-600'
                 }`}
               />
             ))}
