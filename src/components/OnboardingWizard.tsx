@@ -265,7 +265,7 @@ export function OnboardingWizard({
                 <div className="text-center space-y-1">
                   <h2 className="text-lg font-bold text-white">What are you into?</h2>
                   <p className="text-stone-400 text-sm">
-                    Select topics to filter your feed
+                    Select tags to filter your feed
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 justify-center">
