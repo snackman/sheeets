@@ -296,7 +296,7 @@ export function OnboardingWizard({
                 <div className="text-center space-y-1">
                   <h2 className="text-lg font-bold text-white">What are you into?</h2>
                   <p className="text-stone-400 text-sm">
-                    {matchingEventCount} event{matchingEventCount !== 1 ? 's' : ''}{selectedTags.size > 0 ? ' match' : ''} in {selectedConference.replace(/ 2026$/, '')}
+                    Select tags to filter your feed
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 justify-center">
@@ -330,11 +330,9 @@ export function OnboardingWizard({
                     );
                   })}
                 </div>
-                {selectedTags.size > 0 && (
-                  <p className="text-center text-xs text-stone-500">
-                    {selectedTags.size} selected
-                  </p>
-                )}
+                <p className="text-center text-xs text-stone-500">
+                  {matchingEventCount} event{matchingEventCount !== 1 ? 's' : ''}{selectedTags.size > 0 ? ' match' : ''}
+                </p>
               </div>
             )}
 
