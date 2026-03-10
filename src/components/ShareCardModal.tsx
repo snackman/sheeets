@@ -80,6 +80,7 @@ export function ShareCardModal({
       const dataUrl = await toPng(cardRef.current, {
         pixelRatio: 2,
         backgroundColor: '#0c0a09',
+        style: { position: 'static', left: '0' },
       });
       setPreviewUrl(dataUrl);
     } catch (err) {
@@ -129,6 +130,7 @@ export function ShareCardModal({
       const blob = await toBlob(cardRef.current, {
         pixelRatio: 2,
         backgroundColor: '#0c0a09',
+        style: { position: 'static', left: '0' },
       });
       if (!blob) {
         setCopyStatus('idle');
@@ -153,6 +155,7 @@ export function ShareCardModal({
       const blob = await toBlob(cardRef.current, {
         pixelRatio: 2,
         backgroundColor: '#0c0a09',
+        style: { position: 'static', left: '0' },
       });
       if (!blob) return;
       trackShareCardDownload();
