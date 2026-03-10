@@ -2,14 +2,15 @@
 
 import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { X, AlertTriangle, Trash2, CalendarX, Share2, ExternalLink, Download, GripVertical } from 'lucide-react';
+import { X, AlertTriangle, Trash2, CalendarX, Share2, ExternalLink, GripVertical, Star } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { VIBE_COLORS } from '@/lib/tags';
 import { formatDateLabel } from '@/lib/utils';
 import { sortByStartTime, detectConflicts } from '@/lib/time-parse';
-import { downloadICS } from '@/lib/calendar';
 import { useDragReorder } from '@/hooks/useDragReorder';
-import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryExportIcs, trackItinerarySharePng, trackItineraryReorder } from '@/lib/analytics';
+import { useProfile } from '@/hooks/useProfile';
+import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryReorder } from '@/lib/analytics';
+import { ShareCardModal } from '@/components/ShareCardModal';
 
 interface ItineraryPanelProps {
   isOpen: boolean;
@@ -38,8 +39,9 @@ export function ItineraryPanel({
   onReorder,
   activeConference,
 }: ItineraryPanelProps) {
+  const { profile } = useProfile();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  const [showShareCard, setShowShareCard] = useState(false);
   const captureRef = useRef<HTMLDivElement>(null);
 
   // All itinerary events (for badge count)
@@ -99,45 +101,18 @@ export function ItineraryPanel({
       }));
   }, [itineraryEvents]);
 
-  const handleSharePNG = useCallback(async () => {
-    if (!captureRef.current || itineraryEvents.length === 0) return;
-    setExporting(true);
-    try {
-      const { toBlob } = await import('html-to-image');
-
-      // Hide interactive elements before capture
-      const hideEls = captureRef.current.querySelectorAll('[data-export-hide]');
-      hideEls.forEach((el) => (el as HTMLElement).style.display = 'none');
-
-      const blob = await toBlob(captureRef.current, {
-        backgroundColor: '#0c0a09',
-        pixelRatio: 2,
-      });
-
-      // Restore hidden elements
-      hideEls.forEach((el) => (el as HTMLElement).style.display = '');
-
-      if (!blob) return;
-
-      const file = new File([blob], 'itinerary.png', { type: 'image/png' });
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'My Itinerary' });
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'itinerary.png';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-    } catch (err) {
-      console.error('PNG export failed:', err);
-    } finally {
-      setExporting(false);
-    }
-  }, [itineraryEvents.length]);
+  // Compute date range string for share card
+  const shareCardDateRange = useMemo(() => {
+    const dates = itineraryEvents
+      .map((e) => e.dateISO)
+      .filter((d) => d && d !== 'unknown')
+      .sort();
+    if (dates.length === 0) return '';
+    const first = dates[0];
+    const last = dates[dates.length - 1];
+    if (first === last) return formatDateLabel(first);
+    return `${formatDateLabel(first)} - ${formatDateLabel(last)}`;
+  }, [itineraryEvents]);
 
   const handleClear = () => {
     trackItineraryClear();
@@ -218,19 +193,10 @@ export function ItineraryPanel({
                   <ExternalLink className="w-4 h-4" />
                 </Link>
                 <button
-                  onClick={() => { trackItineraryExportIcs(); downloadICS(itineraryEvents); }}
+                  onClick={() => setShowShareCard(true)}
                   className="p-1.5 text-stone-400 hover:text-amber-400 active:text-amber-400 transition-colors cursor-pointer"
-                  aria-label="Export to calendar"
-                  title="Export to calendar (.ics)"
-                >
-                  <Download className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => { trackItinerarySharePng(); handleSharePNG(); }}
-                  disabled={exporting}
-                  className="p-1.5 text-stone-400 hover:text-amber-400 active:text-amber-400 transition-colors cursor-pointer disabled:opacity-50"
-                  aria-label="Share as PNG"
-                  title="Share as PNG"
+                  aria-label="Share itinerary"
+                  title="Share itinerary as PNG"
                 >
                   <Share2 className="w-4 h-4" />
                 </button>
@@ -353,7 +319,7 @@ export function ItineraryPanel({
                                 </div>
                               )}
 
-                              {/* Top row: drag handle, name, remove */}
+                              {/* Top row: drag handle, name, link + star */}
                               <div className="flex items-start gap-2">
                                 {canDrag && (
                                   <div
@@ -369,15 +335,28 @@ export function ItineraryPanel({
                                 <h4 className="flex-1 text-sm font-semibold text-white leading-tight min-w-0 truncate">
                                   {event.name}
                                 </h4>
-                                <button
-                                  data-export-hide
-                                  onClick={() => onItineraryToggle(event.id)}
-                                  className="shrink-0 p-1 text-stone-500 hover:text-red-400 active:text-red-400 transition-colors cursor-pointer"
-                                  aria-label="Remove from itinerary"
-                                  title="Remove from itinerary"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                <div className="flex items-center gap-0.5 shrink-0" data-export-hide>
+                                  {event.link && (
+                                    <a
+                                      href={event.link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="p-1 text-stone-500 hover:text-amber-400 active:text-amber-400 transition-colors"
+                                      aria-label="Open event link"
+                                      title="Open event link"
+                                    >
+                                      <ExternalLink className="w-3.5 h-3.5" />
+                                    </a>
+                                  )}
+                                  <button
+                                    onClick={() => onItineraryToggle(event.id)}
+                                    className="p-1 text-amber-400 hover:text-amber-300 active:text-amber-300 transition-colors cursor-pointer"
+                                    aria-label="Remove from itinerary"
+                                    title="Remove from itinerary"
+                                  >
+                                    <Star className="w-3.5 h-3.5 fill-current" />
+                                  </button>
+                                </div>
                               </div>
 
                               {/* Time */}
@@ -456,6 +435,15 @@ export function ItineraryPanel({
           )}
         </div>
       </div>
+
+      <ShareCardModal
+        isOpen={showShareCard}
+        onClose={() => setShowShareCard(false)}
+        events={itineraryEvents}
+        conferenceName={selectedConference || 'My Itinerary'}
+        dateRange={shareCardDateRange}
+        displayName={profile?.display_name ?? null}
+      />
     </>
   );
 }
