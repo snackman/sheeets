@@ -149,3 +149,12 @@ export const trackPoiShareToggle = (isPublic: boolean) =>
 // Modals
 export const trackModalDismiss = (modal: string) =>
   track('modal_dismiss', { modal });
+
+// Onboarding
+export const trackOnboardingStart = () => track('onboarding_start');
+export const trackOnboardingStep = (step: string) =>
+  track('onboarding_step', { step });
+export const trackOnboardingComplete = (conference: string, tagCount: number) =>
+  track('onboarding_complete', { conference, tag_count: tagCount });
+export const trackOnboardingSkip = (step: string) =>
+  track('onboarding_skip', { step });
