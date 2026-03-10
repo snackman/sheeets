@@ -18,6 +18,9 @@ export function useViewMode() {
     const saved = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
     if (saved === 'map' || saved === 'list' || saved === 'table') {
       setViewMode(saved);
+    } else {
+      // Default: table on desktop, list on mobile
+      setViewMode(window.innerWidth >= 768 ? 'table' : 'list');
     }
     setViewRestored(true);
   }, []);
