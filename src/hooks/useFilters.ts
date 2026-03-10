@@ -99,7 +99,7 @@ export function useFilters(initialConference?: string) {
     // Compare dates against the *current* conference's defaults, not the initial conference
     const currentDefaults = getDateTimeRangeForConference(filters.conference);
     if (filters.startDateTime !== currentDefaults.startDateTime || filters.endDateTime !== currentDefaults.endDateTime) count++;
-    if (filters.vibes.length > 0) count++;
+    count += filters.vibes.length;
     if (filters.selectedFriends.length > 0) count++;
     if (filters.searchQuery) count++;
     if (filters.nowMode) count++;

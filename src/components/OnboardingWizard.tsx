@@ -102,8 +102,9 @@ export function OnboardingWizard({
   // Count of events matching selected tags (or all if none selected)
   const matchingEventCount = useMemo(() => {
     if (selectedTags.size === 0) return conferenceEvents.length;
+    const tagsArr = Array.from(selectedTags);
     return conferenceEvents.filter((e) =>
-      e.tags.some((t) => selectedTags.has(t))
+      tagsArr.every((t) => e.tags.includes(t))
     ).length;
   }, [conferenceEvents, selectedTags]);
 
