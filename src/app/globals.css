@@ -115,7 +115,7 @@ input, select, textarea {
 
 /* Sponsors ticker horizontal scroll */
 .sponsors-scroll {
-  animation: sponsors-scroll-left 40s linear infinite;
+  animation: sponsors-scroll-left 62s linear infinite;
 }
 
 @keyframes sponsors-scroll-left {
