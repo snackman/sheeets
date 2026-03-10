@@ -17,6 +17,32 @@
   --card-hover: #292524;
   --accent: #f59e0b;
   --accent-hover: #fbbf24;
+  --accent-muted: rgba(245, 158, 11, 0.15);
+  --accent-text: #fbbf24;
+  --accent-on-accent: #1c1917;
+  --border: #44403c;
+  --border-muted: #292524;
+  --muted: #a8a29e;
+  --surface: #292524;
+  --accent-warm: #f59e0b;
+}
+
+/* SXSW 2026 theme */
+[data-theme="sxsw"] {
+  --background: #071a1a;
+  --foreground: #f0fdf4;
+  --card: #0f2a2a;
+  --card-hover: #163636;
+  --accent: #4ade80;
+  --accent-hover: #22c55e;
+  --accent-muted: rgba(74, 222, 128, 0.12);
+  --accent-text: #86efac;
+  --accent-on-accent: #052e16;
+  --border: #1e4040;
+  --border-muted: #163636;
+  --muted: #86a3a3;
+  --surface: #163636;
+  --accent-warm: #f97c3c;
 }
 
 @theme inline {
@@ -45,16 +71,16 @@ input, select, textarea {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0c0a09;
+  background: var(--background);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #292524;
+  background: var(--surface);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #44403c;
+  background: var(--border);
 }
 
 /* Stone 750 custom shade for card hover (between 700 and 800) */
@@ -69,8 +95,8 @@ input, select, textarea {
 
 /* Mapbox popup overrides for dark theme */
 .map-popup .mapboxgl-popup-content {
-  background-color: #1c1917;
-  border: 1px solid #292524;
+  background-color: var(--card);
+  border: 1px solid var(--card-hover);
   border-radius: 8px;
   padding: 12px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
@@ -78,11 +104,11 @@ input, select, textarea {
 }
 
 .map-popup .mapboxgl-popup-tip {
-  border-top-color: #1c1917;
+  border-top-color: var(--card);
 }
 
 .map-popup-featured .mapboxgl-popup-content {
-  border: 2px solid rgb(245 158 11 / 0.5);
+  border: 2px solid color-mix(in srgb, var(--accent-warm) 50%, transparent);
 }
 
 .map-popup .mapboxgl-popup-close-btn {
@@ -99,7 +125,7 @@ input, select, textarea {
 }
 
 .map-popup .mapboxgl-popup-content ::-webkit-scrollbar-thumb {
-  background-color: #44403c;
+  background-color: var(--border);
   border-radius: 2px;
 }
 

@@ -123,7 +123,7 @@ function SingleEventContent({
                   href={event.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-amber-400 transition-colors"
+                  className="hover:text-[var(--accent-text)] transition-colors"
                   onClick={() => trackEventClick(event.name, event.link!)}
                 >
                   {event.name}

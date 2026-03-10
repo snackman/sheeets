@@ -143,7 +143,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <p className="text-stone-400 text-sm mb-4">
                   Enter your email to save your itinerary, add friends, and add points of interest to the map.
                 </p>
-                <div className="flex items-center gap-2 bg-stone-950 border border-stone-600 rounded-lg px-3 py-2.5 focus-within:border-amber-500 transition-colors">
+                <div className="flex items-center gap-2 bg-stone-950 border border-stone-600 rounded-lg px-3 py-2.5 focus-within:border-[var(--accent)] transition-colors">
                   <Mail className="w-4 h-4 text-stone-500 shrink-0" />
                   <input
                     type="email"
@@ -159,7 +159,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full mt-4 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-stone-900 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                  className="w-full mt-4 px-4 py-2.5 bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-[var(--accent-on-accent)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
                 >
                   {loading ? 'Sending...' : 'Send code'}
                 </button>
@@ -182,12 +182,12 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                       value={digit}
                       onChange={(e) => handleCodeChange(i, e.target.value)}
                       onKeyDown={(e) => handleCodeKeyDown(i, e)}
-                      className="w-10 h-12 bg-stone-950 border border-stone-600 rounded-lg text-white text-center text-lg font-bold outline-none focus:border-amber-500 transition-colors"
+                      className="w-10 h-12 bg-stone-950 border border-stone-600 rounded-lg text-white text-center text-lg font-bold outline-none focus:border-[var(--accent)] transition-colors"
                     />
                   ))}
                 </div>
                 {error && <p className="text-red-400 text-xs mt-3 text-center">{error}</p>}
-                {loading && <p className="text-amber-400 text-xs mt-3 text-center">Verifying...</p>}
+                {loading && <p className="text-[var(--accent-text)] text-xs mt-3 text-center">Verifying...</p>}
                 <button
                   onClick={() => { setStep('email'); setError(''); }}
                   className="w-full mt-4 text-stone-400 hover:text-stone-300 text-xs text-center cursor-pointer"
@@ -261,7 +261,7 @@ function SearchResultRow({
         <button
           onClick={() => onSend(result.user_id)}
           disabled={sending === result.user_id}
-          className="flex items-center gap-1 text-xs font-medium bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-stone-900 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+          className="flex items-center gap-1 text-xs font-medium bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-stone-900 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
         >
           {sending === result.user_id ? (
             <Loader2 className="w-3 h-3 animate-spin" />
@@ -654,7 +654,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
       >
         <Settings className="w-4 h-4" />
         {badgeCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center text-[9px] font-bold rounded-full bg-amber-500 text-stone-900 px-0.5">
+          <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center text-[9px] font-bold rounded-full bg-[var(--accent)] text-[var(--accent-on-accent)] px-0.5">
             {badgeCount}
           </span>
         )}
@@ -689,12 +689,12 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       placeholder="Username"
-                      className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-amber-500 focus:outline-none placeholder:text-stone-500"
+                      className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-[var(--accent)] focus:outline-none placeholder:text-stone-500"
                     />
                   </div>
 
                   <div>
-                    <div className="flex items-center bg-stone-950 border border-stone-600 rounded-lg focus-within:border-amber-500">
+                    <div className="flex items-center bg-stone-950 border border-stone-600 rounded-lg focus-within:border-[var(--accent)]">
                       <span className="text-stone-500 text-sm pl-3 select-none">@</span>
                       <input
                         type="text"
@@ -712,7 +712,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                       value={rsvpName}
                       onChange={(e) => setRsvpName(e.target.value)}
                       placeholder="RSVP Name"
-                      className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-amber-500 focus:outline-none placeholder:text-stone-500"
+                      className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-[var(--accent)] focus:outline-none placeholder:text-stone-500"
                     />
                   </div>
 
@@ -768,7 +768,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                   {/* Incoming friend requests */}
                   {incomingRequests.length > 0 && (
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-amber-400 uppercase tracking-wide">
+                      <p className="text-xs font-medium text-[var(--accent-text)] uppercase tracking-wide">
                         Friend Requests ({incomingRequests.length})
                       </p>
                       <div className="space-y-0.5">
@@ -786,7 +786,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                   )}
 
                   {/* Search for friends */}
-                  <div className="flex items-center gap-2 bg-stone-950 border border-stone-600 rounded-lg px-3 py-2 focus-within:border-amber-500 transition-colors">
+                  <div className="flex items-center gap-2 bg-stone-950 border border-stone-600 rounded-lg px-3 py-2 focus-within:border-[var(--accent)] transition-colors">
                     <Search className="w-4 h-4 text-stone-500 shrink-0" />
                     <input
                       type="text"
@@ -896,7 +896,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                   {itineraryEvents.length > 0 && (
                     <button
                       onClick={() => { setOpen(false); setShowShareCard(true); }}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-on-accent)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
                     >
                       <Share2 className="w-4 h-4" />
                       Share Itinerary

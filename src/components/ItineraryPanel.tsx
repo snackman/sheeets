@@ -186,7 +186,7 @@ export function ItineraryPanel({
               <>
                 <Link
                   href="/itinerary"
-                  className="p-1.5 text-stone-400 hover:text-amber-400 active:text-amber-400 transition-colors"
+                  className="p-1.5 text-stone-400 hover:text-[var(--accent-text)] active:text-[var(--accent-text)] transition-colors"
                   aria-label="Open full page"
                   title="Open full page"
                 >
@@ -194,7 +194,7 @@ export function ItineraryPanel({
                 </Link>
                 <button
                   onClick={() => setShowShareCard(true)}
-                  className="p-1.5 text-stone-400 hover:text-amber-400 active:text-amber-400 transition-colors cursor-pointer"
+                  className="p-1.5 text-stone-400 hover:text-[var(--accent-text)] active:text-[var(--accent-text)] transition-colors cursor-pointer"
                   aria-label="Share itinerary"
                   title="Share itinerary as PNG"
                 >
@@ -221,7 +221,7 @@ export function ItineraryPanel({
                 onClick={() => { trackItineraryConferenceTab(conf); setSelectedConference(conf); }}
                 className={`px-3 py-2 text-xs font-medium transition-colors cursor-pointer border-b-2 ${
                   selectedConference === conf
-                    ? 'border-amber-500 text-white'
+                    ? 'border-[var(--accent)] text-white'
                     : 'border-transparent text-stone-400 hover:text-stone-200 active:text-stone-200'
                 }`}
               >
@@ -257,9 +257,9 @@ export function ItineraryPanel({
 
                 {/* Conflict warning */}
                 {conflicts.size > 0 && (
-                  <div className="mt-2 mb-1 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-                    <p className="text-amber-400 text-xs">
+                  <div className="mt-2 mb-1 px-3 py-2 bg-[var(--accent-muted)] border border-[var(--accent)]/20 rounded-lg flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-[var(--accent-text)] shrink-0" />
+                    <p className="text-[var(--accent-text)] text-xs">
                       {conflicts.size} event{conflicts.size !== 1 ? 's' : ''} with
                       schedule conflicts
                     </p>
@@ -299,19 +299,19 @@ export function ItineraryPanel({
                           >
                             {/* Drop indicator - above */}
                             {dropIndicator.showAbove && (
-                              <div className="absolute -top-1.5 left-0 right-0 h-0.5 bg-amber-500 rounded-full z-10" />
+                              <div className="absolute -top-1.5 left-0 right-0 h-0.5 bg-[var(--accent)] rounded-full z-10" />
                             )}
 
                             <div
                               className={`bg-stone-900 rounded-lg p-3 border transition-opacity ${
                                 hasConflict
-                                  ? 'border-amber-500/40'
+                                  ? 'border-[var(--accent)]/40'
                                   : 'border-stone-700'
                               } ${isBeingDragged ? 'opacity-40' : 'opacity-100'}`}
                             >
                               {/* Conflict warning */}
                               {hasConflict && (
-                                <div className="flex items-center gap-1.5 mb-2 text-amber-400">
+                                <div className="flex items-center gap-1.5 mb-2 text-[var(--accent-text)]">
                                   <AlertTriangle className="w-3 h-3" />
                                   <span className="text-[10px] font-medium uppercase tracking-wide">
                                     Schedule conflict
@@ -341,7 +341,7 @@ export function ItineraryPanel({
                                       href={event.link}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="p-1 text-stone-500 hover:text-amber-400 active:text-amber-400 transition-colors"
+                                      className="p-1 text-stone-500 hover:text-[var(--accent-text)] active:text-[var(--accent-text)] transition-colors"
                                       aria-label="Open event link"
                                       title="Open event link"
                                     >
@@ -350,7 +350,7 @@ export function ItineraryPanel({
                                   )}
                                   <button
                                     onClick={() => onItineraryToggle(event.id)}
-                                    className="p-1 text-amber-400 hover:text-amber-300 active:text-amber-300 transition-colors cursor-pointer"
+                                    className="p-1 text-[var(--accent-text)] hover:text-[var(--accent)] active:text-[var(--accent)] transition-colors cursor-pointer"
                                     aria-label="Remove from itinerary"
                                     title="Remove from itinerary"
                                   >
@@ -384,7 +384,7 @@ export function ItineraryPanel({
 
                             {/* Drop indicator - below */}
                             {dropIndicator.showBelow && (
-                              <div className="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-amber-500 rounded-full z-10" />
+                              <div className="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-[var(--accent)] rounded-full z-10" />
                             )}
                           </div>
                         );

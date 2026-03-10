@@ -144,7 +144,7 @@ export function MapMarker({
         >
           <div className="relative flex items-center justify-center">
             {/* Clock-face pin */}
-            <div className={`rounded-full ${isFeatured ? 'ring-2 ring-amber-500/60' : ''}`}>
+            <div className={`rounded-full ${isFeatured ? 'ring-2 ring-[var(--accent-warm)]/60' : ''}`}>
               <ClockPin
                 startMinutes={startMinutes}
                 endMinutes={endMinutes}
@@ -201,7 +201,7 @@ export function MapMarker({
           >
             <div className={`px-2 py-0.5 rounded text-[10px] max-w-[140px] leading-tight transition-colors ${
               isFeatured
-                ? 'bg-stone-900/90 border-2 border-amber-500/50 group-hover:bg-stone-800/90 group-hover:border-amber-500/70 text-white'
+                ? 'bg-[var(--card)]/90 border-2 border-[var(--accent-warm)]/50 group-hover:bg-[var(--card-hover)]/90 group-hover:border-[var(--accent-warm)]/70 text-white'
                 : 'bg-stone-900/90 group-hover:bg-stone-800/90 text-white'
             }`}>
               <div className="truncate whitespace-nowrap">{label}</div>

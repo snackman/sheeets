@@ -267,7 +267,7 @@ export function TableView({
                 {currentDateLabel === 'Time' ? (
                   'WHEN'
                 ) : (
-                  <span className="text-amber-400/80 font-semibold">
+                  <span className="text-[var(--accent-text)]/80 font-semibold">
                     {currentDateLabel.toUpperCase()}
                   </span>
                 )}
@@ -426,7 +426,7 @@ function DateGroup({
         <td className="border-b border-stone-700/70"></td>
         <td
           colSpan={COLUMN_COUNT - 1}
-          className="px-3 py-1.5 text-xs font-semibold text-amber-400/80 uppercase tracking-wider border-b border-stone-700/70"
+          className="px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)]/80 uppercase tracking-wider border-b border-stone-700/70"
         >
           {group.label}
         </td>
@@ -439,7 +439,7 @@ function DateGroup({
         return (
           <tr
             key={event.id}
-            className={`hover:bg-stone-900/70 transition-colors cursor-pointer ${event.isDuplicate ? 'bg-red-950/30' : event.isFeatured ? 'bg-stone-950 border-l-2 border-l-amber-500/50' : 'bg-stone-950'}`}
+            className={`hover:bg-stone-900/70 transition-colors cursor-pointer ${event.isDuplicate ? 'bg-red-950/30' : event.isFeatured ? 'bg-[var(--background)] border-l-2 border-l-[var(--accent-warm)]/50' : 'bg-[var(--background)]'}`}
             title={event.isDuplicate ? 'Possible duplicate — same name, date, and time as another event' : undefined}
             onClick={(e) => {
               const target = e.target as HTMLElement;
@@ -467,7 +467,7 @@ function DateGroup({
                       className={`w-4 h-4 ${isInItinerary ? 'text-yellow-400 fill-yellow-400' : 'text-stone-600 hover:text-stone-400'}`}
                     />
                     {fc > 0 && (
-                      <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-amber-500 text-stone-900 text-[8px] font-bold px-0.5 pointer-events-none">
+                      <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-on-accent)] text-[8px] font-bold px-0.5 pointer-events-none">
                         {fc}
                       </span>
                     )}
@@ -507,7 +507,7 @@ function DateGroup({
                     href={event.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:text-amber-400 transition-colors truncate"
+                    className="hover:text-[var(--accent-text)] transition-colors truncate"
                     onClick={() => trackEventClick(event.name, event.link!)}
                   >
                     {event.name}
@@ -528,7 +528,7 @@ function DateGroup({
               {event.address ? (
                 <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
                   eventId={event.id} eventName={event.name}
-                  className="hover:text-amber-400 transition-colors">
+                  className="hover:text-[var(--accent-text)] transition-colors">
                   {event.address}
                 </AddressLink>
               ) : null}
