@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useEvents } from '@/hooks/useEvents';
 import { useFilters } from '@/hooks/useFilters';
 import { useItinerary } from '@/hooks/useItinerary';
@@ -26,6 +26,8 @@ import { AuthModal } from './AuthModal';
 import { SubmitEventModal } from './SubmitEventModal';
 import { FriendsPanel } from './FriendsPanel';
 import { SponsorsTicker } from './SponsorsTicker';
+import { OnboardingWizard } from './OnboardingWizard';
+import { STORAGE_KEYS } from '@/lib/storage-keys';
 
 export function EventApp({ initialConference }: { initialConference?: string }) {
   const { config } = useAdminConfig();
@@ -114,6 +116,43 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
   const [showFriends, setShowFriends] = useState(false);
   const [showSubmitEvent, setShowSubmitEvent] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
+
+  // Onboarding wizard for first-time users
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  useEffect(() => {
+    if (!localStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETED)) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
+  const handleOnboardingComplete = useCallback(
+    (config: { conference: string; selectedTags: string[] }) => {
+      localStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETED, '1');
+      setShowOnboarding(false);
+      if (config.conference) {
+        setConference(config.conference);
+      }
+      for (const tag of config.selectedTags) {
+        toggleVibe(tag);
+      }
+    },
+    [setConference, toggleVibe]
+  );
+
+  const handleOnboardingDismiss = useCallback(() => {
+    localStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETED, '1');
+    setShowOnboarding(false);
+  }, []);
+
+  const conferenceEventCounts = useMemo(
+    () => events.reduce<Record<string, number>>((acc, e) => {
+      if (e.conference) {
+        acc[e.conference] = (acc[e.conference] || 0) + 1;
+      }
+      return acc;
+    }, {}),
+    [events]
+  );
 
   if (loading) {
     return (
@@ -276,6 +315,14 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
         onClose={() => setShowFriends(false)}
         friends={friends}
         onRemoveFriend={removeFriend}
+      />
+      <OnboardingWizard
+        isOpen={showOnboarding}
+        onComplete={handleOnboardingComplete}
+        onDismiss={handleOnboardingDismiss}
+        availableConferences={availableConferences}
+        conferenceEventCounts={conferenceEventCounts}
+        onOpenAuth={() => { setShowOnboarding(false); setShowSignIn(true); }}
       />
     </div>
   );
