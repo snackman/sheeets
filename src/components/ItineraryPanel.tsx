@@ -2,15 +2,14 @@
 
 import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { X, AlertTriangle, Trash2, CalendarX, Share2, ExternalLink, Download, GripVertical } from 'lucide-react';
+import { X, AlertTriangle, Trash2, CalendarX, Share2, ExternalLink, GripVertical, Star } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { VIBE_COLORS } from '@/lib/tags';
 import { formatDateLabel } from '@/lib/utils';
 import { sortByStartTime, detectConflicts } from '@/lib/time-parse';
-import { downloadICS } from '@/lib/calendar';
 import { useDragReorder } from '@/hooks/useDragReorder';
 import { useProfile } from '@/hooks/useProfile';
-import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryExportIcs, trackItineraryReorder } from '@/lib/analytics';
+import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryReorder } from '@/lib/analytics';
 import { ShareCardModal } from '@/components/ShareCardModal';
 
 interface ItineraryPanelProps {
@@ -194,18 +193,10 @@ export function ItineraryPanel({
                   <ExternalLink className="w-4 h-4" />
                 </Link>
                 <button
-                  onClick={() => { trackItineraryExportIcs(); downloadICS(itineraryEvents); }}
-                  className="p-1.5 text-stone-400 hover:text-amber-400 active:text-amber-400 transition-colors cursor-pointer"
-                  aria-label="Export to calendar"
-                  title="Export to calendar (.ics)"
-                >
-                  <Download className="w-4 h-4" />
-                </button>
-                <button
                   onClick={() => setShowShareCard(true)}
                   className="p-1.5 text-stone-400 hover:text-amber-400 active:text-amber-400 transition-colors cursor-pointer"
-                  aria-label="Share as card"
-                  title="Share as card"
+                  aria-label="Share itinerary"
+                  title="Share itinerary as PNG"
                 >
                   <Share2 className="w-4 h-4" />
                 </button>
@@ -328,7 +319,7 @@ export function ItineraryPanel({
                                 </div>
                               )}
 
-                              {/* Top row: drag handle, name, remove */}
+                              {/* Top row: drag handle, name, link + star */}
                               <div className="flex items-start gap-2">
                                 {canDrag && (
                                   <div
@@ -344,15 +335,28 @@ export function ItineraryPanel({
                                 <h4 className="flex-1 text-sm font-semibold text-white leading-tight min-w-0 truncate">
                                   {event.name}
                                 </h4>
-                                <button
-                                  data-export-hide
-                                  onClick={() => onItineraryToggle(event.id)}
-                                  className="shrink-0 p-1 text-stone-500 hover:text-red-400 active:text-red-400 transition-colors cursor-pointer"
-                                  aria-label="Remove from itinerary"
-                                  title="Remove from itinerary"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                <div className="flex items-center gap-0.5 shrink-0" data-export-hide>
+                                  {event.link && (
+                                    <a
+                                      href={event.link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="p-1 text-stone-500 hover:text-amber-400 active:text-amber-400 transition-colors"
+                                      aria-label="Open event link"
+                                      title="Open event link"
+                                    >
+                                      <ExternalLink className="w-3.5 h-3.5" />
+                                    </a>
+                                  )}
+                                  <button
+                                    onClick={() => onItineraryToggle(event.id)}
+                                    className="p-1 text-amber-400 hover:text-amber-300 active:text-amber-300 transition-colors cursor-pointer"
+                                    aria-label="Remove from itinerary"
+                                    title="Remove from itinerary"
+                                  >
+                                    <Star className="w-3.5 h-3.5 fill-current" />
+                                  </button>
+                                </div>
                               </div>
 
                               {/* Time */}

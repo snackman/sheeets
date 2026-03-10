@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, Settings, Link2 } from 'lucide-react';
+import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, Settings, Link2, Share2 } from 'lucide-react';
+import { ShareCardModal } from './ShareCardModal';
+import { formatDateLabel } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAuthSuccess, trackSignOut, trackFriendCodeGenerate, trackFriendCodeCopy, trackModalDismiss } from '@/lib/analytics';
 import { getDisplayName, getDisplayInitial } from '@/lib/user-display';
@@ -424,6 +426,25 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   // Friend link state
   const [friendLinkCopied, setFriendLinkCopied] = useState(false);
   const [friendLinkLoading, setFriendLinkLoading] = useState(false);
+
+  // Share itinerary card state
+  const [showShareCard, setShowShareCard] = useState(false);
+  const itineraryEvents = useMemo(
+    () => events.filter((e) => itinerary.has(e.id)),
+    [events, itinerary]
+  );
+  const shareConferenceName = useMemo(() => {
+    const confs = [...new Set(itineraryEvents.map((e) => e.conference).filter(Boolean))];
+    return confs.length === 1 ? confs[0] : 'My Itinerary';
+  }, [itineraryEvents]);
+  const shareDateRange = useMemo(() => {
+    const dates = itineraryEvents.map((e) => e.dateISO).filter((d) => d && d !== 'unknown').sort();
+    if (dates.length === 0) return '';
+    const first = dates[0];
+    const last = dates[dates.length - 1];
+    if (first === last) return formatDateLabel(first);
+    return `${formatDateLabel(first)} - ${formatDateLabel(last)}`;
+  }, [itineraryEvents]);
 
   const badgeCount = externalCount ?? pendingIncomingCount;
 
@@ -870,8 +891,17 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                   )}
                 </div>
 
-                {/* Submit Event + Sign Out */}
+                {/* Share Itinerary + Submit Event + Sign Out */}
                 <div className="border-t border-stone-700 pt-4 space-y-2">
+                  {itineraryEvents.length > 0 && (
+                    <button
+                      onClick={() => { setOpen(false); setShowShareCard(true); }}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      Share Itinerary
+                    </button>
+                  )}
                   <button
                     onClick={() => { setOpen(false); onSubmitEvent?.(); }}
                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-stone-800 hover:bg-stone-700 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
@@ -895,6 +925,14 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
           </div>,
           document.body
       )}
+      <ShareCardModal
+        isOpen={showShareCard}
+        onClose={() => setShowShareCard(false)}
+        events={itineraryEvents}
+        conferenceName={shareConferenceName}
+        dateRange={shareDateRange}
+        displayName={profile?.display_name ?? null}
+      />
     </>
   );
 }
