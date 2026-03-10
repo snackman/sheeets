@@ -150,6 +150,11 @@ export const trackPoiShareToggle = (isPublic: boolean) =>
 export const trackModalDismiss = (modal: string) =>
   track('modal_dismiss', { modal });
 
+// Share Card
+export const trackShareCardOpen = () => track('share_card_open');
+export const trackShareCardCopy = () => track('share_card_copy');
+export const trackShareCardDownload = () => track('share_card_download');
+
 // Onboarding
 export const trackOnboardingStart = () => track('onboarding_start');
 export const trackOnboardingStep = (step: string) =>

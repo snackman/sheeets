@@ -9,7 +9,9 @@ import { formatDateLabel } from '@/lib/utils';
 import { sortByStartTime, detectConflicts } from '@/lib/time-parse';
 import { downloadICS } from '@/lib/calendar';
 import { useDragReorder } from '@/hooks/useDragReorder';
-import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryExportIcs, trackItinerarySharePng, trackItineraryReorder } from '@/lib/analytics';
+import { useProfile } from '@/hooks/useProfile';
+import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryExportIcs, trackItineraryReorder } from '@/lib/analytics';
+import { ShareCardModal } from '@/components/ShareCardModal';
 
 interface ItineraryPanelProps {
   isOpen: boolean;
@@ -38,8 +40,9 @@ export function ItineraryPanel({
   onReorder,
   activeConference,
 }: ItineraryPanelProps) {
+  const { profile } = useProfile();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  const [showShareCard, setShowShareCard] = useState(false);
   const captureRef = useRef<HTMLDivElement>(null);
 
   // All itinerary events (for badge count)
@@ -99,45 +102,18 @@ export function ItineraryPanel({
       }));
   }, [itineraryEvents]);
 
-  const handleSharePNG = useCallback(async () => {
-    if (!captureRef.current || itineraryEvents.length === 0) return;
-    setExporting(true);
-    try {
-      const { toBlob } = await import('html-to-image');
-
-      // Hide interactive elements before capture
-      const hideEls = captureRef.current.querySelectorAll('[data-export-hide]');
-      hideEls.forEach((el) => (el as HTMLElement).style.display = 'none');
-
-      const blob = await toBlob(captureRef.current, {
-        backgroundColor: '#0c0a09',
-        pixelRatio: 2,
-      });
-
-      // Restore hidden elements
-      hideEls.forEach((el) => (el as HTMLElement).style.display = '');
-
-      if (!blob) return;
-
-      const file = new File([blob], 'itinerary.png', { type: 'image/png' });
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'My Itinerary' });
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'itinerary.png';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-    } catch (err) {
-      console.error('PNG export failed:', err);
-    } finally {
-      setExporting(false);
-    }
-  }, [itineraryEvents.length]);
+  // Compute date range string for share card
+  const shareCardDateRange = useMemo(() => {
+    const dates = itineraryEvents
+      .map((e) => e.dateISO)
+      .filter((d) => d && d !== 'unknown')
+      .sort();
+    if (dates.length === 0) return '';
+    const first = dates[0];
+    const last = dates[dates.length - 1];
+    if (first === last) return formatDateLabel(first);
+    return `${formatDateLabel(first)} - ${formatDateLabel(last)}`;
+  }, [itineraryEvents]);
 
   const handleClear = () => {
     trackItineraryClear();
@@ -226,11 +202,10 @@ export function ItineraryPanel({
                   <Download className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => { trackItinerarySharePng(); handleSharePNG(); }}
-                  disabled={exporting}
-                  className="p-1.5 text-stone-400 hover:text-amber-400 active:text-amber-400 transition-colors cursor-pointer disabled:opacity-50"
-                  aria-label="Share as PNG"
-                  title="Share as PNG"
+                  onClick={() => setShowShareCard(true)}
+                  className="p-1.5 text-stone-400 hover:text-amber-400 active:text-amber-400 transition-colors cursor-pointer"
+                  aria-label="Share as card"
+                  title="Share as card"
                 >
                   <Share2 className="w-4 h-4" />
                 </button>
@@ -456,6 +431,15 @@ export function ItineraryPanel({
           )}
         </div>
       </div>
+
+      <ShareCardModal
+        isOpen={showShareCard}
+        onClose={() => setShowShareCard(false)}
+        events={itineraryEvents}
+        conferenceName={selectedConference || 'My Itinerary'}
+        dateRange={shareCardDateRange}
+        displayName={profile?.display_name ?? null}
+      />
     </>
   );
 }

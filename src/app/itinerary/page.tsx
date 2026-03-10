@@ -14,11 +14,12 @@ import { VIBE_COLORS } from '@/lib/tags';
 import { formatDateLabel } from '@/lib/utils';
 import { sortByStartTime, detectConflicts } from '@/lib/time-parse';
 import { downloadICS } from '@/lib/calendar';
-import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryExportIcs, trackItinerarySharePng, trackItineraryShareLink, trackItineraryReorder } from '@/lib/analytics';
+import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryExportIcs, trackItineraryShareLink, trackItineraryReorder } from '@/lib/analytics';
 import type { ETHDenverEvent } from '@/lib/types';
 import { Loading } from '@/components/Loading';
-import { EventCard } from '@/components/EventCard';
 import { useDragReorder } from '@/hooks/useDragReorder';
+import { useProfile } from '@/hooks/useProfile';
+import { ShareCardModal } from '@/components/ShareCardModal';
 
 const MapView = dynamic(
   () => import('@/components/MapView').then((mod) => ({ default: mod.MapView })),
@@ -47,10 +48,11 @@ export default function ItineraryPage() {
   const { events, loading } = useEvents();
   const { itinerary, toggle: toggleItinerary, clear: clearItinerary, reorder: reorderItinerary } = useItinerary();
   const { user } = useAuth();
+  const { profile } = useProfile();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [viewMode, setViewMode] = useState<ItineraryViewMode>('list');
   const [shareStatus, setShareStatus] = useState<'idle' | 'sharing' | 'copied'>('idle');
+  const [showShareCard, setShowShareCard] = useState(false);
   const captureRef = useRef<HTMLDivElement>(null);
 
   // Get conferences that have itinerary events
@@ -94,6 +96,19 @@ export default function ItineraryPage() {
       }));
   }, [itineraryEvents]);
 
+  // Compute date range string for share card
+  const shareCardDateRange = useMemo(() => {
+    const dates = itineraryEvents
+      .map((e) => e.dateISO)
+      .filter((d) => d && d !== 'unknown')
+      .sort();
+    if (dates.length === 0) return '';
+    const first = dates[0];
+    const last = dates[dates.length - 1];
+    if (first === last) return formatDateLabel(first);
+    return `${formatDateLabel(first)} - ${formatDateLabel(last)}`;
+  }, [itineraryEvents]);
+
   // Flat ordered list of all event IDs across date groups (for drag reorder)
   const flatEventIds = useMemo(
     () => dateGroups.flatMap((g) => g.events.map((e) => e.id)),
@@ -126,36 +141,6 @@ export default function ItineraryPage() {
   useEffect(() => {
     setOrderedIds(flatEventIds);
   }, [flatEventIds, setOrderedIds]);
-
-  const handleSharePNG = useCallback(async () => {
-    if (!captureRef.current || itineraryEvents.length === 0) return;
-    setExporting(true);
-    try {
-      const { toBlob } = await import('html-to-image');
-      const hideEls = captureRef.current.querySelectorAll('[data-export-hide]');
-      hideEls.forEach((el) => ((el as HTMLElement).style.display = 'none'));
-      const blob = await toBlob(captureRef.current, { backgroundColor: '#0c0a09', pixelRatio: 2 });
-      hideEls.forEach((el) => ((el as HTMLElement).style.display = ''));
-      if (!blob) return;
-      const file = new File([blob], 'itinerary.png', { type: 'image/png' });
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'My Itinerary' });
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'itinerary.png';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-    } catch (err) {
-      console.error('PNG export failed:', err);
-    } finally {
-      setExporting(false);
-    }
-  }, [itineraryEvents.length]);
 
   const handleShareLink = useCallback(async () => {
     if (itineraryEvents.length === 0) return;
@@ -265,11 +250,10 @@ export default function ItineraryPage() {
                   <Download className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => { trackItinerarySharePng(); handleSharePNG(); }}
-                  disabled={exporting}
-                  className="p-1.5 text-stone-400 hover:text-amber-400 transition-colors cursor-pointer disabled:opacity-50"
-                  aria-label="Share as PNG"
-                  title="Share as PNG"
+                  onClick={() => setShowShareCard(true)}
+                  className="p-1.5 text-stone-400 hover:text-amber-400 transition-colors cursor-pointer"
+                  aria-label="Share as card"
+                  title="Share as card"
                 >
                   <Share2 className="w-4 h-4" />
                 </button>
@@ -491,6 +475,15 @@ export default function ItineraryPage() {
           </div>
         </div>
       )}
+
+      <ShareCardModal
+        isOpen={showShareCard}
+        onClose={() => setShowShareCard(false)}
+        events={itineraryEvents}
+        conferenceName={activeConference || 'My Itinerary'}
+        dateRange={shareCardDateRange}
+        displayName={profile?.display_name ?? null}
+      />
     </div>
   );
 }
