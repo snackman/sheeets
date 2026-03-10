@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { X, Star, Zap, Users, Map, ChevronLeft, ChevronRight } from 'lucide-react';
 import { EVENT_TABS, VIBE_COLORS, TYPE_TAGS } from '@/lib/constants';
+import type { ETHDenverEvent } from '@/lib/types';
 import { TAG_ICONS } from './TagBadge';
 import {
   trackOnboardingStart,
@@ -19,6 +20,7 @@ interface OnboardingWizardProps {
   onDismiss: () => void;
   availableConferences: string[];
   conferenceEventCounts?: Record<string, number>;
+  events: ETHDenverEvent[];
   onOpenAuth: () => void;
 }
 
@@ -60,6 +62,7 @@ export function OnboardingWizard({
   onDismiss,
   availableConferences,
   conferenceEventCounts = {},
+  events,
   onOpenAuth,
 }: OnboardingWizardProps) {
   const [currentStep, setCurrentStep] = useState(0);
@@ -76,6 +79,33 @@ export function OnboardingWizard({
       trackOnboardingStart();
     }
   }, [isOpen]);
+
+  // Events for selected conference
+  const conferenceEvents = useMemo(
+    () => events.filter((e) => e.conference === selectedConference),
+    [events, selectedConference]
+  );
+
+  // Tags that exist in the selected conference's events (topic tags only)
+  const availableTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    for (const e of conferenceEvents) {
+      for (const t of e.tags) {
+        if (!TYPE_TAGS.includes(t) && t !== 'default' && VIBE_COLORS[t]) {
+          tagSet.add(t);
+        }
+      }
+    }
+    return TOPIC_TAGS.filter((t) => tagSet.has(t));
+  }, [conferenceEvents]);
+
+  // Count of events matching selected tags (or all if none selected)
+  const matchingEventCount = useMemo(() => {
+    if (selectedTags.size === 0) return conferenceEvents.length;
+    return conferenceEvents.filter((e) =>
+      e.tags.some((t) => selectedTags.has(t))
+    ).length;
+  }, [conferenceEvents, selectedTags]);
 
   if (!isOpen || !mounted) return null;
 
@@ -265,11 +295,11 @@ export function OnboardingWizard({
                 <div className="text-center space-y-1">
                   <h2 className="text-lg font-bold text-white">What are you into?</h2>
                   <p className="text-stone-400 text-sm">
-                    Select tags to filter your feed
+                    {matchingEventCount} event{matchingEventCount !== 1 ? 's' : ''}{selectedTags.size > 0 ? ' match' : ''} in {selectedConference.replace(/ 2026$/, '')}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 justify-center">
-                  {TOPIC_TAGS.map((tag) => {
+                  {availableTags.map((tag) => {
                     const isSelected = selectedTags.has(tag);
                     const color = VIBE_COLORS[tag] || VIBE_COLORS.default;
                     const Icon = TAG_ICONS[tag];

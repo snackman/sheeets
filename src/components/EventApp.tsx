@@ -322,6 +322,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
         onDismiss={handleOnboardingDismiss}
         availableConferences={availableConferences}
         conferenceEventCounts={conferenceEventCounts}
+        events={events}
         onOpenAuth={() => { setShowOnboarding(false); setShowSignIn(true); }}
       />
     </div>
