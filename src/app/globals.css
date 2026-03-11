@@ -27,21 +27,21 @@
   --accent-warm: #f59e0b;
 }
 
-/* SXSW 2026 theme */
+/* SXSW 2026 theme — V3 key art colors (sage green + neon yellow-green) */
 [data-theme="sxsw"] {
-  --background: #071a1a;
-  --foreground: #f0fdf4;
-  --card: #0f2a2a;
-  --card-hover: #163636;
-  --accent: #4ade80;
-  --accent-hover: #22c55e;
-  --accent-muted: rgba(74, 222, 128, 0.12);
-  --accent-text: #86efac;
-  --accent-on-accent: #052e16;
-  --border: #1e4040;
-  --border-muted: #163636;
-  --muted: #86a3a3;
-  --surface: #163636;
+  --background: #0e1f14;
+  --foreground: #E7FFEA;
+  --card: #163024;
+  --card-hover: #1e3c2c;
+  --accent: #E3FE01;
+  --accent-hover: #d0ec00;
+  --accent-muted: rgba(227, 254, 1, 0.08);
+  --accent-text: #E3FE01;
+  --accent-on-accent: #0e1f14;
+  --border: #2a4a34;
+  --border-muted: #1e3c2c;
+  --muted: #6b9a78;
+  --surface: #1e3c2c;
   --accent-warm: #f97c3c;
 }
 
