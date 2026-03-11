@@ -14,7 +14,6 @@ interface ShareCardModalProps {
   onClose: () => void;
   events: ETHDenverEvent[];
   conferenceName: string;
-  dateRange: string;
   displayName: string | null;
 }
 
@@ -23,10 +22,10 @@ export function ShareCardModal({
   onClose,
   events,
   conferenceName,
-  dateRange,
   displayName,
 }: ShareCardModalProps) {
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
+  const [cardTitle, setCardTitle] = useState(conferenceName);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copying' | 'copied'>('idle');
@@ -99,7 +98,7 @@ export function ShareCardModal({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [isOpen, selectedEvents, generatePreview]);
+  }, [isOpen, selectedEvents, cardTitle, generatePreview]);
 
   // Track open event
   useEffect(() => {
@@ -116,6 +115,7 @@ export function ShareCardModal({
   useEffect(() => {
     if (!isOpen) {
       setExcludedIds(new Set());
+      setCardTitle(conferenceName);
       setPreviewUrl(null);
       setCopyStatus('idle');
     }
@@ -159,7 +159,7 @@ export function ShareCardModal({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `itinerary-${conferenceName.toLowerCase().replace(/\s+/g, '-')}.png`;
+      a.download = `itinerary-${(cardTitle || conferenceName).toLowerCase().replace(/\s+/g, '-')}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -198,6 +198,20 @@ export function ShareCardModal({
 
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
+            {/* Editable title */}
+            <div>
+              <label className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-1 block">
+                Card Title
+              </label>
+              <input
+                type="text"
+                value={cardTitle}
+                onChange={(e) => setCardTitle(e.target.value)}
+                className="w-full px-3 py-2 bg-stone-950 border border-stone-700 rounded-lg text-white text-sm focus:outline-none focus:border-amber-500 transition-colors"
+                placeholder={conferenceName}
+              />
+            </div>
+
             {/* Preview area */}
             <div className="rounded-lg border border-stone-700 bg-stone-950 overflow-hidden">
               {generating && !previewUrl ? (
@@ -319,8 +333,7 @@ export function ShareCardModal({
       <ShareCardTemplate
         ref={cardRef}
         events={selectedEvents}
-        conferenceName={conferenceName}
-        dateRange={dateRange}
+        conferenceName={cardTitle || conferenceName}
         displayName={displayName}
       />
     </>,

@@ -95,19 +95,6 @@ export default function ItineraryPage() {
       }));
   }, [itineraryEvents]);
 
-  // Compute date range string for share card
-  const shareCardDateRange = useMemo(() => {
-    const dates = itineraryEvents
-      .map((e) => e.dateISO)
-      .filter((d) => d && d !== 'unknown')
-      .sort();
-    if (dates.length === 0) return '';
-    const first = dates[0];
-    const last = dates[dates.length - 1];
-    if (first === last) return formatDateLabel(first);
-    return `${formatDateLabel(first)} - ${formatDateLabel(last)}`;
-  }, [itineraryEvents]);
-
   // Flat ordered list of all event IDs across date groups (for drag reorder)
   const flatEventIds = useMemo(
     () => dateGroups.flatMap((g) => g.events.map((e) => e.id)),
@@ -474,7 +461,6 @@ export default function ItineraryPage() {
         onClose={() => setShowShareCard(false)}
         events={itineraryEvents}
         conferenceName={activeConference || 'My Itinerary'}
-        dateRange={shareCardDateRange}
         displayName={profile?.display_name ?? null}
       />
     </div>

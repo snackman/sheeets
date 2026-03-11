@@ -4,7 +4,6 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, Settings, Link2, Share2 } from 'lucide-react';
 import { ShareCardModal } from './ShareCardModal';
-import { formatDateLabel } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAuthSuccess, trackSignOut, trackFriendCodeGenerate, trackFriendCodeCopy, trackModalDismiss } from '@/lib/analytics';
 import { getDisplayName, getDisplayInitial } from '@/lib/user-display';
@@ -437,15 +436,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
     const confs = [...new Set(itineraryEvents.map((e) => e.conference).filter(Boolean))];
     return confs.length === 1 ? confs[0] : 'My Itinerary';
   }, [itineraryEvents]);
-  const shareDateRange = useMemo(() => {
-    const dates = itineraryEvents.map((e) => e.dateISO).filter((d) => d && d !== 'unknown').sort();
-    if (dates.length === 0) return '';
-    const first = dates[0];
-    const last = dates[dates.length - 1];
-    if (first === last) return formatDateLabel(first);
-    return `${formatDateLabel(first)} - ${formatDateLabel(last)}`;
-  }, [itineraryEvents]);
-
   const badgeCount = externalCount ?? pendingIncomingCount;
 
   // Sync form state when profile loads
@@ -930,7 +920,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
         onClose={() => setShowShareCard(false)}
         events={itineraryEvents}
         conferenceName={shareConferenceName}
-        dateRange={shareDateRange}
         displayName={profile?.display_name ?? null}
       />
     </>

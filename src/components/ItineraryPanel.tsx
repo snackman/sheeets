@@ -101,19 +101,6 @@ export function ItineraryPanel({
       }));
   }, [itineraryEvents]);
 
-  // Compute date range string for share card
-  const shareCardDateRange = useMemo(() => {
-    const dates = itineraryEvents
-      .map((e) => e.dateISO)
-      .filter((d) => d && d !== 'unknown')
-      .sort();
-    if (dates.length === 0) return '';
-    const first = dates[0];
-    const last = dates[dates.length - 1];
-    if (first === last) return formatDateLabel(first);
-    return `${formatDateLabel(first)} - ${formatDateLabel(last)}`;
-  }, [itineraryEvents]);
-
   const handleClear = () => {
     trackItineraryClear();
     onItineraryClear();
@@ -441,7 +428,6 @@ export function ItineraryPanel({
         onClose={() => setShowShareCard(false)}
         events={itineraryEvents}
         conferenceName={selectedConference || 'My Itinerary'}
-        dateRange={shareCardDateRange}
         displayName={profile?.display_name ?? null}
       />
     </>

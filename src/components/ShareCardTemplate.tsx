@@ -8,14 +8,13 @@ import { sortByStartTime } from '@/lib/time-parse';
 interface ShareCardTemplateProps {
   events: ETHDenverEvent[];
   conferenceName: string;
-  dateRange: string;
   displayName: string | null;
 }
 
 const MAX_EVENTS = 15;
 
 const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
-  function ShareCardTemplate({ events, conferenceName, dateRange, displayName }, ref) {
+  function ShareCardTemplate({ events, conferenceName, displayName }, ref) {
     const dateGroups = useMemo(() => {
       const groupMap = new Map<string, ETHDenverEvent[]>();
       for (const event of events) {
@@ -89,16 +88,6 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
             }}
           >
             {conferenceName}
-          </div>
-          <div
-            style={{
-              fontSize: '20px',
-              color: '#a8a29e',
-              marginTop: '8px',
-              lineHeight: 1.4,
-            }}
-          >
-            {dateRange}
           </div>
           {displayName && (
             <div
@@ -231,15 +220,15 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
             textAlign: 'center',
           }}
         >
-          <span
+          <img
+            src="/logo.png"
+            alt="plan.wtf"
             style={{
-              fontSize: '16px',
-              color: '#78716c',
-              letterSpacing: '0.02em',
+              height: '28px',
+              filter: 'invert(1)',
+              opacity: 0.5,
             }}
-          >
-            Built with sheeets.xyz
-          </span>
+          />
         </div>
       </div>
     );
