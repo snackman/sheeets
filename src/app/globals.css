@@ -27,21 +27,21 @@
   --accent-warm: #f59e0b;
 }
 
-/* SXSW 2026 theme */
+/* SXSW 2026 theme — V2 neon lime / key art inspired */
 [data-theme="sxsw"] {
-  --background: #071a1a;
+  --background: #0a1410;
   --foreground: #f0fdf4;
-  --card: #0f2a2a;
-  --card-hover: #163636;
-  --accent: #4ade80;
-  --accent-hover: #22c55e;
-  --accent-muted: rgba(74, 222, 128, 0.12);
-  --accent-text: #86efac;
-  --accent-on-accent: #052e16;
-  --border: #1e4040;
-  --border-muted: #163636;
-  --muted: #86a3a3;
-  --surface: #163636;
+  --card: #111f18;
+  --card-hover: #182a20;
+  --accent: #d8fc30;
+  --accent-hover: #c4e820;
+  --accent-muted: rgba(216, 252, 48, 0.10);
+  --accent-text: #d8fc30;
+  --accent-on-accent: #0a1410;
+  --border: #1e3428;
+  --border-muted: #182a20;
+  --muted: #6b9480;
+  --surface: #182a20;
   --accent-warm: #f97c3c;
 }
 
