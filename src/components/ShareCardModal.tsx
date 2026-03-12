@@ -25,6 +25,7 @@ export function ShareCardModal({
   displayName,
 }: ShareCardModalProps) {
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
+  const [showPastEvents, setShowPastEvents] = useState(false);
   const [cardTitle, setCardTitle] = useState(conferenceName);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -33,15 +34,27 @@ export function ShareCardModal({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trackedRef = useRef(false);
 
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  const pastEventIds = useMemo(
+    () => new Set(events.filter((e) => e.dateISO && e.dateISO !== 'unknown' && e.dateISO < today).map((e) => e.id)),
+    [events, today]
+  );
+
+  const visibleEvents = useMemo(
+    () => showPastEvents ? events : events.filter((e) => !pastEventIds.has(e.id)),
+    [events, showPastEvents, pastEventIds]
+  );
+
   const selectedEvents = useMemo(
-    () => events.filter((e) => !excludedIds.has(e.id)),
-    [events, excludedIds]
+    () => visibleEvents.filter((e) => !excludedIds.has(e.id)),
+    [visibleEvents, excludedIds]
   );
 
   // Group events by date for the toggle list
   const dateGroups = useMemo(() => {
     const groupMap = new Map<string, ETHDenverEvent[]>();
-    for (const event of events) {
+    for (const event of visibleEvents) {
       const key = event.dateISO || 'unknown';
       if (!groupMap.has(key)) groupMap.set(key, []);
       groupMap.get(key)!.push(event);
@@ -53,7 +66,7 @@ export function ShareCardModal({
         label: dateISO === 'unknown' ? 'Date TBD' : formatDateLabel(dateISO),
         events: groupEvents.sort(sortByStartTime),
       }));
-  }, [events]);
+  }, [visibleEvents]);
 
   const toggleEvent = useCallback((eventId: string) => {
     setExcludedIds((prev) => {
@@ -115,6 +128,7 @@ export function ShareCardModal({
   useEffect(() => {
     if (!isOpen) {
       setExcludedIds(new Set());
+      setShowPastEvents(false);
       setCardTitle(conferenceName);
       setPreviewUrl(null);
       setCopyStatus('idle');
@@ -240,9 +254,24 @@ export function ShareCardModal({
 
             {/* Event toggle list */}
             <div>
-              <p className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-2">
-                Events to include ({selectedEvents.length} of {events.length})
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-medium text-stone-400 uppercase tracking-wide">
+                  Events to include ({selectedEvents.length} of {visibleEvents.length})
+                </p>
+                {pastEventIds.size > 0 && (
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showPastEvents}
+                      onChange={(e) => setShowPastEvents(e.target.checked)}
+                      className="w-3.5 h-3.5 rounded border-stone-600 bg-stone-950 accent-amber-500 cursor-pointer"
+                    />
+                    <span className="text-[11px] text-stone-500">
+                      Show past ({pastEventIds.size})
+                    </span>
+                  </label>
+                )}
+              </div>
               <div className="max-h-48 overflow-y-auto rounded-lg border border-stone-700 bg-stone-950 divide-y divide-stone-800">
                 {dateGroups.map((group) => (
                   <div key={group.dateISO}>
