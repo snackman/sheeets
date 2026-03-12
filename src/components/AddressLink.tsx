@@ -188,14 +188,14 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
   return createPortal(
     <>
       <div className="fixed inset-0 z-[80] bg-black/50" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 z-[90] bg-stone-900 border-t border-stone-700 rounded-t-2xl p-4 pb-8">
-        <p className="text-stone-400 text-xs mb-3 truncate px-1">{address}</p>
+      <div className="fixed bottom-0 left-0 right-0 z-[90] bg-[var(--theme-bg-secondary)] border-t border-[var(--theme-border-primary)] rounded-t-2xl p-4 pb-8">
+        <p className="text-[var(--theme-text-secondary)] text-xs mb-3 truncate px-1">{address}</p>
         <div className="space-y-1">
           <button
             onClick={handleCopyAddress}
-            className="flex items-center gap-3 w-full px-4 py-3 text-white hover:bg-stone-800/50 transition-colors rounded-lg cursor-pointer"
+            className="flex items-center gap-3 w-full px-4 py-3 text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]/50 transition-colors rounded-lg cursor-pointer"
           >
-            <span className="text-stone-300">
+            <span className="text-[var(--theme-text-secondary)]">
               {copied ? <Check className="w-5 h-5 text-green-400" /> : <Copy className="w-5 h-5" />}
             </span>
             <span className="text-sm font-medium">{copied ? 'Copied!' : 'Copy Address'}</span>
@@ -207,7 +207,7 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => { trackNavigation(opt.provider); onClose(); }}
-              className="flex items-center gap-3 w-full px-4 py-3 text-white hover:bg-stone-800/50 transition-colors rounded-lg"
+              className="flex items-center gap-3 w-full px-4 py-3 text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]/50 transition-colors rounded-lg"
             >
               <span className={opt.color}>{opt.icon}</span>
               <span className="text-sm font-medium">{opt.label}</span>
@@ -217,7 +217,7 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
 
         {/* Check In button (for events and public POIs) */}
         {showCheckIn && (
-          <div className="mt-3 pt-3 border-t border-stone-700">
+          <div className="mt-3 pt-3 border-t border-[var(--theme-border-primary)]">
             <button
               onClick={handleCheckIn}
               disabled={checkInLoading}
@@ -240,11 +240,11 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
 
         {/* Check Out button (for private pins when user is checked in elsewhere) */}
         {showCheckOut && (
-          <div className="mt-3 pt-3 border-t border-stone-700">
+          <div className="mt-3 pt-3 border-t border-[var(--theme-border-primary)]">
             <button
               onClick={handleCheckOut}
               disabled={checkInLoading}
-              className="flex items-center justify-center gap-2 w-full px-4 py-3 border border-stone-600 hover:border-red-500/50 hover:bg-red-500/10 text-stone-300 hover:text-red-400 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-2 w-full px-4 py-3 border border-[var(--theme-border-primary)] hover:border-red-500/50 hover:bg-red-500/10 text-[var(--theme-text-secondary)] hover:text-red-400 rounded-lg text-sm font-medium transition-colors cursor-pointer"
             >
               {checkInLoading ? (
                 <>
@@ -263,15 +263,15 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
 
         {/* Loading active check-in state for private pins */}
         {isPrivatePin && user && loadingActiveCheckIn && (
-          <div className="mt-3 pt-3 border-t border-stone-700 flex items-center justify-center gap-2 text-stone-500 text-sm py-2">
+          <div className="mt-3 pt-3 border-t border-[var(--theme-border-primary)] flex items-center justify-center gap-2 text-[var(--theme-text-muted)] text-sm py-2">
             <Loader2 className="w-4 h-4 animate-spin" />
           </div>
         )}
 
         {/* Sign-in hint */}
         {showSignInHint && (
-          <div className="mt-3 pt-3 border-t border-stone-700">
-            <p className="flex items-center justify-center gap-2 text-stone-500 text-xs py-1">
+          <div className="mt-3 pt-3 border-t border-[var(--theme-border-primary)]">
+            <p className="flex items-center justify-center gap-2 text-[var(--theme-text-muted)] text-xs py-1">
               <LogIn className="w-3.5 h-3.5" />
               Sign in to check in
             </p>
@@ -284,7 +284,7 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
             className={`mt-2 flex items-center gap-2 text-sm rounded-lg px-3 py-2 ${
               checkInResult.ok
                 ? 'bg-green-900/40 text-green-300'
-                : 'bg-stone-800/60 text-stone-300'
+                : 'bg-[var(--theme-bg-tertiary)]/60 text-[var(--theme-text-secondary)]'
             }`}
           >
             {checkInResult.ok ? (
@@ -298,7 +298,7 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
 
         <button
           onClick={onClose}
-          className="w-full mt-2 py-3 text-stone-400 hover:text-white text-sm font-medium transition-colors rounded-lg cursor-pointer"
+          className="w-full mt-2 py-3 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] text-sm font-medium transition-colors rounded-lg cursor-pointer"
         >
           Cancel
         </button>

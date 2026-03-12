@@ -96,7 +96,7 @@ export function AddressAutocomplete({
 
   return (
     <div className="relative">
-      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500 pointer-events-none z-10" />
+      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--theme-text-muted)] pointer-events-none z-10" />
       <input
         ref={inputRef}
         type="text"
@@ -107,7 +107,7 @@ export function AddressAutocomplete({
           if (onCoordsChange) onCoordsChange(null);
         }}
         placeholder={placeholder}
-        className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm pl-9 pr-3 py-2 focus:border-amber-500 focus:outline-none placeholder:text-stone-500"
+        className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm pl-9 pr-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
       />
     </div>
   );

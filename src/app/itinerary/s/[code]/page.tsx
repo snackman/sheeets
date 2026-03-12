@@ -23,8 +23,8 @@ const MapView = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full bg-stone-950 flex items-center justify-center">
-        <div className="text-stone-400">Loading map...</div>
+      <div className="w-full h-full bg-[var(--theme-bg-primary)] flex items-center justify-center">
+        <div className="text-[var(--theme-text-secondary)]">Loading map...</div>
       </div>
     ),
   }
@@ -136,7 +136,7 @@ export default function SharedItineraryPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-950">
+      <div className="min-h-screen bg-[var(--theme-bg-primary)]">
         <Loading />
       </div>
     );
@@ -144,12 +144,12 @@ export default function SharedItineraryPage() {
 
   if (notFound) {
     return (
-      <div className="min-h-screen bg-stone-950 flex flex-col items-center justify-center px-4">
-        <p className="text-stone-400 text-lg font-medium mb-2">Itinerary not found</p>
-        <p className="text-stone-500 text-sm mb-4">This share link may have expired or is invalid.</p>
+      <div className="min-h-screen bg-[var(--theme-bg-primary)] flex flex-col items-center justify-center px-4">
+        <p className="text-[var(--theme-text-secondary)] text-lg font-medium mb-2">Itinerary not found</p>
+        <p className="text-[var(--theme-text-muted)] text-sm mb-4">This share link may have expired or is invalid.</p>
         <Link
           href="/"
-          className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg text-sm font-medium transition-colors"
+          className="px-4 py-2 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)] rounded-lg text-sm font-medium transition-colors"
         >
           Browse Events
         </Link>
@@ -158,21 +158,21 @@ export default function SharedItineraryPage() {
   }
 
   return (
-    <div className={viewMode === 'map' ? 'h-screen flex flex-col bg-stone-950' : 'min-h-screen bg-stone-950'}>
+    <div className={viewMode === 'map' ? 'h-screen flex flex-col bg-[var(--theme-bg-primary)]' : 'min-h-screen bg-[var(--theme-bg-primary)]'}>
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-stone-950/95 backdrop-blur-sm border-b border-stone-800">
+      <header className="sticky top-0 z-50 bg-[var(--theme-bg-primary)]/95 backdrop-blur-sm border-b border-[var(--theme-border-secondary)]">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="p-1.5 text-stone-400 hover:text-white transition-colors"
+              className="p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors"
               aria-label="Back to events"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div>
-              <h1 className="text-lg font-bold text-white">Shared Itinerary</h1>
-              <p className="text-xs text-stone-400">
+              <h1 className="text-lg font-bold text-[var(--theme-text-primary)]">Shared Itinerary</h1>
+              <p className="text-xs text-[var(--theme-text-secondary)]">
                 {sharedEvents.length} event{sharedEvents.length !== 1 ? 's' : ''}
                 {dateRange && ` · ${dateRange}`}
               </p>
@@ -182,7 +182,7 @@ export default function SharedItineraryPage() {
             {sharedEvents.length > 0 && (
               <>
                 {/* View toggle */}
-                <div className="flex rounded-lg border border-stone-700 overflow-hidden mr-1">
+                <div className="flex rounded-lg border border-[var(--theme-border-primary)] overflow-hidden mr-1">
                   {([
                     { mode: 'list' as const, icon: List, label: 'List' },
                     { mode: 'map' as const, icon: MapIcon, label: 'Map' },
@@ -193,8 +193,8 @@ export default function SharedItineraryPage() {
                       className={clsx(
                         'flex items-center gap-1 px-2 py-1 text-xs font-medium transition-colors cursor-pointer',
                         viewMode === mode
-                          ? 'bg-amber-500 text-stone-900'
-                          : 'bg-stone-900 text-stone-400 hover:text-stone-200 hover:bg-stone-800'
+                          ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+                          : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]'
                       )}
                       aria-label={`${label} view`}
                     >
@@ -211,9 +211,9 @@ export default function SharedItineraryPage() {
 
       {/* Copy to itinerary banner */}
       {sharedEvents.length > 0 && (
-        <div className="bg-stone-900/50 border-b border-stone-800">
+        <div className="bg-[var(--theme-bg-secondary)]/50 border-b border-[var(--theme-border-secondary)]">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-            <p className="text-sm text-stone-300">
+            <p className="text-sm text-[var(--theme-text-secondary)]">
               Add these events to your itinerary
             </p>
             <button
@@ -222,7 +222,7 @@ export default function SharedItineraryPage() {
                 'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
                 copyStatus === 'copied'
                   ? 'bg-emerald-500/20 text-emerald-400'
-                  : 'bg-amber-500 hover:bg-amber-600 text-stone-900'
+                  : 'bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)]'
               )}
             >
               {copyStatus === 'copied' ? (
@@ -244,14 +244,14 @@ export default function SharedItineraryPage() {
       {/* Content */}
       {sharedEvents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-          <Calendar className="w-12 h-12 text-stone-600 mb-4" />
-          <p className="text-stone-400 font-medium mb-2">No matching events found</p>
-          <p className="text-stone-500 text-sm max-w-xs mb-4">
+          <Calendar className="w-12 h-12 text-[var(--theme-text-faint)] mb-4" />
+          <p className="text-[var(--theme-text-secondary)] font-medium mb-2">No matching events found</p>
+          <p className="text-[var(--theme-text-muted)] text-sm max-w-xs mb-4">
             The events in this itinerary may no longer be available.
           </p>
           <Link
             href="/"
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg text-sm font-medium transition-colors"
+            className="px-4 py-2 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)] rounded-lg text-sm font-medium transition-colors"
           >
             Browse Events
           </Link>
@@ -269,11 +269,11 @@ export default function SharedItineraryPage() {
           {dateGroups.map((group) => (
             <section key={group.dateISO} className="mt-4">
               <div className="flex items-center gap-2 mb-2">
-                <div className="h-px flex-1 bg-stone-800" />
-                <h3 className="text-xs font-bold text-stone-400 uppercase tracking-wider whitespace-nowrap">
+                <div className="h-px flex-1 bg-[var(--theme-border-secondary)]" />
+                <h3 className="text-xs font-bold text-[var(--theme-text-secondary)] uppercase tracking-wider whitespace-nowrap">
                   {group.label}
                 </h3>
-                <div className="h-px flex-1 bg-stone-800" />
+                <div className="h-px flex-1 bg-[var(--theme-border-secondary)]" />
               </div>
 
               <div className="space-y-2">
@@ -286,15 +286,15 @@ export default function SharedItineraryPage() {
                   return (
                     <div
                       key={event.id}
-                      className="bg-stone-900 rounded-lg p-3 border border-stone-700"
+                      className="bg-[var(--theme-bg-secondary)] rounded-lg p-3 border border-[var(--theme-border-primary)]"
                     >
-                      <h4 className="text-sm font-semibold text-white leading-tight">
+                      <h4 className="text-sm font-semibold text-[var(--theme-text-primary)] leading-tight">
                         {event.link ? (
                           <a
                             href={event.link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="hover:text-amber-400 transition-colors"
+                            className="hover:text-[var(--theme-accent)] transition-colors"
                           >
                             {event.name}
                           </a>
@@ -304,15 +304,15 @@ export default function SharedItineraryPage() {
                       </h4>
 
                       {event.organizer && (
-                        <p className="text-stone-500 text-xs mt-0.5">By {event.organizer}</p>
+                        <p className="text-[var(--theme-text-muted)] text-xs mt-0.5">By {event.organizer}</p>
                       )}
 
-                      <p className="text-stone-400 text-xs mt-1">{timeDisplay}</p>
+                      <p className="text-[var(--theme-text-secondary)] text-xs mt-1">{timeDisplay}</p>
 
                       {event.address && (
                         <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
                           eventId={event.id} eventName={event.name}
-                          className="text-stone-500 hover:text-stone-300 text-xs mt-0.5 truncate block transition-colors">
+                          className="text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-xs mt-0.5 truncate block transition-colors">
                           {event.address}
                         </AddressLink>
                       )}
@@ -340,7 +340,7 @@ export default function SharedItineraryPage() {
           ))}
 
           <div className="pt-3 pb-2 text-center">
-            <span className="text-[10px] text-stone-600">sheeets.xyz — side event guide</span>
+            <span className="text-[10px] text-[var(--theme-text-faint)]">sheeets.xyz — side event guide</span>
           </div>
         </div>
       )}

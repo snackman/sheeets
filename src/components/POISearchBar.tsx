@@ -122,7 +122,7 @@ export function POISearchBar({ onAddPOI, mapRef, onSignIn }: POISearchBarProps) 
       <div className="absolute top-2 left-12 z-10">
         <button
           onClick={() => user ? setExpanded(true) : onSignIn?.()}
-          className="flex items-center gap-1.5 px-3 py-2 bg-stone-900 border border-stone-600 rounded-lg text-xs text-stone-300 hover:text-white hover:bg-stone-800 active:bg-stone-800 transition-colors cursor-pointer shadow-lg"
+          className="flex items-center gap-1.5 px-3 py-2 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg text-xs text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:bg-[var(--theme-bg-tertiary)] transition-colors cursor-pointer shadow-lg"
         >
           <Plus className="w-3.5 h-3.5" />
           Add pin
@@ -134,13 +134,13 @@ export function POISearchBar({ onAddPOI, mapRef, onSignIn }: POISearchBarProps) 
   return (
     <div
       ref={containerRef}
-      className="absolute top-2 left-12 z-10 w-72 bg-stone-900 border border-stone-700 rounded-lg shadow-xl"
+      className="absolute top-2 left-12 z-10 w-72 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl"
     >
       {/* Search input or selected result form */}
       {!selectedResult ? (
         <div className="relative">
           <div className="flex items-center gap-2 px-3 py-2">
-            <Search className="w-4 h-4 text-stone-400 shrink-0" />
+            <Search className="w-4 h-4 text-[var(--theme-text-secondary)] shrink-0" />
             <input
               ref={inputRef}
               type="text"
@@ -153,12 +153,12 @@ export function POISearchBar({ onAddPOI, mapRef, onSignIn }: POISearchBarProps) 
                 search(e.target.value, { proximity: center, bbox });
               }}
               placeholder="Search for a place..."
-              className="flex-1 bg-transparent text-sm text-white placeholder:text-stone-500 outline-none"
+              className="flex-1 bg-transparent text-sm text-[var(--theme-text-primary)] placeholder:text-[var(--theme-text-muted)] outline-none"
             />
-            {loading && <Loader2 className="w-4 h-4 text-stone-400 animate-spin shrink-0" />}
+            {loading && <Loader2 className="w-4 h-4 text-[var(--theme-text-secondary)] animate-spin shrink-0" />}
             <button
               onClick={handleClose}
-              className="p-0.5 text-stone-400 hover:text-white transition-colors"
+              className="p-0.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors"
               aria-label="Close search"
             >
               <X className="w-4 h-4" />
@@ -167,15 +167,15 @@ export function POISearchBar({ onAddPOI, mapRef, onSignIn }: POISearchBarProps) 
 
           {/* Results dropdown */}
           {results.length > 0 && (
-            <div className="border-t border-stone-700 max-h-52 overflow-y-auto">
+            <div className="border-t border-[var(--theme-border-primary)] max-h-52 overflow-y-auto">
               {results.map((result, i) => (
                 <button
                   key={i}
                   onClick={() => handleSelectResult(result)}
-                  className="w-full text-left px-3 py-2 hover:bg-stone-800 active:bg-stone-800 transition-colors cursor-pointer"
+                  className="w-full text-left px-3 py-2 hover:bg-[var(--theme-bg-tertiary)] active:bg-[var(--theme-bg-tertiary)] transition-colors cursor-pointer"
                 >
-                  <p className="text-sm text-white truncate">{result.text}</p>
-                  <p className="text-xs text-stone-400 truncate">{result.place_name}</p>
+                  <p className="text-sm text-[var(--theme-text-primary)] truncate">{result.text}</p>
+                  <p className="text-xs text-[var(--theme-text-secondary)] truncate">{result.place_name}</p>
                 </button>
               ))}
             </div>
@@ -190,10 +190,10 @@ export function POISearchBar({ onAddPOI, mapRef, onSignIn }: POISearchBarProps) 
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Pin name"
-              className="w-full bg-stone-800 border border-stone-600 rounded px-2.5 py-1.5 text-sm text-white placeholder:text-stone-500 outline-none focus:border-stone-500"
+              className="w-full bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)] rounded px-2.5 py-1.5 text-sm text-[var(--theme-text-primary)] placeholder:text-[var(--theme-text-muted)] outline-none focus:border-[var(--theme-text-muted)]"
               maxLength={60}
             />
-            <p className="text-xs text-stone-500 mt-1 truncate">{selectedResult.place_name}</p>
+            <p className="text-xs text-[var(--theme-text-muted)] mt-1 truncate">{selectedResult.place_name}</p>
           </div>
 
           {/* Category picker */}
@@ -207,8 +207,8 @@ export function POISearchBar({ onAddPOI, mapRef, onSignIn }: POISearchBarProps) 
                   onClick={() => { trackPoiCategorySelect(cat.value); setCategory(cat.value as POICategory); }}
                   className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-colors cursor-pointer ${
                     isActive
-                      ? 'border-white/30 bg-stone-700'
-                      : 'border-stone-600 bg-stone-800 hover:bg-stone-700'
+                      ? 'border-white/30 bg-[var(--theme-bg-tertiary)]'
+                      : 'border-[var(--theme-border-primary)] bg-[var(--theme-bg-tertiary)] hover:bg-[var(--theme-bg-tertiary)]'
                   }`}
                   title={cat.label}
                   aria-label={cat.label}
@@ -221,12 +221,12 @@ export function POISearchBar({ onAddPOI, mapRef, onSignIn }: POISearchBarProps) 
 
           {/* Share toggle */}
           <div className="flex items-center justify-between">
-            <span className="text-xs text-stone-400">Share with friends</span>
+            <span className="text-xs text-[var(--theme-text-secondary)]">Share with friends</span>
             <button
               type="button"
               onClick={() => setIsPublic(v => { trackPoiShareToggle(!v); return !v; })}
               className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer ${
-                isPublic ? 'bg-amber-500' : 'bg-stone-700'
+                isPublic ? 'bg-[var(--theme-accent)]' : 'bg-[var(--theme-border-primary)]'
               }`}
             >
               <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
@@ -240,7 +240,7 @@ export function POISearchBar({ onAddPOI, mapRef, onSignIn }: POISearchBarProps) 
             <button
               onClick={handleConfirm}
               disabled={!name.trim() || saving}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-600 disabled:opacity-50 text-stone-900 text-xs font-medium rounded-lg transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] active:bg-[var(--theme-accent-hover)] disabled:opacity-50 text-[var(--theme-accent-text)] text-xs font-medium rounded-lg transition-colors cursor-pointer"
             >
               {saving ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -251,7 +251,7 @@ export function POISearchBar({ onAddPOI, mapRef, onSignIn }: POISearchBarProps) 
             </button>
             <button
               onClick={handleClose}
-              className="px-3 py-1.5 text-stone-400 hover:text-white text-xs transition-colors cursor-pointer"
+              className="px-3 py-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] text-xs transition-colors cursor-pointer"
             >
               Cancel
             </button>

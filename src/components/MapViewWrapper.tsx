@@ -11,8 +11,8 @@ const MapView = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full bg-stone-950 flex items-center justify-center">
-        <div className="text-stone-400">Loading map...</div>
+      <div className="w-full h-full bg-[var(--theme-bg-primary)] flex items-center justify-center">
+        <div className="text-[var(--theme-text-secondary)]">Loading map...</div>
       </div>
     ),
   }
@@ -102,7 +102,7 @@ export function MapViewWrapper({
         <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-col pointer-events-none">
           {/* Scrollable event list */}
           {drawerOpen && (
-            <div className="pointer-events-auto bg-stone-950/95 backdrop-blur-sm border-t border-stone-700 max-h-[45vh] overflow-y-auto">
+            <div className="pointer-events-auto bg-[var(--theme-bg-primary)]/95 backdrop-blur-sm border-t border-[var(--theme-border-primary)] max-h-[45vh] overflow-y-auto">
               <div className="max-w-3xl mx-auto px-3 py-2 space-y-2">
                 {noLocationEvents.map((event) => (
                   <EventCard
@@ -121,7 +121,7 @@ export function MapViewWrapper({
           {/* Toggle tab */}
           <button
             onClick={() => setDrawerOpen(!drawerOpen)}
-            className="pointer-events-auto self-center mb-2 flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/90 backdrop-blur-sm border border-stone-600 rounded-full text-xs text-stone-300 hover:text-white hover:bg-stone-800 active:bg-stone-800 transition-colors cursor-pointer shadow-lg"
+            className="pointer-events-auto self-center mb-2 flex items-center gap-1.5 px-3 py-1.5 bg-[var(--theme-bg-secondary)]/90 backdrop-blur-sm border border-[var(--theme-border-primary)] rounded-full text-xs text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:bg-[var(--theme-bg-tertiary)] transition-colors cursor-pointer shadow-lg"
           >
             <MapPinOff className="w-3.5 h-3.5" />
             {count} without location

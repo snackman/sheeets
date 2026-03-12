@@ -25,8 +25,8 @@ const MapView = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full bg-stone-950 flex items-center justify-center">
-        <div className="text-stone-400">Loading map...</div>
+      <div className="w-full h-full bg-[var(--theme-bg-primary)] flex items-center justify-center">
+        <div className="text-[var(--theme-text-secondary)]">Loading map...</div>
       </div>
     ),
   }
@@ -156,35 +156,35 @@ export default function ItineraryPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-950">
+      <div className="min-h-screen bg-[var(--theme-bg-primary)]">
         <Loading />
       </div>
     );
   }
 
   return (
-    <div className={viewMode === 'map' ? 'h-screen flex flex-col bg-stone-950' : 'min-h-screen bg-stone-950'}>
+    <div className={viewMode === 'map' ? 'h-screen flex flex-col bg-[var(--theme-bg-primary)]' : 'min-h-screen bg-[var(--theme-bg-primary)]'}>
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-stone-950/95 backdrop-blur-sm border-b border-stone-800">
+      <header className="sticky top-0 z-50 bg-[var(--theme-bg-primary)]/95 backdrop-blur-sm border-b border-[var(--theme-border-secondary)]">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="p-1.5 text-stone-400 hover:text-white transition-colors"
+              className="p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors"
               aria-label="Back to events"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <h1 className="text-lg font-bold text-white">
+            <h1 className="text-lg font-bold text-[var(--theme-text-primary)]">
               My Itinerary{' '}
-              <span className="text-sm font-normal text-stone-400">
+              <span className="text-sm font-normal text-[var(--theme-text-secondary)]">
                 ({itineraryEvents.length} event{itineraryEvents.length !== 1 ? 's' : ''})
               </span>
             </h1>
           </div>
           {/* Conference tabs */}
           {conferences.length > 1 && (
-            <div className="flex rounded-lg border border-stone-700 overflow-hidden">
+            <div className="flex rounded-lg border border-[var(--theme-border-primary)] overflow-hidden">
               {conferences.map((conf) => (
                 <button
                   key={conf}
@@ -192,8 +192,8 @@ export default function ItineraryPage() {
                   className={clsx(
                     'px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
                     activeConference === conf
-                      ? 'bg-amber-500 text-stone-900'
-                      : 'bg-stone-900 text-stone-400 hover:text-stone-200 hover:bg-stone-800'
+                      ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+                      : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]'
                   )}
                 >
                   {conf.replace(/ 2026$/, '')}
@@ -205,7 +205,7 @@ export default function ItineraryPage() {
             {itineraryEvents.length > 0 && (
               <>
                 {/* View toggle */}
-                <div className="flex rounded-lg border border-stone-700 overflow-hidden mr-1">
+                <div className="flex rounded-lg border border-[var(--theme-border-primary)] overflow-hidden mr-1">
                   {([
                     { mode: 'list' as const, icon: List, label: 'List' },
                     { mode: 'map' as const, icon: MapIcon, label: 'Map' },
@@ -216,8 +216,8 @@ export default function ItineraryPage() {
                       className={clsx(
                         'flex items-center gap-1 px-2 py-1 text-xs font-medium transition-colors cursor-pointer',
                         viewMode === mode
-                          ? 'bg-amber-500 text-stone-900'
-                          : 'bg-stone-900 text-stone-400 hover:text-stone-200 hover:bg-stone-800'
+                          ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+                          : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]'
                       )}
                       aria-label={`${label} view`}
                     >
@@ -229,7 +229,7 @@ export default function ItineraryPage() {
 
                 <button
                   onClick={() => setShowShareCard(true)}
-                  className="p-1.5 text-stone-400 hover:text-amber-400 transition-colors cursor-pointer"
+                  className="p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] transition-colors cursor-pointer"
                   aria-label="Share itinerary"
                   title="Share itinerary as PNG"
                 >
@@ -242,7 +242,7 @@ export default function ItineraryPage() {
                     'px-2 py-1 text-xs font-medium rounded transition-colors cursor-pointer',
                     shareStatus === 'copied'
                       ? 'bg-emerald-500/20 text-emerald-400'
-                      : 'bg-stone-900 border border-stone-700 text-stone-400 hover:text-amber-400 hover:border-stone-600'
+                      : 'bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] hover:border-[var(--theme-border-primary)]'
                   )}
                   title="Share link"
                 >
@@ -257,14 +257,14 @@ export default function ItineraryPage() {
       {/* Content */}
       {itineraryEvents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-          <CalendarX className="w-12 h-12 text-stone-600 mb-4" />
-          <p className="text-stone-400 font-medium mb-2">No events in your itinerary yet</p>
-          <p className="text-stone-500 text-sm max-w-xs mb-4">
+          <CalendarX className="w-12 h-12 text-[var(--theme-text-faint)] mb-4" />
+          <p className="text-[var(--theme-text-secondary)] font-medium mb-2">No events in your itinerary yet</p>
+          <p className="text-[var(--theme-text-muted)] text-sm max-w-xs mb-4">
             Star events from the main page to build your schedule!
           </p>
           <Link
             href="/"
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg text-sm font-medium transition-colors"
+            className="px-4 py-2 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)] rounded-lg text-sm font-medium transition-colors"
           >
             Browse Events
           </Link>
@@ -279,17 +279,17 @@ export default function ItineraryPage() {
         </main>
       ) : (
         <div className="max-w-2xl mx-auto px-4 pb-8">
-          <div ref={captureRef} className="bg-stone-950">
+          <div ref={captureRef} className="bg-[var(--theme-bg-primary)]">
             <div className="pt-3 pb-1 px-1 flex items-center gap-2">
               <span className="text-base">📅</span>
-              <span className="text-sm font-bold text-white">sheeets.xyz</span>
-              <span className="text-xs text-stone-500">— My Itinerary</span>
+              <span className="text-sm font-bold text-[var(--theme-text-primary)]">sheeets.xyz</span>
+              <span className="text-xs text-[var(--theme-text-muted)]">— My Itinerary</span>
             </div>
 
             {conflicts.size > 0 && (
-              <div className="mt-2 mb-1 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-                <p className="text-amber-400 text-xs">
+              <div className="mt-2 mb-1 px-3 py-2 bg-[var(--theme-accent)]/10 border border-[var(--theme-accent)]/20 rounded-lg flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-[var(--theme-accent)] shrink-0" />
+                <p className="text-[var(--theme-accent)] text-xs">
                   {conflicts.size} event{conflicts.size !== 1 ? 's' : ''} with schedule conflicts
                 </p>
               </div>
@@ -298,11 +298,11 @@ export default function ItineraryPage() {
             {dateGroups.map((group) => (
               <section key={group.dateISO} className="mt-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="h-px flex-1 bg-stone-800" />
-                  <h3 className="text-xs font-bold text-stone-400 uppercase tracking-wider whitespace-nowrap">
+                  <div className="h-px flex-1 bg-[var(--theme-border-secondary)]" />
+                  <h3 className="text-xs font-bold text-[var(--theme-text-secondary)] uppercase tracking-wider whitespace-nowrap">
                     {group.label}
                   </h3>
-                  <div className="h-px flex-1 bg-stone-800" />
+                  <div className="h-px flex-1 bg-[var(--theme-border-secondary)]" />
                 </div>
 
                 <div className="space-y-2">
@@ -324,16 +324,16 @@ export default function ItineraryPage() {
                       >
                         {/* Drop indicator - above */}
                         {dropIndicator.showAbove && (
-                          <div className="absolute -top-1.5 left-0 right-0 h-0.5 bg-amber-500 rounded-full z-10" />
+                          <div className="absolute -top-1.5 left-0 right-0 h-0.5 bg-[var(--theme-accent)] rounded-full z-10" />
                         )}
 
                         <div
-                          className={`bg-stone-900 rounded-lg p-3 border transition-opacity ${
-                            hasConflict ? 'border-amber-500/40' : 'border-stone-700'
+                          className={`bg-[var(--theme-bg-secondary)] rounded-lg p-3 border transition-opacity ${
+                            hasConflict ? 'border-[var(--theme-accent)]/40' : 'border-[var(--theme-border-primary)]'
                           } ${isBeingDragged ? 'opacity-40' : 'opacity-100'}`}
                         >
                           {hasConflict && (
-                            <div className="flex items-center gap-1.5 mb-2 text-amber-400">
+                            <div className="flex items-center gap-1.5 mb-2 text-[var(--theme-accent)]">
                               <AlertTriangle className="w-3 h-3" />
                               <span className="text-[10px] font-medium uppercase tracking-wide">
                                 Schedule conflict
@@ -345,13 +345,13 @@ export default function ItineraryPage() {
                             <div
                               data-export-hide
                               {...getDragHandleProps(event.id)}
-                              className="shrink-0 pt-0.5 text-stone-600 hover:text-stone-400 active:text-stone-400 cursor-grab active:cursor-grabbing touch-none select-none"
+                              className="shrink-0 pt-0.5 text-[var(--theme-text-faint)] hover:text-[var(--theme-text-secondary)] active:text-[var(--theme-text-secondary)] cursor-grab active:cursor-grabbing touch-none select-none"
                               aria-label="Drag to reorder"
                               title="Drag to reorder"
                             >
                               <GripVertical className="w-4 h-4" />
                             </div>
-                            <h4 className="flex-1 text-sm font-semibold text-white leading-tight min-w-0">
+                            <h4 className="flex-1 text-sm font-semibold text-[var(--theme-text-primary)] leading-tight min-w-0">
                               {event.name}
                             </h4>
                             <div className="flex items-center gap-0.5 shrink-0" data-export-hide>
@@ -360,7 +360,7 @@ export default function ItineraryPage() {
                                   href={event.link}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="p-1 text-stone-500 hover:text-amber-400 transition-colors"
+                                  className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-accent)] transition-colors"
                                   aria-label="Open event link"
                                   title="Open event link"
                                 >
@@ -369,7 +369,7 @@ export default function ItineraryPage() {
                               )}
                               <button
                                 onClick={() => toggleItinerary(event.id)}
-                                className="p-1 text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
+                                className="p-1 text-[var(--theme-accent)] hover:text-[var(--theme-accent)] transition-colors cursor-pointer"
                                 aria-label="Remove from itinerary"
                                 title="Remove from itinerary"
                               >
@@ -379,15 +379,15 @@ export default function ItineraryPage() {
                           </div>
 
                           {event.organizer && (
-                            <p className="text-stone-500 text-xs mt-0.5 ml-6">By {event.organizer}</p>
+                            <p className="text-[var(--theme-text-muted)] text-xs mt-0.5 ml-6">By {event.organizer}</p>
                           )}
 
-                          <p className="text-stone-400 text-xs mt-1 ml-6">{timeDisplay}</p>
+                          <p className="text-[var(--theme-text-secondary)] text-xs mt-1 ml-6">{timeDisplay}</p>
 
                           {event.address && (
                             <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
                               eventId={event.id} eventName={event.name}
-                              className="text-stone-500 hover:text-stone-300 text-xs mt-0.5 truncate block transition-colors ml-6">
+                              className="text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-xs mt-0.5 truncate block transition-colors ml-6">
                               {event.address}
                             </AddressLink>
                           )}
@@ -411,7 +411,7 @@ export default function ItineraryPage() {
 
                         {/* Drop indicator - below */}
                         {dropIndicator.showBelow && (
-                          <div className="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-amber-500 rounded-full z-10" />
+                          <div className="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-[var(--theme-accent)] rounded-full z-10" />
                         )}
                       </div>
                     );
@@ -421,15 +421,15 @@ export default function ItineraryPage() {
             ))}
 
             <div className="pt-3 pb-2 text-center">
-              <span className="text-[10px] text-stone-600">sheeets.xyz — side event guide</span>
+              <span className="text-[10px] text-[var(--theme-text-faint)]">sheeets.xyz — side event guide</span>
             </div>
           </div>
 
           {/* Clear button */}
-          <div className="mt-6 pt-4 border-t border-stone-800">
+          <div className="mt-6 pt-4 border-t border-[var(--theme-border-secondary)]">
             {showClearConfirm ? (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-stone-400">Clear all events?</span>
+                <span className="text-sm text-[var(--theme-text-secondary)]">Clear all events?</span>
                 <button
                   onClick={() => { trackItineraryClear(); clearItinerary(); setShowClearConfirm(false); }}
                   className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded transition-colors cursor-pointer"
@@ -438,7 +438,7 @@ export default function ItineraryPage() {
                 </button>
                 <button
                   onClick={() => setShowClearConfirm(false)}
-                  className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-medium rounded transition-colors cursor-pointer"
+                  className="px-3 py-1.5 bg-[var(--theme-bg-tertiary)] hover:bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-secondary)] text-xs font-medium rounded transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -446,7 +446,7 @@ export default function ItineraryPage() {
             ) : (
               <button
                 onClick={() => setShowClearConfirm(true)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-400 hover:text-stone-300 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[var(--theme-bg-secondary)] hover:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-secondary)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
               >
                 <Trash2 className="w-4 h-4" />
                 Clear Itinerary
