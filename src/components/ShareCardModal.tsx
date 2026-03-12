@@ -196,15 +196,15 @@ export function ShareCardModal({
       {/* Modal */}
       <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
         <div
-          className="bg-stone-900 border border-stone-700 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col"
+          className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-stone-700 shrink-0">
-            <h2 className="text-base font-bold text-white">Share Itinerary</h2>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)] shrink-0">
+            <h2 className="text-base font-bold text-[var(--theme-text-primary)]">Share Itinerary</h2>
             <button
               onClick={onClose}
-              className="p-1 text-stone-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -214,29 +214,29 @@ export function ShareCardModal({
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
             {/* Editable title */}
             <div>
-              <label className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-1 block">
+              <label className="text-xs font-medium text-[var(--theme-text-secondary)] uppercase tracking-wide mb-1 block">
                 Card Title
               </label>
               <input
                 type="text"
                 value={cardTitle}
                 onChange={(e) => setCardTitle(e.target.value)}
-                className="w-full px-3 py-2 bg-stone-950 border border-stone-700 rounded-lg text-white text-sm focus:outline-none focus:border-amber-500 transition-colors"
+                className="w-full px-3 py-2 bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm focus:outline-none focus:border-[var(--theme-accent)] transition-colors"
                 placeholder={conferenceName}
               />
             </div>
 
             {/* Preview area */}
-            <div className="rounded-lg border border-stone-700 bg-stone-950 overflow-hidden">
+            <div className="rounded-lg border border-[var(--theme-border-primary)] bg-[var(--theme-bg-primary)] overflow-hidden">
               {generating && !previewUrl ? (
                 <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-6 h-6 text-stone-400 animate-spin" />
+                  <Loader2 className="w-6 h-6 text-[var(--theme-text-secondary)] animate-spin" />
                 </div>
               ) : previewUrl ? (
                 <div className="relative">
                   {generating && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-stone-950/60 z-10">
-                      <Loader2 className="w-5 h-5 text-stone-400 animate-spin" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-[var(--theme-bg-primary)]/60 z-10">
+                      <Loader2 className="w-5 h-5 text-[var(--theme-text-secondary)] animate-spin" />
                     </div>
                   )}
                   <img
@@ -246,7 +246,7 @@ export function ShareCardModal({
                   />
                 </div>
               ) : (
-                <div className="flex items-center justify-center py-12 text-stone-500 text-sm">
+                <div className="flex items-center justify-center py-12 text-[var(--theme-text-muted)] text-sm">
                   Select at least one event to generate preview
                 </div>
               )}
@@ -255,7 +255,7 @@ export function ShareCardModal({
             {/* Event toggle list */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-medium text-stone-400 uppercase tracking-wide">
+                <p className="text-xs font-medium text-[var(--theme-text-secondary)] uppercase tracking-wide">
                   Events to include ({selectedEvents.length} of {visibleEvents.length})
                 </p>
                 {pastEventIds.size > 0 && (
@@ -264,19 +264,19 @@ export function ShareCardModal({
                       type="checkbox"
                       checked={showPastEvents}
                       onChange={(e) => setShowPastEvents(e.target.checked)}
-                      className="w-3.5 h-3.5 rounded border-stone-600 bg-stone-950 accent-amber-500 cursor-pointer"
+                      className="w-3.5 h-3.5 rounded border-[var(--theme-border-primary)] bg-[var(--theme-bg-primary)] accent-[var(--theme-accent)] cursor-pointer"
                     />
-                    <span className="text-[11px] text-stone-500">
+                    <span className="text-[11px] text-[var(--theme-text-muted)]">
                       Show past ({pastEventIds.size})
                     </span>
                   </label>
                 )}
               </div>
-              <div className="max-h-48 overflow-y-auto rounded-lg border border-stone-700 bg-stone-950 divide-y divide-stone-800">
+              <div className="max-h-48 overflow-y-auto rounded-lg border border-[var(--theme-border-primary)] bg-[var(--theme-bg-primary)] divide-y divide-[var(--theme-border-secondary)]">
                 {dateGroups.map((group) => (
                   <div key={group.dateISO}>
-                    <div className="px-3 py-1.5 bg-stone-900/50 sticky top-0">
-                      <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+                    <div className="px-3 py-1.5 bg-[var(--theme-bg-secondary)]/50 sticky top-0">
+                      <span className="text-[10px] font-bold text-[var(--theme-text-muted)] uppercase tracking-wider">
                         {group.label}
                       </span>
                     </div>
@@ -289,22 +289,22 @@ export function ShareCardModal({
                       return (
                         <label
                           key={event.id}
-                          className="flex items-center gap-3 px-3 py-2 hover:bg-stone-800/50 cursor-pointer transition-colors"
+                          className="flex items-center gap-3 px-3 py-2 hover:bg-[var(--theme-bg-tertiary)]/50 cursor-pointer transition-colors"
                         >
                           <input
                             type="checkbox"
                             checked={isIncluded}
                             onChange={() => toggleEvent(event.id)}
-                            className="w-4 h-4 rounded border-stone-600 bg-stone-950 text-amber-500 focus:ring-amber-500 focus:ring-offset-0 cursor-pointer accent-amber-500"
+                            className="w-4 h-4 rounded border-[var(--theme-border-primary)] bg-[var(--theme-bg-primary)] text-[var(--theme-accent)] focus:ring-[var(--theme-accent)] focus:ring-offset-0 cursor-pointer accent-[var(--theme-accent)]"
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               {timeDisplay && (
-                                <span className="text-[11px] text-stone-500 shrink-0">
+                                <span className="text-[11px] text-[var(--theme-text-muted)] shrink-0">
                                   {timeDisplay}
                                 </span>
                               )}
-                              <span className={`text-sm truncate ${isIncluded ? 'text-white' : 'text-stone-500'}`}>
+                              <span className={`text-sm truncate ${isIncluded ? 'text-[var(--theme-text-primary)]' : 'text-[var(--theme-text-muted)]'}`}>
                                 {event.name}
                               </span>
                             </div>
@@ -319,14 +319,14 @@ export function ShareCardModal({
           </div>
 
           {/* Footer buttons */}
-          <div className="px-4 py-3 border-t border-stone-700 flex items-center gap-2 shrink-0">
+          <div className="px-4 py-3 border-t border-[var(--theme-border-primary)] flex items-center gap-2 shrink-0">
             <button
               onClick={handleCopy}
               disabled={selectedEvents.length === 0 || copyStatus === 'copying'}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                 copyStatus === 'copied'
                   ? 'bg-green-600 text-white'
-                  : 'bg-amber-500 hover:bg-amber-600 text-stone-900'
+                  : 'bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)]'
               }`}
             >
               {copyStatus === 'copying' ? (
@@ -349,7 +349,7 @@ export function ShareCardModal({
             <button
               onClick={handleDownload}
               disabled={selectedEvents.length === 0}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-stone-800 hover:bg-stone-700 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--theme-bg-tertiary)] hover:bg-[var(--theme-bg-card-hover)] text-[var(--theme-text-primary)] rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Download className="w-4 h-4" />
               Download PNG

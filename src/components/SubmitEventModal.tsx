@@ -27,7 +27,7 @@ function formatDateShort(iso: string): string {
 }
 
 // Tags for the selector: TYPE_TAGS excluding synthetic tags + topic tags from VIBE_COLORS
-const EXCLUDED_TAGS = ['$$', '🍕 Food', 'Food', 'Bar', 'Drinks'];
+const EXCLUDED_TAGS = ['$$', '\u{1F355} Food', 'Food', 'Bar', 'Drinks'];
 const FORMAT_TAGS = TYPE_TAGS.filter((t) => !EXCLUDED_TAGS.includes(t));
 const TOPIC_TAGS = Object.keys(VIBE_COLORS).filter(
   (t) => !TYPE_TAGS.includes(t) && t !== 'default' && !EXCLUDED_TAGS.includes(t)
@@ -235,19 +235,19 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
       {/* Modal */}
       <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
         <div
-          className="bg-stone-900 border border-stone-700 rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col"
+          className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-stone-700 shrink-0">
-            <h2 className="text-base font-bold text-white">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)] shrink-0">
+            <h2 className="text-base font-bold text-[var(--theme-text-primary)]">
               {step === 'input' && 'Submit Event'}
               {step === 'form' && 'Event Details'}
               {step === 'success' && 'Submitted!'}
             </h2>
             <button
               onClick={handleClose}
-              className="p-1 text-stone-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -258,12 +258,12 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
             {/* Step 1: Luma URL Input */}
             {step === 'input' && (
               <div className="space-y-4">
-                <p className="text-stone-400 text-sm">
+                <p className="text-[var(--theme-text-secondary)] text-sm">
                   Paste an event URL to auto-fill the details, or enter manually.
                 </p>
 
-                <div className="flex items-center gap-2 bg-stone-950 border border-stone-600 rounded-lg px-3 py-2.5 focus-within:border-amber-500 transition-colors">
-                  <LinkIcon className="w-4 h-4 text-stone-500 shrink-0" />
+                <div className="flex items-center gap-2 bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg px-3 py-2.5 focus-within:border-[var(--theme-accent)] transition-colors">
+                  <LinkIcon className="w-4 h-4 text-[var(--theme-text-muted)] shrink-0" />
                   <input
                     type="url"
                     value={lumaUrl}
@@ -275,7 +275,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                       }
                     }}
                     placeholder="Paste any event URL"
-                    className="flex-1 bg-transparent text-white text-sm outline-none placeholder:text-stone-500"
+                    className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm outline-none placeholder:text-[var(--theme-text-muted)]"
                     autoFocus
                   />
                 </div>
@@ -283,7 +283,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                 {fetchError && <p className="text-red-400 text-xs">{fetchError}</p>}
 
                 {fetchLoading ? (
-                  <div className="flex items-center justify-center gap-2 py-2.5 text-stone-400 text-sm">
+                  <div className="flex items-center justify-center gap-2 py-2.5 text-[var(--theme-text-secondary)] text-sm">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Fetching event details...
                   </div>
@@ -291,7 +291,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                   <button
                     onClick={() => handleFetchLuma(lumaUrl)}
                     disabled={!lumaUrl.trim()}
-                    className="w-full px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-stone-900 rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full px-4 py-2.5 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] disabled:opacity-50 text-[var(--theme-accent-text)] rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
                   >
                     Fetch Event
                   </button>
@@ -299,7 +299,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
 
                 <button
                   onClick={handleEnterManually}
-                  className="w-full text-stone-400 hover:text-stone-300 text-xs text-center cursor-pointer"
+                  className="w-full text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] text-xs text-center cursor-pointer"
                 >
                   or enter details manually
                 </button>
@@ -311,11 +311,11 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
               <div className="space-y-4">
                 {/* Conference selector */}
                 <div>
-                  <label className="block text-xs font-medium text-stone-400 mb-1">Conference</label>
+                  <label className="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1">Conference</label>
                   <select
                     value={conference}
                     onChange={(e) => setConference(e.target.value)}
-                    className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-amber-500 focus:outline-none"
+                    className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none"
                   >
                     {EVENT_TABS.map((t) => (
                       <option key={t.gid} value={t.name}>
@@ -327,7 +327,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
 
                 {/* Event name */}
                 <div>
-                  <label className="block text-xs font-medium text-stone-400 mb-1">
+                  <label className="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1">
                     Event Name <span className="text-red-400">*</span>
                   </label>
                   <input
@@ -335,41 +335,41 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Builders Night"
-                    className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-amber-500 focus:outline-none placeholder:text-stone-500"
+                    className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
                   />
                 </div>
 
                 {/* Date + Times row */}
                 <div className="flex items-end gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-stone-400 mb-1">
+                    <label className="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1">
                       Date <span className="text-red-400">*</span>
                     </label>
                     <input
                       type="date"
                       value={dateISO}
                       onChange={(e) => setDateISO(e.target.value)}
-                      className="bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-1.5 focus:border-amber-500 focus:outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:invert"
+                      className="bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-1.5 focus:border-[var(--theme-accent)] focus:outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:invert"
                       style={{ colorScheme: 'dark' }}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-stone-400 mb-1">Start</label>
+                    <label className="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1">Start</label>
                     <Dropdown
                       value={startTime24 || ''}
                       options={['', ...TIME_OPTIONS]}
-                      renderOption={(v) => v ? format12Hour(v) : '—'}
+                      renderOption={(v) => v ? format12Hour(v) : '\u2014'}
                       renderSelected={(v) => v ? format12Hour(v) : 'Start'}
                       onChange={setStartTime24}
                       width="110px"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-stone-400 mb-1">End</label>
+                    <label className="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1">End</label>
                     <Dropdown
                       value={endTime24 || ''}
                       options={['', ...TIME_OPTIONS]}
-                      renderOption={(v) => v ? format12Hour(v) : '—'}
+                      renderOption={(v) => v ? format12Hour(v) : '\u2014'}
                       renderSelected={(v) => v ? format12Hour(v) : 'End'}
                       onChange={setEndTime24}
                       width="110px"
@@ -379,43 +379,43 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
 
                 {/* Organizer */}
                 <div>
-                  <label className="block text-xs font-medium text-stone-400 mb-1">Organizer</label>
+                  <label className="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1">Organizer</label>
                   <input
                     type="text"
                     value={organizer}
                     onChange={(e) => setOrganizer(e.target.value)}
                     placeholder="DeFi Alliance"
-                    className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-amber-500 focus:outline-none placeholder:text-stone-500"
+                    className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
                   />
                 </div>
 
                 {/* Address */}
                 <div>
-                  <label className="block text-xs font-medium text-stone-400 mb-1">Address</label>
+                  <label className="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1">Address</label>
                   <AddressAutocomplete value={address} onChange={setAddress} onCoordsChange={setAddressCoords} />
                 </div>
 
                 {/* Cost */}
                 <div>
-                  <label className="block text-xs font-medium text-stone-400 mb-1">Cost</label>
+                  <label className="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1">Cost</label>
                   <input
                     type="text"
                     value={cost}
                     onChange={(e) => setCost(e.target.value)}
                     placeholder="Free"
-                    className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-amber-500 focus:outline-none placeholder:text-stone-500"
+                    className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
                   />
                 </div>
 
                 {/* Link */}
                 <div>
-                  <label className="block text-xs font-medium text-stone-400 mb-1">Link</label>
+                  <label className="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1">Link</label>
                   <input
                     type="url"
                     value={link}
                     onChange={(e) => setLink(e.target.value)}
                     placeholder="Paste any event URL"
-                    className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-amber-500 focus:outline-none placeholder:text-stone-500"
+                    className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
                   />
                 </div>
 
@@ -426,11 +426,11 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                     onClick={() => setHasFood(!hasFood)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
                       hasFood
-                        ? 'bg-amber-500 text-stone-900'
-                        : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
+                        ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+                        : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-secondary)] hover:bg-[var(--theme-bg-card-hover)]'
                     }`}
                   >
-                    <span className="text-xs">{hasFood ? '✓' : '+'}</span>
+                    <span className="text-xs">{hasFood ? '\u2713' : '+'}</span>
                     Food
                   </button>
                   <button
@@ -438,18 +438,18 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                     onClick={() => setHasBar(!hasBar)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
                       hasBar
-                        ? 'bg-amber-500 text-stone-900'
-                        : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
+                        ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+                        : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-secondary)] hover:bg-[var(--theme-bg-card-hover)]'
                     }`}
                   >
-                    <span className="text-xs">{hasBar ? '✓' : '+'}</span>
+                    <span className="text-xs">{hasBar ? '\u2713' : '+'}</span>
                     Drinks
                   </button>
                 </div>
 
                 {/* Type */}
                 <div>
-                  <label className="block text-xs font-medium text-stone-400 mb-1.5">Type</label>
+                  <label className="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5">Type</label>
                   <div className="flex flex-wrap gap-1.5">
                     {FORMAT_TAGS.map((tag) => {
                       const isSelected = selectedTags.has(tag);
@@ -463,7 +463,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                           style={
                             isSelected
                               ? { backgroundColor: `${color}20`, borderColor: color, color }
-                              : { backgroundColor: 'transparent', borderColor: '#44403c', color: '#a8a29e' }
+                              : { backgroundColor: 'transparent', borderColor: 'var(--theme-border-primary)', color: 'var(--theme-text-secondary)' }
                           }
                         >
                           {tag}
@@ -475,7 +475,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
 
                 {/* Tags */}
                 <div>
-                  <label className="block text-xs font-medium text-stone-400 mb-1.5">Tags</label>
+                  <label className="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5">Tags</label>
                   <div className="flex flex-wrap gap-1.5">
                     {TOPIC_TAGS.map((tag) => {
                       const isSelected = selectedTags.has(tag);
@@ -489,7 +489,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                           style={
                             isSelected
                               ? { backgroundColor: `${color}20`, borderColor: color, color }
-                              : { backgroundColor: 'transparent', borderColor: '#44403c', color: '#a8a29e' }
+                              : { backgroundColor: 'transparent', borderColor: 'var(--theme-border-primary)', color: 'var(--theme-text-secondary)' }
                           }
                         >
                           {tag}
@@ -501,13 +501,13 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
 
                 {/* Note */}
                 <div>
-                  <label className="block text-xs font-medium text-stone-400 mb-1">Note</label>
+                  <label className="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1">Note</label>
                   <textarea
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="Any additional details..."
                     rows={2}
-                    className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-amber-500 focus:outline-none placeholder:text-stone-500 resize-none"
+                    className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)] resize-none"
                   />
                 </div>
 
@@ -516,7 +516,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                 <button
                   onClick={handleSubmit}
                   disabled={submitLoading || !name.trim() || !dateISO}
-                  className="w-full px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-stone-900 rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full px-4 py-2.5 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] disabled:opacity-50 text-[var(--theme-accent-text)] rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
                 >
                   {submitLoading ? (
                     <>
@@ -530,7 +530,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
 
                 <button
                   onClick={() => setStep('input')}
-                  className="w-full text-stone-400 hover:text-stone-300 text-xs text-center cursor-pointer"
+                  className="w-full text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] text-xs text-center cursor-pointer"
                 >
                   Back
                 </button>
@@ -543,17 +543,17 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                 <div className="w-12 h-12 rounded-full bg-green-600/20 flex items-center justify-center mx-auto mb-3">
                   <Check className="w-6 h-6 text-green-400" />
                 </div>
-                <p className="text-white font-medium">Event submitted!</p>
-                <p className="text-stone-400 text-sm mt-1">
+                <p className="text-[var(--theme-text-primary)] font-medium">Event submitted!</p>
+                <p className="text-[var(--theme-text-secondary)] text-sm mt-1">
                   It will appear on the schedule shortly.
                 </p>
 
                 {upsellCopy && (
-                  <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-500/10 border border-amber-500/30 text-left">
-                    <h4 className="text-sm font-semibold text-amber-300 mb-1">{upsellCopy.heading}</h4>
-                    <p className="text-xs text-stone-400 mb-3">{upsellCopy.body}</p>
+                  <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-[var(--theme-accent-muted)] to-[var(--theme-accent-muted)] border border-[var(--theme-accent)]/30 text-left">
+                    <h4 className="text-sm font-semibold text-[var(--theme-accent-link)] mb-1">{upsellCopy.heading}</h4>
+                    <p className="text-xs text-[var(--theme-text-secondary)] mb-3">{upsellCopy.body}</p>
                     <a href={upsellCopy.cta_url} target="_blank" rel="noopener noreferrer"
-                       className="inline-block px-4 py-2 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg transition-colors">
+                       className="inline-block px-4 py-2 text-xs font-semibold bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)] rounded-lg transition-colors">
                       {upsellCopy.cta_text}
                     </a>
                   </div>
@@ -561,7 +561,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
 
                 <button
                   onClick={handleClose}
-                  className="mt-4 px-4 py-2 text-sm text-stone-400 hover:text-white transition-colors cursor-pointer"
+                  className="mt-4 px-4 py-2 text-sm text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
                 >
                   Close
                 </button>
@@ -571,12 +571,12 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
 
           {/* Footer */}
           {step !== 'success' && (
-            <div className="px-4 py-3 border-t border-stone-700 shrink-0">
+            <div className="px-4 py-3 border-t border-[var(--theme-border-primary)] shrink-0">
               <a
                 href={sheetUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1.5 text-xs text-stone-500 hover:text-stone-400 transition-colors"
+                className="flex items-center justify-center gap-1.5 text-xs text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors"
               >
                 <ExternalLink className="w-3 h-3" />
                 or edit spreadsheet directly

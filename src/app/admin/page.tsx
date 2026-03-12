@@ -1394,7 +1394,7 @@ export default function AdminPage() {
             {/* Theme radio buttons */}
             <div>
               <label className="block text-sm text-stone-400 mb-3">Active Theme for {themeConference}</label>
-              <div className="grid gap-3 sm:grid-cols-3 max-w-lg">
+              <div className="grid gap-3 sm:grid-cols-4 max-w-2xl">
                 {THEME_OPTIONS.map((opt) => (
                   <button
                     key={opt.id}
@@ -1426,6 +1426,13 @@ export default function AdminPage() {
                           <span className="w-5 h-5 rounded border border-stone-600" style={{ background: '#fafafa' }} />
                           <span className="w-5 h-5 rounded border border-stone-600" style={{ background: '#ffffff' }} />
                           <span className="w-5 h-5 rounded" style={{ background: '#ef4444' }} />
+                        </>
+                      )}
+                      {opt.id === 'sxsw' && (
+                        <>
+                          <span className="w-5 h-5 rounded" style={{ background: '#0a1410' }} />
+                          <span className="w-5 h-5 rounded" style={{ background: '#111f18' }} />
+                          <span className="w-5 h-5 rounded" style={{ background: '#d8fc30' }} />
                         </>
                       )}
                     </div>

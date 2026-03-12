@@ -157,6 +157,53 @@
   --theme-popup-shadow: rgba(0, 0, 0, 0.1);
 }
 
+/* --- SXSW theme — neon lime on dark forest green --- */
+[data-theme="sxsw"] {
+  --background: #0a1410;
+  --foreground: #f0fdf4;
+  --card: #111f18;
+  --card-hover: #182a20;
+  --accent: #d8fc30;
+  --accent-hover: #c4e820;
+
+  --theme-bg-primary: #0a1410;
+  --theme-bg-secondary: #111f18;
+  --theme-bg-tertiary: #182a20;
+  --theme-bg-card: #111f18;
+  --theme-bg-card-hover: #182a20;
+  --theme-bg-input: #111f18;
+
+  --theme-border-primary: #1e3428;
+  --theme-border-secondary: #182a20;
+
+  --theme-text-primary: #f0fdf4;
+  --theme-text-secondary: #6b9480;
+  --theme-text-muted: #4a7a64;
+  --theme-text-faint: #2d5a44;
+
+  --theme-accent: #d8fc30;
+  --theme-accent-hover: #c4e820;
+  --theme-accent-text: #0a1410;
+  --theme-accent-muted: rgba(216, 252, 48, 0.10);
+  --theme-accent-link: #d8fc30;
+
+  --theme-star-active: #d8fc30;
+  --theme-star-inactive: #2d5a44;
+
+  --theme-now-bg: #22c55e;
+
+  --theme-logo-filter: invert(1) hue-rotate(40deg) saturate(2);
+
+  --theme-scrollbar-track: #0a1410;
+  --theme-scrollbar-thumb: #182a20;
+  --theme-scrollbar-thumb-hover: #1e3428;
+
+  --theme-popup-bg: #111f18;
+  --theme-popup-border: #1e3428;
+  --theme-popup-featured-border: rgba(216, 252, 48, 0.5);
+  --theme-popup-shadow: rgba(0, 0, 0, 0.5);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
