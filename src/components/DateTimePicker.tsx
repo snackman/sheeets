@@ -14,7 +14,7 @@ for (let hour = 0; hour < 24; hour++) {
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export function formatDateShort(iso: string): string {
-  // "2026-02-16" → "Feb 16"
+  // "2026-02-16" -> "Feb 16"
   const [, m, d] = iso.split('-').map(Number);
   return `${MONTHS[m - 1]} ${d}`;
 }
@@ -65,7 +65,7 @@ export function Dropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-stone-800 border border-stone-600 rounded text-white text-sm font-medium px-2 py-1.5 focus:border-amber-500 focus:outline-none cursor-pointer whitespace-nowrap hover:bg-stone-700 transition-colors"
+        className="bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)] rounded text-[var(--theme-text-primary)] text-sm font-medium px-2 py-1.5 focus:border-[var(--theme-accent)] focus:outline-none cursor-pointer whitespace-nowrap hover:opacity-80 transition-colors"
       >
         {renderSelected(value)}
       </button>
@@ -73,7 +73,7 @@ export function Dropdown({
       {isOpen && (
         <div
           ref={listRef}
-          className="absolute top-full left-0 mt-1 bg-stone-900 border border-stone-600 rounded-lg shadow-xl max-h-52 overflow-y-auto z-50"
+          className="absolute top-full left-0 mt-1 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl max-h-52 overflow-y-auto z-50"
           style={width ? { width } : undefined}
         >
           {options.map((v) => (
@@ -84,8 +84,8 @@ export function Dropdown({
               onClick={() => { onChange(v); setIsOpen(false); }}
               className={`w-full text-left px-3 py-1.5 text-sm whitespace-nowrap transition-colors ${
                 v === value
-                  ? 'bg-amber-500 text-stone-900 font-medium'
-                  : 'text-stone-300 hover:bg-stone-800'
+                  ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)] font-medium'
+                  : 'text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]'
               }`}
             >
               {renderOption(v)}

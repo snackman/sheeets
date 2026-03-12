@@ -16,6 +16,8 @@ import { useAuthGatedActions } from '@/hooks/useAuthGatedActions';
 import { useConferenceData } from '@/hooks/useConferenceData';
 import { useNowMode } from '@/hooks/useNowMode';
 import { useAdminConfig } from '@/hooks/useAdminConfig';
+import { useTheme } from '@/contexts/ThemeContext';
+import { ThemeId, DEFAULT_THEME } from '@/lib/themes';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
@@ -112,6 +114,22 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
     selectedFriendEventIds,
   });
 
+  // Theme: read from admin config per-conference and apply
+  const { setTheme } = useTheme();
+  useEffect(() => {
+    if (!config || !filters.conference) {
+      setTheme(DEFAULT_THEME);
+      return;
+    }
+    const configKey = `theme:${filters.conference}`;
+    const configTheme = (config as Record<string, unknown>)[configKey] as string | undefined;
+    if (configTheme === 'dark' || configTheme === 'paper' || configTheme === 'light') {
+      setTheme(configTheme as ThemeId);
+    } else {
+      setTheme(DEFAULT_THEME);
+    }
+  }, [config, filters.conference, setTheme]);
+
   // Friends panel
   const [showFriends, setShowFriends] = useState(false);
   const [showSubmitEvent, setShowSubmitEvent] = useState(false);
@@ -156,7 +174,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-950">
+      <div className="min-h-screen bg-[var(--theme-bg-primary)]">
         <Header
           viewMode={viewMode}
           onViewChange={setViewMode}
@@ -175,7 +193,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
 
   if (error) {
     return (
-      <div className="min-h-screen bg-stone-950">
+      <div className="min-h-screen bg-[var(--theme-bg-primary)]">
         <Header
           viewMode={viewMode}
           onViewChange={setViewMode}
@@ -189,10 +207,10 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
         />
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-4">
           <div className="text-red-400 text-lg font-medium">Failed to load events</div>
-          <p className="text-stone-500 text-sm text-center max-w-md">{error}</p>
+          <p className="text-[var(--theme-text-muted)] text-sm text-center max-w-md">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-600 text-stone-900 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+            className="mt-2 px-4 py-2 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] active:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
           >
             Retry
           </button>
@@ -202,7 +220,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
   }
 
   return (
-    <div className="h-dvh flex flex-col bg-stone-950 overflow-hidden">
+    <div className="h-dvh flex flex-col bg-[var(--theme-bg-primary)] overflow-hidden">
       <Header
         viewMode={viewMode}
         onViewChange={setViewMode}

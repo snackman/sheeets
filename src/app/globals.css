@@ -9,14 +9,152 @@
   --safe-area-right: env(safe-area-inset-right, 0px);
 }
 
-/* Dark theme base */
-:root {
+/* ================================================================
+   THEME SYSTEM — CSS Custom Properties
+   Set data-theme="dark|paper|light" on <html> to switch themes.
+   Default (:root) matches the dark theme.
+   ================================================================ */
+
+/* --- Dark theme (default) --- */
+:root,
+[data-theme="dark"] {
   --background: #0c0a09;
   --foreground: #fafaf9;
   --card: #1c1917;
   --card-hover: #292524;
   --accent: #f59e0b;
-  --accent-hover: #fbbf24;
+  --accent-hover: #d97706;
+
+  --theme-bg-primary: #0c0a09;
+  --theme-bg-secondary: #1c1917;
+  --theme-bg-tertiary: #292524;
+  --theme-bg-card: #1c1917;
+  --theme-bg-card-hover: #292524;
+  --theme-bg-input: #1c1917;
+
+  --theme-border-primary: #44403c;
+  --theme-border-secondary: #292524;
+
+  --theme-text-primary: #fafaf9;
+  --theme-text-secondary: #a8a29e;
+  --theme-text-muted: #78716c;
+  --theme-text-faint: #57534e;
+
+  --theme-accent: #f59e0b;
+  --theme-accent-hover: #d97706;
+  --theme-accent-text: #0c0a09;
+  --theme-accent-muted: rgba(245, 158, 11, 0.15);
+  --theme-accent-link: #fbbf24;
+
+  --theme-star-active: #facc15;
+  --theme-star-inactive: #57534e;
+
+  --theme-now-bg: #22c55e;
+
+  --theme-logo-filter: invert(1);
+
+  --theme-scrollbar-track: #0c0a09;
+  --theme-scrollbar-thumb: #292524;
+  --theme-scrollbar-thumb-hover: #44403c;
+
+  --theme-popup-bg: #1c1917;
+  --theme-popup-border: #292524;
+  --theme-popup-featured-border: rgb(245 158 11 / 0.5);
+  --theme-popup-shadow: rgba(0, 0, 0, 0.5);
+}
+
+/* --- Paper theme — warm parchment/cream aesthetic --- */
+[data-theme="paper"] {
+  --background: #f5f0e8;
+  --foreground: #2c2418;
+  --card: #faf7f2;
+  --card-hover: #f0ebe0;
+  --accent: #c47a2a;
+  --accent-hover: #a8631f;
+
+  --theme-bg-primary: #f5f0e8;
+  --theme-bg-secondary: #ece5d8;
+  --theme-bg-tertiary: #e2d9ca;
+  --theme-bg-card: #faf7f2;
+  --theme-bg-card-hover: #f0ebe0;
+  --theme-bg-input: #faf7f2;
+
+  --theme-border-primary: #d4c9b8;
+  --theme-border-secondary: #e2d9ca;
+
+  --theme-text-primary: #2c2418;
+  --theme-text-secondary: #6b5d4f;
+  --theme-text-muted: #8a7b6b;
+  --theme-text-faint: #a89a8a;
+
+  --theme-accent: #c47a2a;
+  --theme-accent-hover: #a8631f;
+  --theme-accent-text: #faf7f2;
+  --theme-accent-muted: rgba(196, 122, 42, 0.12);
+  --theme-accent-link: #b06820;
+
+  --theme-star-active: #d4a32c;
+  --theme-star-inactive: #c4b9a8;
+
+  --theme-now-bg: #c0564a;
+
+  --theme-logo-filter: invert(0);
+
+  --theme-scrollbar-track: #f5f0e8;
+  --theme-scrollbar-thumb: #d4c9b8;
+  --theme-scrollbar-thumb-hover: #bfb3a0;
+
+  --theme-popup-bg: #faf7f2;
+  --theme-popup-border: #d4c9b8;
+  --theme-popup-featured-border: rgba(196, 122, 42, 0.5);
+  --theme-popup-shadow: rgba(44, 36, 24, 0.15);
+}
+
+/* --- Light theme — clean modern white/coral aesthetic --- */
+[data-theme="light"] {
+  --background: #fafafa;
+  --foreground: #1a1a1a;
+  --card: #ffffff;
+  --card-hover: #f5f5f5;
+  --accent: #ef4444;
+  --accent-hover: #dc2626;
+
+  --theme-bg-primary: #fafafa;
+  --theme-bg-secondary: #f5f5f5;
+  --theme-bg-tertiary: #e5e5e5;
+  --theme-bg-card: #ffffff;
+  --theme-bg-card-hover: #f5f5f5;
+  --theme-bg-input: #ffffff;
+
+  --theme-border-primary: #d4d4d4;
+  --theme-border-secondary: #e5e5e5;
+
+  --theme-text-primary: #1a1a1a;
+  --theme-text-secondary: #525252;
+  --theme-text-muted: #737373;
+  --theme-text-faint: #a3a3a3;
+
+  --theme-accent: #ef4444;
+  --theme-accent-hover: #dc2626;
+  --theme-accent-text: #ffffff;
+  --theme-accent-muted: rgba(239, 68, 68, 0.10);
+  --theme-accent-link: #dc2626;
+
+  --theme-star-active: #facc15;
+  --theme-star-inactive: #d4d4d4;
+
+  --theme-now-bg: #22c55e;
+
+  --theme-logo-filter: invert(0);
+
+  --theme-scrollbar-track: #fafafa;
+  --theme-scrollbar-thumb: #d4d4d4;
+  --theme-scrollbar-thumb-hover: #a3a3a3;
+
+  --theme-popup-bg: #ffffff;
+  --theme-popup-border: #d4d4d4;
+  --theme-popup-featured-border: rgba(239, 68, 68, 0.5);
+  --theme-popup-shadow: rgba(0, 0, 0, 0.1);
 }
 
 @theme inline {
@@ -26,11 +164,12 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--theme-bg-primary);
+  color: var(--theme-text-primary);
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   padding-top: var(--safe-area-top);
   padding-bottom: var(--safe-area-bottom);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Prevent iOS auto-zoom on input focus (inputs must be >= 16px) */
@@ -38,23 +177,23 @@ input, select, textarea {
   font-size: 16px;
 }
 
-/* Custom scrollbar for dark theme */
+/* Custom scrollbar — theme-aware */
 ::-webkit-scrollbar {
   width: 8px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0c0a09;
+  background: var(--theme-scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #292524;
+  background: var(--theme-scrollbar-thumb);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #44403c;
+  background: var(--theme-scrollbar-thumb-hover);
 }
 
 /* Stone 750 custom shade for card hover (between 700 and 800) */
@@ -67,22 +206,23 @@ input, select, textarea {
   max-width: calc(100vw - 1rem) !important;
 }
 
-/* Mapbox popup overrides for dark theme */
+/* Mapbox popup overrides — theme-aware */
 .map-popup .mapboxgl-popup-content {
-  background-color: #1c1917;
-  border: 1px solid #292524;
+  background-color: var(--theme-popup-bg);
+  border: 1px solid var(--theme-popup-border);
   border-radius: 8px;
   padding: 12px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 24px var(--theme-popup-shadow);
   max-width: calc(100vw - 2rem);
+  color: var(--theme-text-primary);
 }
 
 .map-popup .mapboxgl-popup-tip {
-  border-top-color: #1c1917;
+  border-top-color: var(--theme-popup-bg);
 }
 
 .map-popup-featured .mapboxgl-popup-content {
-  border: 2px solid rgb(245 158 11 / 0.5);
+  border: 2px solid var(--theme-popup-featured-border);
 }
 
 .map-popup .mapboxgl-popup-close-btn {
@@ -99,7 +239,7 @@ input, select, textarea {
 }
 
 .map-popup .mapboxgl-popup-content ::-webkit-scrollbar-thumb {
-  background-color: #44403c;
+  background-color: var(--theme-border-primary);
   border-radius: 2px;
 }
 

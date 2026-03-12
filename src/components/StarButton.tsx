@@ -29,10 +29,8 @@ export function StarButton({
       className={clsx(
         'relative shrink-0 transition-colors cursor-pointer',
         size === 'sm' ? 'p-1.5' : 'p-1',
-        isStarred
-          ? 'text-yellow-400'
-          : 'text-stone-600 hover:text-yellow-400/60 active:text-yellow-400/60'
       )}
+      style={{ color: isStarred ? 'var(--theme-star-active)' : 'var(--theme-star-inactive)' }}
       aria-label={isStarred ? 'Remove star' : 'Add star'}
       title={
         friendsCount > 0
@@ -50,7 +48,7 @@ export function StarButton({
         <span
           className={clsx(
             'absolute flex items-center justify-center rounded-full font-bold pointer-events-none',
-            'bg-amber-500 text-stone-900',
+            'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]',
             size === 'sm'
               ? '-top-0.5 -right-0.5 min-w-[14px] h-[14px] text-[8px] px-0.5'
               : '-top-1 -right-1 min-w-[16px] h-[16px] text-[9px] px-0.5'

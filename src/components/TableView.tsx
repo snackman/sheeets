@@ -158,7 +158,7 @@ export function TableView({
     lastScrollTopRef.current = scrollTop;
 
     // Only hide the filter bar if there's enough overflow that hiding it won't
-    // eliminate the scroll, which would cause a show→hide→show jitter loop.
+    // eliminate the scroll, which would cause a show->hide->show jitter loop.
     const overflowAmount = container.scrollHeight - container.clientHeight;
     const nearBottom = scrollTop + container.clientHeight >= container.scrollHeight - 50;
     const shouldHide = !atTop && !nearBottom && scrollingDown && overflowAmount > 80;
@@ -249,7 +249,7 @@ export function TableView({
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="overflow-auto rounded-lg border border-stone-700 flex-1 min-h-0 min-w-0 overscroll-none"
+        className="overflow-auto rounded-lg border border-[var(--theme-border-primary)] flex-1 min-h-0 min-w-0 overscroll-none"
       >
         <table className="w-full text-sm text-left md:table-fixed" style={{ minWidth: Math.max(640, 142 + tagsColWidth + 420) }}>
           <colgroup>
@@ -260,14 +260,14 @@ export function TableView({
             <col style={{ width: `calc((100% - 32px - 100px - ${tagsColWidth}px) * 0.28)` }} />                    {/* where */}
             <col style={{ width: tagsColWidth }} />                                                                {/* tags */}
           </colgroup>
-          <thead className="text-xs uppercase tracking-wider text-stone-400 bg-stone-900 border-b border-stone-700 sticky top-0 z-20">
+          <thead className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] bg-[var(--theme-bg-secondary)] border-b border-[var(--theme-border-primary)] sticky top-0 z-20">
             <tr>
               <th className="px-3 py-2.5"><Calendar className="w-3.5 h-3.5" /></th>
               <th className="px-3 py-2.5 whitespace-nowrap">
                 {currentDateLabel === 'Time' ? (
                   'WHEN'
                 ) : (
-                  <span className="text-amber-400/80 font-semibold">
+                  <span className="text-[var(--theme-accent)] font-semibold" style={{ opacity: 0.8 }}>
                     {currentDateLabel.toUpperCase()}
                   </span>
                 )}
@@ -281,7 +281,7 @@ export function TableView({
                   <div className="flex items-center gap-1">
                     <button
                       onClick={downloadCSV}
-                      className="p-1 rounded text-stone-500 hover:text-stone-200 transition-colors cursor-pointer"
+                      className="p-1 rounded text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
                       title="Download CSV"
                       aria-label="Download CSV"
                     >
@@ -291,7 +291,7 @@ export function TableView({
                       href="https://plan.wtf/data"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1 rounded text-stone-500 hover:text-stone-200 transition-colors"
+                      className="p-1 rounded text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] transition-colors"
                       title="Open spreadsheet"
                       aria-label="Open spreadsheet"
                     >
@@ -302,7 +302,7 @@ export function TableView({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-700/50">
+          <tbody className="divide-y divide-[var(--theme-border-primary)]/50">
             {groups.map((group) => (
               <DateGroup
                 key={group.dateISO}
@@ -319,7 +319,7 @@ export function TableView({
         </table>
       </div>
       {events.length === 0 && (
-        <div className="text-center py-12 text-stone-500">
+        <div className="text-center py-12 text-[var(--theme-text-muted)]">
           No events match your filters.
         </div>
       )}
@@ -386,7 +386,7 @@ function EventDetailModal({
           />
           <button
             onClick={onClose}
-            className="absolute top-2 right-2 p-1.5 rounded-full bg-stone-800/80 hover:bg-stone-700 text-stone-300 hover:text-white transition-colors cursor-pointer z-10"
+            className="absolute top-2 right-2 p-1.5 rounded-full bg-[var(--theme-bg-tertiary)]/80 hover:bg-[var(--theme-border-primary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer z-10"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -420,13 +420,14 @@ function DateGroup({
       {/* Date separator row */}
       <tr
         ref={(el) => setSeparatorRef(group.dateISO, el)}
-        className="bg-stone-900/80"
+        className="bg-[var(--theme-bg-secondary)]/80"
         data-date={group.dateISO}
       >
-        <td className="border-b border-stone-700/70"></td>
+        <td className="border-b border-[var(--theme-border-primary)]/70"></td>
         <td
           colSpan={COLUMN_COUNT - 1}
-          className="px-3 py-1.5 text-xs font-semibold text-amber-400/80 uppercase tracking-wider border-b border-stone-700/70"
+          className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider border-b border-[var(--theme-border-primary)]/70"
+          style={{ color: 'var(--theme-accent)', opacity: 0.8 }}
         >
           {group.label}
         </td>
@@ -439,7 +440,8 @@ function DateGroup({
         return (
           <tr
             key={event.id}
-            className={`hover:bg-stone-900/70 transition-colors cursor-pointer ${event.isDuplicate ? 'bg-red-950/30' : event.isFeatured ? 'bg-stone-950 border-l-2 border-l-amber-500/50' : 'bg-stone-950'}`}
+            className={`hover:bg-[var(--theme-bg-secondary)]/70 transition-colors cursor-pointer ${event.isDuplicate ? 'bg-red-950/30' : event.isFeatured ? 'bg-[var(--theme-bg-primary)] border-l-2' : 'bg-[var(--theme-bg-primary)]'}`}
+            style={event.isFeatured && !event.isDuplicate ? { borderLeftColor: 'var(--theme-popup-featured-border)' } : undefined}
             title={event.isDuplicate ? 'Possible duplicate — same name, date, and time as another event' : undefined}
             onClick={(e) => {
               const target = e.target as HTMLElement;
@@ -464,10 +466,11 @@ function DateGroup({
                     }
                   >
                     <Star
-                      className={`w-4 h-4 ${isInItinerary ? 'text-yellow-400 fill-yellow-400' : 'text-stone-600 hover:text-stone-400'}`}
+                      className={`w-4 h-4 ${isInItinerary ? 'fill-current' : 'hover:opacity-60'}`}
+                      style={{ color: isInItinerary ? 'var(--theme-star-active)' : 'var(--theme-star-inactive)' }}
                     />
                     {fc > 0 && (
-                      <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-amber-500 text-stone-900 text-[8px] font-bold px-0.5 pointer-events-none">
+                      <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-[var(--theme-accent)] text-[var(--theme-accent-text)] text-[8px] font-bold px-0.5 pointer-events-none">
                         {fc}
                       </span>
                     )}
@@ -477,7 +480,7 @@ function DateGroup({
             </td>
 
             {/* Time */}
-            <td className="px-3 py-2 text-stone-400 whitespace-nowrap">
+            <td className="px-3 py-2 text-[var(--theme-text-secondary)] whitespace-nowrap">
               <span className="relative inline-block">
                 <span>
                   {event.startTime}
@@ -492,12 +495,12 @@ function DateGroup({
             </td>
 
             {/* Organizer (hidden on mobile portrait — shown inside Event cell instead) */}
-            <td className="px-3 py-2 text-stone-400 truncate hidden sm:table-cell" title={event.organizer}>
+            <td className="px-3 py-2 text-[var(--theme-text-secondary)] truncate hidden sm:table-cell" title={event.organizer}>
               {event.organizer}
             </td>
 
             {/* Event Name (+ organizer on mobile portrait) */}
-            <td className="px-3 py-2 font-medium text-stone-100 overflow-hidden truncate max-w-[25ch] sm:max-w-none" title={event.name}>
+            <td className="px-3 py-2 font-medium text-[var(--theme-text-primary)] overflow-hidden truncate max-w-[25ch] sm:max-w-none" title={event.name}>
               <span className="inline-flex items-center gap-1 max-w-full truncate">
                 {event.isDuplicate && (
                   <span title="Duplicate entry in sheet"><AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" /></span>
@@ -507,7 +510,7 @@ function DateGroup({
                     href={event.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:text-amber-400 transition-colors truncate"
+                    className="hover:text-[var(--theme-accent)] transition-colors truncate"
                     onClick={() => trackEventClick(event.name, event.link!)}
                   >
                     {event.name}
@@ -517,18 +520,18 @@ function DateGroup({
                 )}
               </span>
               {event.organizer && (
-                <div className="sm:hidden text-stone-400 text-xs font-normal truncate mt-0.5">
+                <div className="sm:hidden text-[var(--theme-text-secondary)] text-xs font-normal truncate mt-0.5">
                   {event.organizer}
                 </div>
               )}
             </td>
 
             {/* Location */}
-            <td className="px-3 py-2 text-stone-400 truncate max-w-[20ch] sm:max-w-none" title={event.address}>
+            <td className="px-3 py-2 text-[var(--theme-text-secondary)] truncate max-w-[20ch] sm:max-w-none" title={event.address}>
               {event.address ? (
                 <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
                   eventId={event.id} eventName={event.name}
-                  className="hover:text-amber-400 transition-colors">
+                  className="hover:text-[var(--theme-accent)] transition-colors">
                   {event.address}
                 </AddressLink>
               ) : null}
