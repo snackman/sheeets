@@ -33,7 +33,7 @@ export function buildWebSiteJsonLd() {
     name: 'plan.wtf',
     url: SITE_URL,
     description:
-      'Browse and discover crypto conference side events. Filter by date, time, tags, and more.',
+      'Browse and discover conference side events. Filter by date, time, tags, and more.',
     potentialAction: {
       '@type': 'SearchAction',
       target: {

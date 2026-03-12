@@ -20,24 +20,24 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL('https://plan.wtf'),
   title: {
-    default: 'plan.wtf — Crypto Conference Side Events',
+    default: 'plan.wtf — Conference Side Events',
     template: '%s | plan.wtf',
   },
   description:
-    'Browse and discover crypto conference side events. Filter by date, time, tags, and more.',
+    'Browse and discover conference side events. Filter by date, time, tags, and more.',
   openGraph: {
     type: 'website',
     siteName: 'plan.wtf',
-    title: 'plan.wtf — Crypto Conference Side Events',
+    title: 'plan.wtf — Conference Side Events',
     description:
-      'Browse and discover crypto conference side events. Filter by date, time, tags, and more.',
+      'Browse and discover conference side events. Filter by date, time, tags, and more.',
     url: 'https://plan.wtf',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'plan.wtf — Crypto Conference Side Events',
+    title: 'plan.wtf — Conference Side Events',
     description:
-      'Browse and discover crypto conference side events. Filter by date, time, tags, and more.',
+      'Browse and discover conference side events. Filter by date, time, tags, and more.',
   },
 };
 
