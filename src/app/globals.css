@@ -117,6 +117,9 @@ input, select, textarea {
 .sponsors-scroll {
   animation: sponsors-scroll-left 62s linear infinite;
 }
+.sponsors-scroll:hover {
+  animation-play-state: paused;
+}
 
 @keyframes sponsors-scroll-left {
   0% { transform: translateX(0); }
