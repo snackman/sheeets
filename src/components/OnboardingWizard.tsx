@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
-import { X, Star, Zap, Users, Map, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Star, Zap, Users, Map, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { EVENT_TABS, VIBE_COLORS, TYPE_TAGS } from '@/lib/constants';
 import type { ETHDenverEvent } from '@/lib/types';
 import { TAG_ICONS } from './TagBadge';
@@ -53,6 +53,11 @@ const TIPS = [
     icon: Map,
     title: 'Map, List, and Table Views',
     description: 'Switch between map, list, and table views to find events your way.',
+  },
+  {
+    icon: Plus,
+    title: 'Add Your Event',
+    description: 'Know about a side event? Tap the + button to submit it to the schedule.',
   },
 ];
 
