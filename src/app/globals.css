@@ -271,7 +271,7 @@
   --theme-border-secondary: #1e2c4a;
 
   --theme-text-primary: #f0f2f8;
-  --theme-text-secondary: #8a9cc0;
+  --theme-text-secondary: #8ca8c0;
   --theme-text-muted: #5c72a0;
   --theme-text-faint: #3e5080;
 
@@ -279,12 +279,12 @@
   --theme-accent-hover: #cc0000;
   --theme-accent-text: #ffffff;
   --theme-accent-muted: rgba(239, 0, 0, 0.12);
-  --theme-accent-link: #FF96FF;
+  --theme-accent-link: #f5a0c0;
 
-  --theme-star-active: #FF96FF;
+  --theme-star-active: #f5a0c0;
   --theme-star-inactive: #3e5080;
 
-  --theme-now-bg: #22c55e;
+  --theme-now-bg: #EF0000;
 
   --theme-logo-filter: invert(1) brightness(1.1);
 
@@ -298,50 +298,50 @@
   --theme-popup-shadow: rgba(0, 0, 0, 0.5);
 }
 
-/* --- EthCC theme — deep purple/violet on dark, inspired by ethcc.io --- */
+/* --- EthCC theme — deep navy blue + coral, from EthCC conference key art --- */
 [data-theme="ethcc"] {
-  --background: #0d0b1a;
-  --foreground: #f0ecf9;
-  --card: #161230;
-  --card-hover: #1e1940;
-  --accent: #7c3aed;
-  --accent-hover: #6d28d9;
+  --background: #152066;
+  --foreground: #e8ecf8;
+  --card: #0e1548;
+  --card-hover: #3568c1;
+  --accent: #6b9de8;
+  --accent-hover: #5588d0;
 
-  --theme-bg-primary: #0d0b1a;
-  --theme-bg-secondary: #161230;
-  --theme-bg-tertiary: #1e1940;
-  --theme-bg-card: #161230;
-  --theme-bg-card-hover: #1e1940;
-  --theme-bg-input: #161230;
+  --theme-bg-primary: #152066;
+  --theme-bg-secondary: #0e1548;
+  --theme-bg-tertiary: #3568c1;
+  --theme-bg-card: #0e1548;
+  --theme-bg-card-hover: #3568c1;
+  --theme-bg-input: #0e1548;
 
-  --theme-border-primary: #2e2660;
-  --theme-border-secondary: #1e1940;
+  --theme-border-primary: #2a4088;
+  --theme-border-secondary: #1a2a60;
 
-  --theme-text-primary: #f0ecf9;
-  --theme-text-secondary: #a898d0;
-  --theme-text-muted: #7b6baa;
-  --theme-text-faint: #4e4080;
+  --theme-text-primary: #e8ecf8;
+  --theme-text-secondary: #8ba0d0;
+  --theme-text-muted: #5a72a0;
+  --theme-text-faint: #3a5080;
 
-  --theme-accent: #7c3aed;
-  --theme-accent-hover: #6d28d9;
+  --theme-accent: #6b9de8;
+  --theme-accent-hover: #5588d0;
   --theme-accent-text: #ffffff;
-  --theme-accent-muted: rgba(124, 58, 237, 0.12);
-  --theme-accent-link: #a78bfa;
+  --theme-accent-muted: rgba(107, 157, 232, 0.12);
+  --theme-accent-link: #6b9de8;
 
-  --theme-star-active: #a78bfa;
-  --theme-star-inactive: #4e4080;
+  --theme-star-active: #f06b6b;
+  --theme-star-inactive: #3a5080;
 
-  --theme-now-bg: #22c55e;
+  --theme-now-bg: #f06b6b;
 
-  --theme-logo-filter: invert(1) brightness(1.1) hue-rotate(220deg);
+  --theme-logo-filter: invert(1);
 
-  --theme-scrollbar-track: #0d0b1a;
-  --theme-scrollbar-thumb: #1e1940;
-  --theme-scrollbar-thumb-hover: #2e2660;
+  --theme-scrollbar-track: #152066;
+  --theme-scrollbar-thumb: #2a4088;
+  --theme-scrollbar-thumb-hover: #3568c1;
 
-  --theme-popup-bg: #161230;
-  --theme-popup-border: #2e2660;
-  --theme-popup-featured-border: rgba(124, 58, 237, 0.5);
+  --theme-popup-bg: #0e1548;
+  --theme-popup-border: #2a4088;
+  --theme-popup-featured-border: rgba(107, 157, 232, 0.5);
   --theme-popup-shadow: rgba(0, 0, 0, 0.5);
 }
 

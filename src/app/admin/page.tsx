@@ -1445,15 +1445,15 @@ export default function AdminPage() {
                       {opt.id === 'gdc' && (
                         <>
                           <span className="w-5 h-5 rounded" style={{ background: '#0e1525' }} />
-                          <span className="w-5 h-5 rounded" style={{ background: '#172138' }} />
                           <span className="w-5 h-5 rounded" style={{ background: '#EF0000' }} />
+                          <span className="w-5 h-5 rounded" style={{ background: '#f5a0c0' }} />
                         </>
                       )}
                       {opt.id === 'ethcc' && (
                         <>
-                          <span className="w-5 h-5 rounded" style={{ background: '#0d0b1a' }} />
-                          <span className="w-5 h-5 rounded" style={{ background: '#161230' }} />
-                          <span className="w-5 h-5 rounded" style={{ background: '#7c3aed' }} />
+                          <span className="w-5 h-5 rounded" style={{ background: '#152066' }} />
+                          <span className="w-5 h-5 rounded" style={{ background: '#6b9de8' }} />
+                          <span className="w-5 h-5 rounded" style={{ background: '#f06b6b' }} />
                         </>
                       )}
                     </div>
