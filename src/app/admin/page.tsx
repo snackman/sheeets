@@ -152,7 +152,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (!adminConfig) return;
     const t = adminConfig[`theme:${themeConference}`] as string | undefined;
-    if (t === 'dark' || t === 'paper' || t === 'light') {
+    if (t === 'dark' || t === 'paper' || t === 'light' || t === 'sxsw' || t === 'gdc' || t === 'ethcc') {
       setSelectedTheme(t);
     } else {
       setSelectedTheme('dark');
@@ -1394,7 +1394,7 @@ export default function AdminPage() {
             {/* Theme radio buttons */}
             <div>
               <label className="block text-sm text-stone-400 mb-3">Active Theme for {themeConference}</label>
-              <div className="grid gap-3 sm:grid-cols-4 max-w-2xl">
+              <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 max-w-4xl">
                 {THEME_OPTIONS.map((opt) => (
                   <button
                     key={opt.id}
@@ -1433,6 +1433,20 @@ export default function AdminPage() {
                           <span className="w-5 h-5 rounded" style={{ background: '#0a1410' }} />
                           <span className="w-5 h-5 rounded" style={{ background: '#111f18' }} />
                           <span className="w-5 h-5 rounded" style={{ background: '#d8fc30' }} />
+                        </>
+                      )}
+                      {opt.id === 'gdc' && (
+                        <>
+                          <span className="w-5 h-5 rounded" style={{ background: '#0e1525' }} />
+                          <span className="w-5 h-5 rounded" style={{ background: '#172138' }} />
+                          <span className="w-5 h-5 rounded" style={{ background: '#EF0000' }} />
+                        </>
+                      )}
+                      {opt.id === 'ethcc' && (
+                        <>
+                          <span className="w-5 h-5 rounded" style={{ background: '#0d0b1a' }} />
+                          <span className="w-5 h-5 rounded" style={{ background: '#161230' }} />
+                          <span className="w-5 h-5 rounded" style={{ background: '#7c3aed' }} />
                         </>
                       )}
                     </div>
