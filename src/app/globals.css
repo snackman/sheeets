@@ -204,6 +204,53 @@
   --theme-popup-shadow: rgba(0, 0, 0, 0.5);
 }
 
+/* --- SXSW2 theme — official SXSW 2026 branding: Candlelight yellow, Honeysuckle lime, Illusion pink on black --- */
+[data-theme="sxsw2"] {
+  --background: #0a0a0a;
+  --foreground: #faf9f6;
+  --card: #161616;
+  --card-hover: #222222;
+  --accent: #F9CB0D;
+  --accent-hover: #e0b60b;
+
+  --theme-bg-primary: #0a0a0a;
+  --theme-bg-secondary: #161616;
+  --theme-bg-tertiary: #222222;
+  --theme-bg-card: #161616;
+  --theme-bg-card-hover: #222222;
+  --theme-bg-input: #161616;
+
+  --theme-border-primary: #333333;
+  --theme-border-secondary: #222222;
+
+  --theme-text-primary: #faf9f6;
+  --theme-text-secondary: #b0a890;
+  --theme-text-muted: #8a7e68;
+  --theme-text-faint: #5c5444;
+
+  --theme-accent: #F9CB0D;
+  --theme-accent-hover: #e0b60b;
+  --theme-accent-text: #0a0a0a;
+  --theme-accent-muted: rgba(249, 203, 13, 0.12);
+  --theme-accent-link: #F2A6D1;
+
+  --theme-star-active: #F2A6D1;
+  --theme-star-inactive: #5c5444;
+
+  --theme-now-bg: #E4FB85;
+
+  --theme-logo-filter: invert(1) brightness(1.05);
+
+  --theme-scrollbar-track: #0a0a0a;
+  --theme-scrollbar-thumb: #222222;
+  --theme-scrollbar-thumb-hover: #333333;
+
+  --theme-popup-bg: #161616;
+  --theme-popup-border: #333333;
+  --theme-popup-featured-border: rgba(249, 203, 13, 0.5);
+  --theme-popup-shadow: rgba(0, 0, 0, 0.6);
+}
+
 /* --- GDC theme — deep navy with vivid red & pink accents --- */
 [data-theme="gdc"] {
   --background: #0e1525;

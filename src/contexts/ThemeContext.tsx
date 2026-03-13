@@ -36,7 +36,7 @@ export function ThemeProvider({ children, adminConfig, conference }: ThemeProvid
     const configKey = `theme:${conference}`;
     const configTheme = adminConfig[configKey] as string | undefined;
 
-    if (configTheme === 'dark' || configTheme === 'paper' || configTheme === 'light') {
+    if (configTheme === 'dark' || configTheme === 'paper' || configTheme === 'light' || configTheme === 'sxsw' || configTheme === 'sxsw2' || configTheme === 'gdc' || configTheme === 'ethcc') {
       setThemeState(configTheme);
     } else {
       setThemeState(DEFAULT_THEME);

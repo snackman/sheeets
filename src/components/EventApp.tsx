@@ -123,7 +123,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
     }
     const configKey = `theme:${filters.conference}`;
     const configTheme = (config as Record<string, unknown>)[configKey] as string | undefined;
-    if (configTheme === 'dark' || configTheme === 'paper' || configTheme === 'light') {
+    if (configTheme === 'dark' || configTheme === 'paper' || configTheme === 'light' || configTheme === 'sxsw' || configTheme === 'sxsw2' || configTheme === 'gdc' || configTheme === 'ethcc') {
       setTheme(configTheme as ThemeId);
     } else {
       setTheme(DEFAULT_THEME);

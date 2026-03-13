@@ -152,7 +152,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (!adminConfig) return;
     const t = adminConfig[`theme:${themeConference}`] as string | undefined;
-    if (t === 'dark' || t === 'paper' || t === 'light' || t === 'sxsw' || t === 'gdc' || t === 'ethcc') {
+    if (t === 'dark' || t === 'paper' || t === 'light' || t === 'sxsw' || t === 'sxsw2' || t === 'gdc' || t === 'ethcc') {
       setSelectedTheme(t);
     } else {
       setSelectedTheme('dark');
@@ -1433,6 +1433,13 @@ export default function AdminPage() {
                           <span className="w-5 h-5 rounded" style={{ background: '#0a1410' }} />
                           <span className="w-5 h-5 rounded" style={{ background: '#111f18' }} />
                           <span className="w-5 h-5 rounded" style={{ background: '#d8fc30' }} />
+                        </>
+                      )}
+                      {opt.id === 'sxsw2' && (
+                        <>
+                          <span className="w-5 h-5 rounded" style={{ background: '#0a0a0a' }} />
+                          <span className="w-5 h-5 rounded" style={{ background: '#F9CB0D' }} />
+                          <span className="w-5 h-5 rounded" style={{ background: '#F2A6D1' }} />
                         </>
                       )}
                       {opt.id === 'gdc' && (
