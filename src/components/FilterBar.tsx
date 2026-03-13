@@ -392,9 +392,10 @@ export function FilterBar({
                         className={clsx(
                           'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                           isActive
-                            ? 'bg-blue-500 text-white'
+                            ? 'text-white'
                             : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-border-primary)] active:bg-[var(--theme-border-primary)]'
                         )}
+                        style={isActive ? { backgroundColor: 'var(--friend-blue)' } : undefined}
                       >
                         <Users className="w-3.5 h-3.5" />
                         {friend.displayName}

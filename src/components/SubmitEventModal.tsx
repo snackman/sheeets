@@ -462,7 +462,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                           className="px-2 py-1 rounded-full text-xs font-medium transition-all cursor-pointer border"
                           style={
                             isSelected
-                              ? { backgroundColor: `${color}20`, borderColor: color, color }
+                              ? { backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`, borderColor: color, color }
                               : { backgroundColor: 'transparent', borderColor: 'var(--theme-border-primary)', color: 'var(--theme-text-secondary)' }
                           }
                         >
@@ -488,7 +488,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                           className="px-2 py-1 rounded-full text-xs font-medium transition-all cursor-pointer border"
                           style={
                             isSelected
-                              ? { backgroundColor: `${color}20`, borderColor: color, color }
+                              ? { backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`, borderColor: color, color }
                               : { backgroundColor: 'transparent', borderColor: 'var(--theme-border-primary)', color: 'var(--theme-text-secondary)' }
                           }
                         >

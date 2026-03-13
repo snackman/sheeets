@@ -52,8 +52,9 @@ function FriendsGoingModal({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
-  const avatarBg = accentColor === 'green' ? 'bg-green-500/20' : 'bg-blue-500/20';
-  const avatarText = accentColor === 'green' ? 'text-green-400' : 'text-blue-400';
+  const avatarBg = accentColor === 'green' ? 'bg-green-500/20' : '';
+  const avatarBgStyle = accentColor === 'green' ? undefined : { backgroundColor: 'color-mix(in srgb, var(--friend-blue) 20%, transparent)' };
+  const avatarText = accentColor === 'green' ? 'text-green-400' : '';
 
   return createPortal(
     <div
@@ -90,8 +91,8 @@ function FriendsGoingModal({
               key={friend.userId}
               className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--theme-bg-tertiary)] transition-colors"
             >
-              <div className={`w-8 h-8 rounded-full ${avatarBg} flex items-center justify-center shrink-0`}>
-                <span className={`text-sm font-medium ${avatarText}`}>
+              <div className={`w-8 h-8 rounded-full ${avatarBg} flex items-center justify-center shrink-0`} style={avatarBgStyle}>
+                <span className={`text-sm font-medium ${avatarText}`} style={accentColor !== 'green' ? { color: 'var(--friend-blue)' } : undefined}>
                   {friend.displayName[0]?.toUpperCase() ?? '?'}
                 </span>
               </div>
@@ -239,8 +240,8 @@ export function EventCard({
             }}
             className="flex items-center gap-2 mt-2 px-2 py-1.5 -mx-1 rounded-lg hover:bg-[var(--theme-bg-tertiary)]/50 transition-colors cursor-pointer group/friends w-fit"
           >
-            <Users className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-            <span className="text-xs text-blue-400 group-hover/friends:text-blue-300 transition-colors">
+            <Users className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--friend-blue)' }} />
+            <span className="text-xs transition-colors" style={{ color: 'var(--friend-blue)' }}>
               {formatFriendsText(friendsGoing)}
             </span>
           </button>

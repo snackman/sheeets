@@ -77,7 +77,7 @@ export function CommentSection({ eventId, commentCount = 0 }: CommentSectionProp
                     <span className="text-[11px] font-medium text-[var(--theme-text-secondary)]">{name}</span>
                     <span className="text-[10px] text-[var(--theme-text-faint)]">{timeAgo(comment.created_at)}</span>
                     {comment.visibility === 'friends' && (
-                      <span className="text-[9px] text-blue-400/60 border border-blue-400/30 rounded px-1">friends</span>
+                      <span className="text-[9px] rounded px-1" style={{ color: 'var(--friend-blue)', opacity: 0.6, borderWidth: '1px', borderColor: 'color-mix(in srgb, var(--friend-blue) 30%, transparent)' }}>friends</span>
                     )}
                     {user && comment.user_id === user.id && (
                       <button
@@ -121,9 +121,10 @@ export function CommentSection({ eventId, commentCount = 0 }: CommentSectionProp
               onClick={() => { const next = visibility === 'public' ? 'friends' : 'public'; trackCommentVisibilityToggle(next); setVisibility(next); }}
               className={`text-[9px] px-1.5 py-0.5 rounded border shrink-0 cursor-pointer transition-colors ${
                 visibility === 'friends'
-                  ? 'border-blue-400/40 text-blue-400 bg-blue-400/10'
+                  ? ''
                   : 'border-[var(--theme-border-primary)] text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)]'
               }`}
+              style={visibility === 'friends' ? { borderColor: 'color-mix(in srgb, var(--friend-blue) 40%, transparent)', color: 'var(--friend-blue)', backgroundColor: 'color-mix(in srgb, var(--friend-blue) 10%, transparent)' } : undefined}
               title={visibility === 'public' ? 'Visible to everyone' : 'Visible to friends only'}
             >
               {visibility === 'public' ? 'public' : 'friends'}

@@ -60,8 +60,8 @@ function FriendsRow({ friends }: { friends: FriendInfo[] }) {
   if (!friends || friends.length === 0) return null;
   return (
     <div className="flex items-center gap-1 mt-1.5">
-      <Users className="w-2.5 h-2.5 text-blue-400 shrink-0" />
-      <span className="text-[10px] text-blue-400/80 truncate">
+      <Users className="w-2.5 h-2.5 shrink-0" style={{ color: 'var(--friend-blue)' }} />
+      <span className="text-[10px] truncate" style={{ color: 'var(--friend-blue)', opacity: 0.8 }}>
         {formatFriendsText(friends)}
       </span>
     </div>

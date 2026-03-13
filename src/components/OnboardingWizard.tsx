@@ -313,7 +313,7 @@ export function OnboardingWizard({
                         style={
                           isSelected
                             ? {
-                                backgroundColor: `${color}20`,
+                                backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
                                 borderColor: color,
                                 color: color,
                               }
