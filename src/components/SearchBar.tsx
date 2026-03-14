@@ -51,18 +51,18 @@ export function SearchBar({ value, onChange, eventCount }: SearchBarProps) {
 
   return (
     <div className="relative w-full max-w-md">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--theme-text-secondary)] pointer-events-none" />
       <input
         type="text"
         value={localValue}
         onChange={(e) => handleChange(e.target.value)}
         placeholder={eventCount != null ? `Search ${eventCount} events` : 'Search events'}
-        className="w-full pl-10 pr-9 py-2 bg-stone-900 border border-stone-600 text-white placeholder-slate-400 rounded-lg text-sm focus:outline-none focus:border-amber-500 transition-colors"
+        className="w-full pl-10 pr-9 py-2 bg-[var(--theme-bg-input)] border border-[var(--theme-border-primary)] text-[var(--theme-text-primary)] placeholder-[var(--theme-text-muted)] rounded-lg text-sm focus:outline-none focus:border-[var(--theme-accent)] transition-colors"
       />
       {localValue && (
         <button
           onClick={handleClear}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-200 transition-colors cursor-pointer"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
           aria-label="Clear search"
         >
           <X className="w-4 h-4" />

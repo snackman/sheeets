@@ -62,9 +62,9 @@ export function FriendMarker({ location, zoom = 12 }: FriendMarkerProps) {
 
         {/* Name + time label */}
         {showLabel && (
-          <div className="mt-1 px-1.5 py-0.5 rounded bg-stone-900/90 text-[9px] text-white whitespace-nowrap max-w-[100px] truncate text-center leading-tight">
+          <div className="mt-1 px-1.5 py-0.5 rounded bg-[var(--theme-bg-secondary)]/90 text-[9px] text-[var(--theme-text-primary)] whitespace-nowrap max-w-[100px] truncate text-center leading-tight">
             <div className="font-medium truncate">{name.split(' ')[0]}</div>
-            <div className="text-stone-400">{timeAgo(location.updated_at)}</div>
+            <div className="text-[var(--theme-text-secondary)]">{timeAgo(location.updated_at)}</div>
           </div>
         )}
       </div>

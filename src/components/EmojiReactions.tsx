@@ -47,8 +47,8 @@ export function EmojiReactions({
           }}
           className={`${pillSize} rounded-full border transition-colors cursor-pointer inline-flex items-center gap-1 ${
             r.reacted
-              ? 'border-amber-500/60 bg-amber-500/10 text-white'
-              : 'border-stone-600 bg-stone-800/50 text-stone-300 hover:border-stone-500'
+              ? 'border-[var(--theme-accent)]/60 bg-[var(--theme-accent)]/10 text-[var(--theme-text-primary)]'
+              : 'border-[var(--theme-border-primary)] bg-[var(--theme-bg-tertiary)]/50 text-[var(--theme-text-secondary)] hover:border-[var(--theme-text-muted)]'
           }`}
         >
           <span>{r.emoji}</span>
@@ -64,7 +64,7 @@ export function EmojiReactions({
             if (!showPicker) trackReactionPickerOpen();
             setShowPicker(!showPicker);
           }}
-          className={`${pillSize} rounded-full border border-stone-600 bg-stone-800/50 text-stone-400 hover:text-stone-200 hover:border-stone-500 transition-colors cursor-pointer inline-flex items-center`}
+          className={`${pillSize} rounded-full border border-[var(--theme-border-primary)] bg-[var(--theme-bg-tertiary)]/50 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:border-[var(--theme-text-muted)] transition-colors cursor-pointer inline-flex items-center`}
         >
           <Plus className={compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
         </button>
@@ -78,7 +78,7 @@ export function EmojiReactions({
                 setShowPicker(false);
               }}
             />
-            <div className="absolute bottom-full left-0 mb-1 z-[41] bg-stone-900 border border-stone-600 rounded-lg shadow-xl p-1.5 flex gap-1">
+            <div className="absolute bottom-full left-0 mb-1 z-[41] bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl p-1.5 flex gap-1">
               {(availableEmojis.length > 0 ? availableEmojis : REACTION_EMOJIS).map((emoji) => (
                 <button
                   key={emoji}
@@ -88,7 +88,7 @@ export function EmojiReactions({
                     onToggle(eventId, emoji as ReactionEmoji);
                     setShowPicker(false);
                   }}
-                  className="p-1.5 rounded hover:bg-stone-800 transition-colors cursor-pointer text-base"
+                  className="p-1.5 rounded hover:bg-[var(--theme-bg-tertiary)] transition-colors cursor-pointer text-base"
                 >
                   {emoji}
                 </button>

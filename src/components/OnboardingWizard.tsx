@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
-import { X, Star, Zap, Users, Map, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Star, Zap, Users, Map, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { EVENT_TABS, VIBE_COLORS, TYPE_TAGS } from '@/lib/constants';
 import type { ETHDenverEvent } from '@/lib/types';
 import { TAG_ICONS } from './TagBadge';
@@ -53,6 +53,11 @@ const TIPS = [
     icon: Map,
     title: 'Map, List, and Table Views',
     description: 'Switch between map, list, and table views to find events your way.',
+  },
+  {
+    icon: Plus,
+    title: 'Add Your Event',
+    description: 'Know about a side event? Tap the + button to submit it to the schedule.',
   },
 ];
 
@@ -183,25 +188,25 @@ export function OnboardingWizard({
       {/* Modal */}
       <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
         <div
-          className="bg-stone-900 border border-stone-700 rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col"
+          className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header with close button */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-stone-700 shrink-0">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)] shrink-0">
             <div className="w-8" /> {/* Spacer for centering */}
             <div className="flex gap-1.5">
               {STEPS.map((_, i) => (
                 <div
                   key={i}
                   className={`w-2 h-2 rounded-full transition-colors ${
-                    i === currentStep ? 'bg-amber-500' : 'bg-stone-600'
+                    i === currentStep ? 'bg-[var(--theme-accent)]' : 'bg-[var(--theme-text-faint)]'
                   }`}
                 />
               ))}
             </div>
             <button
               onClick={handleClose}
-              className="p-1 text-stone-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
               aria-label="Close"
             >
               <X className="w-4 h-4" />
@@ -222,22 +227,22 @@ export function OnboardingWizard({
                   priority
                 />
                 <div className="space-y-2">
-                  <h2 className="text-xl font-bold text-white">
+                  <h2 className="text-xl font-bold text-[var(--theme-text-primary)]">
                     Your conference side-event guide
                   </h2>
-                  <p className="text-stone-400 text-sm max-w-xs mx-auto">
+                  <p className="text-[var(--theme-text-secondary)] text-sm max-w-xs mx-auto">
                     Find events, build your schedule, and coordinate with friends -- all in one place.
                   </p>
                 </div>
                 <button
                   onClick={handleNext}
-                  className="w-full max-w-xs px-6 py-3 bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                  className="w-full max-w-xs px-6 py-3 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)] rounded-lg text-sm font-semibold transition-colors cursor-pointer"
                 >
                   Get Started
                 </button>
                 <button
                   onClick={handleSkip}
-                  className="text-stone-500 hover:text-stone-400 text-xs transition-colors cursor-pointer"
+                  className="text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-xs transition-colors cursor-pointer"
                 >
                   Skip intro
                 </button>
@@ -248,8 +253,8 @@ export function OnboardingWizard({
             {stepId === 'conference' && (
               <div className="space-y-4">
                 <div className="text-center space-y-1">
-                  <h2 className="text-lg font-bold text-white">Which conference?</h2>
-                  <p className="text-stone-400 text-sm">
+                  <h2 className="text-lg font-bold text-[var(--theme-text-primary)]">Which conference?</h2>
+                  <p className="text-[var(--theme-text-secondary)] text-sm">
                     Pick your conference to see relevant events
                   </p>
                 </div>
@@ -266,21 +271,21 @@ export function OnboardingWizard({
                         onClick={() => setSelectedConference(tab.name)}
                         className={`w-full text-left p-4 rounded-lg border transition-all cursor-pointer ${
                           isSelected
-                            ? 'bg-amber-500/15 border-amber-500 ring-1 ring-amber-500/50'
-                            : 'bg-stone-950 border-stone-700 hover:border-stone-600'
+                            ? 'bg-[var(--theme-accent-muted)] border-[var(--theme-accent)] ring-1 ring-[var(--theme-accent)]/50'
+                            : 'bg-[var(--theme-bg-primary)] border-[var(--theme-border-primary)] hover:border-[var(--theme-border-primary)]'
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <div className={`font-semibold ${isSelected ? 'text-amber-400' : 'text-white'}`}>
+                          <div className={`font-semibold ${isSelected ? 'text-[var(--theme-accent-link)]' : 'text-[var(--theme-text-primary)]'}`}>
                             {tab.name}
                           </div>
                           {conferenceEventCounts[tab.name] != null && (
-                            <div className={`text-xs ${isSelected ? 'text-amber-400/70' : 'text-stone-500'}`}>
+                            <div className={`text-xs ${isSelected ? 'text-[var(--theme-accent-link)]/70' : 'text-[var(--theme-text-muted)]'}`}>
                               {conferenceEventCounts[tab.name]} events
                             </div>
                           )}
                         </div>
-                        <div className="text-stone-400 text-xs mt-0.5">
+                        <div className="text-[var(--theme-text-secondary)] text-xs mt-0.5">
                           {getConferenceDates(tab.name)}
                         </div>
                       </button>
@@ -294,8 +299,8 @@ export function OnboardingWizard({
             {stepId === 'interests' && (
               <div className="space-y-4">
                 <div className="text-center space-y-1">
-                  <h2 className="text-lg font-bold text-white">What are you into?</h2>
-                  <p className="text-stone-400 text-sm">
+                  <h2 className="text-lg font-bold text-[var(--theme-text-primary)]">What are you into?</h2>
+                  <p className="text-[var(--theme-text-secondary)] text-sm">
                     Select tags to filter your feed
                   </p>
                 </div>
@@ -313,14 +318,14 @@ export function OnboardingWizard({
                         style={
                           isSelected
                             ? {
-                                backgroundColor: `${color}20`,
+                                backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
                                 borderColor: color,
                                 color: color,
                               }
                             : {
                                 backgroundColor: 'transparent',
-                                borderColor: '#44403c', // stone-700
-                                color: '#a8a29e', // stone-400
+                                borderColor: 'var(--theme-border-primary)',
+                                color: 'var(--theme-text-secondary)',
                               }
                         }
                       >
@@ -330,7 +335,7 @@ export function OnboardingWizard({
                     );
                   })}
                 </div>
-                <p className="text-center text-xs text-stone-500">
+                <p className="text-center text-xs text-[var(--theme-text-muted)]">
                   {matchingEventCount} event{matchingEventCount !== 1 ? 's' : ''}{selectedTags.size > 0 ? ' match' : ''}
                 </p>
               </div>
@@ -340,8 +345,8 @@ export function OnboardingWizard({
             {stepId === 'tips' && (
               <div className="space-y-4">
                 <div className="text-center space-y-1">
-                  <h2 className="text-lg font-bold text-white">Quick tips</h2>
-                  <p className="text-stone-400 text-sm">
+                  <h2 className="text-lg font-bold text-[var(--theme-text-primary)]">Quick tips</h2>
+                  <p className="text-[var(--theme-text-secondary)] text-sm">
                     Get the most out of your experience
                   </p>
                 </div>
@@ -351,14 +356,14 @@ export function OnboardingWizard({
                     return (
                       <div
                         key={tip.title}
-                        className="flex items-start gap-3 p-3 rounded-lg bg-stone-950 border border-stone-700"
+                        className="flex items-start gap-3 p-3 rounded-lg bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)]"
                       >
-                        <div className="shrink-0 w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center">
-                          <TipIcon className="w-4.5 h-4.5 text-amber-400" />
+                        <div className="shrink-0 w-9 h-9 rounded-lg bg-[var(--theme-accent-muted)] flex items-center justify-center">
+                          <TipIcon className="w-4.5 h-4.5 text-[var(--theme-accent-link)]" />
                         </div>
                         <div>
-                          <div className="text-sm font-semibold text-white">{tip.title}</div>
-                          <div className="text-xs text-stone-400 mt-0.5">{tip.description}</div>
+                          <div className="text-sm font-semibold text-[var(--theme-text-primary)]">{tip.title}</div>
+                          <div className="text-xs text-[var(--theme-text-secondary)] mt-0.5">{tip.description}</div>
                         </div>
                       </div>
                     );
@@ -370,20 +375,20 @@ export function OnboardingWizard({
             {/* Step 5: Optional Sign In */}
             {stepId === 'signin' && (
               <div className="flex flex-col items-center text-center space-y-5 py-4">
-                <div className="w-14 h-14 rounded-full bg-amber-500/15 flex items-center justify-center">
-                  <Users className="w-7 h-7 text-amber-400" />
+                <div className="w-14 h-14 rounded-full bg-[var(--theme-accent-muted)] flex items-center justify-center">
+                  <Users className="w-7 h-7 text-[var(--theme-accent-link)]" />
                 </div>
                 <div className="space-y-2">
-                  <h2 className="text-lg font-bold text-white">
+                  <h2 className="text-lg font-bold text-[var(--theme-text-primary)]">
                     Sign in to unlock more
                   </h2>
-                  <p className="text-stone-400 text-sm max-w-xs mx-auto">
+                  <p className="text-[var(--theme-text-secondary)] text-sm max-w-xs mx-auto">
                     Save your itinerary across devices, add friends, and see who else is attending.
                   </p>
                 </div>
                 <button
                   onClick={handleSignIn}
-                  className="w-full max-w-xs px-6 py-3 bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
+                  className="w-full max-w-xs px-6 py-3 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)] rounded-lg text-sm font-semibold transition-colors cursor-pointer"
                 >
                   Sign in with email
                 </button>
@@ -392,7 +397,7 @@ export function OnboardingWizard({
                     trackOnboardingComplete(selectedConference, selectedTags.size);
                     onComplete({ conference: selectedConference, selectedTags: Array.from(selectedTags) });
                   }}
-                  className="text-stone-500 hover:text-stone-400 text-xs transition-colors cursor-pointer"
+                  className="text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-xs transition-colors cursor-pointer"
                 >
                   Maybe later
                 </button>
@@ -402,11 +407,11 @@ export function OnboardingWizard({
 
           {/* Footer navigation — hidden on welcome step */}
           {stepId !== 'welcome' && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-stone-700 shrink-0">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--theme-border-primary)] shrink-0">
               <button
                 onClick={handleBack}
                 disabled={isFirstStep}
-                className="flex items-center gap-1 text-sm text-stone-400 hover:text-white disabled:opacity-30 disabled:cursor-default transition-colors cursor-pointer"
+                className="flex items-center gap-1 text-sm text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] disabled:opacity-30 disabled:cursor-default transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
                 Back
@@ -416,14 +421,14 @@ export function OnboardingWizard({
                 <>
                   <button
                     onClick={handleSkip}
-                    className="text-xs text-stone-500 hover:text-stone-400 transition-colors cursor-pointer"
+                    className="text-xs text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
                   >
                     Skip
                   </button>
 
                   <button
                     onClick={handleNext}
-                    className="flex items-center gap-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-stone-900 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                    className="flex items-center gap-1 px-4 py-2 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
                   >
                     Next
                     <ChevronRight className="w-4 h-4" />
@@ -440,7 +445,7 @@ export function OnboardingWizard({
               <div
                 key={i}
                 className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                  i === currentStep ? 'bg-amber-500' : 'bg-stone-600'
+                  i === currentStep ? 'bg-[var(--theme-accent)]' : 'bg-[var(--theme-text-faint)]'
                 }`}
               />
             ))}

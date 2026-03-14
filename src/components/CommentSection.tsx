@@ -37,7 +37,7 @@ export function CommentSection({ eventId, commentCount = 0 }: CommentSectionProp
           trackCommentExpand(eventId);
           setExpanded(true);
         }}
-        className="flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-300 transition-colors cursor-pointer"
+        className="flex items-center gap-1.5 text-xs text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
       >
         <MessageCircle className="w-3.5 h-3.5" />
         {commentCount > 0 ? `${commentCount} comment${commentCount !== 1 ? 's' : ''}` : 'Comments'}
@@ -46,11 +46,11 @@ export function CommentSection({ eventId, commentCount = 0 }: CommentSectionProp
   }
 
   return (
-    <div className="mt-2 border-t border-stone-700/50 pt-2" onClick={(e) => e.stopPropagation()}>
+    <div className="mt-2 border-t border-[var(--theme-border-primary)]/50 pt-2" onClick={(e) => e.stopPropagation()}>
       {/* Header */}
       <button
         onClick={() => setExpanded(false)}
-        className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-stone-200 transition-colors cursor-pointer mb-2"
+        className="flex items-center gap-1.5 text-xs text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer mb-2"
       >
         <MessageCircle className="w-3.5 h-3.5" />
         <span>
@@ -60,7 +60,7 @@ export function CommentSection({ eventId, commentCount = 0 }: CommentSectionProp
 
       {/* Comments list */}
       {loading ? (
-        <div className="text-xs text-stone-500 py-2">Loading...</div>
+        <div className="text-xs text-[var(--theme-text-muted)] py-2">Loading...</div>
       ) : (
         <div className="max-h-[200px] overflow-y-auto space-y-2 mb-2">
           {comments.map((comment) => {
@@ -69,32 +69,32 @@ export function CommentSection({ eventId, commentCount = 0 }: CommentSectionProp
 
             return (
               <div key={comment.id} className="flex gap-2 group/comment">
-                <div className="w-6 h-6 rounded-full bg-stone-800 flex items-center justify-center shrink-0">
-                  <span className="text-[10px] font-medium text-stone-300">{initial}</span>
+                <div className="w-6 h-6 rounded-full bg-[var(--theme-bg-tertiary)] flex items-center justify-center shrink-0">
+                  <span className="text-[10px] font-medium text-[var(--theme-text-secondary)]">{initial}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-medium text-stone-300">{name}</span>
-                    <span className="text-[10px] text-stone-600">{timeAgo(comment.created_at)}</span>
+                    <span className="text-[11px] font-medium text-[var(--theme-text-secondary)]">{name}</span>
+                    <span className="text-[10px] text-[var(--theme-text-faint)]">{timeAgo(comment.created_at)}</span>
                     {comment.visibility === 'friends' && (
-                      <span className="text-[9px] text-blue-400/60 border border-blue-400/30 rounded px-1">friends</span>
+                      <span className="text-[9px] rounded px-1" style={{ color: 'var(--friend-blue)', opacity: 0.6, borderWidth: '1px', borderColor: 'color-mix(in srgb, var(--friend-blue) 30%, transparent)' }}>friends</span>
                     )}
                     {user && comment.user_id === user.id && (
                       <button
                         onClick={() => { trackCommentDelete(eventId); deleteComment(comment.id); }}
-                        className="opacity-0 group-hover/comment:opacity-100 p-0.5 text-stone-600 hover:text-red-400 transition-all cursor-pointer"
+                        className="opacity-0 group-hover/comment:opacity-100 p-0.5 text-[var(--theme-text-faint)] hover:text-red-400 transition-all cursor-pointer"
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>
                     )}
                   </div>
-                  <p className="text-xs text-stone-400 leading-relaxed break-words">{comment.text}</p>
+                  <p className="text-xs text-[var(--theme-text-secondary)] leading-relaxed break-words">{comment.text}</p>
                 </div>
               </div>
             );
           })}
           {comments.length === 0 && !loading && (
-            <p className="text-xs text-stone-600 py-1">No comments yet</p>
+            <p className="text-xs text-[var(--theme-text-faint)] py-1">No comments yet</p>
           )}
         </div>
       )}
@@ -102,7 +102,7 @@ export function CommentSection({ eventId, commentCount = 0 }: CommentSectionProp
       {/* Input */}
       {user && (
         <div className="flex items-center gap-2">
-          <div className="flex-1 flex items-center gap-1 bg-stone-800/50 border border-stone-600 rounded-lg px-2 py-1.5">
+          <div className="flex-1 flex items-center gap-1 bg-[var(--theme-bg-tertiary)]/50 border border-[var(--theme-border-primary)] rounded-lg px-2 py-1.5">
             <input
               type="text"
               value={text}
@@ -115,15 +115,16 @@ export function CommentSection({ eventId, commentCount = 0 }: CommentSectionProp
               }}
               placeholder="Add a comment..."
               maxLength={500}
-              className="flex-1 bg-transparent text-xs text-white placeholder-slate-500 outline-none min-w-0"
+              className="flex-1 bg-transparent text-xs text-[var(--theme-text-primary)] placeholder-slate-500 outline-none min-w-0"
             />
             <button
               onClick={() => { const next = visibility === 'public' ? 'friends' : 'public'; trackCommentVisibilityToggle(next); setVisibility(next); }}
               className={`text-[9px] px-1.5 py-0.5 rounded border shrink-0 cursor-pointer transition-colors ${
                 visibility === 'friends'
-                  ? 'border-blue-400/40 text-blue-400 bg-blue-400/10'
-                  : 'border-stone-600 text-stone-500 hover:text-stone-400'
+                  ? ''
+                  : 'border-[var(--theme-border-primary)] text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)]'
               }`}
+              style={visibility === 'friends' ? { borderColor: 'color-mix(in srgb, var(--friend-blue) 40%, transparent)', color: 'var(--friend-blue)', backgroundColor: 'color-mix(in srgb, var(--friend-blue) 10%, transparent)' } : undefined}
               title={visibility === 'public' ? 'Visible to everyone' : 'Visible to friends only'}
             >
               {visibility === 'public' ? 'public' : 'friends'}
@@ -132,7 +133,7 @@ export function CommentSection({ eventId, commentCount = 0 }: CommentSectionProp
           <button
             onClick={handleSubmit}
             disabled={!text.trim()}
-            className="p-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:bg-stone-800 disabled:text-stone-500 text-stone-900 transition-colors cursor-pointer disabled:cursor-not-allowed"
+            className="p-1.5 rounded-lg bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] disabled:bg-[var(--theme-bg-tertiary)] disabled:text-[var(--theme-text-muted)] text-[var(--theme-accent-text)] transition-colors cursor-pointer disabled:cursor-not-allowed"
           >
             <Send className="w-3.5 h-3.5" />
           </button>

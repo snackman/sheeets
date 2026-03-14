@@ -240,7 +240,7 @@ export function ListView({
   /* ---- empty state ---- */
   if (events.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-stone-500">
+      <div className="flex flex-col items-center justify-center py-20 text-[var(--theme-text-muted)]">
         <p className="text-lg font-medium">No events found</p>
         <p className="text-sm mt-1">Try adjusting your filters</p>
       </div>
@@ -253,12 +253,12 @@ export function ListView({
     <div className="max-w-3xl mx-auto px-2 sm:px-4 pb-8 relative">
       {/* Overlay sticky date header */}
       {stickyLabel && (
-        <div className="sticky top-0 z-20 bg-stone-950 py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-stone-800">
+        <div className="sticky top-0 z-20 bg-[var(--theme-bg-primary)] py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-[var(--theme-border-secondary)]">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-white">
+            <h2 className="text-base font-bold text-[var(--theme-text-primary)]">
               {stickyLabel}
             </h2>
-            <span className="text-xs text-stone-500 font-medium">
+            <span className="text-xs text-[var(--theme-text-muted)] font-medium">
               {stickyCount} event{stickyCount !== 1 ? 's' : ''}
             </span>
           </div>
@@ -291,12 +291,12 @@ export function ListView({
             >
               {item.kind === 'date-header' ? (
                 /* In-flow date header (hidden behind sticky overlay once scrolled past) */
-                <div className={`py-2 border-b border-stone-800 ${virtualRow.index === 0 ? '' : 'mt-4'}`}>
+                <div className={`py-2 border-b border-[var(--theme-border-secondary)] ${virtualRow.index === 0 ? '' : 'mt-4'}`}>
                   <div className="flex items-center justify-between">
-                    <h2 className="text-base font-bold text-white">
+                    <h2 className="text-base font-bold text-[var(--theme-text-primary)]">
                       {item.label}
                     </h2>
-                    <span className="text-xs text-stone-500 font-medium">
+                    <span className="text-xs text-[var(--theme-text-muted)] font-medium">
                       {item.eventCount} event{item.eventCount !== 1 ? 's' : ''}
                     </span>
                   </div>

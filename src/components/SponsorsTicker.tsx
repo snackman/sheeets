@@ -20,22 +20,22 @@ export function SponsorsTicker({ sponsors }: SponsorsTickerProps) {
     <span className="inline-flex items-center">
       {sponsorList.map((s, i) => (
         <span key={i}>
-          {i > 0 && <span className="mx-6 text-stone-600">&#10022;</span>}
+          {i > 0 && <span className="mx-6 text-[var(--theme-text-faint)]">&#10022;</span>}
           {s.beforeText} <a
             href={s.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="underline decoration-slate-500 underline-offset-2 hover:text-stone-200 hover:decoration-slate-300 transition-colors"
+            className="underline decoration-[var(--theme-text-muted)] underline-offset-2 hover:text-[var(--theme-text-primary)] hover:decoration-[var(--theme-text-secondary)] transition-colors"
           >{s.linkText}</a>{s.afterText}
         </span>
       ))}
-      <span className="mx-6 text-stone-600">&#10022;</span>
+      <span className="mx-6 text-[var(--theme-text-faint)]">&#10022;</span>
     </span>
   );
 
   return (
-    <div className="w-full overflow-hidden bg-stone-950/80 border-b border-stone-800/50 py-1.5">
-      <div className="sponsors-scroll inline-flex whitespace-nowrap text-xs text-stone-400">
+    <div className="w-full overflow-hidden border-b py-1.5" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-bg-primary) 80%, transparent)', borderColor: 'color-mix(in srgb, var(--theme-border-secondary) 50%, transparent)' }}>
+      <div className="sponsors-scroll inline-flex whitespace-nowrap text-xs text-[var(--theme-text-secondary)]">
         {item}{item}{item}{item}{item}{item}{item}{item}
       </div>
     </div>

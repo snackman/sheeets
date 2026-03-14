@@ -114,7 +114,7 @@ export function FilterBar({
   }
 
   return (
-    <div className="relative bg-stone-950 border-b border-stone-800 z-30">
+    <div className="relative bg-[var(--theme-bg-primary)] border-b border-[var(--theme-border-secondary)] z-30">
       <div className="px-2 sm:px-4 py-3 space-y-3">
         {/* Top row: Conference tabs + Filter toggle */}
         <div className="flex items-center gap-3 lg:justify-center">
@@ -125,7 +125,7 @@ export function FilterBar({
                 ref={(el) => { confBtnRef.current = el; }}
                 onClick={() => setConfOpen(!confOpen)}
                 className={clsx(
-                  'flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 text-stone-900 font-semibold cursor-pointer',
+                  'flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[var(--theme-accent)] text-[var(--theme-accent-text)] font-semibold cursor-pointer',
                   (filters.conference || 'All').length > 12 ? 'text-xs' : 'text-sm'
                 )}
               >
@@ -137,7 +137,7 @@ export function FilterBar({
                 <>
                   <div className="fixed inset-0 z-[60]" onClick={() => setConfOpen(false)} />
                   <div
-                    className="fixed z-[70] bg-stone-900 border border-stone-700 rounded-lg shadow-xl overflow-hidden min-w-[180px]"
+                    className="fixed z-[70] bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl overflow-hidden min-w-[180px]"
                     style={{
                       top: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().bottom + 4 : 0,
                       left: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().left : 16,
@@ -150,8 +150,8 @@ export function FilterBar({
                         className={clsx(
                           'w-full text-left px-4 py-3 text-sm font-semibold transition-colors cursor-pointer',
                           filters.conference === conf
-                            ? 'bg-amber-500 text-stone-900'
-                            : 'text-stone-300 hover:bg-stone-800 active:bg-stone-800'
+                            ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+                            : 'text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:bg-[var(--theme-bg-tertiary)]'
                         )}
                       >
                         {conf}
@@ -169,10 +169,11 @@ export function FilterBar({
             {onSubmitEvent && (
               <button
                 onClick={onSubmitEvent}
-                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-stone-900 transition-colors cursor-pointer"
+                className="shrink-0 h-9 flex items-center justify-center rounded-lg bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)] transition-colors cursor-pointer px-2 xl:px-3 gap-1.5"
                 aria-label="Submit event"
               >
                 <Plus className="w-4 h-4" />
+                <span className="hidden xl:inline text-sm font-medium">Add Event</span>
               </button>
             )}
           </div>
@@ -185,7 +186,7 @@ export function FilterBar({
             const tabDates = getTabConfig(filters.conference).dates;
             return (
               <div className={clsx('hidden lg:flex items-center gap-2', filters.nowMode && 'opacity-30 pointer-events-none')}>
-                <span className="text-xs uppercase text-stone-400">Start</span>
+                <span className="text-xs uppercase text-[var(--theme-text-secondary)]">Start</span>
                 <DateTimePicker
                   value={filters.startDateTime}
                   min={`${tabDates[0]}T00:00`}
@@ -196,7 +197,7 @@ export function FilterBar({
                     onSetDateTimeRange(v, filters.endDateTime);
                   }}
                 />
-                <span className="text-xs uppercase text-stone-400 ml-1">End</span>
+                <span className="text-xs uppercase text-[var(--theme-text-secondary)] ml-1">End</span>
                 <DateTimePicker
                   value={filters.endDateTime}
                   min={filters.startDateTime}
@@ -218,7 +219,7 @@ export function FilterBar({
               'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer',
               filters.nowMode
                 ? 'bg-green-500 text-white shadow-[0_0_12px_rgba(34,197,94,0.4)]'
-                : 'bg-stone-900 text-stone-400 hover:text-stone-200 hover:bg-stone-800 active:text-stone-200 active:bg-stone-800 border border-stone-700'
+                : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)]'
             )}
           >
             <span className="relative flex items-center">
@@ -236,14 +237,15 @@ export function FilterBar({
             className={clsx(
               'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
               expanded || activeFilterCount > 0
-                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                : 'bg-stone-900 text-stone-400 hover:text-stone-200 hover:bg-stone-800 active:text-stone-200 active:bg-stone-800 border border-stone-700'
+                ? 'text-[var(--theme-accent)] border border-[var(--theme-accent)]'
+                : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)]'
             )}
+            style={expanded || activeFilterCount > 0 ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
           >
             <SlidersHorizontal className="w-4 h-4" />
             Filters
             {activeFilterCount > 0 && (
-              <span className="bg-amber-500 text-stone-900 text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
+              <span className="bg-[var(--theme-accent)] text-[var(--theme-accent-text)] text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
                 {activeFilterCount}
               </span>
             )}
@@ -256,7 +258,7 @@ export function FilterBar({
           {onSubmitEvent && (
             <button
               onClick={onSubmitEvent}
-              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-stone-900 transition-colors cursor-pointer"
+              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)] transition-colors cursor-pointer"
               aria-label="Submit event"
             >
               <Plus className="w-4 h-4" />
@@ -266,7 +268,7 @@ export function FilterBar({
 
         {/* Expandable filter content — overlays map on mobile */}
         {expanded && (
-          <div className="space-y-3 pt-1 sm:relative absolute left-0 right-0 sm:bg-transparent bg-stone-950 sm:px-0 px-2 sm:pb-0 pb-4 sm:shadow-none shadow-lg shadow-black/40">
+          <div className="space-y-3 pt-1 sm:relative absolute left-0 right-0 sm:bg-transparent bg-[var(--theme-bg-primary)] sm:px-0 px-2 sm:pb-0 pb-4 sm:shadow-none shadow-lg shadow-black/40">
             {/* Now mode notice */}
             {filters.nowMode && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
@@ -281,7 +283,7 @@ export function FilterBar({
               return (
                 <div className="flex gap-3 items-end">
                   <div className={clsx('w-40 shrink-0 lg:hidden', filters.nowMode && 'opacity-30 pointer-events-none')}>
-                    <div className="text-xs uppercase tracking-wider text-stone-400 mb-2">Start</div>
+                    <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-2">Start</div>
                     <DateTimePicker
                       value={filters.startDateTime}
                       min={`${tabDates[0]}T00:00`}
@@ -295,7 +297,7 @@ export function FilterBar({
                   </div>
                   {(availableTypes.length > 0) && (
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs uppercase tracking-wider text-stone-400 mb-1">Type</div>
+                      <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-1">Type</div>
                       <div className="overflow-x-auto flex gap-2 pb-1">
                         {availableTypes.map((vibe) => {
                           const isActive = filters.vibes.includes(vibe);
@@ -309,7 +311,7 @@ export function FilterBar({
                                 'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                                 isActive
                                   ? 'text-white'
-                                  : 'bg-stone-800 text-stone-300 hover:bg-stone-700 active:bg-stone-700'
+                                  : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-border-primary)] active:bg-[var(--theme-border-primary)]'
                               )}
                               style={isActive ? { backgroundColor: vibeColor } : undefined}
                             >
@@ -331,7 +333,7 @@ export function FilterBar({
               return (
                 <div className="flex gap-3 items-end">
                   <div className={clsx('w-40 shrink-0 lg:hidden', filters.nowMode && 'opacity-30 pointer-events-none')}>
-                    <div className="text-xs uppercase tracking-wider text-stone-400 mb-2">End</div>
+                    <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-2">End</div>
                     <DateTimePicker
                       value={filters.endDateTime}
                       min={filters.startDateTime}
@@ -345,7 +347,7 @@ export function FilterBar({
                   </div>
                   {availableVibes.length > 0 && (
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs uppercase tracking-wider text-stone-400 mb-1">Tags</div>
+                      <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-1">Tags</div>
                       <div className="overflow-x-auto flex gap-2 pb-1">
                         {availableVibes.map((vibe) => {
                           const isActive = filters.vibes.includes(vibe);
@@ -359,7 +361,7 @@ export function FilterBar({
                                 'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                                 isActive
                                   ? 'text-white'
-                                  : 'bg-stone-800 text-stone-300 hover:bg-stone-700 active:bg-stone-700'
+                                  : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-border-primary)] active:bg-[var(--theme-border-primary)]'
                               )}
                               style={isActive ? { backgroundColor: vibeColor } : undefined}
                             >
@@ -377,7 +379,7 @@ export function FilterBar({
 
             {/* Friends filter */}
             <div>
-              <div className="text-xs uppercase tracking-wider text-stone-400 mb-1">
+              <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-1">
                 Friends
               </div>
               {friendsForFilter.length > 0 ? (
@@ -391,9 +393,10 @@ export function FilterBar({
                         className={clsx(
                           'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                           isActive
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-stone-800 text-stone-300 hover:bg-stone-700 active:bg-stone-700'
+                            ? 'text-white'
+                            : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-border-primary)] active:bg-[var(--theme-border-primary)]'
                         )}
+                        style={isActive ? { backgroundColor: 'var(--friend-blue)' } : undefined}
                       >
                         <Users className="w-3.5 h-3.5" />
                         {friend.displayName}
@@ -403,12 +406,11 @@ export function FilterBar({
                 </div>
               ) : (
                 <div
-                  className={clsx('bg-stone-700/50 rounded-lg p-4 flex items-center gap-3', !user && 'cursor-pointer hover:bg-stone-700/70 transition-colors')}
-                  onClick={!user ? onSignIn : undefined}
+                  className={clsx('bg-[var(--theme-bg-tertiary)]/50 rounded-lg p-4 flex items-center gap-3', !user && 'cursor-pointer hover:bg-[var(--theme-bg-tertiary)]/70 transition-colors')}
                 >
-                  <Users className="w-5 h-5 text-stone-500 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-stone-400 text-sm">{user ? 'Add friends to see their plans' : 'Sign in to add friends'}</p>
+                  <Users className="w-5 h-5 text-[var(--theme-text-muted)] shrink-0" />
+                  <div className="flex-1 min-w-0" onClick={!user ? onSignIn : undefined}>
+                    <p className="text-[var(--theme-text-secondary)] text-sm">{user ? 'Add friends to see their plans' : 'Sign in to add friends'}</p>
                   </div>
                   {user && (
                     <button
@@ -448,7 +450,7 @@ export function FilterBar({
               <div className="flex items-center">
                 <button
                   onClick={() => { trackClearFilters(); onClearFilters(); }}
-                  className="flex items-center gap-1.5 text-amber-400 hover:text-amber-300 active:text-amber-300 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 text-[var(--theme-accent)] hover:opacity-80 active:opacity-80 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                   Clear all

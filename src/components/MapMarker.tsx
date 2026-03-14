@@ -144,7 +144,7 @@ export function MapMarker({
         >
           <div className="relative flex items-center justify-center">
             {/* Clock-face pin */}
-            <div className={`rounded-full ${isFeatured ? 'ring-2 ring-amber-500/60' : ''}`}>
+            <div className={`rounded-full ${isFeatured ? 'ring-2 ring-[var(--theme-accent)]/60' : ''}`}>
               <ClockPin
                 startMinutes={startMinutes}
                 endMinutes={endMinutes}
@@ -201,12 +201,12 @@ export function MapMarker({
           >
             <div className={`px-2 py-0.5 rounded text-[10px] max-w-[140px] leading-tight transition-colors ${
               isFeatured
-                ? 'bg-stone-900/90 border-2 border-amber-500/50 group-hover:bg-stone-800/90 group-hover:border-amber-500/70 text-white'
-                : 'bg-stone-900/90 group-hover:bg-stone-800/90 text-white'
+                ? 'bg-[var(--theme-bg-secondary)]/90 border-2 border-[var(--theme-accent)]/50 group-hover:bg-[var(--theme-bg-tertiary)]/90 group-hover:border-[var(--theme-accent)]/70 text-[var(--theme-text-primary)]'
+                : 'bg-[var(--theme-bg-secondary)]/90 group-hover:bg-[var(--theme-bg-tertiary)]/90 text-[var(--theme-text-primary)]'
             }`}>
               <div className="truncate whitespace-nowrap">{label}</div>
               {showOrganizer && organizer && (
-                <div className="truncate whitespace-nowrap text-stone-400">{organizer}</div>
+                <div className="truncate whitespace-nowrap text-[var(--theme-text-secondary)]">{organizer}</div>
               )}
               {showTagIcons && tags && tags.length > 0 && (
                 <div className="flex flex-wrap items-center gap-0.5 mt-0.5">

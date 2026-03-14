@@ -34,7 +34,7 @@ export function POIPopup({ poi, onClose, onDelete, onUpdate, currentUserId, owne
         {/* Header */}
         <div className="flex items-start gap-2">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm text-white leading-tight truncate">
+            <h3 className="font-semibold text-sm text-[var(--theme-text-primary)] leading-tight truncate">
               {poi.name}
             </h3>
             <span
@@ -46,7 +46,7 @@ export function POIPopup({ poi, onClose, onDelete, onUpdate, currentUserId, owne
           </div>
           <button
             onClick={onClose}
-            className="shrink-0 p-1 text-stone-400 hover:text-white active:text-white transition-colors"
+            className="shrink-0 p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] active:text-[var(--theme-text-primary)] transition-colors"
             aria-label="Close popup"
           >
             <X size={14} />
@@ -60,7 +60,7 @@ export function POIPopup({ poi, onClose, onDelete, onUpdate, currentUserId, owne
             lat={poi.lat}
             lng={poi.lng}
             isPrivatePin={!poi.is_public}
-            className="text-stone-500 hover:text-stone-300 text-xs mt-1.5 flex items-center gap-1 transition-colors min-w-0 overflow-hidden"
+            className="text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-xs mt-1.5 flex items-center gap-1 transition-colors min-w-0 overflow-hidden"
           >
             <MapPin className="w-3 h-3 shrink-0" />
             <span className="truncate">{poi.address}</span>
@@ -69,24 +69,24 @@ export function POIPopup({ poi, onClose, onDelete, onUpdate, currentUserId, owne
 
         {/* Note */}
         {poi.note && (
-          <p className="text-stone-400 text-xs mt-1.5 italic line-clamp-2">{poi.note}</p>
+          <p className="text-[var(--theme-text-secondary)] text-xs mt-1.5 italic line-clamp-2">{poi.note}</p>
         )}
 
         {/* Friend attribution */}
         {!isOwn && ownerName && (
-          <p className="text-xs text-stone-500 mt-1">Shared by {ownerName}</p>
+          <p className="text-xs text-[var(--theme-text-muted)] mt-1">Shared by {ownerName}</p>
         )}
 
         {/* Share toggle & delete — own POIs only */}
         {isOwn && (
-          <div className="mt-2 pt-2 border-t border-stone-700">
+          <div className="mt-2 pt-2 border-t border-[var(--theme-border-primary)]">
             {/* Share toggle */}
             <div className="flex items-center justify-between">
-              <span className="text-xs text-stone-400">Share with friends</span>
+              <span className="text-xs text-[var(--theme-text-secondary)]">Share with friends</span>
               <button
                 onClick={() => onUpdate?.(poi.id, { is_public: !poi.is_public })}
                 className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer ${
-                  poi.is_public ? 'bg-amber-500' : 'bg-stone-700'
+                  poi.is_public ? 'bg-[var(--theme-accent)]' : 'bg-[var(--theme-border-primary)]'
                 }`}
               >
                 <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${

@@ -155,15 +155,15 @@ export function ItineraryPanel({
 
       {/* Panel */}
       <div
-        className={`fixed top-0 right-0 z-[70] h-full w-full max-w-md bg-stone-950 border-l border-stone-700 shadow-2xl transition-transform duration-300 ease-in-out pt-[var(--safe-area-top)] ${
+        className={`fixed top-0 right-0 z-[70] h-full w-full max-w-md bg-[var(--theme-bg-primary)] border-l border-[var(--theme-border-primary)] shadow-2xl transition-transform duration-300 ease-in-out pt-[var(--safe-area-top)] ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-stone-800">
-          <h2 className="text-lg font-bold text-white">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-secondary)]">
+          <h2 className="text-lg font-bold text-[var(--theme-text-primary)]">
             My Itinerary{' '}
-            <span className="text-sm font-normal text-stone-400">
+            <span className="text-sm font-normal text-[var(--theme-text-secondary)]">
               ({itineraryEvents.length} event
               {itineraryEvents.length !== 1 ? 's' : ''})
             </span>
@@ -173,7 +173,7 @@ export function ItineraryPanel({
               <>
                 <Link
                   href="/itinerary"
-                  className="p-1.5 text-stone-400 hover:text-amber-400 active:text-amber-400 transition-colors"
+                  className="p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent-link)] active:text-[var(--theme-accent-link)] transition-colors"
                   aria-label="Open full page"
                   title="Open full page"
                 >
@@ -181,7 +181,7 @@ export function ItineraryPanel({
                 </Link>
                 <button
                   onClick={() => setShowShareCard(true)}
-                  className="p-1.5 text-stone-400 hover:text-amber-400 active:text-amber-400 transition-colors cursor-pointer"
+                  className="p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent-link)] active:text-[var(--theme-accent-link)] transition-colors cursor-pointer"
                   aria-label="Share itinerary"
                   title="Share itinerary as PNG"
                 >
@@ -191,7 +191,7 @@ export function ItineraryPanel({
             )}
             <button
               onClick={onClose}
-              className="p-1 text-stone-400 hover:text-white active:text-white transition-colors cursor-pointer"
+              className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] active:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
               aria-label="Close itinerary"
             >
               <X className="w-5 h-5" />
@@ -201,15 +201,15 @@ export function ItineraryPanel({
 
         {/* Conference tabs */}
         {conferences.length > 1 && (
-          <div className="flex border-b border-stone-800 px-4">
+          <div className="flex border-b border-[var(--theme-border-secondary)] px-4">
             {conferences.map((conf) => (
               <button
                 key={conf}
                 onClick={() => { trackItineraryConferenceTab(conf); setSelectedConference(conf); }}
                 className={`px-3 py-2 text-xs font-medium transition-colors cursor-pointer border-b-2 ${
                   selectedConference === conf
-                    ? 'border-amber-500 text-white'
-                    : 'border-transparent text-stone-400 hover:text-stone-200 active:text-stone-200'
+                    ? 'border-[var(--theme-accent)] text-[var(--theme-text-primary)]'
+                    : 'border-transparent text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] active:text-[var(--theme-text-primary)]'
                 }`}
               >
                 {conf.replace(/ 2026$/, '')}
@@ -223,30 +223,30 @@ export function ItineraryPanel({
           {itineraryEvents.length === 0 ? (
             /* Empty state */
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <CalendarX className="w-12 h-12 text-stone-600 mb-4" />
-              <p className="text-stone-400 font-medium mb-2">
+              <CalendarX className="w-12 h-12 text-[var(--theme-text-faint)] mb-4" />
+              <p className="text-[var(--theme-text-secondary)] font-medium mb-2">
                 No events in your itinerary yet
               </p>
-              <p className="text-stone-500 text-sm max-w-xs">
+              <p className="text-[var(--theme-text-muted)] text-sm max-w-xs">
                 Star events and add them to build your schedule!
               </p>
             </div>
           ) : (
             <>
               {/* Capturable content for PNG export */}
-              <div ref={captureRef} className="bg-stone-950">
+              <div ref={captureRef} className="bg-[var(--theme-bg-primary)]">
                 {/* Branding header (visible in PNG) */}
                 <div className="pt-3 pb-1 px-1 flex items-center gap-2">
                   <span className="text-base">📅</span>
-                  <span className="text-sm font-bold text-white">sheeets.xyz</span>
-                  <span className="text-xs text-stone-500">— My Itinerary</span>
+                  <span className="text-sm font-bold text-[var(--theme-text-primary)]">sheeets.xyz</span>
+                  <span className="text-xs text-[var(--theme-text-muted)]">— My Itinerary</span>
                 </div>
 
                 {/* Conflict warning */}
                 {conflicts.size > 0 && (
-                  <div className="mt-2 mb-1 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-                    <p className="text-amber-400 text-xs">
+                  <div className="mt-2 mb-1 px-3 py-2 bg-[var(--theme-accent)]/10 border border-[var(--theme-accent)]/20 rounded-lg flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-[var(--theme-accent-link)] shrink-0" />
+                    <p className="text-[var(--theme-accent-link)] text-xs">
                       {conflicts.size} event{conflicts.size !== 1 ? 's' : ''} with
                       schedule conflicts
                     </p>
@@ -258,11 +258,11 @@ export function ItineraryPanel({
                   <section key={group.dateISO} className="mt-4">
                     {/* Date header */}
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="h-px flex-1 bg-stone-800" />
-                      <h3 className="text-xs font-bold text-stone-400 uppercase tracking-wider whitespace-nowrap">
+                      <div className="h-px flex-1 bg-[var(--theme-bg-tertiary)]" />
+                      <h3 className="text-xs font-bold text-[var(--theme-text-secondary)] uppercase tracking-wider whitespace-nowrap">
                         {group.label}
                       </h3>
-                      <div className="h-px flex-1 bg-stone-800" />
+                      <div className="h-px flex-1 bg-[var(--theme-bg-tertiary)]" />
                     </div>
 
                     {/* Event cards */}
@@ -286,19 +286,19 @@ export function ItineraryPanel({
                           >
                             {/* Drop indicator - above */}
                             {dropIndicator.showAbove && (
-                              <div className="absolute -top-1.5 left-0 right-0 h-0.5 bg-amber-500 rounded-full z-10" />
+                              <div className="absolute -top-1.5 left-0 right-0 h-0.5 bg-[var(--theme-accent)] rounded-full z-10" />
                             )}
 
                             <div
-                              className={`bg-stone-900 rounded-lg p-3 border transition-opacity ${
+                              className={`bg-[var(--theme-bg-secondary)] rounded-lg p-3 border transition-opacity ${
                                 hasConflict
-                                  ? 'border-amber-500/40'
-                                  : 'border-stone-700'
+                                  ? 'border-[var(--theme-accent)]/40'
+                                  : 'border-[var(--theme-border-primary)]'
                               } ${isBeingDragged ? 'opacity-40' : 'opacity-100'}`}
                             >
                               {/* Conflict warning */}
                               {hasConflict && (
-                                <div className="flex items-center gap-1.5 mb-2 text-amber-400">
+                                <div className="flex items-center gap-1.5 mb-2 text-[var(--theme-accent-link)]">
                                   <AlertTriangle className="w-3 h-3" />
                                   <span className="text-[10px] font-medium uppercase tracking-wide">
                                     Schedule conflict
@@ -312,14 +312,14 @@ export function ItineraryPanel({
                                   <div
                                     data-export-hide
                                     {...getDragHandleProps(event.id)}
-                                    className="shrink-0 pt-0.5 text-stone-600 hover:text-stone-400 active:text-stone-400 cursor-grab active:cursor-grabbing touch-none select-none"
+                                    className="shrink-0 pt-0.5 text-[var(--theme-text-faint)] hover:text-[var(--theme-text-secondary)] active:text-[var(--theme-text-secondary)] cursor-grab active:cursor-grabbing touch-none select-none"
                                     aria-label="Drag to reorder"
                                     title="Drag to reorder"
                                   >
                                     <GripVertical className="w-4 h-4" />
                                   </div>
                                 )}
-                                <h4 className="flex-1 text-sm font-semibold text-white leading-tight min-w-0 truncate">
+                                <h4 className="flex-1 text-sm font-semibold text-[var(--theme-text-primary)] leading-tight min-w-0 truncate">
                                   {event.name}
                                 </h4>
                                 <div className="flex items-center gap-0.5 shrink-0" data-export-hide>
@@ -328,7 +328,7 @@ export function ItineraryPanel({
                                       href={event.link}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="p-1 text-stone-500 hover:text-amber-400 active:text-amber-400 transition-colors"
+                                      className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-accent-link)] active:text-[var(--theme-accent-link)] transition-colors"
                                       aria-label="Open event link"
                                       title="Open event link"
                                     >
@@ -337,7 +337,7 @@ export function ItineraryPanel({
                                   )}
                                   <button
                                     onClick={() => onItineraryToggle(event.id)}
-                                    className="p-1 text-amber-400 hover:text-amber-300 active:text-amber-300 transition-colors cursor-pointer"
+                                    className="p-1 text-[var(--theme-accent-link)] hover:text-[var(--theme-accent-link)] active:text-[var(--theme-accent-link)] transition-colors cursor-pointer"
                                     aria-label="Remove from itinerary"
                                     title="Remove from itinerary"
                                   >
@@ -347,7 +347,7 @@ export function ItineraryPanel({
                               </div>
 
                               {/* Time */}
-                              <p className={`text-stone-400 text-xs mt-1 ${canDrag ? 'ml-6' : ''}`}>
+                              <p className={`text-[var(--theme-text-secondary)] text-xs mt-1 ${canDrag ? 'ml-6' : ''}`}>
                                 {timeDisplay}
                               </p>
 
@@ -355,7 +355,7 @@ export function ItineraryPanel({
                               <div className={`flex items-center gap-1.5 mt-1.5 ${canDrag ? 'ml-6' : ''}`}>
                                 {event.vibe && (
                                   <span
-                                    className="px-1.5 py-0.5 rounded text-[10px] font-semibold text-white"
+                                    className="px-1.5 py-0.5 rounded text-[10px] font-semibold text-[var(--theme-text-primary)]"
                                     style={{ backgroundColor: vibeColor }}
                                   >
                                     {event.vibe}
@@ -371,7 +371,7 @@ export function ItineraryPanel({
 
                             {/* Drop indicator - below */}
                             {dropIndicator.showBelow && (
-                              <div className="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-amber-500 rounded-full z-10" />
+                              <div className="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-[var(--theme-accent)] rounded-full z-10" />
                             )}
                           </div>
                         );
@@ -382,28 +382,28 @@ export function ItineraryPanel({
 
                 {/* Footer in PNG */}
                 <div className="pt-3 pb-2 text-center">
-                  <span className="text-[10px] text-stone-600">sheeets.xyz — side event guide</span>
+                  <span className="text-[10px] text-[var(--theme-text-faint)]">sheeets.xyz — side event guide</span>
                 </div>
               </div>
 
               {/* Interactive controls (outside capture area) */}
 
               {/* Clear all button */}
-              <div className="mt-6 pt-4 border-t border-stone-800">
+              <div className="mt-6 pt-4 border-t border-[var(--theme-border-secondary)]">
                 {showClearConfirm ? (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-stone-400">
+                    <span className="text-sm text-[var(--theme-text-secondary)]">
                       Clear all events?
                     </span>
                     <button
                       onClick={handleClear}
-                      className="px-3 py-1.5 bg-red-500 hover:bg-red-600 active:bg-red-600 text-white text-xs font-medium rounded transition-colors cursor-pointer"
+                      className="px-3 py-1.5 bg-red-500 hover:bg-red-600 active:bg-red-600 text-[var(--theme-text-primary)] text-xs font-medium rounded transition-colors cursor-pointer"
                     >
                       Yes, clear
                     </button>
                     <button
                       onClick={() => setShowClearConfirm(false)}
-                      className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 active:bg-stone-700 text-stone-300 text-xs font-medium rounded transition-colors cursor-pointer"
+                      className="px-3 py-1.5 bg-[var(--theme-bg-tertiary)] hover:bg-[var(--theme-bg-card-hover)] active:bg-[var(--theme-bg-card-hover)] text-[var(--theme-text-secondary)] text-xs font-medium rounded transition-colors cursor-pointer"
                     >
                       Cancel
                     </button>
@@ -411,7 +411,7 @@ export function ItineraryPanel({
                 ) : (
                   <button
                     onClick={() => setShowClearConfirm(true)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-stone-900 hover:bg-stone-800 active:bg-stone-800 border border-stone-700 text-stone-400 hover:text-stone-300 active:text-stone-300 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[var(--theme-bg-secondary)] hover:bg-[var(--theme-bg-tertiary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-secondary)] active:text-[var(--theme-text-secondary)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                     Clear Itinerary

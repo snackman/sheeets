@@ -9,14 +9,403 @@
   --safe-area-right: env(safe-area-inset-right, 0px);
 }
 
-/* Dark theme base */
-:root {
+/* ================================================================
+   THEME SYSTEM — CSS Custom Properties
+   Set data-theme="dark|paper|light" on <html> to switch themes.
+   Default (:root) matches the dark theme.
+   ================================================================ */
+
+/* --- Dark theme (default) --- */
+:root,
+[data-theme="dark"] {
   --background: #0c0a09;
   --foreground: #fafaf9;
   --card: #1c1917;
   --card-hover: #292524;
   --accent: #f59e0b;
-  --accent-hover: #fbbf24;
+  --accent-hover: #d97706;
+
+  --theme-bg-primary: #0c0a09;
+  --theme-bg-secondary: #1c1917;
+  --theme-bg-tertiary: #292524;
+  --theme-bg-card: #1c1917;
+  --theme-bg-card-hover: #292524;
+  --theme-bg-input: #1c1917;
+
+  --theme-border-primary: #44403c;
+  --theme-border-secondary: #292524;
+
+  --theme-text-primary: #fafaf9;
+  --theme-text-secondary: #a8a29e;
+  --theme-text-muted: #78716c;
+  --theme-text-faint: #57534e;
+
+  --theme-accent: #f59e0b;
+  --theme-accent-hover: #d97706;
+  --theme-accent-text: #0c0a09;
+  --theme-accent-muted: rgba(245, 158, 11, 0.15);
+  --theme-accent-link: #fbbf24;
+
+  --theme-star-active: #facc15;
+  --theme-star-inactive: #57534e;
+
+  --theme-now-bg: #22c55e;
+
+  --theme-logo-filter: invert(1);
+
+  --theme-scrollbar-track: #0c0a09;
+  --theme-scrollbar-thumb: #292524;
+  --theme-scrollbar-thumb-hover: #44403c;
+
+  --theme-popup-bg: #1c1917;
+  --theme-popup-border: #292524;
+  --theme-popup-featured-border: rgb(245 158 11 / 0.5);
+  --theme-popup-shadow: rgba(0, 0, 0, 0.5);
+
+  --tag-green: #34D399;
+  --tag-blue: #3B82F6;
+  --tag-yellow: #FBBF24;
+  --tag-pink: #F472B6;
+  --tag-teal: #2DD4BF;
+  --tag-purple: #A855F7;
+  --tag-default: #6B7280;
+  --friend-blue: #3B82F6;
+}
+
+/* --- Paper theme — warm parchment/cream aesthetic --- */
+[data-theme="paper"] {
+  --background: #f5f0e8;
+  --foreground: #2c2418;
+  --card: #faf7f2;
+  --card-hover: #f0ebe0;
+  --accent: #c47a2a;
+  --accent-hover: #a8631f;
+
+  --theme-bg-primary: #f5f0e8;
+  --theme-bg-secondary: #ece5d8;
+  --theme-bg-tertiary: #e2d9ca;
+  --theme-bg-card: #faf7f2;
+  --theme-bg-card-hover: #f0ebe0;
+  --theme-bg-input: #faf7f2;
+
+  --theme-border-primary: #d4c9b8;
+  --theme-border-secondary: #e2d9ca;
+
+  --theme-text-primary: #2c2418;
+  --theme-text-secondary: #6b5d4f;
+  --theme-text-muted: #8a7b6b;
+  --theme-text-faint: #a89a8a;
+
+  --theme-accent: #c47a2a;
+  --theme-accent-hover: #a8631f;
+  --theme-accent-text: #faf7f2;
+  --theme-accent-muted: rgba(196, 122, 42, 0.12);
+  --theme-accent-link: #b06820;
+
+  --theme-star-active: #d4a32c;
+  --theme-star-inactive: #c4b9a8;
+
+  --theme-now-bg: #c0564a;
+
+  --theme-logo-filter: invert(0);
+
+  --theme-scrollbar-track: #f5f0e8;
+  --theme-scrollbar-thumb: #d4c9b8;
+  --theme-scrollbar-thumb-hover: #bfb3a0;
+
+  --theme-popup-bg: #faf7f2;
+  --theme-popup-border: #d4c9b8;
+  --theme-popup-featured-border: rgba(196, 122, 42, 0.5);
+  --theme-popup-shadow: rgba(44, 36, 24, 0.15);
+
+  --tag-green: #3d9970;
+  --tag-blue: #4a78b0;
+  --tag-yellow: #b8941e;
+  --tag-pink: #c45a78;
+  --tag-teal: #2a917e;
+  --tag-purple: #8b50d0;
+  --tag-default: #8a7b6b;
+  --friend-blue: #4a78b0;
+}
+
+/* --- Light theme — clean modern white/coral aesthetic --- */
+[data-theme="light"] {
+  --background: #fafafa;
+  --foreground: #1a1a1a;
+  --card: #ffffff;
+  --card-hover: #f5f5f5;
+  --accent: #ef4444;
+  --accent-hover: #dc2626;
+
+  --theme-bg-primary: #fafafa;
+  --theme-bg-secondary: #f5f5f5;
+  --theme-bg-tertiary: #e5e5e5;
+  --theme-bg-card: #ffffff;
+  --theme-bg-card-hover: #f5f5f5;
+  --theme-bg-input: #ffffff;
+
+  --theme-border-primary: #d4d4d4;
+  --theme-border-secondary: #e5e5e5;
+
+  --theme-text-primary: #1a1a1a;
+  --theme-text-secondary: #525252;
+  --theme-text-muted: #737373;
+  --theme-text-faint: #a3a3a3;
+
+  --theme-accent: #ef4444;
+  --theme-accent-hover: #dc2626;
+  --theme-accent-text: #ffffff;
+  --theme-accent-muted: rgba(239, 68, 68, 0.10);
+  --theme-accent-link: #dc2626;
+
+  --theme-star-active: #facc15;
+  --theme-star-inactive: #d4d4d4;
+
+  --theme-now-bg: #22c55e;
+
+  --theme-logo-filter: invert(0);
+
+  --theme-scrollbar-track: #fafafa;
+  --theme-scrollbar-thumb: #d4d4d4;
+  --theme-scrollbar-thumb-hover: #a3a3a3;
+
+  --theme-popup-bg: #ffffff;
+  --theme-popup-border: #d4d4d4;
+  --theme-popup-featured-border: rgba(239, 68, 68, 0.5);
+  --theme-popup-shadow: rgba(0, 0, 0, 0.1);
+
+  --tag-green: #059669;
+  --tag-blue: #2563EB;
+  --tag-yellow: #D97706;
+  --tag-pink: #DB2777;
+  --tag-teal: #0D9488;
+  --tag-purple: #7C3AED;
+  --tag-default: #4B5563;
+  --friend-blue: #2563EB;
+}
+
+/* --- SXSW theme — neon lime on dark forest green --- */
+[data-theme="sxsw"] {
+  --background: #0a1410;
+  --foreground: #f0fdf4;
+  --card: #111f18;
+  --card-hover: #182a20;
+  --accent: #d8fc30;
+  --accent-hover: #c4e820;
+
+  --theme-bg-primary: #0a1410;
+  --theme-bg-secondary: #111f18;
+  --theme-bg-tertiary: #182a20;
+  --theme-bg-card: #111f18;
+  --theme-bg-card-hover: #182a20;
+  --theme-bg-input: #111f18;
+
+  --theme-border-primary: #1e3428;
+  --theme-border-secondary: #182a20;
+
+  --theme-text-primary: #f0fdf4;
+  --theme-text-secondary: #6b9480;
+  --theme-text-muted: #4a7a64;
+  --theme-text-faint: #2d5a44;
+
+  --theme-accent: #d8fc30;
+  --theme-accent-hover: #c4e820;
+  --theme-accent-text: #0a1410;
+  --theme-accent-muted: rgba(216, 252, 48, 0.10);
+  --theme-accent-link: #d8fc30;
+
+  --theme-star-active: #d8fc30;
+  --theme-star-inactive: #2d5a44;
+
+  --theme-now-bg: #22c55e;
+
+  --theme-logo-filter: invert(1) hue-rotate(40deg) saturate(2);
+
+  --theme-scrollbar-track: #0a1410;
+  --theme-scrollbar-thumb: #182a20;
+  --theme-scrollbar-thumb-hover: #1e3428;
+
+  --theme-popup-bg: #111f18;
+  --theme-popup-border: #1e3428;
+  --theme-popup-featured-border: rgba(216, 252, 48, 0.5);
+  --theme-popup-shadow: rgba(0, 0, 0, 0.5);
+
+  --tag-green: #34D399;
+  --tag-blue: #3B82F6;
+  --tag-yellow: #FBBF24;
+  --tag-pink: #F472B6;
+  --tag-teal: #2DD4BF;
+  --tag-purple: #A855F7;
+  --tag-default: #6B7280;
+  --friend-blue: #3B82F6;
+}
+
+/* --- SXSW2 theme — official SXSW 2026 branding: Candlelight yellow, Honeysuckle lime, Illusion pink on black --- */
+[data-theme="sxsw2"] {
+  --background: #0a0a0a;
+  --foreground: #faf9f6;
+  --card: #161616;
+  --card-hover: #222222;
+  --accent: #F9CB0D;
+  --accent-hover: #e0b60b;
+
+  --theme-bg-primary: #0a0a0a;
+  --theme-bg-secondary: #161616;
+  --theme-bg-tertiary: #222222;
+  --theme-bg-card: #161616;
+  --theme-bg-card-hover: #222222;
+  --theme-bg-input: #161616;
+
+  --theme-border-primary: #333333;
+  --theme-border-secondary: #222222;
+
+  --theme-text-primary: #faf9f6;
+  --theme-text-secondary: #b0a890;
+  --theme-text-muted: #8a7e68;
+  --theme-text-faint: #5c5444;
+
+  --theme-accent: #F9CB0D;
+  --theme-accent-hover: #e0b60b;
+  --theme-accent-text: #0a0a0a;
+  --theme-accent-muted: rgba(249, 203, 13, 0.12);
+  --theme-accent-link: #F2A6D1;
+
+  --theme-star-active: #F2A6D1;
+  --theme-star-inactive: #5c5444;
+
+  --theme-now-bg: #E4FB85;
+
+  --theme-logo-filter: invert(1) brightness(1.05);
+
+  --theme-scrollbar-track: #0a0a0a;
+  --theme-scrollbar-thumb: #222222;
+  --theme-scrollbar-thumb-hover: #333333;
+
+  --theme-popup-bg: #161616;
+  --theme-popup-border: #333333;
+  --theme-popup-featured-border: rgba(249, 203, 13, 0.5);
+  --theme-popup-shadow: rgba(0, 0, 0, 0.6);
+
+  --tag-green: #34D399;
+  --tag-blue: #3B82F6;
+  --tag-yellow: #FBBF24;
+  --tag-pink: #F472B6;
+  --tag-teal: #2DD4BF;
+  --tag-purple: #A855F7;
+  --tag-default: #6B7280;
+  --friend-blue: #3B82F6;
+}
+
+/* --- GDC theme — deep navy with vivid red & pink accents --- */
+[data-theme="gdc"] {
+  --background: #0e1525;
+  --foreground: #f0f2f8;
+  --card: #172138;
+  --card-hover: #1e2c4a;
+  --accent: #EF0000;
+  --accent-hover: #cc0000;
+
+  --theme-bg-primary: #0e1525;
+  --theme-bg-secondary: #172138;
+  --theme-bg-tertiary: #1e2c4a;
+  --theme-bg-card: #172138;
+  --theme-bg-card-hover: #1e2c4a;
+  --theme-bg-input: #172138;
+
+  --theme-border-primary: #2a3a5c;
+  --theme-border-secondary: #1e2c4a;
+
+  --theme-text-primary: #f0f2f8;
+  --theme-text-secondary: #8ca8c0;
+  --theme-text-muted: #5c72a0;
+  --theme-text-faint: #3e5080;
+
+  --theme-accent: #EF0000;
+  --theme-accent-hover: #cc0000;
+  --theme-accent-text: #ffffff;
+  --theme-accent-muted: rgba(239, 0, 0, 0.12);
+  --theme-accent-link: #f5a0c0;
+
+  --theme-star-active: #f5a0c0;
+  --theme-star-inactive: #3e5080;
+
+  --theme-now-bg: #EF0000;
+
+  --theme-logo-filter: invert(1) brightness(1.1);
+
+  --theme-scrollbar-track: #0e1525;
+  --theme-scrollbar-thumb: #1e2c4a;
+  --theme-scrollbar-thumb-hover: #2a3a5c;
+
+  --theme-popup-bg: #172138;
+  --theme-popup-border: #2a3a5c;
+  --theme-popup-featured-border: rgba(239, 0, 0, 0.5);
+  --theme-popup-shadow: rgba(0, 0, 0, 0.5);
+
+  --tag-green: #34D399;
+  --tag-blue: #5b9cf0;
+  --tag-yellow: #FBBF24;
+  --tag-pink: #f5a0c0;
+  --tag-teal: #2DD4BF;
+  --tag-purple: #A855F7;
+  --tag-default: #6B7280;
+  --friend-blue: #5b9cf0;
+}
+
+/* --- EthCC theme — deep navy blue + coral, from EthCC conference key art --- */
+[data-theme="ethcc"] {
+  --background: #152066;
+  --foreground: #e8ecf8;
+  --card: #0e1548;
+  --card-hover: #3568c1;
+  --accent: #6b9de8;
+  --accent-hover: #5588d0;
+
+  --theme-bg-primary: #152066;
+  --theme-bg-secondary: #0e1548;
+  --theme-bg-tertiary: #3568c1;
+  --theme-bg-card: #0e1548;
+  --theme-bg-card-hover: #3568c1;
+  --theme-bg-input: #0e1548;
+
+  --theme-border-primary: #2a4088;
+  --theme-border-secondary: #1a2a60;
+
+  --theme-text-primary: #e8ecf8;
+  --theme-text-secondary: #8ba0d0;
+  --theme-text-muted: #5a72a0;
+  --theme-text-faint: #3a5080;
+
+  --theme-accent: #6b9de8;
+  --theme-accent-hover: #5588d0;
+  --theme-accent-text: #ffffff;
+  --theme-accent-muted: rgba(107, 157, 232, 0.12);
+  --theme-accent-link: #6b9de8;
+
+  --theme-star-active: #f06b6b;
+  --theme-star-inactive: #3a5080;
+
+  --theme-now-bg: #f06b6b;
+
+  --theme-logo-filter: invert(1);
+
+  --theme-scrollbar-track: #152066;
+  --theme-scrollbar-thumb: #2a4088;
+  --theme-scrollbar-thumb-hover: #3568c1;
+
+  --theme-popup-bg: #0e1548;
+  --theme-popup-border: #2a4088;
+  --theme-popup-featured-border: rgba(107, 157, 232, 0.5);
+  --theme-popup-shadow: rgba(0, 0, 0, 0.5);
+
+  --tag-green: #34D399;
+  --tag-blue: #6b9de8;
+  --tag-yellow: #FBBF24;
+  --tag-pink: #F472B6;
+  --tag-teal: #2DD4BF;
+  --tag-purple: #A855F7;
+  --tag-default: #6B7280;
+  --friend-blue: #6b9de8;
 }
 
 @theme inline {
@@ -26,11 +415,12 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--theme-bg-primary);
+  color: var(--theme-text-primary);
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   padding-top: var(--safe-area-top);
   padding-bottom: var(--safe-area-bottom);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Prevent iOS auto-zoom on input focus (inputs must be >= 16px) */
@@ -38,23 +428,23 @@ input, select, textarea {
   font-size: 16px;
 }
 
-/* Custom scrollbar for dark theme */
+/* Custom scrollbar — theme-aware */
 ::-webkit-scrollbar {
   width: 8px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0c0a09;
+  background: var(--theme-scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #292524;
+  background: var(--theme-scrollbar-thumb);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #44403c;
+  background: var(--theme-scrollbar-thumb-hover);
 }
 
 /* Stone 750 custom shade for card hover (between 700 and 800) */
@@ -67,22 +457,23 @@ input, select, textarea {
   max-width: calc(100vw - 1rem) !important;
 }
 
-/* Mapbox popup overrides for dark theme */
+/* Mapbox popup overrides — theme-aware */
 .map-popup .mapboxgl-popup-content {
-  background-color: #1c1917;
-  border: 1px solid #292524;
+  background-color: var(--theme-popup-bg);
+  border: 1px solid var(--theme-popup-border);
   border-radius: 8px;
   padding: 12px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 24px var(--theme-popup-shadow);
   max-width: calc(100vw - 2rem);
+  color: var(--theme-text-primary);
 }
 
 .map-popup .mapboxgl-popup-tip {
-  border-top-color: #1c1917;
+  border-top-color: var(--theme-popup-bg);
 }
 
 .map-popup-featured .mapboxgl-popup-content {
-  border: 2px solid rgb(245 158 11 / 0.5);
+  border: 2px solid var(--theme-popup-featured-border);
 }
 
 .map-popup .mapboxgl-popup-close-btn {
@@ -99,7 +490,7 @@ input, select, textarea {
 }
 
 .map-popup .mapboxgl-popup-content ::-webkit-scrollbar-thumb {
-  background-color: #44403c;
+  background-color: var(--theme-border-primary);
   border-radius: 2px;
 }
 

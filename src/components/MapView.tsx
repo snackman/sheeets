@@ -9,6 +9,7 @@ import { getTabConfig } from '@/lib/constants';
 import { parseTimeToMinutes } from '@/lib/filters';
 import { trackLocateMe } from '@/lib/analytics';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { MapMarker } from './MapMarker';
 import { EventPopup, MultiEventPopup } from './EventPopup';
 import { POIMarker } from './POIMarker';
@@ -71,6 +72,10 @@ export function MapView({
 }: MapViewProps) {
   const mapCenter = getTabConfig(conference ?? '').center;
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const mapStyle = (theme === 'paper' || theme === 'light')
+    ? 'mapbox://styles/mapbox/light-v11'
+    : 'mapbox://styles/mapbox/dark-v11';
   const mapRef = useRef<MapRef>(null);
   const hasFittedRef = useRef(false);
 
@@ -408,12 +413,12 @@ export function MapView({
 
   if (!mapboxToken) {
     return (
-      <div className="w-full h-full bg-stone-950 flex items-center justify-center">
+      <div className="w-full h-full bg-[var(--theme-bg-primary)] flex items-center justify-center">
         <div className="text-center">
-          <p className="text-stone-400 text-lg mb-2">
+          <p className="text-[var(--theme-text-secondary)] text-lg mb-2">
             Mapbox token not configured
           </p>
-          <p className="text-stone-500 text-sm">
+          <p className="text-[var(--theme-text-muted)] text-sm">
             Set NEXT_PUBLIC_MAPBOX_TOKEN in .env.local
           </p>
         </div>
@@ -427,7 +432,7 @@ export function MapView({
       {...viewState}
       onMove={(evt) => setViewState(evt.viewState)}
       onClick={handleMapClick}
-      mapStyle="mapbox://styles/mapbox/dark-v11"
+      mapStyle={mapStyle}
       mapboxAccessToken={mapboxToken}
       style={{ width: '100%', height: '100%' }}
       maxZoom={20}
@@ -444,7 +449,7 @@ export function MapView({
           className={`p-2 rounded-lg shadow-lg border transition-colors cursor-pointer ${
             userLocation
               ? 'bg-blue-500 border-blue-400 text-white'
-              : 'bg-stone-900 border-stone-600 text-stone-300 hover:bg-stone-800'
+              : 'bg-[var(--theme-bg-secondary)] border-[var(--theme-border-primary)] text-[var(--theme-text-secondary)] hover:bg-[var(--theme-bg-tertiary)]'
           } disabled:opacity-50`}
           title="Show my location"
           aria-label="Show my location"
