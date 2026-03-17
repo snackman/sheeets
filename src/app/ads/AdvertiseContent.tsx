@@ -387,12 +387,12 @@ export function AdvertiseContent() {
       </section>
 
       {/* ============================================================ */}
-      {/*  Sponsorship Tiers                                           */}
+      {/*  Sponsorship Packages                                        */}
       {/* ============================================================ */}
       {pageConfig.tiersEnabled && tiers.length > 0 && (
         <section className="mb-16">
           <h2 className="text-2xl font-bold text-white mb-2">
-            Sponsorship Tiers
+            Sponsorship Packages
           </h2>
           <p className="text-sm text-stone-400 mb-8">
             Bundle placements into a conference sponsorship package for the best value.

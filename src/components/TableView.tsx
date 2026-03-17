@@ -440,8 +440,8 @@ function DateGroup({
         return (
           <tr
             key={event.id}
-            className={`hover:bg-[var(--theme-bg-secondary)]/70 transition-colors cursor-pointer ${event.isDuplicate ? 'bg-red-950/30' : event.isFeatured ? 'bg-[var(--theme-bg-primary)] border-l-2' : 'bg-[var(--theme-bg-primary)]'}`}
-            style={event.isFeatured && !event.isDuplicate ? { borderLeftColor: 'var(--theme-popup-featured-border)' } : undefined}
+            className={`hover:bg-[var(--theme-bg-secondary)]/70 transition-colors cursor-pointer ${event.isDuplicate ? 'bg-red-950/30' : 'bg-[var(--theme-bg-primary)]'}`}
+            style={event.isFeatured && !event.isDuplicate ? { outline: '2px solid var(--theme-popup-featured-border)', outlineOffset: '-2px' } : undefined}
             title={event.isDuplicate ? 'Possible duplicate — same name, date, and time as another event' : undefined}
             onClick={(e) => {
               const target = e.target as HTMLElement;
