@@ -260,9 +260,11 @@ export function OnboardingWizard({
                 </div>
                 <div className="space-y-2">
                   {EVENT_TABS.filter(
-                    (tab) =>
-                      availableConferences.length === 0 ||
-                      availableConferences.includes(tab.name)
+                    (tab) => {
+                      if (availableConferences.length > 0 && !availableConferences.includes(tab.name)) return false;
+                      const today = new Date().toISOString().slice(0, 10);
+                      return events.some((e) => e.conference === tab.name && e.dateISO >= today);
+                    }
                   ).map((tab) => {
                     const isSelected = selectedConference === tab.name;
                     return (

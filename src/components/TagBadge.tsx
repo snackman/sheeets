@@ -15,7 +15,6 @@ import {
   Heart,
   Coffee,
   Beer,
-  Wine,
   Briefcase,
   Smile,
   GraduationCap,
@@ -99,7 +98,6 @@ export const TAG_ICONS: Record<string, IconComponent> = {
   'Art': Palette,
   'Wellness': Heart,
   'Brunch': Coffee,
-  'Bar': Beer,
   'Jobs': Briefcase,
   'Memecoins': Smile,
   'Party': PartyPopper,
@@ -123,7 +121,7 @@ export const TAG_ICONS: Record<string, IconComponent> = {
   'Screening': Projector,
   'Vibe': Sparkle,
   'Food': Pizza,
-  'Drinks': Wine,
+  'Drinks': Beer,
   'Comedy': Laugh,
 };
 

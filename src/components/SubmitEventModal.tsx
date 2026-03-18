@@ -27,7 +27,7 @@ function formatDateShort(iso: string): string {
 }
 
 // Tags for the selector: TYPE_TAGS excluding synthetic tags + topic tags from VIBE_COLORS
-const EXCLUDED_TAGS = ['$$', '\u{1F355} Food', 'Food', 'Bar', 'Drinks'];
+const EXCLUDED_TAGS = ['$$', '\u{1F355} Food', 'Food', 'Drinks'];
 const FORMAT_TAGS = TYPE_TAGS.filter((t) => !EXCLUDED_TAGS.includes(t));
 const TOPIC_TAGS = Object.keys(VIBE_COLORS).filter(
   (t) => !TYPE_TAGS.includes(t) && t !== 'default' && !EXCLUDED_TAGS.includes(t)
