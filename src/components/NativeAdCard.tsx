@@ -1,19 +1,53 @@
 'use client';
 
+import { useEffect, useRef, useCallback } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { NativeAd } from '@/lib/types';
 
 interface NativeAdCardProps {
   ad: NativeAd;
+  /** Called when the ad becomes visible in the viewport */
+  onImpression?: (adId: string) => void;
+  /** Called when the user clicks the ad */
+  onClick?: (adId: string) => void;
 }
 
-export default function NativeAdCard({ ad }: NativeAdCardProps) {
+export default function NativeAdCard({ ad, onImpression, onClick }: NativeAdCardProps) {
+  const cardRef = useRef<HTMLAnchorElement>(null);
+  const impressionTracked = useRef(false);
+
+  // IntersectionObserver for impression tracking
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el || !onImpression || impressionTracked.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !impressionTracked.current) {
+          impressionTracked.current = true;
+          onImpression(ad.id);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.5 } // 50% visible
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ad.id, onImpression]);
+
+  const handleClick = useCallback(() => {
+    onClick?.(ad.id);
+  }, [ad.id, onClick]);
+
   return (
     <a
+      ref={cardRef}
       href={ad.link}
       target="_blank"
       rel="noopener noreferrer"
       className="block group"
+      onClick={handleClick}
     >
       <div className="flex gap-4 overflow-hidden rounded-xl bg-purple-500/5 border border-purple-500/30 ring-1 ring-purple-500/40 hover:bg-purple-500/10 p-4 transition-colors">
         {ad.imageUrl && (

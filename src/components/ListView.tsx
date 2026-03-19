@@ -27,6 +27,12 @@ interface ListViewProps {
   nativeAds?: NativeAd[];
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   scrollToEventId?: string;
+  /** Override ad insertion frequency (default 8). Controlled by A/B testing. */
+  adFrequency?: number;
+  /** Called when an ad becomes visible (for A/B impression tracking) */
+  onAdImpression?: (adId: string) => void;
+  /** Called when an ad is clicked (for A/B click tracking) */
+  onAdClick?: (adId: string) => void;
 }
 
 interface DateGroup {
@@ -48,6 +54,7 @@ type VirtualListItem =
 function buildFlatList(
   dateGroups: DateGroup[],
   activeAds: NativeAd[],
+  adFrequency: number,
 ): VirtualListItem[] {
   const items: VirtualListItem[] = [];
   let globalEventIndex = 0;
@@ -64,9 +71,9 @@ function buildFlatList(
       items.push({ kind: 'event', event });
       globalEventIndex++;
 
-      // Insert ad after every 8th event
-      if (activeAds.length > 0 && globalEventIndex % 8 === 0) {
-        const adIndex = (Math.floor(globalEventIndex / 8) - 1) % activeAds.length;
+      // Insert ad based on frequency (configurable via A/B testing)
+      if (activeAds.length > 0 && adFrequency > 0 && globalEventIndex % adFrequency === 0) {
+        const adIndex = (Math.floor(globalEventIndex / adFrequency) - 1) % activeAds.length;
         items.push({ kind: 'ad', ad: activeAds[adIndex] });
       }
     }
@@ -95,6 +102,9 @@ export function ListView({
   nativeAds,
   scrollContainerRef,
   scrollToEventId,
+  adFrequency = 8,
+  onAdImpression,
+  onAdClick,
 }: ListViewProps) {
   const activeAds = useMemo(() => nativeAds?.filter(ad => ad.active) || [], [nativeAds]);
 
@@ -117,8 +127,8 @@ export function ListView({
 
   /* ---- flatten into virtual items ---- */
   const flatItems = useMemo(
-    () => buildFlatList(dateGroups, activeAds),
-    [dateGroups, activeAds],
+    () => buildFlatList(dateGroups, activeAds, adFrequency),
+    [dateGroups, activeAds, adFrequency],
   );
 
   /* ---- fallback scroll container ref ---- */
@@ -303,7 +313,11 @@ export function ListView({
                 </div>
               ) : item.kind === 'ad' ? (
                 <div className="pt-3">
-                  <NativeAdCard ad={item.ad} />
+                  <NativeAdCard
+                    ad={item.ad}
+                    onImpression={onAdImpression}
+                    onClick={onAdClick}
+                  />
                 </div>
               ) : (
                 <div className="pt-3">

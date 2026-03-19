@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useAdminConfig } from '@/hooks/useAdminConfig';
+import { useABTest } from '@/hooks/useABTest';
 import { EVENT_TABS } from '@/lib/constants';
-import type { AdInventoryItem, AdvertisePageConfig, SponsorshipTier } from '@/lib/types';
+import type { ABTest, AdInventoryItem, AdvertisePageConfig, SponsorshipTier } from '@/lib/types';
 import { Check, ArrowRight, Loader2, MapPin, ChevronDown } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
@@ -267,12 +268,39 @@ export function AdvertiseContent() {
   const [confOpen, setConfOpen] = useState(false);
   const confBtnRef = useRef<HTMLButtonElement | null>(null);
 
+  // A/B Testing: find running hero-copy and tier-layout tests
+  const abTests = useMemo(() => {
+    const tests = (config as Record<string, unknown>)?.ab_tests as ABTest[] | undefined;
+    return tests || [];
+  }, [config]);
+
+  const heroCopyTest = useMemo(
+    () => abTests.find(t => t.placement === 'hero-copy' && t.status === 'running'),
+    [abTests]
+  );
+  const tierLayoutTest = useMemo(
+    () => abTests.find(t => t.placement === 'tier-layout' && t.status === 'running'),
+    [abTests]
+  );
+
+  const { config: heroConfig, trackClick: trackHeroClick, isActive: heroActive } = useABTest({ test: heroCopyTest });
+  const { config: tierConfig, trackClick: trackTierClick, isActive: tierActive } = useABTest({ test: tierLayoutTest });
+
   // Load per-conference config, falling back to defaults
   const rawPageConfig = config?.[`advertise_page:${selectedConference}`] as AdvertisePageConfig | undefined;
-  const pageConfig: AdvertisePageConfig = {
+  const basePageConfig: AdvertisePageConfig = {
     ...DEFAULT_PAGE_CONFIG,
     ...(rawPageConfig || {}),
   };
+
+  // Apply hero copy A/B variant overrides
+  const pageConfig: AdvertisePageConfig = heroActive ? {
+    ...basePageConfig,
+    ...(heroConfig.heroHeading ? { heroHeading: heroConfig.heroHeading as string } : {}),
+    ...(heroConfig.heroSubheading ? { heroSubheading: heroConfig.heroSubheading as string } : {}),
+    ...(heroConfig.ctaText ? { ctaText: heroConfig.ctaText as string } : {}),
+    ...(heroConfig.statsLine ? { statsLine: heroConfig.statsLine as string } : {}),
+  } : basePageConfig;
 
   const rawInventory = config?.[`ad_inventory:${selectedConference}`] as AdInventoryItem[] | undefined;
   const inventory: AdInventoryItem[] =
@@ -315,6 +343,7 @@ export function AdvertiseContent() {
             <a
               href={pageConfig.ctaUrl}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-stone-900 text-sm font-medium rounded-lg transition-colors"
+              onClick={() => heroActive && trackHeroClick({ cta: 'primary' })}
             >
               {pageConfig.ctaText || 'Get in Touch'}
               <ArrowRight className="w-4 h-4" />
@@ -326,6 +355,7 @@ export function AdvertiseContent() {
               target="_blank"
               rel="noopener noreferrer"
               className="px-5 py-2.5 bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-300 text-sm font-medium rounded-lg transition-colors"
+              onClick={() => heroActive && trackHeroClick({ cta: 'secondary' })}
             >
               {pageConfig.ctaSecondaryText || 'Learn More'}
             </a>
@@ -398,9 +428,17 @@ export function AdvertiseContent() {
             Bundle placements into a conference sponsorship package for the best value.
           </p>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className={`grid gap-4 ${
+            tierActive && tierConfig.columns === 2
+              ? 'sm:grid-cols-2'
+              : tierActive && tierConfig.columns === 1
+              ? 'max-w-lg mx-auto'
+              : 'sm:grid-cols-2 lg:grid-cols-3'
+          }`}>
             {tiers.map((tier) => (
-              <TierCard key={tier.name} tier={tier} />
+              <div key={tier.name} onClick={() => tierActive && trackTierClick({ tier: tier.name })}>
+                <TierCard tier={tier} />
+              </div>
             ))}
           </div>
         </section>

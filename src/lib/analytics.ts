@@ -163,3 +163,11 @@ export const trackOnboardingComplete = (conference: string, tagCount: number) =>
   track('onboarding_complete', { conference, tag_count: tagCount });
 export const trackOnboardingSkip = (step: string) =>
   track('onboarding_skip', { step });
+
+// A/B Testing (GA4 dual-tracking -- events also tracked in Supabase via /api/ab/track)
+export const trackABImpression = (testId: string, variantId: string) =>
+  track('ab_impression', { test_id: testId, variant_id: variantId });
+export const trackABClick = (testId: string, variantId: string, metadata?: string) =>
+  track('ab_click', { test_id: testId, variant_id: variantId, ...(metadata ? { metadata } : {}) });
+export const trackABConversion = (testId: string, variantId: string, metadata?: string) =>
+  track('ab_conversion', { test_id: testId, variant_id: variantId, ...(metadata ? { metadata } : {}) });
