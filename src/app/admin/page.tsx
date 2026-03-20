@@ -1697,62 +1697,151 @@ export default function AdminPage() {
                     </button>
                   </div>
                   <div className="space-y-2">
-                    {abNewTest.variants.map((v, vi) => (
-                      <div key={v.id} className="flex items-center gap-2 bg-stone-900/50 rounded-lg p-3">
-                        <input
-                          className={inputClass + ' flex-1'}
-                          value={v.name}
-                          onChange={e => {
-                            const updated = [...abNewTest.variants];
-                            updated[vi] = { ...updated[vi], name: e.target.value };
-                            setAbNewTest({ ...abNewTest, variants: updated });
-                          }}
-                          placeholder="Variant name"
-                        />
-                        <div className="flex items-center gap-1 shrink-0">
+                    {abNewTest.variants.map((v, vi) => {
+                      const updateConfig = (key: string, val: string) => {
+                        const updated = [...abNewTest.variants];
+                        updated[vi] = { ...updated[vi], config: { ...updated[vi].config, [key]: val } };
+                        setAbNewTest({ ...abNewTest, variants: updated });
+                      };
+                      const updateAdField = (idx: number, key: string, val: string) => {
+                        const ads = [...((v.config.ads as Record<string, string>[]) || [{ id: `ad-${vi}`, title: '', description: '', link: '', imageUrl: '', badge: 'Sponsored' }])];
+                        ads[idx] = { ...ads[idx], [key]: val };
+                        const updated = [...abNewTest.variants];
+                        updated[vi] = { ...updated[vi], config: { ...updated[vi].config, ads } };
+                        setAbNewTest({ ...abNewTest, variants: updated });
+                      };
+                      const updateSponsorField = (idx: number, key: string, val: string) => {
+                        const sponsors = [...((v.config.sponsors as Record<string, string>[]) || [{ beforeText: '', linkText: '', afterText: '', url: '' }])];
+                        sponsors[idx] = { ...sponsors[idx], [key]: val };
+                        const updated = [...abNewTest.variants];
+                        updated[vi] = { ...updated[vi], config: { ...updated[vi].config, sponsors } };
+                        setAbNewTest({ ...abNewTest, variants: updated });
+                      };
+                      const ads = (v.config.ads as Record<string, string>[]) || [];
+                      const sponsors = (v.config.sponsors as Record<string, string>[]) || [];
+
+                      return (
+                      <div key={v.id} className="bg-stone-900/50 rounded-lg p-3 space-y-3">
+                        <div className="flex items-center gap-2">
                           <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            className={inputClass + ' w-16 text-center'}
-                            value={v.weight}
+                            className={inputClass + ' flex-1'}
+                            value={v.name}
                             onChange={e => {
                               const updated = [...abNewTest.variants];
-                              updated[vi] = { ...updated[vi], weight: Number(e.target.value) || 0 };
+                              updated[vi] = { ...updated[vi], name: e.target.value };
                               setAbNewTest({ ...abNewTest, variants: updated });
                             }}
+                            placeholder="Variant name"
                           />
-                          <span className="text-xs text-stone-500">%</span>
-                        </div>
-                        <div className="shrink-0">
-                          <input
-                            className={inputClass + ' w-48'}
-                            value={JSON.stringify(v.config)}
-                            onChange={e => {
-                              try {
-                                const parsed = JSON.parse(e.target.value);
+                          <div className="flex items-center gap-1 shrink-0">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              className={inputClass + ' w-16 text-center'}
+                              value={v.weight}
+                              onChange={e => {
                                 const updated = [...abNewTest.variants];
-                                updated[vi] = { ...updated[vi], config: parsed };
+                                updated[vi] = { ...updated[vi], weight: Number(e.target.value) || 0 };
                                 setAbNewTest({ ...abNewTest, variants: updated });
-                              } catch { /* ignore invalid JSON while typing */ }
-                            }}
-                            placeholder='{"key": "value"}'
-                            title="Variant config (JSON)"
-                          />
+                              }}
+                            />
+                            <span className="text-xs text-stone-500">%</span>
+                          </div>
+                          {abNewTest.variants.length > 2 && (
+                            <button
+                              onClick={() => setAbNewTest({
+                                ...abNewTest,
+                                variants: abNewTest.variants.filter((_, i) => i !== vi),
+                              })}
+                              className="text-red-400 hover:text-red-300 cursor-pointer p-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
-                        {abNewTest.variants.length > 2 && (
-                          <button
-                            onClick={() => setAbNewTest({
-                              ...abNewTest,
-                              variants: abNewTest.variants.filter((_, i) => i !== vi),
-                            })}
-                            className="text-red-400 hover:text-red-300 cursor-pointer p-1"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+
+                        {/* Native Ad Content fields */}
+                        {abNewTest.placement === 'native-ad-content' && (
+                          <div className="space-y-2 border-t border-stone-700 pt-2">
+                            {(ads.length === 0 ? [{ id: `ad-${vi}`, title: '', description: '', link: '', imageUrl: '', badge: 'Sponsored' }] : ads).map((ad, ai) => (
+                              <div key={ai} className="grid grid-cols-2 gap-2">
+                                <input className={inputClass} value={ad.title || ''} onChange={e => updateAdField(ai, 'title', e.target.value)} placeholder="Ad title" />
+                                <input className={inputClass} value={ad.badge || ''} onChange={e => updateAdField(ai, 'badge', e.target.value)} placeholder="Badge (e.g. Sponsored)" />
+                                <input className={inputClass + ' col-span-2'} value={ad.description || ''} onChange={e => updateAdField(ai, 'description', e.target.value)} placeholder="Description" />
+                                <input className={inputClass} value={ad.link || ''} onChange={e => updateAdField(ai, 'link', e.target.value)} placeholder="Destination URL" />
+                                <input className={inputClass} value={ad.imageUrl || ''} onChange={e => updateAdField(ai, 'imageUrl', e.target.value)} placeholder="Image URL" />
+                                <input className={inputClass} value={ad.id || ''} onChange={e => updateAdField(ai, 'id', e.target.value)} placeholder="Ad ID (unique)" />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Sponsor Copy fields */}
+                        {abNewTest.placement === 'sponsor-copy' && (
+                          <div className="space-y-2 border-t border-stone-700 pt-2">
+                            {(sponsors.length === 0 ? [{ beforeText: '', linkText: '', afterText: '', url: '' }] : sponsors).map((sp, si) => (
+                              <div key={si} className="grid grid-cols-2 gap-2">
+                                <input className={inputClass} value={sp.beforeText || ''} onChange={e => updateSponsorField(si, 'beforeText', e.target.value)} placeholder="Before text (e.g. 'Supported by ')" />
+                                <input className={inputClass} value={sp.linkText || ''} onChange={e => updateSponsorField(si, 'linkText', e.target.value)} placeholder="Link text (sponsor name)" />
+                                <input className={inputClass} value={sp.afterText || ''} onChange={e => updateSponsorField(si, 'afterText', e.target.value)} placeholder="After text (e.g. '. Learn more!')" />
+                                <input className={inputClass} value={sp.url || ''} onChange={e => updateSponsorField(si, 'url', e.target.value)} placeholder="Destination URL" />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Ad Frequency field */}
+                        {abNewTest.placement === 'ad-frequency' && (
+                          <div className="border-t border-stone-700 pt-2">
+                            <label className="text-xs text-stone-400">Show ad every N events</label>
+                            <input type="number" min="1" max="50" className={inputClass + ' w-24 mt-1'} value={(v.config.frequency as number) || 8} onChange={e => updateConfig('frequency', e.target.value)} />
+                          </div>
+                        )}
+
+                        {/* Hero Copy fields */}
+                        {abNewTest.placement === 'hero-copy' && (
+                          <div className="space-y-2 border-t border-stone-700 pt-2">
+                            <input className={inputClass} value={(v.config.heroHeading as string) || ''} onChange={e => updateConfig('heroHeading', e.target.value)} placeholder="Hero heading" />
+                            <input className={inputClass} value={(v.config.heroSubheading as string) || ''} onChange={e => updateConfig('heroSubheading', e.target.value)} placeholder="Hero subheading" />
+                            <input className={inputClass} value={(v.config.ctaText as string) || ''} onChange={e => updateConfig('ctaText', e.target.value)} placeholder="CTA button text" />
+                          </div>
+                        )}
+
+                        {/* Tier Layout field */}
+                        {abNewTest.placement === 'tier-layout' && (
+                          <div className="border-t border-stone-700 pt-2">
+                            <label className="text-xs text-stone-400">Grid columns</label>
+                            <select className={inputClass + ' w-24 mt-1'} value={(v.config.columns as number) || 2} onChange={e => updateConfig('columns', e.target.value)}>
+                              <option value="1">1</option>
+                              <option value="2">2</option>
+                              <option value="3">3</option>
+                            </select>
+                          </div>
+                        )}
+
+                        {/* Custom / fallback: raw JSON */}
+                        {abNewTest.placement === 'custom' && (
+                          <div className="border-t border-stone-700 pt-2">
+                            <input
+                              className={inputClass}
+                              value={JSON.stringify(v.config)}
+                              onChange={e => {
+                                try {
+                                  const parsed = JSON.parse(e.target.value);
+                                  const updated = [...abNewTest.variants];
+                                  updated[vi] = { ...updated[vi], config: parsed };
+                                  setAbNewTest({ ...abNewTest, variants: updated });
+                                } catch { /* ignore invalid JSON while typing */ }
+                              }}
+                              placeholder='{"key": "value"}'
+                              title="Variant config (JSON)"
+                            />
+                          </div>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   {(() => {
                     const totalWeight = abNewTest.variants.reduce((s, v) => s + v.weight, 0);
