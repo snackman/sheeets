@@ -109,7 +109,7 @@ export function ListView({
   onAdClick,
   conference,
 }: ListViewProps) {
-  const activeAds = useMemo(() => nativeAds?.filter(ad => ad.active) || [], [nativeAds]);
+  const activeAds = useMemo(() => nativeAds?.filter(ad => ad.active !== false) || [], [nativeAds]);
 
   /* ---- date-group the events ---- */
   const dateGroups: DateGroup[] = useMemo(() => {
