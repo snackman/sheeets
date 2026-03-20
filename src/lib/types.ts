@@ -212,7 +212,7 @@ export interface ABTest {
   name: string;
   description: string;
   status: ABTestStatus;
-  /** Where the test applies: 'ad-frequency' | 'ticker-content' | 'hero-copy' | 'tier-layout' etc. */
+  /** Where the test applies: 'native-ad-content' | 'sponsor-copy' | 'ad-frequency' | 'hero-copy' | 'tier-layout' etc. */
   placement: string;
   /** Optional conference scope; empty = global */
   conference: string;

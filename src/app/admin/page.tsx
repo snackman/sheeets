@@ -24,12 +24,12 @@ const TAB_LABELS: { key: AdminTab; label: string }[] = [
 ];
 
 const AB_PLACEMENTS = [
-  { value: 'ad-frequency', label: 'Ad Frequency (ListView)' },
-  { value: 'ticker-content', label: 'Ticker Content' },
-  { value: 'hero-copy', label: 'Hero Copy (/ads)' },
-  { value: 'tier-layout', label: 'Tier Layout (/ads)' },
-  { value: 'native-ad-style', label: 'Native Ad Style' },
-  { value: 'custom', label: 'Custom' },
+  { value: 'native-ad-content', label: 'Native Ad Content', hint: 'Test different ad creatives (title, description, image, link)' },
+  { value: 'sponsor-copy', label: 'Sponsor Ticker Copy', hint: 'Test different sponsor messaging' },
+  { value: 'ad-frequency', label: 'Ad Frequency (ListView)', hint: 'Test how often ads appear in the list' },
+  { value: 'hero-copy', label: 'Hero Copy (/ads)', hint: 'Test /ads page headline and CTA' },
+  { value: 'tier-layout', label: 'Tier Layout (/ads)', hint: 'Test tier grid layout on /ads page' },
+  { value: 'custom', label: 'Custom', hint: 'Custom placement with JSON config' },
 ];
 
 const inputClass = 'bg-stone-800 border border-stone-600 rounded-lg px-3 py-2 text-white text-sm w-full focus:border-blue-500 focus:outline-none';

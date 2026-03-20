@@ -19,7 +19,7 @@ import { useAdminConfig } from '@/hooks/useAdminConfig';
 import { useABTest } from '@/hooks/useABTest';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeId, DEFAULT_THEME } from '@/lib/themes';
-import type { ABTest, SponsorEntry } from '@/lib/types';
+import type { ABTest, NativeAd, SponsorEntry } from '@/lib/types';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
@@ -143,8 +143,13 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
     [abTests, filters.conference]
   );
 
-  const tickerTest = useMemo(
-    () => abTests.find(t => t.placement === 'ticker-content' && t.status === 'running' && (!t.conference || t.conference === filters.conference)),
+  const sponsorCopyTest = useMemo(
+    () => abTests.find(t => t.placement === 'sponsor-copy' && t.status === 'running' && (!t.conference || t.conference === filters.conference)),
+    [abTests, filters.conference]
+  );
+
+  const nativeAdContentTest = useMemo(
+    () => abTests.find(t => t.placement === 'native-ad-content' && t.status === 'running' && (!t.conference || t.conference === filters.conference)),
     [abTests, filters.conference]
   );
 
@@ -155,21 +160,33 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
   } = useABTest({ test: adFrequencyTest });
 
   const {
-    config: tickerConfig,
-    trackClick: trackTickerClick,
-    isActive: tickerActive,
-  } = useABTest({ test: tickerTest });
+    config: sponsorConfig,
+    trackClick: trackSponsorClick,
+    isActive: sponsorTestActive,
+  } = useABTest({ test: sponsorCopyTest });
+
+  const {
+    config: nativeAdConfig,
+    trackClick: trackNativeAdClick,
+    isActive: nativeAdTestActive,
+  } = useABTest({ test: nativeAdContentTest });
 
   // Derive ad frequency from A/B test config, default 8
   const adFrequency = adFreqActive && typeof adFreqConfig.frequency === 'number'
     ? adFreqConfig.frequency
     : 8;
 
-  // Derive variant sponsors for ticker A/B test
+  // Derive variant sponsors for sponsor copy A/B test
   const tickerVariantSponsors = useMemo(() => {
-    if (!tickerActive || !tickerConfig.sponsors) return undefined;
-    return tickerConfig.sponsors as SponsorEntry[];
-  }, [tickerActive, tickerConfig]);
+    if (!sponsorTestActive || !sponsorConfig.sponsors) return undefined;
+    return sponsorConfig.sponsors as SponsorEntry[];
+  }, [sponsorTestActive, sponsorConfig]);
+
+  // Derive variant native ads for native ad content A/B test
+  const variantNativeAds = useMemo(() => {
+    if (!nativeAdTestActive || !nativeAdConfig.ads) return undefined;
+    return nativeAdConfig.ads as NativeAd[];
+  }, [nativeAdTestActive, nativeAdConfig]);
 
   // Ad impression/click tracking for A/B tests
   const handleAdImpression = useCallback((_adId: string) => {
@@ -178,11 +195,12 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
 
   const handleAdClick = useCallback((_adId: string) => {
     if (adFreqActive) trackAdFreqClick({ ad_id: _adId });
-  }, [adFreqActive, trackAdFreqClick]);
+    if (nativeAdTestActive) trackNativeAdClick({ ad_id: _adId });
+  }, [adFreqActive, trackAdFreqClick, nativeAdTestActive, trackNativeAdClick]);
 
   const handleTickerSponsorClick = useCallback((url: string) => {
-    if (tickerActive) trackTickerClick({ url });
-  }, [tickerActive, trackTickerClick]);
+    if (sponsorTestActive) trackSponsorClick({ url });
+  }, [sponsorTestActive, trackSponsorClick]);
 
   // Friends panel
   const [showFriends, setShowFriends] = useState(false);
@@ -379,7 +397,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
             reactionsByEvent={reactionsByEvent}
             onToggleReaction={handleToggleReaction}
             commentCounts={commentCounts}
-            nativeAds={config?.native_ads}
+            nativeAds={variantNativeAds || config?.native_ads}
             scrollContainerRef={listMainRef}
             adFrequency={adFrequency}
             onAdImpression={handleAdImpression}
