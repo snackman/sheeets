@@ -108,3 +108,12 @@ export const LumaSchema = z.object({
 export const FetchEventSchema = z.object({
   url: z.string().min(1, 'URL is required'),
 });
+
+/** Schema for POST /api/ab/track */
+export const ABTrackEventSchema = z.object({
+  test_id: z.string().min(1, 'test_id is required'),
+  variant_id: z.string().min(1, 'variant_id is required'),
+  visitor_id: z.string().min(1, 'visitor_id is required'),
+  event_type: z.enum(['impression', 'click', 'conversion']),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});

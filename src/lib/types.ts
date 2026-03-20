@@ -193,3 +193,58 @@ export interface AdminConfig {
   advertise_page?: AdvertisePageConfig;
   [key: string]: unknown;
 }
+
+/* ------------------------------------------------------------------ */
+/* A/B Testing                                                         */
+/* ------------------------------------------------------------------ */
+
+export type ABTestStatus = 'draft' | 'running' | 'paused' | 'completed';
+
+export interface ABTestVariant {
+  id: string;           // e.g. 'control', 'variant-a'
+  name: string;         // Human-readable label
+  weight: number;       // 0-100 traffic allocation
+  config: Record<string, unknown>; // Variant-specific config values
+}
+
+export interface ABTest {
+  id: string;
+  name: string;
+  description: string;
+  status: ABTestStatus;
+  /** Where the test applies: 'ad-frequency' | 'ticker-content' | 'hero-copy' | 'tier-layout' etc. */
+  placement: string;
+  /** Optional conference scope; empty = global */
+  conference: string;
+  variants: ABTestVariant[];
+  /** Winner variant id, set when test is completed */
+  winnerId?: string;
+  created_at: string;
+  started_at?: string;
+  completed_at?: string;
+}
+
+export interface ABEvent {
+  id?: string;
+  test_id: string;
+  variant_id: string;
+  visitor_id: string;
+  event_type: 'impression' | 'click' | 'conversion';
+  metadata?: Record<string, unknown>;
+  created_at?: string;
+}
+
+export interface ABTestResults {
+  test_id: string;
+  variants: ABVariantResult[];
+}
+
+export interface ABVariantResult {
+  variant_id: string;
+  variant_name: string;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  ctr: number;          // clicks / impressions
+  cvr: number;          // conversions / impressions
+}

@@ -16,8 +16,10 @@ import { useAuthGatedActions } from '@/hooks/useAuthGatedActions';
 import { useConferenceData } from '@/hooks/useConferenceData';
 import { useNowMode } from '@/hooks/useNowMode';
 import { useAdminConfig } from '@/hooks/useAdminConfig';
+import { useABTest } from '@/hooks/useABTest';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeId, DEFAULT_THEME } from '@/lib/themes';
+import type { ABTest, SponsorEntry } from '@/lib/types';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
@@ -130,6 +132,58 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
     }
   }, [config, filters.conference, setTheme]);
 
+  // A/B Testing: find running tests by placement
+  const abTests = useMemo(() => {
+    const tests = (config as Record<string, unknown>)?.ab_tests as ABTest[] | undefined;
+    return tests || [];
+  }, [config]);
+
+  const adFrequencyTest = useMemo(
+    () => abTests.find(t => t.placement === 'ad-frequency' && t.status === 'running' && (!t.conference || t.conference === filters.conference)),
+    [abTests, filters.conference]
+  );
+
+  const tickerTest = useMemo(
+    () => abTests.find(t => t.placement === 'ticker-content' && t.status === 'running' && (!t.conference || t.conference === filters.conference)),
+    [abTests, filters.conference]
+  );
+
+  const {
+    config: adFreqConfig,
+    trackClick: trackAdFreqClick,
+    isActive: adFreqActive,
+  } = useABTest({ test: adFrequencyTest });
+
+  const {
+    config: tickerConfig,
+    trackClick: trackTickerClick,
+    isActive: tickerActive,
+  } = useABTest({ test: tickerTest });
+
+  // Derive ad frequency from A/B test config, default 8
+  const adFrequency = adFreqActive && typeof adFreqConfig.frequency === 'number'
+    ? adFreqConfig.frequency
+    : 8;
+
+  // Derive variant sponsors for ticker A/B test
+  const tickerVariantSponsors = useMemo(() => {
+    if (!tickerActive || !tickerConfig.sponsors) return undefined;
+    return tickerConfig.sponsors as SponsorEntry[];
+  }, [tickerActive, tickerConfig]);
+
+  // Ad impression/click tracking for A/B tests
+  const handleAdImpression = useCallback((_adId: string) => {
+    // Impressions are tracked via the useABTest hook automatically
+  }, []);
+
+  const handleAdClick = useCallback((_adId: string) => {
+    if (adFreqActive) trackAdFreqClick({ ad_id: _adId });
+  }, [adFreqActive, trackAdFreqClick]);
+
+  const handleTickerSponsorClick = useCallback((url: string) => {
+    if (tickerActive) trackTickerClick({ url });
+  }, [tickerActive, trackTickerClick]);
+
   // Friends panel
   const [showFriends, setShowFriends] = useState(false);
   const [showSubmitEvent, setShowSubmitEvent] = useState(false);
@@ -234,7 +288,11 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
         refreshFriends={refreshFriends}
       />
 
-      <SponsorsTicker sponsors={config?.sponsors} />
+      <SponsorsTicker
+        sponsors={config?.sponsors}
+        variantSponsors={tickerVariantSponsors}
+        onSponsorClick={handleTickerSponsorClick}
+      />
 
       {/* Filter bar -- collapses on scroll down in table/list views */}
       <div className={
@@ -322,6 +380,9 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
             commentCounts={commentCounts}
             nativeAds={config?.native_ads}
             scrollContainerRef={listMainRef}
+            adFrequency={adFrequency}
+            onAdImpression={handleAdImpression}
+            onAdClick={handleAdClick}
           />
         </main>
       )}

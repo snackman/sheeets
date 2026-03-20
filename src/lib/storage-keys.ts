@@ -3,4 +3,5 @@ export const STORAGE_KEYS = {
   ITINERARY_UPDATED: 'sheeets-itinerary-updated',
   VIEW_MODE: 'sheeets-view',
   ONBOARDING_COMPLETED: 'sheeets-onboarding-done',
+  AB_VISITOR_ID: 'sheeets-ab-visitor',
 };
