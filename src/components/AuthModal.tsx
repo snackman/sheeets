@@ -14,7 +14,11 @@ import { passesNowFilter } from '@/lib/filters';
 import { useProfile } from '@/hooks/useProfile';
 import { useFriends } from '@/hooks/useFriends';
 import { useFriendRequests } from '@/hooks/useFriendRequests';
-import type { ETHDenverEvent, UserSearchResult, FriendRequest } from '@/lib/types';
+import type { ETHDenverEvent, NativeAd, UserSearchResult, FriendRequest } from '@/lib/types';
+import { useAdminConfig } from '@/hooks/useAdminConfig';
+import { trackAdClick, trackAdImpression } from '@/lib/analytics';
+import { trackAdEvent } from '@/lib/ad-tracking';
+import { ExternalLink } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -382,6 +386,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   const { user, signOut } = useAuth();
   const { profile, updateProfile } = useProfile();
   const { friendCount, refreshFriends: localRefreshFriends } = useFriends();
+  const { config } = useAdminConfig();
 
   const refreshFriends = useCallback(async () => {
     await localRefreshFriends();
@@ -696,16 +701,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                     </div>
                   </div>
 
-                  <div>
-                    <input
-                      type="text"
-                      value={rsvpName}
-                      onChange={(e) => setRsvpName(e.target.value)}
-                      placeholder="RSVP Name"
-                      className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
-                    />
-                  </div>
-
                   {saveStatus === 'saved' && (
                     <div className="flex items-center gap-1 text-green-400">
                       <Check className="w-3.5 h-3.5" />
@@ -893,12 +888,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                     </button>
                   )}
                   <button
-                    onClick={() => { setOpen(false); onSubmitEvent?.(); }}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--theme-bg-tertiary)] hover:bg-[var(--theme-bg-card-hover)] text-[var(--theme-text-primary)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
-                  >
-                    Submit Event
-                  </button>
-                  <button
                     onClick={() => {
                       trackSignOut();
                       signOut();
@@ -910,6 +899,42 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                     Sign out
                   </button>
                 </div>
+
+                {/* Profile Ad Placement */}
+                {(() => {
+                  const profileAd = (config?.native_ads as NativeAd[] | undefined)?.find(ad => ad.active !== false)
+                    || (config?.profile_ad as NativeAd | undefined);
+                  if (!profileAd) return null;
+                  return (
+                    <a
+                      href={profileAd.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block mt-4"
+                      onClick={() => {
+                        trackAdClick('profile', profileAd.link);
+                        trackAdEvent({ ad_id: profileAd.id || 'profile-ad', ad_name: profileAd.title, placement: 'profile', event_type: 'click', url: profileAd.link });
+                      }}
+                    >
+                      <div className="flex gap-3 overflow-hidden rounded-xl bg-purple-500/5 border border-purple-500/30 hover:bg-purple-500/10 p-3 transition-colors">
+                        {profileAd.imageUrl && (
+                          <div className="w-[60px] h-[60px] flex-shrink-0 rounded-lg overflow-hidden bg-[var(--theme-bg-tertiary)]">
+                            <img src={profileAd.imageUrl} alt={profileAd.title} className="w-full h-full object-contain" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-xs font-semibold text-[var(--theme-text-primary)] truncate">{profileAd.title}</span>
+                            <span className="flex-shrink-0 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 rounded-full border border-purple-500/30">
+                              {profileAd.badge || 'Ad'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-[var(--theme-text-secondary)] line-clamp-2">{profileAd.description}</p>
+                        </div>
+                      </div>
+                    </a>
+                  );
+                })()}
               </div>
             </div>
           </div>,
