@@ -2,30 +2,6 @@ export const SHEET_ID = '1xWmIHyEyOmPHfkYuZkucPRlLGWbb9CF6Oqvfl8FUV6k';
 
 export const EVENT_TABS = [
   {
-    gid: 1543768695,
-    name: 'SXSW 2026',
-    slug: 'sxsw',
-    timezone: 'America/Chicago',
-    dates: [
-      '2026-03-05', '2026-03-06', '2026-03-07', '2026-03-08',
-      '2026-03-09', '2026-03-10', '2026-03-11', '2026-03-12',
-      '2026-03-13', '2026-03-14', '2026-03-15', '2026-03-16',
-      '2026-03-17', '2026-03-18',
-    ],
-    center: { lat: 30.2672, lng: -97.7431 },
-  },
-  {
-    gid: 1672479012,
-    name: 'GDC 2026',
-    slug: 'gdc',
-    timezone: 'America/Los_Angeles',
-    dates: [
-      '2026-03-07', '2026-03-08', '2026-03-09', '2026-03-10',
-      '2026-03-11', '2026-03-12', '2026-03-13', '2026-03-14',
-    ],
-    center: { lat: 37.7749, lng: -122.4194 },
-  },
-  {
     gid: 666597336,
     name: 'DAS 2026',
     slug: 'das',
