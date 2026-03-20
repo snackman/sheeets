@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { NativeAd } from '@/lib/types';
+import { trackAdClick, trackAdImpression } from '@/lib/analytics';
 
 interface NativeAdCardProps {
   ad: NativeAd;
@@ -19,13 +20,14 @@ export default function NativeAdCard({ ad, onImpression, onClick }: NativeAdCard
   // IntersectionObserver for impression tracking
   useEffect(() => {
     const el = cardRef.current;
-    if (!el || !onImpression || impressionTracked.current) return;
+    if (!el || impressionTracked.current) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !impressionTracked.current) {
           impressionTracked.current = true;
-          onImpression(ad.id);
+          trackAdImpression('native-ad');
+          onImpression?.(ad.id);
           observer.disconnect();
         }
       },
@@ -37,8 +39,9 @@ export default function NativeAdCard({ ad, onImpression, onClick }: NativeAdCard
   }, [ad.id, onImpression]);
 
   const handleClick = useCallback(() => {
+    trackAdClick('native-ad', ad.link);
     onClick?.(ad.id);
-  }, [ad.id, onClick]);
+  }, [ad.id, ad.link, onClick]);
 
   return (
     <a

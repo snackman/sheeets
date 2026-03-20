@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { SponsorEntry } from '@/lib/types';
+import { trackAdClick, trackAdImpression } from '@/lib/analytics';
 
 const defaultSponsors: SponsorEntry[] = [
   {
@@ -36,13 +37,14 @@ export function SponsorsTicker({ sponsors, variantSponsors, onImpression, onSpon
   // Track impression via IntersectionObserver
   useEffect(() => {
     const el = tickerRef.current;
-    if (!el || !onImpression || impressionTracked.current) return;
+    if (!el || impressionTracked.current) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !impressionTracked.current) {
           impressionTracked.current = true;
-          onImpression();
+          trackAdImpression('sponsor-ticker');
+          onImpression?.();
           observer.disconnect();
         }
       },
@@ -63,7 +65,7 @@ export function SponsorsTicker({ sponsors, variantSponsors, onImpression, onSpon
             target="_blank"
             rel="noopener noreferrer"
             className="underline decoration-[var(--theme-text-muted)] underline-offset-2 hover:text-[var(--theme-text-primary)] hover:decoration-[var(--theme-text-secondary)] transition-colors"
-            onClick={() => onSponsorClick?.(s.url)}
+            onClick={() => { trackAdClick('sponsor-ticker', s.url); onSponsorClick?.(s.url); }}
           >{s.linkText}</a>{s.afterText}
         </span>
       ))}
