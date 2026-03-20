@@ -291,6 +291,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
       <SponsorsTicker
         sponsors={config?.sponsors}
         variantSponsors={tickerVariantSponsors}
+        conference={filters.conference}
         onSponsorClick={handleTickerSponsorClick}
       />
 
@@ -383,6 +384,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
             adFrequency={adFrequency}
             onAdImpression={handleAdImpression}
             onAdClick={handleAdClick}
+            conference={filters.conference}
           />
         </main>
       )}

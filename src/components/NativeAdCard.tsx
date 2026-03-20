@@ -4,16 +4,19 @@ import { useEffect, useRef, useCallback } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { NativeAd } from '@/lib/types';
 import { trackAdClick, trackAdImpression } from '@/lib/analytics';
+import { trackAdEvent } from '@/lib/ad-tracking';
 
 interface NativeAdCardProps {
   ad: NativeAd;
+  /** Which conference context this ad is shown in */
+  conference?: string;
   /** Called when the ad becomes visible in the viewport */
   onImpression?: (adId: string) => void;
   /** Called when the user clicks the ad */
   onClick?: (adId: string) => void;
 }
 
-export default function NativeAdCard({ ad, onImpression, onClick }: NativeAdCardProps) {
+export default function NativeAdCard({ ad, conference, onImpression, onClick }: NativeAdCardProps) {
   const cardRef = useRef<HTMLAnchorElement>(null);
   const impressionTracked = useRef(false);
 
@@ -26,7 +29,16 @@ export default function NativeAdCard({ ad, onImpression, onClick }: NativeAdCard
       ([entry]) => {
         if (entry.isIntersecting && !impressionTracked.current) {
           impressionTracked.current = true;
+          // GA4 tracking (existing)
           trackAdImpression('native-ad');
+          // Supabase per-ad tracking (new)
+          trackAdEvent({
+            ad_id: ad.id,
+            ad_name: ad.title,
+            placement: 'native-ad',
+            event_type: 'impression',
+            conference,
+          });
           onImpression?.(ad.id);
           observer.disconnect();
         }
@@ -36,12 +48,22 @@ export default function NativeAdCard({ ad, onImpression, onClick }: NativeAdCard
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [ad.id, onImpression]);
+  }, [ad.id, ad.title, conference, onImpression]);
 
   const handleClick = useCallback(() => {
+    // GA4 tracking (existing)
     trackAdClick('native-ad', ad.link);
+    // Supabase per-ad tracking (new)
+    trackAdEvent({
+      ad_id: ad.id,
+      ad_name: ad.title,
+      placement: 'native-ad',
+      event_type: 'click',
+      url: ad.link,
+      conference,
+    });
     onClick?.(ad.id);
-  }, [ad.id, ad.link, onClick]);
+  }, [ad.id, ad.title, ad.link, conference, onClick]);
 
   return (
     <a

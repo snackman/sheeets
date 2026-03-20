@@ -33,6 +33,8 @@ interface ListViewProps {
   onAdImpression?: (adId: string) => void;
   /** Called when an ad is clicked (for A/B click tracking) */
   onAdClick?: (adId: string) => void;
+  /** Which conference context (for per-ad tracking) */
+  conference?: string;
 }
 
 interface DateGroup {
@@ -105,6 +107,7 @@ export function ListView({
   adFrequency = 8,
   onAdImpression,
   onAdClick,
+  conference,
 }: ListViewProps) {
   const activeAds = useMemo(() => nativeAds?.filter(ad => ad.active) || [], [nativeAds]);
 
@@ -315,6 +318,7 @@ export function ListView({
                 <div className="pt-3">
                   <NativeAdCard
                     ad={item.ad}
+                    conference={conference}
                     onImpression={onAdImpression}
                     onClick={onAdClick}
                   />
@@ -332,6 +336,7 @@ export function ListView({
                     reactions={reactionsByEvent?.get(item.event.id)}
                     onToggleReaction={onToggleReaction}
                     commentCount={commentCounts?.get(item.event.id)}
+                    conference={conference}
                   />
                 </div>
               )}

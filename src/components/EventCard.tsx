@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { MapPin, Calendar, Users, X, Link, Check } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
 import { trackEventClick, trackCopyEventLink, trackFriendsGoingOpen, trackFriendsCheckedInOpen } from '@/lib/analytics';
+import { trackAdEvent } from '@/lib/ad-tracking';
 import { formatFriendsText } from '@/lib/user-display';
 import { AddressLink } from './AddressLink';
 import { StarButton } from './StarButton';
@@ -29,6 +30,8 @@ interface EventCardProps {
   reactions?: { emoji: ReactionEmoji; count: number; reacted: boolean }[];
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
   commentCount?: number;
+  /** Conference context for featured event ad tracking */
+  conference?: string;
 }
 
 function FriendsGoingModal({
@@ -117,10 +120,40 @@ export function EventCard({
   reactions,
   onToggleReaction,
   commentCount,
+  conference,
 }: EventCardProps) {
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [showCheckedInModal, setShowCheckedInModal] = useState(false);
   const [copied, setCopied] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const featuredImpressionTracked = useRef(false);
+
+  // Track featured event impressions via IntersectionObserver
+  useEffect(() => {
+    if (!event.isFeatured) return;
+    const el = cardRef.current;
+    if (!el || featuredImpressionTracked.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !featuredImpressionTracked.current) {
+          featuredImpressionTracked.current = true;
+          trackAdEvent({
+            ad_id: `featured-${event.id}`,
+            ad_name: event.name,
+            placement: 'featured-event',
+            event_type: 'impression',
+            conference,
+          });
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [event.id, event.name, event.isFeatured, conference]);
 
   const handleCopyLink = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -137,7 +170,7 @@ export function EventCard({
     : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
 
   return (
-    <div className={`rounded-lg p-4 transition-colors group flex gap-4 overflow-hidden ${
+    <div ref={cardRef} className={`rounded-lg p-4 transition-colors group flex gap-4 overflow-hidden ${
       event.isFeatured
         ? 'bg-[var(--theme-bg-card)] border-2 hover:bg-[var(--theme-bg-card-hover)]'
         : 'bg-[var(--theme-bg-card)] border border-[var(--theme-border-primary)] hover:bg-[var(--theme-bg-card-hover)] hover:border-[var(--theme-border-primary)] active:bg-[var(--theme-bg-card-hover)]'
@@ -159,7 +192,19 @@ export function EventCard({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-[var(--theme-accent)] active:text-[var(--theme-accent)] transition-colors"
-                  onClick={() => trackEventClick(event.name, event.link!)}
+                  onClick={() => {
+                    trackEventClick(event.name, event.link!);
+                    if (event.isFeatured) {
+                      trackAdEvent({
+                        ad_id: `featured-${event.id}`,
+                        ad_name: event.name,
+                        placement: 'featured-event',
+                        event_type: 'click',
+                        url: event.link!,
+                        conference,
+                      });
+                    }
+                  }}
                 >
                   {event.name}
                 </a>

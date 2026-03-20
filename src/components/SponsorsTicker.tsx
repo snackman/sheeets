@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { SponsorEntry } from '@/lib/types';
 import { trackAdClick, trackAdImpression } from '@/lib/analytics';
+import { trackAdEvent, slugifySponsor } from '@/lib/ad-tracking';
 
 const defaultSponsors: SponsorEntry[] = [
   {
@@ -17,13 +18,15 @@ interface SponsorsTickerProps {
   sponsors?: SponsorEntry[];
   /** A/B variant config: alternative sponsor list to show */
   variantSponsors?: SponsorEntry[];
+  /** Which conference context this ticker is shown in */
+  conference?: string;
   /** Called when the ticker becomes visible (for A/B impression tracking) */
   onImpression?: () => void;
   /** Called when a sponsor link is clicked (for A/B click tracking) */
   onSponsorClick?: (url: string) => void;
 }
 
-export function SponsorsTicker({ sponsors, variantSponsors, onImpression, onSponsorClick }: SponsorsTickerProps) {
+export function SponsorsTicker({ sponsors, variantSponsors, conference, onImpression, onSponsorClick }: SponsorsTickerProps) {
   // If variant sponsors are provided (from A/B test), use them; otherwise fall back to normal flow
   const sponsorList = variantSponsors && variantSponsors.length > 0
     ? variantSponsors
@@ -43,7 +46,18 @@ export function SponsorsTicker({ sponsors, variantSponsors, onImpression, onSpon
       ([entry]) => {
         if (entry.isIntersecting && !impressionTracked.current) {
           impressionTracked.current = true;
+          // GA4 tracking (existing)
           trackAdImpression('sponsor-ticker');
+          // Supabase per-sponsor tracking (new) -- fire for each sponsor
+          for (const s of sponsorList) {
+            trackAdEvent({
+              ad_id: slugifySponsor(s.linkText),
+              ad_name: s.linkText,
+              placement: 'sponsor-ticker',
+              event_type: 'impression',
+              conference,
+            });
+          }
           onImpression?.();
           observer.disconnect();
         }
@@ -53,7 +67,7 @@ export function SponsorsTicker({ sponsors, variantSponsors, onImpression, onSpon
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [onImpression]);
+  }, [onImpression, sponsorList, conference]);
 
   const item = (
     <span className="inline-flex items-center">
@@ -65,7 +79,20 @@ export function SponsorsTicker({ sponsors, variantSponsors, onImpression, onSpon
             target="_blank"
             rel="noopener noreferrer"
             className="underline decoration-[var(--theme-text-muted)] underline-offset-2 hover:text-[var(--theme-text-primary)] hover:decoration-[var(--theme-text-secondary)] transition-colors"
-            onClick={() => { trackAdClick('sponsor-ticker', s.url); onSponsorClick?.(s.url); }}
+            onClick={() => {
+              // GA4 tracking (existing)
+              trackAdClick('sponsor-ticker', s.url);
+              // Supabase per-sponsor tracking (new)
+              trackAdEvent({
+                ad_id: slugifySponsor(s.linkText),
+                ad_name: s.linkText,
+                placement: 'sponsor-ticker',
+                event_type: 'click',
+                url: s.url,
+                conference,
+              });
+              onSponsorClick?.(s.url);
+            }}
           >{s.linkText}</a>{s.afterText}
         </span>
       ))}
