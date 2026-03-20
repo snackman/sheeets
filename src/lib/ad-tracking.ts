@@ -15,7 +15,7 @@ import { getVisitorId } from './ab-testing';
 export interface AdTrackParams {
   ad_id: string;
   ad_name?: string;
-  placement: 'native-ad' | 'sponsor-ticker' | 'featured-event';
+  placement: 'native-ad' | 'sponsor-ticker' | 'featured-event' | 'profile';
   event_type: 'impression' | 'click';
   conference?: string;
   url?: string;
