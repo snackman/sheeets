@@ -63,10 +63,9 @@ export default function AdminPage() {
   const [adDragIndex, setAdDragIndex] = useState<number | null>(null);
   const [adDragOverIndex, setAdDragOverIndex] = useState<number | null>(null);
 
-  // A/B variant inline drag state (keyed by "testId:variantIdx")
-  const [abVarDragKey, setAbVarDragKey] = useState<string | null>(null);
-  const [abVarDragIdx, setAbVarDragIdx] = useState<number | null>(null);
-  const [abVarDragOverIdx, setAbVarDragOverIdx] = useState<number | null>(null);
+  // Per-card A/B variant view state
+  const [abVariantView, setAbVariantView] = useState<Record<number, 'a' | 'b'>>({});
+  const [adAbVariantView, setAdAbVariantView] = useState<Record<string, 'a' | 'b'>>({});
 
   // Upsell state
   const [upsellCopy, setUpsellCopy] = useState<UpsellCopy>({
@@ -612,19 +611,78 @@ export default function AdminPage() {
                           setDragOverIndex(null);
                         }}
                       >
-                        {editingSponsorIndex === idx ? (
+                        {editingSponsorIndex === idx ? (() => {
+                          const viewingB = sponsor.ab?.enabled && abVariantView[idx] === 'b';
+                          const currentBefore = viewingB ? (sponsor.ab?.b.beforeText ?? '') : sponsor.beforeText;
+                          const currentLink = viewingB ? (sponsor.ab?.b.linkText ?? '') : sponsor.linkText;
+                          const currentAfter = viewingB ? (sponsor.ab?.b.afterText ?? '') : sponsor.afterText;
+                          const currentUrl = viewingB ? (sponsor.ab?.b.url ?? '') : sponsor.url;
+                          const handleFieldChange = (field: string, value: string) => {
+                            const updated = [...sponsors];
+                            if (viewingB) {
+                              updated[idx] = { ...updated[idx], ab: { ...updated[idx].ab!, b: { ...updated[idx].ab!.b, [field]: value } } };
+                            } else {
+                              updated[idx] = { ...updated[idx], [field]: value };
+                            }
+                            setSponsors(updated);
+                          };
+                          return (
                           <div className="space-y-3">
+                            {/* A/B Toggle */}
+                            <div className="flex items-center gap-3 mb-3 pb-3 border-b border-stone-700">
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={!!sponsor.ab?.enabled}
+                                  onChange={(e) => {
+                                    const updated = [...sponsors];
+                                    if (e.target.checked) {
+                                      updated[idx] = { ...updated[idx], ab: updated[idx].ab || { b: { beforeText: '', linkText: '', afterText: '', url: '' }, weightA: 50, weightB: 50, enabled: true } };
+                                      updated[idx] = { ...updated[idx], ab: { ...updated[idx].ab!, enabled: true } };
+                                    } else {
+                                      updated[idx] = { ...updated[idx], ab: updated[idx].ab ? { ...updated[idx].ab!, enabled: false } : undefined };
+                                    }
+                                    setSponsors(updated);
+                                  }}
+                                  className="w-4 h-4 rounded"
+                                />
+                                <span className="text-sm text-stone-300">A/B Test</span>
+                              </label>
+                              {sponsor.ab?.enabled && (
+                                <>
+                                  <div className="flex items-center gap-1 ml-auto">
+                                    <button
+                                      onClick={() => setAbVariantView({ ...abVariantView, [idx]: 'a' })}
+                                      className={`px-2 py-0.5 text-xs rounded-l-lg border ${(abVariantView[idx] || 'a') === 'a' ? 'bg-blue-600 border-blue-500 text-white' : 'bg-stone-800 border-stone-600 text-stone-400'} cursor-pointer`}
+                                    >A</button>
+                                    <button
+                                      onClick={() => setAbVariantView({ ...abVariantView, [idx]: 'b' })}
+                                      className={`px-2 py-0.5 text-xs rounded-r-lg border ${abVariantView[idx] === 'b' ? 'bg-purple-600 border-purple-500 text-white' : 'bg-stone-800 border-stone-600 text-stone-400'} cursor-pointer`}
+                                    >B</button>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-xs text-stone-400">
+                                    <input type="number" min={0} max={100} value={sponsor.ab?.weightA ?? 50} onChange={(e) => {
+                                      const updated = [...sponsors];
+                                      updated[idx] = { ...updated[idx], ab: { ...updated[idx].ab!, weightA: Number(e.target.value) } };
+                                      setSponsors(updated);
+                                    }} className="w-12 bg-stone-800 border border-stone-600 rounded px-1 py-0.5 text-center text-xs text-white" />
+                                    <span>/</span>
+                                    <input type="number" min={0} max={100} value={sponsor.ab?.weightB ?? 50} onChange={(e) => {
+                                      const updated = [...sponsors];
+                                      updated[idx] = { ...updated[idx], ab: { ...updated[idx].ab!, weightB: Number(e.target.value) } };
+                                      setSponsors(updated);
+                                    }} className="w-12 bg-stone-800 border border-stone-600 rounded px-1 py-0.5 text-center text-xs text-white" />
+                                  </div>
+                                </>
+                              )}
+                            </div>
                             <div className="grid grid-cols-2 gap-3">
                               <div>
                                 <label className="block text-xs text-stone-400 mb-1">Before Text</label>
                                 <input
                                   type="text"
-                                  value={sponsor.beforeText}
-                                  onChange={(e) => {
-                                    const updated = [...sponsors];
-                                    updated[idx] = { ...updated[idx], beforeText: e.target.value };
-                                    setSponsors(updated);
-                                  }}
+                                  value={currentBefore}
+                                  onChange={(e) => handleFieldChange('beforeText', e.target.value)}
                                   placeholder="Supported by "
                                   className={inputClass}
                                 />
@@ -633,12 +691,8 @@ export default function AdminPage() {
                                 <label className="block text-xs text-stone-400 mb-1">Link Text</label>
                                 <input
                                   type="text"
-                                  value={sponsor.linkText}
-                                  onChange={(e) => {
-                                    const updated = [...sponsors];
-                                    updated[idx] = { ...updated[idx], linkText: e.target.value };
-                                    setSponsors(updated);
-                                  }}
+                                  value={currentLink}
+                                  onChange={(e) => handleFieldChange('linkText', e.target.value)}
                                   placeholder="Stand With Crypto"
                                   className={inputClass}
                                 />
@@ -648,12 +702,8 @@ export default function AdminPage() {
                               <label className="block text-xs text-stone-400 mb-1">After Text</label>
                               <input
                                 type="text"
-                                value={sponsor.afterText}
-                                onChange={(e) => {
-                                  const updated = [...sponsors];
-                                  updated[idx] = { ...updated[idx], afterText: e.target.value };
-                                  setSponsors(updated);
-                                }}
+                                value={currentAfter}
+                                onChange={(e) => handleFieldChange('afterText', e.target.value)}
                                 placeholder=". Join the Fight for Sensible Crypto Policy!"
                                 className={inputClass}
                               />
@@ -662,19 +712,15 @@ export default function AdminPage() {
                               <label className="block text-xs text-stone-400 mb-1">URL</label>
                               <input
                                 type="url"
-                                value={sponsor.url}
-                                onChange={(e) => {
-                                  const updated = [...sponsors];
-                                  updated[idx] = { ...updated[idx], url: e.target.value };
-                                  setSponsors(updated);
-                                }}
+                                value={currentUrl}
+                                onChange={(e) => handleFieldChange('url', e.target.value)}
                                 placeholder="https://..."
                                 className={inputClass}
                               />
                             </div>
                             {/* Inline preview */}
                             <div className="text-xs text-stone-500 bg-stone-950/50 rounded-lg px-3 py-2">
-                              Preview: <span className="text-stone-300">{sponsor.beforeText}<span className="text-blue-400 underline">{sponsor.linkText}</span>{sponsor.afterText}</span>
+                              Preview{viewingB ? ' (B)' : ''}: <span className="text-stone-300">{currentBefore}<span className="text-blue-400 underline">{currentLink}</span>{currentAfter}</span>
                             </div>
                             <button
                               onClick={() => setEditingSponsorIndex(null)}
@@ -684,7 +730,8 @@ export default function AdminPage() {
                               Done
                             </button>
                           </div>
-                        ) : (
+                          );
+                        })() : (
                           <div className="flex items-center gap-3">
                             <GripVertical className="w-4 h-4 text-stone-500 cursor-grab shrink-0" />
                             <div className="flex-1 min-w-0">
@@ -693,6 +740,9 @@ export default function AdminPage() {
                               </p>
                               <p className="text-xs text-stone-500 truncate mt-0.5">{sponsor.url || '(no url)'}</p>
                             </div>
+                            {sponsor.ab?.enabled && (
+                              <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase bg-purple-500/20 text-purple-400 rounded-full border border-purple-500/30">A/B</span>
+                            )}
                             <button
                               onClick={() => setEditingSponsorIndex(idx)}
                               className="text-stone-400 hover:text-white cursor-pointer p-1"
@@ -726,210 +776,6 @@ export default function AdminPage() {
                   </button>
                 </div>
 
-                {/* A/B Test sponsor-copy variants inline */}
-                {abTests
-                  .filter(t => t.status === 'running' && t.placement === 'sponsor-copy')
-                  .map(test => test.variants.map((variant, vi) => {
-                    const varKey = `${test.id}:${vi}`;
-                    const varSponsors = (variant.config.sponsors as SponsorEntry[]) || [];
-                    return (
-                      <div key={varKey} className="bg-stone-900 rounded-xl p-4 border border-purple-500/30 bg-purple-500/5">
-                        <div className="flex items-center gap-2 mb-3">
-                          <FlaskConical className="w-4 h-4 text-purple-400" />
-                          <span className="text-xs font-semibold text-purple-300">A/B: {test.name}</span>
-                          <span className="text-xs text-stone-400">&mdash; {variant.name}</span>
-                          <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase bg-green-500/20 text-green-400 rounded-full border border-green-500/30">running</span>
-                        </div>
-
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-xs text-stone-500">{varSponsors.length} sponsor{varSponsors.length !== 1 ? 's' : ''}</span>
-                          <button
-                            onClick={() => {
-                              const newSp: SponsorEntry = { beforeText: '', linkText: '', afterText: '', url: '' };
-                              const updatedSponsors = [...varSponsors, newSp];
-                              const updatedVariants = [...test.variants];
-                              updatedVariants[vi] = { ...variant, config: { ...variant.config, sponsors: updatedSponsors } };
-                              const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
-                              setAbTests(updatedTests);
-                            }}
-                            className="text-xs text-purple-400 hover:text-purple-300 cursor-pointer flex items-center gap-1"
-                          >
-                            <Plus className="w-3 h-3" />
-                            Add
-                          </button>
-                        </div>
-
-                        {varSponsors.length === 0 && (
-                          <p className="text-stone-500 text-xs py-2 text-center">No sponsors in this variant</p>
-                        )}
-
-                        <div className="space-y-2">
-                          {varSponsors.map((sp, si) => {
-                            const isEditing = editingSponsorIndex === -(1000 * (vi + 1) + si + 1) - (abTests.indexOf(test) * 100000);
-                            const editKey = -(1000 * (vi + 1) + si + 1) - (abTests.indexOf(test) * 100000);
-                            const isDragging = abVarDragKey === varKey && abVarDragIdx === si;
-                            const isDragOver = abVarDragKey === varKey && abVarDragOverIdx === si && abVarDragIdx !== si;
-                            return (
-                              <div
-                                key={si}
-                                className={`p-2 bg-stone-800 rounded-lg border transition-colors ${
-                                  isDragOver ? 'border-purple-500 border-t-2' : 'border-stone-600'
-                                } ${isDragging ? 'opacity-40' : ''}`}
-                                draggable={editingSponsorIndex !== editKey}
-                                onDragStart={(e) => {
-                                  setAbVarDragKey(varKey);
-                                  setAbVarDragIdx(si);
-                                  e.dataTransfer.effectAllowed = 'move';
-                                }}
-                                onDragOver={(e) => {
-                                  e.preventDefault();
-                                  if (abVarDragKey === varKey && abVarDragIdx !== null && abVarDragIdx !== si) {
-                                    setAbVarDragOverIdx(si);
-                                  }
-                                }}
-                                onDragLeave={() => {
-                                  if (abVarDragOverIdx === si) setAbVarDragOverIdx(null);
-                                }}
-                                onDrop={(e) => {
-                                  e.preventDefault();
-                                  if (abVarDragKey === varKey && abVarDragIdx !== null && abVarDragIdx !== si) {
-                                    const updated = [...varSponsors];
-                                    const [moved] = updated.splice(abVarDragIdx, 1);
-                                    updated.splice(si, 0, moved);
-                                    const updatedVariants = [...test.variants];
-                                    updatedVariants[vi] = { ...variant, config: { ...variant.config, sponsors: updated } };
-                                    const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
-                                    setAbTests(updatedTests);
-                                  }
-                                  setAbVarDragKey(null);
-                                  setAbVarDragIdx(null);
-                                  setAbVarDragOverIdx(null);
-                                }}
-                                onDragEnd={() => {
-                                  setAbVarDragKey(null);
-                                  setAbVarDragIdx(null);
-                                  setAbVarDragOverIdx(null);
-                                }}
-                              >
-                                {editingSponsorIndex === editKey ? (
-                                  <div className="space-y-2">
-                                    <div className="grid grid-cols-2 gap-2">
-                                      <input
-                                        type="text"
-                                        value={sp.beforeText}
-                                        onChange={(e) => {
-                                          const updated = [...varSponsors];
-                                          updated[si] = { ...updated[si], beforeText: e.target.value };
-                                          const updatedVariants = [...test.variants];
-                                          updatedVariants[vi] = { ...variant, config: { ...variant.config, sponsors: updated } };
-                                          const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
-                                          setAbTests(updatedTests);
-                                        }}
-                                        placeholder="Before text"
-                                        className={inputClass}
-                                      />
-                                      <input
-                                        type="text"
-                                        value={sp.linkText}
-                                        onChange={(e) => {
-                                          const updated = [...varSponsors];
-                                          updated[si] = { ...updated[si], linkText: e.target.value };
-                                          const updatedVariants = [...test.variants];
-                                          updatedVariants[vi] = { ...variant, config: { ...variant.config, sponsors: updated } };
-                                          const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
-                                          setAbTests(updatedTests);
-                                        }}
-                                        placeholder="Link text"
-                                        className={inputClass}
-                                      />
-                                    </div>
-                                    <input
-                                      type="text"
-                                      value={sp.afterText}
-                                      onChange={(e) => {
-                                        const updated = [...varSponsors];
-                                        updated[si] = { ...updated[si], afterText: e.target.value };
-                                        const updatedVariants = [...test.variants];
-                                        updatedVariants[vi] = { ...variant, config: { ...variant.config, sponsors: updated } };
-                                        const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
-                                        setAbTests(updatedTests);
-                                      }}
-                                      placeholder="After text"
-                                      className={inputClass}
-                                    />
-                                    <input
-                                      type="url"
-                                      value={sp.url}
-                                      onChange={(e) => {
-                                        const updated = [...varSponsors];
-                                        updated[si] = { ...updated[si], url: e.target.value };
-                                        const updatedVariants = [...test.variants];
-                                        updatedVariants[vi] = { ...variant, config: { ...variant.config, sponsors: updated } };
-                                        const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
-                                        setAbTests(updatedTests);
-                                      }}
-                                      placeholder="https://..."
-                                      className={inputClass}
-                                    />
-                                    <div className="text-xs text-stone-500 bg-stone-950/50 rounded-lg px-3 py-2">
-                                      Preview: <span className="text-stone-300">{sp.beforeText}<span className="text-blue-400 underline">{sp.linkText}</span>{sp.afterText}</span>
-                                    </div>
-                                    <button
-                                      onClick={() => setEditingSponsorIndex(null)}
-                                      className="text-green-400 hover:text-green-300 cursor-pointer p-1 flex items-center gap-1 text-sm"
-                                    >
-                                      <Save className="w-4 h-4" />
-                                      Done
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-2">
-                                    <GripVertical className="w-3 h-3 text-stone-500 cursor-grab shrink-0" />
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-xs text-stone-300 truncate">
-                                        {sp.beforeText}<span className="font-medium text-white">{sp.linkText || '(no link text)'}</span>{sp.afterText}
-                                      </p>
-                                    </div>
-                                    <button
-                                      onClick={() => setEditingSponsorIndex(editKey)}
-                                      className="text-stone-400 hover:text-white cursor-pointer p-0.5"
-                                      title="Edit"
-                                    >
-                                      <Pencil className="w-3 h-3" />
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        const updated = varSponsors.filter((_, i) => i !== si);
-                                        const updatedVariants = [...test.variants];
-                                        updatedVariants[vi] = { ...variant, config: { ...variant.config, sponsors: updated } };
-                                        const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
-                                        setAbTests(updatedTests);
-                                      }}
-                                      className="text-red-400 hover:text-red-300 cursor-pointer p-0.5"
-                                      title="Delete"
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        <div className="mt-3">
-                          <button
-                            onClick={() => saveAbTests(abTests)}
-                            disabled={saving}
-                            className={`text-xs px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${saving ? 'opacity-50' : ''}`}
-                          >
-                            {saving && <Loader2 className="w-3 h-3 animate-spin" />}
-                            Save A/B Variant
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  }))}
               </>
             )}
           </div>
@@ -1012,7 +858,21 @@ export default function AdminPage() {
                         setAdDragOverIndex(null);
                       }}
                     >
-                      {editingAdId === ad.id ? (
+                      {editingAdId === ad.id ? (() => {
+                        const adViewingB = ad.ab?.enabled && adAbVariantView[ad.id] === 'b';
+                        const currentTitle = adViewingB ? (ad.ab?.b.title ?? '') : ad.title;
+                        const currentDesc = adViewingB ? (ad.ab?.b.description ?? '') : ad.description;
+                        const currentLink = adViewingB ? (ad.ab?.b.link ?? '') : ad.link;
+                        const currentImage = adViewingB ? (ad.ab?.b.imageUrl ?? '') : ad.imageUrl;
+                        const currentBadge = adViewingB ? (ad.ab?.b.badge ?? '') : ad.badge;
+                        const handleAdFieldChange = (field: string, value: string) => {
+                          if (adViewingB) {
+                            setNativeAds(nativeAds.map(a => a.id === ad.id ? { ...a, ab: { ...a.ab!, b: { ...a.ab!.b, [field]: value } } } : a));
+                          } else {
+                            setNativeAds(nativeAds.map(a => a.id === ad.id ? { ...a, [field]: value } : a));
+                          }
+                        };
+                        return (
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-stone-500 font-mono">{ad.id.slice(0, 8)}...</span>
@@ -1023,20 +883,62 @@ export default function AdminPage() {
                               <X className="w-4 h-4" />
                             </button>
                           </div>
+                          {/* A/B Toggle */}
+                          <div className="flex items-center gap-3 mb-3 pb-3 border-b border-stone-700">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={!!ad.ab?.enabled}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setNativeAds(nativeAds.map(a => a.id === ad.id ? { ...a, ab: a.ab || { b: { title: '', description: '', link: '', imageUrl: '', badge: '' }, weightA: 50, weightB: 50, enabled: true }, ...(a.ab ? {} : {})} : a));
+                                    setNativeAds(prev => prev.map(a => a.id === ad.id ? { ...a, ab: { ...(a.ab || { b: { title: '', description: '', link: '', imageUrl: '', badge: '' }, weightA: 50, weightB: 50, enabled: false }), enabled: true } } : a));
+                                  } else {
+                                    setNativeAds(nativeAds.map(a => a.id === ad.id ? { ...a, ab: a.ab ? { ...a.ab, enabled: false } : undefined } : a));
+                                  }
+                                }}
+                                className="w-4 h-4 rounded"
+                              />
+                              <span className="text-sm text-stone-300">A/B Test</span>
+                            </label>
+                            {ad.ab?.enabled && (
+                              <>
+                                <div className="flex items-center gap-1 ml-auto">
+                                  <button
+                                    onClick={() => setAdAbVariantView({ ...adAbVariantView, [ad.id]: 'a' })}
+                                    className={`px-2 py-0.5 text-xs rounded-l-lg border ${(adAbVariantView[ad.id] || 'a') === 'a' ? 'bg-blue-600 border-blue-500 text-white' : 'bg-stone-800 border-stone-600 text-stone-400'} cursor-pointer`}
+                                  >A</button>
+                                  <button
+                                    onClick={() => setAdAbVariantView({ ...adAbVariantView, [ad.id]: 'b' })}
+                                    className={`px-2 py-0.5 text-xs rounded-r-lg border ${adAbVariantView[ad.id] === 'b' ? 'bg-purple-600 border-purple-500 text-white' : 'bg-stone-800 border-stone-600 text-stone-400'} cursor-pointer`}
+                                  >B</button>
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-stone-400">
+                                  <input type="number" min={0} max={100} value={ad.ab?.weightA ?? 50} onChange={(e) => {
+                                    setNativeAds(nativeAds.map(a => a.id === ad.id ? { ...a, ab: { ...a.ab!, weightA: Number(e.target.value) } } : a));
+                                  }} className="w-12 bg-stone-800 border border-stone-600 rounded px-1 py-0.5 text-center text-xs text-white" />
+                                  <span>/</span>
+                                  <input type="number" min={0} max={100} value={ad.ab?.weightB ?? 50} onChange={(e) => {
+                                    setNativeAds(nativeAds.map(a => a.id === ad.id ? { ...a, ab: { ...a.ab!, weightB: Number(e.target.value) } } : a));
+                                  }} className="w-12 bg-stone-800 border border-stone-600 rounded px-1 py-0.5 text-center text-xs text-white" />
+                                </div>
+                              </>
+                            )}
+                          </div>
                           <div>
                             <label className="block text-xs text-stone-400 mb-1">Title</label>
                             <input
                               type="text"
-                              value={ad.title}
-                              onChange={(e) => setNativeAds(nativeAds.map(a => a.id === ad.id ? { ...a, title: e.target.value } : a))}
+                              value={currentTitle}
+                              onChange={(e) => handleAdFieldChange('title', e.target.value)}
                               className={inputClass}
                             />
                           </div>
                           <div>
                             <label className="block text-xs text-stone-400 mb-1">Description</label>
                             <textarea
-                              value={ad.description}
-                              onChange={(e) => setNativeAds(nativeAds.map(a => a.id === ad.id ? { ...a, description: e.target.value } : a))}
+                              value={currentDesc}
+                              onChange={(e) => handleAdFieldChange('description', e.target.value)}
                               rows={2}
                               className={`${inputClass} resize-none`}
                             />
@@ -1045,8 +947,8 @@ export default function AdminPage() {
                             <label className="block text-xs text-stone-400 mb-1">Link</label>
                             <input
                               type="url"
-                              value={ad.link}
-                              onChange={(e) => setNativeAds(nativeAds.map(a => a.id === ad.id ? { ...a, link: e.target.value } : a))}
+                              value={currentLink}
+                              onChange={(e) => handleAdFieldChange('link', e.target.value)}
                               className={inputClass}
                             />
                           </div>
@@ -1054,8 +956,8 @@ export default function AdminPage() {
                             <label className="block text-xs text-stone-400 mb-1">Image URL</label>
                             <input
                               type="url"
-                              value={ad.imageUrl}
-                              onChange={(e) => setNativeAds(nativeAds.map(a => a.id === ad.id ? { ...a, imageUrl: e.target.value } : a))}
+                              value={currentImage}
+                              onChange={(e) => handleAdFieldChange('imageUrl', e.target.value)}
                               className={inputClass}
                             />
                           </div>
@@ -1076,8 +978,8 @@ export default function AdminPage() {
                               <label className="block text-xs text-stone-400 mb-1">Badge Text</label>
                               <input
                                 type="text"
-                                value={ad.badge}
-                                onChange={(e) => setNativeAds(nativeAds.map(a => a.id === ad.id ? { ...a, badge: e.target.value } : a))}
+                                value={currentBadge}
+                                onChange={(e) => handleAdFieldChange('badge', e.target.value)}
                                 placeholder="Sponsored"
                                 className={inputClass}
                               />
@@ -1095,7 +997,8 @@ export default function AdminPage() {
                             </label>
                           </div>
                         </div>
-                      ) : (
+                        );
+                      })() : (
                         <div className="flex items-start gap-4">
                           <GripVertical className="w-4 h-4 text-stone-500 cursor-grab shrink-0 mt-1" />
                           {ad.imageUrl && (
@@ -1108,6 +1011,9 @@ export default function AdminPage() {
                               <span className="text-sm font-medium text-white truncate">{ad.title || '(untitled)'}</span>
                               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${ad.active ? 'bg-green-500' : 'bg-red-500'}`} />
                               <span className="text-[10px] text-stone-500">{ad.active ? 'Active' : 'Inactive'}</span>
+                              {ad.ab?.enabled && (
+                                <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase bg-purple-500/20 text-purple-400 rounded-full border border-purple-500/30">A/B</span>
+                              )}
                             </div>
                             <p className="text-xs text-stone-400 line-clamp-1">{ad.description || '(no description)'}</p>
                             <p className="text-xs text-stone-500 mt-0.5">{ad.conference} &middot; {ad.badge || 'Sponsored'}</p>
@@ -1143,240 +1049,6 @@ export default function AdminPage() {
                   Save Native Ads
                 </button>
 
-                {/* A/B Test native-ad-content variants inline */}
-                {abTests
-                  .filter(t => t.status === 'running' && t.placement === 'native-ad-content')
-                  .map(test => test.variants.map((variant, vi) => {
-                    const varKey = `ad:${test.id}:${vi}`;
-                    const varAds = (variant.config.ads as NativeAd[]) || [];
-                    return (
-                      <div key={varKey} className="bg-stone-900 rounded-xl p-4 border border-purple-500/30 bg-purple-500/5">
-                        <div className="flex items-center gap-2 mb-3">
-                          <FlaskConical className="w-4 h-4 text-purple-400" />
-                          <span className="text-xs font-semibold text-purple-300">A/B: {test.name}</span>
-                          <span className="text-xs text-stone-400">&mdash; {variant.name}</span>
-                          <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase bg-green-500/20 text-green-400 rounded-full border border-green-500/30">running</span>
-                        </div>
-
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-xs text-stone-500">{varAds.length} ad{varAds.length !== 1 ? 's' : ''}</span>
-                          <button
-                            onClick={() => {
-                              const newAd = { id: `ab-ad-${Date.now()}`, title: '', description: '', link: '', imageUrl: '', badge: 'Sponsored' };
-                              const updatedAds = [...varAds, newAd];
-                              const updatedVariants = [...test.variants];
-                              updatedVariants[vi] = { ...variant, config: { ...variant.config, ads: updatedAds } };
-                              const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
-                              setAbTests(updatedTests);
-                            }}
-                            className="text-xs text-purple-400 hover:text-purple-300 cursor-pointer flex items-center gap-1"
-                          >
-                            <Plus className="w-3 h-3" />
-                            Add
-                          </button>
-                        </div>
-
-                        {varAds.length === 0 && (
-                          <p className="text-stone-500 text-xs py-2 text-center">No ads in this variant</p>
-                        )}
-
-                        <div className="space-y-3">
-                          {varAds.map((ad, ai) => {
-                            const adRecord = ad as unknown as Record<string, string>;
-                            const adEditId = `ab:${test.id}:${vi}:${ai}`;
-                            const isDragging = abVarDragKey === varKey && abVarDragIdx === ai;
-                            const isDragOver = abVarDragKey === varKey && abVarDragOverIdx === ai && abVarDragIdx !== ai;
-                            return (
-                              <div
-                                key={ai}
-                                className={`p-3 bg-stone-800 rounded-lg border transition-colors ${
-                                  isDragOver ? 'border-purple-500 border-t-2' : 'border-stone-600'
-                                } ${isDragging ? 'opacity-40' : ''}`}
-                                draggable={editingAdId !== adEditId}
-                                onDragStart={(e) => {
-                                  setAbVarDragKey(varKey);
-                                  setAbVarDragIdx(ai);
-                                  e.dataTransfer.effectAllowed = 'move';
-                                }}
-                                onDragOver={(e) => {
-                                  e.preventDefault();
-                                  if (abVarDragKey === varKey && abVarDragIdx !== null && abVarDragIdx !== ai) {
-                                    setAbVarDragOverIdx(ai);
-                                  }
-                                }}
-                                onDragLeave={() => {
-                                  if (abVarDragOverIdx === ai) setAbVarDragOverIdx(null);
-                                }}
-                                onDrop={(e) => {
-                                  e.preventDefault();
-                                  if (abVarDragKey === varKey && abVarDragIdx !== null && abVarDragIdx !== ai) {
-                                    const updated = [...varAds];
-                                    const [moved] = updated.splice(abVarDragIdx, 1);
-                                    updated.splice(ai, 0, moved);
-                                    const updatedVariants = [...test.variants];
-                                    updatedVariants[vi] = { ...variant, config: { ...variant.config, ads: updated } };
-                                    const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
-                                    setAbTests(updatedTests);
-                                  }
-                                  setAbVarDragKey(null);
-                                  setAbVarDragIdx(null);
-                                  setAbVarDragOverIdx(null);
-                                }}
-                                onDragEnd={() => {
-                                  setAbVarDragKey(null);
-                                  setAbVarDragIdx(null);
-                                  setAbVarDragOverIdx(null);
-                                }}
-                              >
-                                {editingAdId === adEditId ? (
-                                  <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-xs text-stone-500 font-mono">{adRecord.id || '(no id)'}</span>
-                                      <button
-                                        onClick={() => setEditingAdId(null)}
-                                        className="text-stone-400 hover:text-white cursor-pointer"
-                                      >
-                                        <X className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                    <div>
-                                      <label className="block text-xs text-stone-400 mb-1">Title</label>
-                                      <input
-                                        type="text"
-                                        value={adRecord.title || ''}
-                                        onChange={(e) => {
-                                          const updated = [...varAds] as unknown as Record<string, string>[];
-                                          updated[ai] = { ...updated[ai], title: e.target.value };
-                                          const updatedVariants = [...test.variants];
-                                          updatedVariants[vi] = { ...variant, config: { ...variant.config, ads: updated } };
-                                          const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
-                                          setAbTests(updatedTests);
-                                        }}
-                                        className={inputClass}
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-xs text-stone-400 mb-1">Description</label>
-                                      <textarea
-                                        value={adRecord.description || ''}
-                                        onChange={(e) => {
-                                          const updated = [...varAds] as unknown as Record<string, string>[];
-                                          updated[ai] = { ...updated[ai], description: e.target.value };
-                                          const updatedVariants = [...test.variants];
-                                          updatedVariants[vi] = { ...variant, config: { ...variant.config, ads: updated } };
-                                          const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
-                                          setAbTests(updatedTests);
-                                        }}
-                                        rows={2}
-                                        className={`${inputClass} resize-none`}
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-xs text-stone-400 mb-1">Link</label>
-                                      <input
-                                        type="url"
-                                        value={adRecord.link || ''}
-                                        onChange={(e) => {
-                                          const updated = [...varAds] as unknown as Record<string, string>[];
-                                          updated[ai] = { ...updated[ai], link: e.target.value };
-                                          const updatedVariants = [...test.variants];
-                                          updatedVariants[vi] = { ...variant, config: { ...variant.config, ads: updated } };
-                                          const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
-                                          setAbTests(updatedTests);
-                                        }}
-                                        className={inputClass}
-                                      />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                      <div>
-                                        <label className="block text-xs text-stone-400 mb-1">Image URL</label>
-                                        <input
-                                          type="url"
-                                          value={adRecord.imageUrl || ''}
-                                          onChange={(e) => {
-                                            const updated = [...varAds] as unknown as Record<string, string>[];
-                                            updated[ai] = { ...updated[ai], imageUrl: e.target.value };
-                                            const updatedVariants = [...test.variants];
-                                            updatedVariants[vi] = { ...variant, config: { ...variant.config, ads: updated } };
-                                            const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
-                                            setAbTests(updatedTests);
-                                          }}
-                                          className={inputClass}
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-xs text-stone-400 mb-1">Badge</label>
-                                        <input
-                                          type="text"
-                                          value={adRecord.badge || ''}
-                                          onChange={(e) => {
-                                            const updated = [...varAds] as unknown as Record<string, string>[];
-                                            updated[ai] = { ...updated[ai], badge: e.target.value };
-                                            const updatedVariants = [...test.variants];
-                                            updatedVariants[vi] = { ...variant, config: { ...variant.config, ads: updated } };
-                                            const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
-                                            setAbTests(updatedTests);
-                                          }}
-                                          placeholder="Sponsored"
-                                          className={inputClass}
-                                        />
-                                      </div>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-start gap-3">
-                                    <GripVertical className="w-4 h-4 text-stone-500 cursor-grab shrink-0 mt-0.5" />
-                                    {adRecord.imageUrl && (
-                                      <div className="w-[60px] h-[45px] flex-shrink-0 rounded-lg overflow-hidden bg-stone-800">
-                                        <img src={adRecord.imageUrl} alt={adRecord.title} className="w-full h-full object-cover" />
-                                      </div>
-                                    )}
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium text-white truncate">{adRecord.title || '(untitled)'}</p>
-                                      <p className="text-xs text-stone-400 line-clamp-1">{adRecord.description || '(no description)'}</p>
-                                    </div>
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      <button
-                                        onClick={() => setEditingAdId(adEditId)}
-                                        className="text-stone-400 hover:text-white cursor-pointer p-0.5"
-                                        title="Edit"
-                                      >
-                                        <Pencil className="w-3 h-3" />
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          const updated = varAds.filter((_, i) => i !== ai);
-                                          const updatedVariants = [...test.variants];
-                                          updatedVariants[vi] = { ...variant, config: { ...variant.config, ads: updated } };
-                                          const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
-                                          setAbTests(updatedTests);
-                                        }}
-                                        className="text-red-400 hover:text-red-300 cursor-pointer p-0.5"
-                                        title="Delete"
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        <div className="mt-3">
-                          <button
-                            onClick={() => saveAbTests(abTests)}
-                            disabled={saving}
-                            className={`text-xs px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${saving ? 'opacity-50' : ''}`}
-                          >
-                            {saving && <Loader2 className="w-3 h-3 animate-spin" />}
-                            Save A/B Variant
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  }))}
               </>
             )}
           </div>

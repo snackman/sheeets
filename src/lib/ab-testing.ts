@@ -144,6 +144,37 @@ export function trackABEvent(
 /* Debounced Impression Tracking                                       */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/* Per-Item Variant Resolution                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Resolve per-item A/B variants for a list of items.
+ * Each item with ab.enabled gets variant selected based on visitor's hash.
+ * Uses DJB2 hash of visitorId + item index for deterministic per-item assignment.
+ */
+export function resolveItemVariants<T extends { ab?: { b: Partial<T>; weightA: number; weightB: number; enabled: boolean } }>(
+  items: T[],
+  visitorId: string
+): (T & { _variant?: 'a' | 'b' })[] {
+  if (!visitorId) return items;
+  return items.map((item, i) => {
+    if (!item.ab || !item.ab.enabled) return item;
+    const bucket = hashString(`${visitorId}:item:${i}`);
+    const threshold = (item.ab.weightA / (item.ab.weightA + item.ab.weightB)) * 10000;
+    if (bucket < threshold) {
+      return { ...item, _variant: 'a' as const };
+    }
+    // Merge B variant fields over base
+    const { b } = item.ab;
+    return { ...item, ...b, _variant: 'b' as const };
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Debounced Impression Tracking                                       */
+/* ------------------------------------------------------------------ */
+
 const trackedImpressions = new Set<string>();
 
 /**

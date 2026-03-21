@@ -16,8 +16,6 @@ const defaultSponsors: SponsorEntry[] = [
 
 interface SponsorsTickerProps {
   sponsors?: SponsorEntry[];
-  /** A/B variant config: alternative sponsor list to show */
-  variantSponsors?: SponsorEntry[];
   /** Which conference context this ticker is shown in */
   conference?: string;
   /** Called when the ticker becomes visible (for A/B impression tracking) */
@@ -26,13 +24,8 @@ interface SponsorsTickerProps {
   onSponsorClick?: (url: string) => void;
 }
 
-export function SponsorsTicker({ sponsors, variantSponsors, conference, onImpression, onSponsorClick }: SponsorsTickerProps) {
-  // If variant sponsors are provided (from A/B test), use them; otherwise fall back to normal flow
-  const sponsorList = variantSponsors && variantSponsors.length > 0
-    ? variantSponsors
-    : sponsors && sponsors.length > 0
-    ? sponsors
-    : defaultSponsors;
+export function SponsorsTicker({ sponsors, conference, onImpression, onSponsorClick }: SponsorsTickerProps) {
+  const sponsorList = sponsors && sponsors.length > 0 ? sponsors : defaultSponsors;
 
   const tickerRef = useRef<HTMLDivElement>(null);
   const impressionTracked = useRef(false);

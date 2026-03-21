@@ -19,7 +19,8 @@ import { useAdminConfig } from '@/hooks/useAdminConfig';
 import { useABTest } from '@/hooks/useABTest';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeId, DEFAULT_THEME } from '@/lib/themes';
-import type { ABTest, NativeAd, SponsorEntry } from '@/lib/types';
+import type { ABTest } from '@/lib/types';
+import { resolveItemVariants, getVisitorId } from '@/lib/ab-testing';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
@@ -132,6 +133,21 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
     }
   }, [config, filters.conference, setTheme]);
 
+  // Per-item A/B variant resolution
+  const visitorId = useMemo(() => {
+    if (typeof window === 'undefined') return '';
+    return getVisitorId();
+  }, []);
+
+  const resolvedSponsors = useMemo(
+    () => resolveItemVariants(config?.sponsors || [], visitorId),
+    [config?.sponsors, visitorId]
+  );
+  const resolvedNativeAds = useMemo(
+    () => resolveItemVariants(config?.native_ads || [], visitorId),
+    [config?.native_ads, visitorId]
+  );
+
   // A/B Testing: find running tests by placement
   const abTests = useMemo(() => {
     const tests = (config as Record<string, unknown>)?.ab_tests as ABTest[] | undefined;
@@ -176,17 +192,6 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
     ? adFreqConfig.frequency
     : 8;
 
-  // Derive variant sponsors for sponsor copy A/B test
-  const tickerVariantSponsors = useMemo(() => {
-    if (!sponsorTestActive || !sponsorConfig.sponsors) return undefined;
-    return sponsorConfig.sponsors as SponsorEntry[];
-  }, [sponsorTestActive, sponsorConfig]);
-
-  // Derive variant native ads for native ad content A/B test
-  const variantNativeAds = useMemo(() => {
-    if (!nativeAdTestActive || !nativeAdConfig.ads) return undefined;
-    return nativeAdConfig.ads as NativeAd[];
-  }, [nativeAdTestActive, nativeAdConfig]);
 
   // Ad impression/click tracking for A/B tests
   const handleAdImpression = useCallback((_adId: string) => {
@@ -307,8 +312,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
       />
 
       <SponsorsTicker
-        sponsors={config?.sponsors}
-        variantSponsors={tickerVariantSponsors}
+        sponsors={resolvedSponsors}
         conference={filters.conference}
         onSponsorClick={handleTickerSponsorClick}
       />
@@ -397,7 +401,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
             reactionsByEvent={reactionsByEvent}
             onToggleReaction={handleToggleReaction}
             commentCounts={commentCounts}
-            nativeAds={variantNativeAds || config?.native_ads}
+            nativeAds={resolvedNativeAds}
             scrollContainerRef={listMainRef}
             adFrequency={adFrequency}
             onAdImpression={handleAdImpression}
