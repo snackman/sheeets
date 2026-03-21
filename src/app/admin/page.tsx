@@ -969,9 +969,13 @@ export default function AdminPage() {
                                 onChange={(e) => setNativeAds(nativeAds.map(a => a.id === ad.id ? { ...a, conference: e.target.value } : a))}
                                 className={inputClass}
                               >
+                                <option value="">All Conferences</option>
                                 {EVENT_TABS.map((t) => (
                                   <option key={t.gid} value={t.name}>{t.name}</option>
                                 ))}
+                                {ad.conference && !EVENT_TABS.some(t => t.name === ad.conference) && (
+                                  <option value={ad.conference}>{ad.conference} (legacy)</option>
+                                )}
                               </select>
                             </div>
                             <div className="flex-1">
