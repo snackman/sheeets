@@ -60,6 +60,13 @@ export default function AdminPage() {
   // Native Ads state
   const [nativeAds, setNativeAds] = useState<NativeAd[]>([]);
   const [editingAdId, setEditingAdId] = useState<string | null>(null);
+  const [adDragIndex, setAdDragIndex] = useState<number | null>(null);
+  const [adDragOverIndex, setAdDragOverIndex] = useState<number | null>(null);
+
+  // A/B variant inline drag state (keyed by "testId:variantIdx")
+  const [abVarDragKey, setAbVarDragKey] = useState<string | null>(null);
+  const [abVarDragIdx, setAbVarDragIdx] = useState<number | null>(null);
+  const [abVarDragOverIdx, setAbVarDragOverIdx] = useState<number | null>(null);
 
   // Upsell state
   const [upsellCopy, setUpsellCopy] = useState<UpsellCopy>({
@@ -718,6 +725,211 @@ export default function AdminPage() {
                     Save Sponsors
                   </button>
                 </div>
+
+                {/* A/B Test sponsor-copy variants inline */}
+                {abTests
+                  .filter(t => t.status === 'running' && t.placement === 'sponsor-copy')
+                  .map(test => test.variants.map((variant, vi) => {
+                    const varKey = `${test.id}:${vi}`;
+                    const varSponsors = (variant.config.sponsors as SponsorEntry[]) || [];
+                    return (
+                      <div key={varKey} className="bg-stone-900 rounded-xl p-4 border border-purple-500/30 bg-purple-500/5">
+                        <div className="flex items-center gap-2 mb-3">
+                          <FlaskConical className="w-4 h-4 text-purple-400" />
+                          <span className="text-xs font-semibold text-purple-300">A/B: {test.name}</span>
+                          <span className="text-xs text-stone-400">&mdash; {variant.name}</span>
+                          <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase bg-green-500/20 text-green-400 rounded-full border border-green-500/30">running</span>
+                        </div>
+
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs text-stone-500">{varSponsors.length} sponsor{varSponsors.length !== 1 ? 's' : ''}</span>
+                          <button
+                            onClick={() => {
+                              const newSp: SponsorEntry = { beforeText: '', linkText: '', afterText: '', url: '' };
+                              const updatedSponsors = [...varSponsors, newSp];
+                              const updatedVariants = [...test.variants];
+                              updatedVariants[vi] = { ...variant, config: { ...variant.config, sponsors: updatedSponsors } };
+                              const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
+                              setAbTests(updatedTests);
+                            }}
+                            className="text-xs text-purple-400 hover:text-purple-300 cursor-pointer flex items-center gap-1"
+                          >
+                            <Plus className="w-3 h-3" />
+                            Add
+                          </button>
+                        </div>
+
+                        {varSponsors.length === 0 && (
+                          <p className="text-stone-500 text-xs py-2 text-center">No sponsors in this variant</p>
+                        )}
+
+                        <div className="space-y-2">
+                          {varSponsors.map((sp, si) => {
+                            const isEditing = editingSponsorIndex === -(1000 * (vi + 1) + si + 1) - (abTests.indexOf(test) * 100000);
+                            const editKey = -(1000 * (vi + 1) + si + 1) - (abTests.indexOf(test) * 100000);
+                            const isDragging = abVarDragKey === varKey && abVarDragIdx === si;
+                            const isDragOver = abVarDragKey === varKey && abVarDragOverIdx === si && abVarDragIdx !== si;
+                            return (
+                              <div
+                                key={si}
+                                className={`p-2 bg-stone-800 rounded-lg border transition-colors ${
+                                  isDragOver ? 'border-purple-500 border-t-2' : 'border-stone-600'
+                                } ${isDragging ? 'opacity-40' : ''}`}
+                                draggable={editingSponsorIndex !== editKey}
+                                onDragStart={(e) => {
+                                  setAbVarDragKey(varKey);
+                                  setAbVarDragIdx(si);
+                                  e.dataTransfer.effectAllowed = 'move';
+                                }}
+                                onDragOver={(e) => {
+                                  e.preventDefault();
+                                  if (abVarDragKey === varKey && abVarDragIdx !== null && abVarDragIdx !== si) {
+                                    setAbVarDragOverIdx(si);
+                                  }
+                                }}
+                                onDragLeave={() => {
+                                  if (abVarDragOverIdx === si) setAbVarDragOverIdx(null);
+                                }}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  if (abVarDragKey === varKey && abVarDragIdx !== null && abVarDragIdx !== si) {
+                                    const updated = [...varSponsors];
+                                    const [moved] = updated.splice(abVarDragIdx, 1);
+                                    updated.splice(si, 0, moved);
+                                    const updatedVariants = [...test.variants];
+                                    updatedVariants[vi] = { ...variant, config: { ...variant.config, sponsors: updated } };
+                                    const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
+                                    setAbTests(updatedTests);
+                                  }
+                                  setAbVarDragKey(null);
+                                  setAbVarDragIdx(null);
+                                  setAbVarDragOverIdx(null);
+                                }}
+                                onDragEnd={() => {
+                                  setAbVarDragKey(null);
+                                  setAbVarDragIdx(null);
+                                  setAbVarDragOverIdx(null);
+                                }}
+                              >
+                                {editingSponsorIndex === editKey ? (
+                                  <div className="space-y-2">
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <input
+                                        type="text"
+                                        value={sp.beforeText}
+                                        onChange={(e) => {
+                                          const updated = [...varSponsors];
+                                          updated[si] = { ...updated[si], beforeText: e.target.value };
+                                          const updatedVariants = [...test.variants];
+                                          updatedVariants[vi] = { ...variant, config: { ...variant.config, sponsors: updated } };
+                                          const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
+                                          setAbTests(updatedTests);
+                                        }}
+                                        placeholder="Before text"
+                                        className={inputClass}
+                                      />
+                                      <input
+                                        type="text"
+                                        value={sp.linkText}
+                                        onChange={(e) => {
+                                          const updated = [...varSponsors];
+                                          updated[si] = { ...updated[si], linkText: e.target.value };
+                                          const updatedVariants = [...test.variants];
+                                          updatedVariants[vi] = { ...variant, config: { ...variant.config, sponsors: updated } };
+                                          const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
+                                          setAbTests(updatedTests);
+                                        }}
+                                        placeholder="Link text"
+                                        className={inputClass}
+                                      />
+                                    </div>
+                                    <input
+                                      type="text"
+                                      value={sp.afterText}
+                                      onChange={(e) => {
+                                        const updated = [...varSponsors];
+                                        updated[si] = { ...updated[si], afterText: e.target.value };
+                                        const updatedVariants = [...test.variants];
+                                        updatedVariants[vi] = { ...variant, config: { ...variant.config, sponsors: updated } };
+                                        const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
+                                        setAbTests(updatedTests);
+                                      }}
+                                      placeholder="After text"
+                                      className={inputClass}
+                                    />
+                                    <input
+                                      type="url"
+                                      value={sp.url}
+                                      onChange={(e) => {
+                                        const updated = [...varSponsors];
+                                        updated[si] = { ...updated[si], url: e.target.value };
+                                        const updatedVariants = [...test.variants];
+                                        updatedVariants[vi] = { ...variant, config: { ...variant.config, sponsors: updated } };
+                                        const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
+                                        setAbTests(updatedTests);
+                                      }}
+                                      placeholder="https://..."
+                                      className={inputClass}
+                                    />
+                                    <div className="text-xs text-stone-500 bg-stone-950/50 rounded-lg px-3 py-2">
+                                      Preview: <span className="text-stone-300">{sp.beforeText}<span className="text-blue-400 underline">{sp.linkText}</span>{sp.afterText}</span>
+                                    </div>
+                                    <button
+                                      onClick={() => setEditingSponsorIndex(null)}
+                                      className="text-green-400 hover:text-green-300 cursor-pointer p-1 flex items-center gap-1 text-sm"
+                                    >
+                                      <Save className="w-4 h-4" />
+                                      Done
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <GripVertical className="w-3 h-3 text-stone-500 cursor-grab shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs text-stone-300 truncate">
+                                        {sp.beforeText}<span className="font-medium text-white">{sp.linkText || '(no link text)'}</span>{sp.afterText}
+                                      </p>
+                                    </div>
+                                    <button
+                                      onClick={() => setEditingSponsorIndex(editKey)}
+                                      className="text-stone-400 hover:text-white cursor-pointer p-0.5"
+                                      title="Edit"
+                                    >
+                                      <Pencil className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const updated = varSponsors.filter((_, i) => i !== si);
+                                        const updatedVariants = [...test.variants];
+                                        updatedVariants[vi] = { ...variant, config: { ...variant.config, sponsors: updated } };
+                                        const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
+                                        setAbTests(updatedTests);
+                                      }}
+                                      className="text-red-400 hover:text-red-300 cursor-pointer p-0.5"
+                                      title="Delete"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="mt-3">
+                          <button
+                            onClick={() => saveAbTests(abTests)}
+                            disabled={saving}
+                            className={`text-xs px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${saving ? 'opacity-50' : ''}`}
+                          >
+                            {saving && <Loader2 className="w-3 h-3 animate-spin" />}
+                            Save A/B Variant
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }))}
               </>
             )}
           </div>
@@ -762,8 +974,44 @@ export default function AdminPage() {
                 )}
 
                 <div className="space-y-4">
-                  {nativeAds.map((ad) => (
-                    <div key={ad.id} className="bg-stone-900 rounded-xl p-4 border border-stone-700">
+                  {nativeAds.map((ad, adIdx) => (
+                    <div
+                      key={ad.id}
+                      className={`bg-stone-900 rounded-xl p-4 border transition-colors ${
+                        adDragOverIndex === adIdx && adDragIndex !== adIdx
+                          ? 'border-amber-500 border-t-2'
+                          : 'border-stone-700'
+                      } ${adDragIndex === adIdx ? 'opacity-40' : ''}`}
+                      draggable={editingAdId !== ad.id}
+                      onDragStart={(e) => {
+                        setAdDragIndex(adIdx);
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (adDragIndex !== null && adDragIndex !== adIdx) {
+                          setAdDragOverIndex(adIdx);
+                        }
+                      }}
+                      onDragLeave={() => {
+                        if (adDragOverIndex === adIdx) setAdDragOverIndex(null);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (adDragIndex !== null && adDragIndex !== adIdx) {
+                          const updated = [...nativeAds];
+                          const [moved] = updated.splice(adDragIndex, 1);
+                          updated.splice(adIdx, 0, moved);
+                          setNativeAds(updated);
+                        }
+                        setAdDragIndex(null);
+                        setAdDragOverIndex(null);
+                      }}
+                      onDragEnd={() => {
+                        setAdDragIndex(null);
+                        setAdDragOverIndex(null);
+                      }}
+                    >
                       {editingAdId === ad.id ? (
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
@@ -849,6 +1097,7 @@ export default function AdminPage() {
                         </div>
                       ) : (
                         <div className="flex items-start gap-4">
+                          <GripVertical className="w-4 h-4 text-stone-500 cursor-grab shrink-0 mt-1" />
                           {ad.imageUrl && (
                             <div className="w-[80px] h-[60px] flex-shrink-0 rounded-lg overflow-hidden bg-stone-800">
                               <img src={ad.imageUrl} alt={ad.title} className="w-full h-full object-cover" />
@@ -893,6 +1142,241 @@ export default function AdminPage() {
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                   Save Native Ads
                 </button>
+
+                {/* A/B Test native-ad-content variants inline */}
+                {abTests
+                  .filter(t => t.status === 'running' && t.placement === 'native-ad-content')
+                  .map(test => test.variants.map((variant, vi) => {
+                    const varKey = `ad:${test.id}:${vi}`;
+                    const varAds = (variant.config.ads as NativeAd[]) || [];
+                    return (
+                      <div key={varKey} className="bg-stone-900 rounded-xl p-4 border border-purple-500/30 bg-purple-500/5">
+                        <div className="flex items-center gap-2 mb-3">
+                          <FlaskConical className="w-4 h-4 text-purple-400" />
+                          <span className="text-xs font-semibold text-purple-300">A/B: {test.name}</span>
+                          <span className="text-xs text-stone-400">&mdash; {variant.name}</span>
+                          <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase bg-green-500/20 text-green-400 rounded-full border border-green-500/30">running</span>
+                        </div>
+
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs text-stone-500">{varAds.length} ad{varAds.length !== 1 ? 's' : ''}</span>
+                          <button
+                            onClick={() => {
+                              const newAd = { id: `ab-ad-${Date.now()}`, title: '', description: '', link: '', imageUrl: '', badge: 'Sponsored' };
+                              const updatedAds = [...varAds, newAd];
+                              const updatedVariants = [...test.variants];
+                              updatedVariants[vi] = { ...variant, config: { ...variant.config, ads: updatedAds } };
+                              const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
+                              setAbTests(updatedTests);
+                            }}
+                            className="text-xs text-purple-400 hover:text-purple-300 cursor-pointer flex items-center gap-1"
+                          >
+                            <Plus className="w-3 h-3" />
+                            Add
+                          </button>
+                        </div>
+
+                        {varAds.length === 0 && (
+                          <p className="text-stone-500 text-xs py-2 text-center">No ads in this variant</p>
+                        )}
+
+                        <div className="space-y-3">
+                          {varAds.map((ad, ai) => {
+                            const adRecord = ad as unknown as Record<string, string>;
+                            const adEditId = `ab:${test.id}:${vi}:${ai}`;
+                            const isDragging = abVarDragKey === varKey && abVarDragIdx === ai;
+                            const isDragOver = abVarDragKey === varKey && abVarDragOverIdx === ai && abVarDragIdx !== ai;
+                            return (
+                              <div
+                                key={ai}
+                                className={`p-3 bg-stone-800 rounded-lg border transition-colors ${
+                                  isDragOver ? 'border-purple-500 border-t-2' : 'border-stone-600'
+                                } ${isDragging ? 'opacity-40' : ''}`}
+                                draggable={editingAdId !== adEditId}
+                                onDragStart={(e) => {
+                                  setAbVarDragKey(varKey);
+                                  setAbVarDragIdx(ai);
+                                  e.dataTransfer.effectAllowed = 'move';
+                                }}
+                                onDragOver={(e) => {
+                                  e.preventDefault();
+                                  if (abVarDragKey === varKey && abVarDragIdx !== null && abVarDragIdx !== ai) {
+                                    setAbVarDragOverIdx(ai);
+                                  }
+                                }}
+                                onDragLeave={() => {
+                                  if (abVarDragOverIdx === ai) setAbVarDragOverIdx(null);
+                                }}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  if (abVarDragKey === varKey && abVarDragIdx !== null && abVarDragIdx !== ai) {
+                                    const updated = [...varAds];
+                                    const [moved] = updated.splice(abVarDragIdx, 1);
+                                    updated.splice(ai, 0, moved);
+                                    const updatedVariants = [...test.variants];
+                                    updatedVariants[vi] = { ...variant, config: { ...variant.config, ads: updated } };
+                                    const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
+                                    setAbTests(updatedTests);
+                                  }
+                                  setAbVarDragKey(null);
+                                  setAbVarDragIdx(null);
+                                  setAbVarDragOverIdx(null);
+                                }}
+                                onDragEnd={() => {
+                                  setAbVarDragKey(null);
+                                  setAbVarDragIdx(null);
+                                  setAbVarDragOverIdx(null);
+                                }}
+                              >
+                                {editingAdId === adEditId ? (
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs text-stone-500 font-mono">{adRecord.id || '(no id)'}</span>
+                                      <button
+                                        onClick={() => setEditingAdId(null)}
+                                        className="text-stone-400 hover:text-white cursor-pointer"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs text-stone-400 mb-1">Title</label>
+                                      <input
+                                        type="text"
+                                        value={adRecord.title || ''}
+                                        onChange={(e) => {
+                                          const updated = [...varAds] as unknown as Record<string, string>[];
+                                          updated[ai] = { ...updated[ai], title: e.target.value };
+                                          const updatedVariants = [...test.variants];
+                                          updatedVariants[vi] = { ...variant, config: { ...variant.config, ads: updated } };
+                                          const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
+                                          setAbTests(updatedTests);
+                                        }}
+                                        className={inputClass}
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs text-stone-400 mb-1">Description</label>
+                                      <textarea
+                                        value={adRecord.description || ''}
+                                        onChange={(e) => {
+                                          const updated = [...varAds] as unknown as Record<string, string>[];
+                                          updated[ai] = { ...updated[ai], description: e.target.value };
+                                          const updatedVariants = [...test.variants];
+                                          updatedVariants[vi] = { ...variant, config: { ...variant.config, ads: updated } };
+                                          const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
+                                          setAbTests(updatedTests);
+                                        }}
+                                        rows={2}
+                                        className={`${inputClass} resize-none`}
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs text-stone-400 mb-1">Link</label>
+                                      <input
+                                        type="url"
+                                        value={adRecord.link || ''}
+                                        onChange={(e) => {
+                                          const updated = [...varAds] as unknown as Record<string, string>[];
+                                          updated[ai] = { ...updated[ai], link: e.target.value };
+                                          const updatedVariants = [...test.variants];
+                                          updatedVariants[vi] = { ...variant, config: { ...variant.config, ads: updated } };
+                                          const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
+                                          setAbTests(updatedTests);
+                                        }}
+                                        className={inputClass}
+                                      />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div>
+                                        <label className="block text-xs text-stone-400 mb-1">Image URL</label>
+                                        <input
+                                          type="url"
+                                          value={adRecord.imageUrl || ''}
+                                          onChange={(e) => {
+                                            const updated = [...varAds] as unknown as Record<string, string>[];
+                                            updated[ai] = { ...updated[ai], imageUrl: e.target.value };
+                                            const updatedVariants = [...test.variants];
+                                            updatedVariants[vi] = { ...variant, config: { ...variant.config, ads: updated } };
+                                            const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
+                                            setAbTests(updatedTests);
+                                          }}
+                                          className={inputClass}
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs text-stone-400 mb-1">Badge</label>
+                                        <input
+                                          type="text"
+                                          value={adRecord.badge || ''}
+                                          onChange={(e) => {
+                                            const updated = [...varAds] as unknown as Record<string, string>[];
+                                            updated[ai] = { ...updated[ai], badge: e.target.value };
+                                            const updatedVariants = [...test.variants];
+                                            updatedVariants[vi] = { ...variant, config: { ...variant.config, ads: updated } };
+                                            const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
+                                            setAbTests(updatedTests);
+                                          }}
+                                          placeholder="Sponsored"
+                                          className={inputClass}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-start gap-3">
+                                    <GripVertical className="w-4 h-4 text-stone-500 cursor-grab shrink-0 mt-0.5" />
+                                    {adRecord.imageUrl && (
+                                      <div className="w-[60px] h-[45px] flex-shrink-0 rounded-lg overflow-hidden bg-stone-800">
+                                        <img src={adRecord.imageUrl} alt={adRecord.title} className="w-full h-full object-cover" />
+                                      </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-white truncate">{adRecord.title || '(untitled)'}</p>
+                                      <p className="text-xs text-stone-400 line-clamp-1">{adRecord.description || '(no description)'}</p>
+                                    </div>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <button
+                                        onClick={() => setEditingAdId(adEditId)}
+                                        className="text-stone-400 hover:text-white cursor-pointer p-0.5"
+                                        title="Edit"
+                                      >
+                                        <Pencil className="w-3 h-3" />
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          const updated = varAds.filter((_, i) => i !== ai);
+                                          const updatedVariants = [...test.variants];
+                                          updatedVariants[vi] = { ...variant, config: { ...variant.config, ads: updated } };
+                                          const updatedTests = abTests.map(t => t.id === test.id ? { ...t, variants: updatedVariants } : t);
+                                          setAbTests(updatedTests);
+                                        }}
+                                        className="text-red-400 hover:text-red-300 cursor-pointer p-0.5"
+                                        title="Delete"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="mt-3">
+                          <button
+                            onClick={() => saveAbTests(abTests)}
+                            disabled={saving}
+                            className={`text-xs px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${saving ? 'opacity-50' : ''}`}
+                          >
+                            {saving && <Loader2 className="w-3 h-3 animate-spin" />}
+                            Save A/B Variant
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }))}
               </>
             )}
           </div>
