@@ -129,6 +129,12 @@ export interface SponsorEntry {
   linkText: string;
   afterText: string;
   url: string;
+  ab?: {
+    b: { beforeText: string; linkText: string; afterText: string; url: string };
+    weightA: number;
+    weightB: number;
+    enabled: boolean;
+  };
 }
 
 export interface NativeAd {
@@ -140,6 +146,12 @@ export interface NativeAd {
   conference: string;
   badge: string;
   active: boolean;
+  ab?: {
+    b: { title: string; description: string; link: string; imageUrl: string; badge: string };
+    weightA: number;
+    weightB: number;
+    enabled: boolean;
+  };
 }
 
 export interface UpsellCopy {
