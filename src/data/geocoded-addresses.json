@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-18T15:29:48.848Z",
+  "generatedAt": "2026-03-27T04:42:22.284Z",
   "addresses": {
     "860 vallejo st denver": {
       "lat": 39.7304048,
@@ -750,6 +750,301 @@
       "lat": 39.754485,
       "lng": -104.977894,
       "matchedAddress": "710 East 26th Avenue, Denver, Colorado 80205, United States"
+    },
+    "get ai traffic today: creativehaus.org/ai-seo": {
+      "lat": 39.741681,
+      "lng": -104.986109,
+      "matchedAddress": "Denver, Colorado, United States"
+    },
+    "la cabra 284 lafayette st, new york, ny 10012, usa": {
+      "lat": 40.724291,
+      "lng": -73.996176,
+      "matchedAddress": "284 Lafayette Street, New York, New York 10012, United States"
+    },
+    "141 e houston st new york, ny 10002, usa": {
+      "lat": 40.72312,
+      "lng": -73.989906,
+      "matchedAddress": "141 East Houston Street, New York, New York 10002, United States"
+    },
+    "nolita, new york, ny, usa": {
+      "lat": 40.7223,
+      "lng": -73.9952,
+      "matchedAddress": "Nolita, New York, New York, United States"
+    },
+    "149 5th ave #1314 new york, ny 10010, usa": {
+      "lat": 40.740299,
+      "lng": -73.990148,
+      "matchedAddress": "149 5th Avenue, New York, New York 10010, United States"
+    },
+    "117 leroy st new york, ny 10014, usa": {
+      "lat": 40.730467,
+      "lng": -74.007731,
+      "matchedAddress": "117 Leroy Street, New York, New York 10014, United States"
+    },
+    "carbone new york 181 thompson st, new york, ny 10012, usa": {
+      "lat": 40.712749,
+      "lng": -74.005994,
+      "matchedAddress": "New York, New York, United States"
+    },
+    "area 140 first bar 140 1st ave, new york, ny 10009, usa": {
+      "lat": 40.727816,
+      "lng": -73.984833,
+      "matchedAddress": "140 1st Avenue, New York, New York 10009, United States"
+    },
+    "artech space 445 park ave, new york, ny 10022, usa": {
+      "lat": 40.761125,
+      "lng": -73.970666,
+      "matchedAddress": "445 Park Avenue, New York, New York 10022, United States"
+    },
+    "jw marriott cannes, boulevard de la croisette, cannes, france": {
+      "lat": 43.547724,
+      "lng": 7.030543,
+      "matchedAddress": "Boulevard De La Croisette, 06400 Cannes, France"
+    },
+    "tennis park montfleury cannes parc montfleury, 21 av. beauséjour, 06400 cannes, france": {
+      "lat": 43.55384,
+      "lng": 7.033462,
+      "matchedAddress": "21 Avenue Beauséjour, 06400 Cannes, France"
+    },
+    "indacity rue buttura, 06400 cannes, france": {
+      "lat": 43.552628,
+      "lng": 7.018062,
+      "matchedAddress": "Rue Buttura, 06400 Cannes, France"
+    },
+    "amamo speciality coffee cannes 74 rue meynadier, 06400 cannes, france": {
+      "lat": 43.551696,
+      "lng": 7.012224,
+      "matchedAddress": "74 Rue Meynadier, 06400 Cannes, France"
+    },
+    "good mate coffee cannes 28 rue hoche, 06400 cannes, france": {
+      "lat": 43.552993,
+      "lng": 7.021389,
+      "matchedAddress": "28 Rue Hoche, 06400 Cannes, France"
+    },
+    "hôtel martinez - the unbound collection by hyatt 73 bd de la croisette, 06400 cannes, france": {
+      "lat": 43.547774,
+      "lng": 7.030593,
+      "matchedAddress": "73 Boulevard De La Croisette, 06400 Cannes, France"
+    },
+    "street workout park cannes 06400 cannes, france": {
+      "lat": 43.551609,
+      "lng": 7.016611,
+      "matchedAddress": "06400, Cannes, Alpes-Maritimes, France"
+    },
+    "hotel barrière le majestic cannes, 10 bd de la croisette, 06400 cannes, france": {
+      "lat": 43.550861,
+      "lng": 7.019947,
+      "matchedAddress": "10 Boulevard De La Croisette, 06400 Cannes, France"
+    },
+    "love café 24 rue hoche, 06400 cannes, france": {
+      "lat": 43.553,
+      "lng": 7.021103,
+      "matchedAddress": "24 Rue Hoche, 06400 Cannes, France"
+    },
+    "casino barriere le croisette 1 espace lucien barrière, 06400 cannes, france": {
+      "lat": 43.551609,
+      "lng": 7.016611,
+      "matchedAddress": "06400, Cannes, Alpes-Maritimes, France"
+    },
+    "cannes france": {
+      "lat": 43.55161,
+      "lng": 7.016611,
+      "matchedAddress": "Cannes, Alpes-Maritimes, France"
+    },
+    "rado beach helen bd de la croisette, 06400 cannes, france": {
+      "lat": 43.547724,
+      "lng": 7.030543,
+      "matchedAddress": "Boulevard De La Croisette, 06400 Cannes, France"
+    },
+    "somewhere in cannes, provence-alpes-côte d'azur. rsvp to see exact location": {
+      "lat": 43.296174,
+      "lng": 5.369953,
+      "matchedAddress": "Provence-Alpes-Côte d'Azur, France"
+    },
+    "okko hotels cannes center 6bis pl. de la gare, 06400 cannes, france": {
+      "lat": 43.553651,
+      "lng": 7.018274,
+      "matchedAddress": "Place De La Gare, 06400 Cannes, France"
+    },
+    "chrystie 22 rue macé, 06400 cannes, france": {
+      "lat": 43.550997,
+      "lng": 7.0218,
+      "matchedAddress": "22 Rue Macé, 06400 Cannes, France"
+    },
+    "fontaine de la place du général de gaulle 6 pl. du général de gaulle, 06400 cannes, france": {
+      "lat": 43.552082,
+      "lng": 7.016302,
+      "matchedAddress": "6 Place Du Général De Gaulle, 06400 Cannes, France"
+    },
+    "jw marriott cannes 50 bd de la croisette, 06400 cannes, france": {
+      "lat": 43.54987,
+      "lng": 7.025319,
+      "matchedAddress": "50 Boulevard De La Croisette, 06400 Cannes, France"
+    },
+    "hyde beach cannes 45 bd de la croisette, 06400 cannes, france": {
+      "lat": 43.551065,
+      "lng": 7.024761,
+      "matchedAddress": "45 Boulevard De La Croisette, 06400 Cannes, France"
+    },
+    "palm beach 06400 cannes, france": {
+      "lat": 43.551609,
+      "lng": 7.016611,
+      "matchedAddress": "06400, Cannes, Alpes-Maritimes, France"
+    },
+    "le bar du gray 38 rue des serbes, 06400 cannes, france": {
+      "lat": 43.55215,
+      "lng": 7.020774,
+      "matchedAddress": "38 Rue Des Serbes, 06400 Cannes, France"
+    },
+    "la plage du festival 52 bd de la croisette, 06400 cannes, france": {
+      "lat": 43.548964,
+      "lng": 7.027079,
+      "matchedAddress": "52 Boulevard De La Croisette, 06400 Cannes, France"
+    },
+    "jw marriott, cannes, france": {
+      "lat": 43.55161,
+      "lng": 7.016611,
+      "matchedAddress": "Cannes, Alpes-Maritimes, France"
+    },
+    "espace croisette 21 rue du canada, 06400 cannes, france": {
+      "lat": 43.549384,
+      "lng": 7.027796,
+      "matchedAddress": "21 Rue Du Canada, 06400 Cannes, France"
+    },
+    "o’key beach - restaurant plage, 1 bd jean hibert, 06400 cannes, france": {
+      "lat": 43.548408,
+      "lng": 7.01204,
+      "matchedAddress": "1 Boulevard Jean Hibert, 06400 Cannes, France"
+    },
+    "five seas hotel cannes 1 rue notre dame, 06400 cannes, france": {
+      "lat": 43.5518,
+      "lng": 7.019129,
+      "matchedAddress": "1 Rue Notre-Dame, 06400 Cannes, France"
+    },
+    "parc mero square méro, 06400 cannes, france": {
+      "lat": 43.551609,
+      "lng": 7.016611,
+      "matchedAddress": "06400, Cannes, Alpes-Maritimes, France"
+    },
+    "le studio cannes 5 rue des belges, 06400 cannes, france": {
+      "lat": 43.55221,
+      "lng": 7.019221,
+      "matchedAddress": "5 Rue Des Belges, 06400 Cannes, France"
+    },
+    "7 rue du pré 06400 cannes, france": {
+      "lat": 43.551542,
+      "lng": 7.009204,
+      "matchedAddress": "7 Rue Du Pré, 06400 Cannes, France"
+    },
+    "vilebrequin la plage cannes 64 bd de la croisette, 06400 cannes, france": {
+      "lat": 43.548499,
+      "lng": 7.029699,
+      "matchedAddress": "64 Boulevard De La Croisette, 06400 Cannes, France"
+    },
+    "27 bd général vautrin 06400 cannes, france": {
+      "lat": 43.548106,
+      "lng": 7.032458,
+      "matchedAddress": "27 Boulevard Du Général Vautrin, 06400 Cannes, France"
+    },
+    "vegaluna bd de la croisette, 06400 cannes, france": {
+      "lat": 43.547724,
+      "lng": 7.030543,
+      "matchedAddress": "Boulevard De La Croisette, 06400 Cannes, France"
+    },
+    "carlton cannes, a regent hotel 58 bd de la croisette cs 40052, 06400 cannes, france": {
+      "lat": 43.549285,
+      "lng": 7.027109,
+      "matchedAddress": "58 Boulevard De La Croisette, 06400 Cannes, France"
+    },
+    "rsvp to see exact location": {
+      "lat": 43.55161,
+      "lng": 7.016611,
+      "matchedAddress": "Cannes, Alpes-Maritimes, France"
+    },
+    "luigi cannes - restaurant - piano bar - club, 24 rue latour-maubourg, 06400 cannes, france": {
+      "lat": 43.548194,
+      "lng": 7.030256,
+      "matchedAddress": "24 Rue Latour-Maubourg, 06400 Cannes, France"
+    },
+    "le kiosque à musique 06400 cannes, france": {
+      "lat": 43.551609,
+      "lng": 7.016611,
+      "matchedAddress": "06400, Cannes, Alpes-Maritimes, France"
+    },
+    "5 min walk from the palais des festivals, cannes": {
+      "lat": 43.55161,
+      "lng": 7.016611,
+      "matchedAddress": "Cannes, Alpes-Maritimes, France"
+    },
+    "mouratoglou hotel & resort 3550 rte des dolines, 06410 biot, france": {
+      "lat": 43.621165,
+      "lng": 7.058511,
+      "matchedAddress": "3550 Route Des Dolines, 06410 Biot, France"
+    },
+    "palm beach, cannes, france": {
+      "lat": 43.55161,
+      "lng": 7.016611,
+      "matchedAddress": "Cannes, Alpes-Maritimes, France"
+    },
+    "3 av. de benefiat 06400 cannes, france": {
+      "lat": 43.551609,
+      "lng": 7.016611,
+      "matchedAddress": "06400, Cannes, Alpes-Maritimes, France"
+    },
+    "3 rue michel-ange 06400 cannes, france": {
+      "lat": 43.555335,
+      "lng": 7.016324,
+      "matchedAddress": "3 Rue Michel-Ange, 06400 Cannes, France"
+    },
+    "la môme 6 rue florian, 06400 cannes, france": {
+      "lat": 43.551886,
+      "lng": 7.023475,
+      "matchedAddress": "6 Rue Florian, 06400 Cannes, France"
+    },
+    "le hive bar & restaurant, 1 rue de metz, 06400 cannes, france": {
+      "lat": 43.555019,
+      "lng": 7.02758,
+      "matchedAddress": "1 Rue De Metz, 06400 Cannes, France"
+    },
+    "canopy by hilton cannes 2 bd jean hibert, 06400 cannes, france": {
+      "lat": 43.548512,
+      "lng": 7.011768,
+      "matchedAddress": "2 Boulevard Jean Hibert, 06400 Cannes, France"
+    },
+    "promenade de la pantiero prom. de la pantiero, 06400 cannes, france": {
+      "lat": 43.551298,
+      "lng": 7.014385,
+      "matchedAddress": "Promenade De La Pantiero, 06400 Cannes, France"
+    },
+    "maison charlotte busset, 26 rue hoche, 06400 cannes, france": {
+      "lat": 43.552998,
+      "lng": 7.021229,
+      "matchedAddress": "26 Rue Hoche, 06400 Cannes, France"
+    },
+    "cannes, france": {
+      "lat": 43.55161,
+      "lng": 7.016611,
+      "matchedAddress": "Cannes, Alpes-Maritimes, France"
+    },
+    "boulevard de la croisette, bd de la croisette, 06400 cannes, france": {
+      "lat": 43.547724,
+      "lng": 7.030543,
+      "matchedAddress": "Boulevard De La Croisette, 06400 Cannes, France"
+    },
+    "neptune monaco beach, plage du, 98000 monaco": {
+      "lat": 43.55161,
+      "lng": 7.016611,
+      "matchedAddress": "Cannes, Alpes-Maritimes, France"
+    },
+    "palace of festivals and congresses of cannes palais des festivals et des congrès de cannes, 1 bd de la croisette, 06400 cannes, france": {
+      "lat": 43.5513,
+      "lng": 7.0178,
+      "matchedAddress": "1 Boulevard de la Croisette, 06400 Cannes, France"
+    },
+    "all in padel mougins | club de padel by jo-wilfried tsonga & thierry ascione 1028 av. notre dame de vie, 06250 mougins, france": {
+      "lat": 43.6065,
+      "lng": 6.9939,
+      "matchedAddress": "1028 Avenue Notre Dame de Vie, 06250 Mougins, France"
     }
   }
 }
