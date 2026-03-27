@@ -371,7 +371,7 @@ export function AdvertiseContent() {
           <h2 className="text-2xl font-bold text-white">
             Ad Inventory
           </h2>
-          {EVENT_TABS.length > 1 && (
+          {EVENT_TABS.length > 0 && (
             <div className="relative">
               <button
                 ref={(el) => { confBtnRef.current = el; }}

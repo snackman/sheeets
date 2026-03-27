@@ -183,7 +183,7 @@ export default function ItineraryPage() {
             </h1>
           </div>
           {/* Conference tabs */}
-          {conferences.length > 1 && (
+          {conferences.length > 0 && (
             <div className="flex rounded-lg border border-[var(--theme-border-primary)] overflow-hidden">
               {conferences.map((conf) => (
                 <button

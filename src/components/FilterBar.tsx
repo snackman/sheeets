@@ -119,7 +119,7 @@ export function FilterBar({
         {/* Top row: Conference tabs + Filter toggle */}
         <div className="flex items-center gap-3 lg:justify-center">
           {/* Conference selector — dropdown on all screen sizes */}
-          {availableConferences.length > 1 && (
+          {availableConferences.length > 0 && (
             <div className="shrink-0">
               <button
                 ref={(el) => { confBtnRef.current = el; }}

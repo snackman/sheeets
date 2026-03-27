@@ -200,7 +200,7 @@ export function ItineraryPanel({
         </div>
 
         {/* Conference tabs */}
-        {conferences.length > 1 && (
+        {conferences.length > 0 && (
           <div className="flex border-b border-[var(--theme-border-secondary)] px-4">
             {conferences.map((conf) => (
               <button
@@ -219,7 +219,7 @@ export function ItineraryPanel({
         )}
 
         {/* Content */}
-        <div className={`overflow-y-auto ${conferences.length > 1 ? 'h-[calc(100%-95px)]' : 'h-[calc(100%-57px)]'} px-4 pb-4`}>
+        <div className={`overflow-y-auto ${conferences.length > 0 ? 'h-[calc(100%-95px)]' : 'h-[calc(100%-57px)]'} px-4 pb-4`}>
           {itineraryEvents.length === 0 ? (
             /* Empty state */
             <div className="flex flex-col items-center justify-center py-16 text-center">
