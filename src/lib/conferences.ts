@@ -2,17 +2,6 @@ export const SHEET_ID = '1xWmIHyEyOmPHfkYuZkucPRlLGWbb9CF6Oqvfl8FUV6k';
 
 export const EVENT_TABS = [
   {
-    gid: 666597336,
-    name: 'DAS 2026',
-    slug: 'das',
-    timezone: 'America/New_York',
-    dates: [
-      '2026-03-21', '2026-03-22', '2026-03-23', '2026-03-24',
-      '2026-03-25', '2026-03-26', '2026-03-27',
-    ],
-    center: { lat: 40.7128, lng: -74.0060 },
-  },
-  {
     gid: 437576609,
     name: 'ETHCC 2026',
     slug: 'ethcc',
