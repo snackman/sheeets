@@ -23,6 +23,12 @@ const PROXIMITY_CENTERS: Record<string, { lat: number; lng: number; suffix: stri
   'GDC':           { lat: 37.7749, lng: -122.4194, suffix: 'San Francisco, CA' },
   'SXSW':          { lat: 30.2672, lng: -97.7431, suffix: 'Austin, TX' },
   'ETHCC':         { lat: 43.5528, lng: 7.0174,   suffix: 'Cannes, France' },
+  'Paris':         { lat: 48.8566, lng: 2.3522,    suffix: 'Paris, France' },
+  'PBW':           { lat: 48.8566, lng: 2.3522,    suffix: 'Paris, France' },
+  'Las Vegas':     { lat: 36.1699, lng: -115.1398, suffix: 'Las Vegas, NV' },
+  'Bitcoin':       { lat: 36.1699, lng: -115.1398, suffix: 'Las Vegas, NV' },
+  'Miami':         { lat: 25.7617, lng: -80.1918,  suffix: 'Miami, FL' },
+  'Consensus':     { lat: 25.7617, lng: -80.1918,  suffix: 'Miami, FL' },
 };
 
 function getProximity(tabName: string) {
