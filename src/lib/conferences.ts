@@ -13,6 +13,17 @@ export const EVENT_TABS = [
     center: { lat: 43.5528, lng: 7.0174 },
   },
   {
+    gid: 1604258025,
+    name: 'PBW 2026',
+    slug: 'pbw',
+    timezone: 'Europe/Paris',
+    dates: [
+      '2026-04-11', '2026-04-12', '2026-04-13', '2026-04-14',
+      '2026-04-15', '2026-04-16', '2026-04-17',
+    ],
+    center: { lat: 48.8566, lng: 2.3522 },
+  },
+  {
     gid: 1002070994,
     name: 'Bitcoin Vegas 2026',
     slug: 'bitcoin',

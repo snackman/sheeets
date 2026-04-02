@@ -4,6 +4,8 @@ import { parseBody, GeocodeSchema } from '@/lib/api-validation';
 const PROXIMITY: Record<string, { lat: number; lng: number; suffix: string }> = {
   Denver: { lat: 39.7392, lng: -104.9903, suffix: 'Denver, CO' },
   'Hong Kong': { lat: 22.3193, lng: 114.1694, suffix: 'Hong Kong' },
+  Paris: { lat: 48.8566, lng: 2.3522, suffix: 'Paris, France' },
+  PBW: { lat: 48.8566, lng: 2.3522, suffix: 'Paris, France' },
   'Las Vegas': { lat: 36.1699, lng: -115.1398, suffix: 'Las Vegas, NV' },
   Bitcoin: { lat: 36.1699, lng: -115.1398, suffix: 'Las Vegas, NV' },
   Miami: { lat: 25.7617, lng: -80.1918, suffix: 'Miami, FL' },
