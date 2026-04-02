@@ -23,6 +23,28 @@ export const EVENT_TABS = [
     ],
     center: { lat: 43.5528, lng: 7.0174 },
   },
+  {
+    gid: 1002070994,
+    name: 'Bitcoin Vegas 2026',
+    slug: 'bitcoin',
+    timezone: 'America/Los_Angeles',
+    dates: [
+      '2026-04-26', '2026-04-27', '2026-04-28', '2026-04-29',
+      '2026-04-30', '2026-05-01',
+    ],
+    center: { lat: 36.1699, lng: -115.1398 },
+  },
+  {
+    gid: 2092019144,
+    name: 'Consensus Miami 2026',
+    slug: 'consensus',
+    timezone: 'America/New_York',
+    dates: [
+      '2026-05-03', '2026-05-04', '2026-05-05', '2026-05-06',
+      '2026-05-07',
+    ],
+    center: { lat: 25.7617, lng: -80.1918 },
+  },
 ];
 
 export const DEFAULT_TAB = EVENT_TABS[0];
