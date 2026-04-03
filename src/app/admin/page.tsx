@@ -3,11 +3,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Star, Search, Loader2, ArrowLeft, Plus, Trash2, Pencil, Save, X, GripVertical, Copy, MapPin, ChevronDown, FlaskConical, Play, Pause, Trophy, BarChart3, Eye, MousePointer, Download, ClipboardCopy, Check } from 'lucide-react';
 import { fetchEvents } from '@/lib/fetch-events';
-import { EVENT_TABS, FALLBACK_TABS } from '@/lib/constants';
+import { FALLBACK_TABS } from '@/lib/constants';
 import { THEME_OPTIONS, type ThemeId } from '@/lib/themes';
 import type { ETHDenverEvent } from '@/lib/types';
 import type { AdminConfig, SponsorEntry, NativeAd, UpsellCopy, AdInventoryItem, AdvertisePageConfig, ABTest, ABTestVariant, ABTestStatus, ABVariantResult, ConferenceConfig } from '@/lib/types';
-import { isConferencePast } from '@/lib/conferences';
+import { isConferencePast, conferenceToTab } from '@/lib/conferences';
+import type { TabConfig } from '@/lib/conferences';
 
 const SESSION_KEY = 'sheeets-admin-auth';
 
@@ -97,7 +98,7 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [events, setEvents] = useState<ETHDenverEvent[]>([]);
   const [loading, setLoading] = useState(false);
-  const [conference, setConference] = useState(EVENT_TABS[0]?.name || '');
+  const [conference, setConference] = useState(FALLBACK_TABS[0]?.name || '');
   const [search, setSearch] = useState('');
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
@@ -132,7 +133,7 @@ export default function AdminPage() {
   });
 
   // Ad Inventory state
-  const [adConference, setAdConference] = useState(EVENT_TABS[0]?.name || '');
+  const [adConference, setAdConference] = useState(FALLBACK_TABS[0]?.name || '');
   const [adInventory, setAdInventory] = useState<AdInventoryItem[]>([]);
   const [editingInventoryId, setEditingInventoryId] = useState<string | null>(null);
   const [adPageConfig, setAdPageConfig] = useState<AdvertisePageConfig>({
@@ -162,7 +163,7 @@ export default function AdminPage() {
   const [newConfShowGidDropdown, setNewConfShowGidDropdown] = useState(false);
 
   // Theme state
-  const [themeConference, setThemeConference] = useState(EVENT_TABS[0]?.name || '');
+  const [themeConference, setThemeConference] = useState(FALLBACK_TABS[0]?.name || '');
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>('dark');
 
   // A/B Tests state
@@ -232,9 +233,30 @@ export default function AdminPage() {
       .finally(() => setConfigLoading(false));
   }, [authed]);
 
-  // Conference list for ad inventory tab (EVENT_TABS + any from config keys)
+  // Merged conference tabs: FALLBACK_TABS + dynamic conferences from DB
+  const allConferenceTabs: TabConfig[] = useMemo(() => {
+    const seen = new Set<string>();
+    const merged: TabConfig[] = [];
+    // Dynamic conferences first (most up-to-date)
+    for (const conf of conferences) {
+      if (!seen.has(conf.name)) {
+        seen.add(conf.name);
+        merged.push(conferenceToTab(conf));
+      }
+    }
+    // Fallback tabs for any not already covered
+    for (const tab of FALLBACK_TABS) {
+      if (!seen.has(tab.name)) {
+        seen.add(tab.name);
+        merged.push(tab);
+      }
+    }
+    return merged;
+  }, [conferences]);
+
+  // Conference list for ad inventory tab (allConferenceTabs + any from config keys)
   const adConferenceList = useMemo(() => {
-    const names = new Set(EVENT_TABS.map(t => t.name));
+    const names = new Set(allConferenceTabs.map(t => t.name));
     if (adminConfig) {
       for (const key of Object.keys(adminConfig)) {
         const match = key.match(/^(?:ad_inventory|advertise_page):(.+)$/);
@@ -242,7 +264,7 @@ export default function AdminPage() {
       }
     }
     return Array.from(names);
-  }, [adminConfig]);
+  }, [adminConfig, allConferenceTabs]);
 
   // Other conferences that have saved config (for copy-from)
   const copyFromConferences = useMemo(() => {
@@ -513,7 +535,7 @@ export default function AdminPage() {
           {activeTab === 'featured' && (
             <div className="flex items-center gap-3">
               <div className="flex gap-1">
-                {EVENT_TABS.map((tab) => (
+                {allConferenceTabs.map((tab) => (
                   <button
                     key={tab.gid}
                     onClick={() => setConference(tab.name)}
@@ -1359,7 +1381,7 @@ export default function AdminPage() {
                         description: '',
                         link: '',
                         imageUrl: '',
-                        conference: EVENT_TABS[0]?.name || '',
+                        conference: allConferenceTabs[0]?.name || '',
                         badge: 'Sponsored',
                         active: true,
                       };
@@ -1528,10 +1550,10 @@ export default function AdminPage() {
                                 className={inputClass}
                               >
                                 <option value="">All Conferences</option>
-                                {EVENT_TABS.map((t) => (
+                                {allConferenceTabs.map((t) => (
                                   <option key={t.gid} value={t.name}>{t.name}</option>
                                 ))}
-                                {ad.conference && !EVENT_TABS.some(t => t.name === ad.conference) && (
+                                {ad.conference && !allConferenceTabs.some(t => t.name === ad.conference) && (
                                   <option value={ad.conference}>{ad.conference} (legacy)</option>
                                 )}
                               </select>
@@ -2222,7 +2244,7 @@ export default function AdminPage() {
                 onChange={(e) => setThemeConference(e.target.value)}
                 className={inputClass + ' max-w-xs'}
               >
-                {EVENT_TABS.map(tab => (
+                {allConferenceTabs.map(tab => (
                   <option key={tab.name} value={tab.name}>{tab.name}</option>
                 ))}
               </select>
@@ -2388,7 +2410,7 @@ export default function AdminPage() {
                     onChange={e => setAbNewTest({ ...abNewTest, conference: e.target.value })}
                   >
                     <option value="">Global (all conferences)</option>
-                    {EVENT_TABS.map(tab => (
+                    {allConferenceTabs.map(tab => (
                       <option key={tab.name} value={tab.name}>{tab.name}</option>
                     ))}
                   </select>
@@ -2840,7 +2862,7 @@ export default function AdminPage() {
                   className={inputClass + ' w-48'}
                 >
                   <option value="">All Conferences</option>
-                  {EVENT_TABS.map(t => (
+                  {allConferenceTabs.map(t => (
                     <option key={t.name} value={t.name}>{t.name}</option>
                   ))}
                 </select>

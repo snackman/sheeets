@@ -50,7 +50,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
     toggleNowMode,
     clearFilters,
     activeFilterCount,
-  } = useFilters(initialConference);
+  } = useFilters(initialConference, conferenceTabs);
 
   const {
     viewMode,
@@ -344,6 +344,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
           eventCount={filteredEvents.length}
           onSubmitEvent={() => setShowSubmitEvent(true)}
           onSignIn={() => setShowSignIn(true)}
+          conferenceTabs={conferenceTabs}
         />
       </div>
 
@@ -370,6 +371,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
             onUpdatePOI={updatePOI}
             ownerNames={ownerNames}
             onSignIn={() => setShowSignIn(true)}
+            conferenceTabs={conferenceTabs}
           />
         </main>
       ) : viewMode === 'table' ? (

@@ -3,9 +3,10 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { FilterState } from '@/lib/types';
 import { DEFAULT_TAB, getTabConfig } from '@/lib/constants';
+import type { TabConfig } from '@/lib/conferences';
 
-function getDateTimeRangeForConference(conference: string): { startDateTime: string; endDateTime: string } {
-  const tab = getTabConfig(conference);
+function getDateTimeRangeForConference(conference: string, tabs?: TabConfig[]): { startDateTime: string; endDateTime: string } {
+  const tab = getTabConfig(conference, tabs);
   const dates = tab.dates;
   const now = new Date(new Date().toLocaleString('en-US', { timeZone: tab.timezone }));
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -23,8 +24,8 @@ function getDateTimeRangeForConference(conference: string): { startDateTime: str
   return { startDateTime: nowISO, endDateTime: lastEventEnd };
 }
 
-function buildDefaultFilters(conference: string): FilterState {
-  const range = getDateTimeRangeForConference(conference);
+function buildDefaultFilters(conference: string, tabs?: TabConfig[]): FilterState {
+  const range = getDateTimeRangeForConference(conference, tabs);
   return {
     conference,
     startDateTime: range.startDateTime,
@@ -39,9 +40,9 @@ function buildDefaultFilters(conference: string): FilterState {
 
 const defaultFilters = buildDefaultFilters(DEFAULT_TAB.name);
 
-export function useFilters(initialConference?: string) {
+export function useFilters(initialConference?: string, conferenceTabs?: TabConfig[]) {
   const initialState = useMemo(
-    () => initialConference ? buildDefaultFilters(initialConference) : defaultFilters,
+    () => initialConference ? buildDefaultFilters(initialConference, conferenceTabs) : defaultFilters,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
@@ -55,9 +56,9 @@ export function useFilters(initialConference?: string) {
   );
 
   const setConference = useCallback((conf: string) => {
-    const range = getDateTimeRangeForConference(conf);
+    const range = getDateTimeRangeForConference(conf, conferenceTabs);
     setFilters((prev) => ({ ...prev, conference: conf, startDateTime: range.startDateTime, endDateTime: range.endDateTime }));
-  }, []);
+  }, [conferenceTabs]);
 
   const setDateTimeRange = useCallback((start: string, end: string) => {
     setFilters((prev) => ({ ...prev, startDateTime: start, endDateTime: end }));
@@ -97,14 +98,14 @@ export function useFilters(initialConference?: string) {
   const activeFilterCount = useMemo(() => {
     let count = 0;
     // Compare dates against the *current* conference's defaults, not the initial conference
-    const currentDefaults = getDateTimeRangeForConference(filters.conference);
+    const currentDefaults = getDateTimeRangeForConference(filters.conference, conferenceTabs);
     if (filters.startDateTime !== currentDefaults.startDateTime || filters.endDateTime !== currentDefaults.endDateTime) count++;
     count += filters.vibes.length;
     if (filters.selectedFriends.length > 0) count++;
     if (filters.searchQuery) count++;
     if (filters.nowMode) count++;
     return count;
-  }, [filters]);
+  }, [filters, conferenceTabs]);
 
   return {
     filters,

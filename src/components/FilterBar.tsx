@@ -5,6 +5,7 @@ import clsx from 'clsx';
 import { X, SlidersHorizontal, Zap, Users, MapPin, Plus, Link2, Check, Loader2, ChevronDown } from 'lucide-react';
 import type { FilterState } from '@/lib/types';
 import { VIBE_COLORS, getTabConfig } from '@/lib/constants';
+import type { TabConfig } from '@/lib/conferences';
 import { TAG_ICONS } from './TagBadge';
 import { SearchBar } from './SearchBar';
 import { DateTimePicker } from './DateTimePicker';
@@ -31,6 +32,7 @@ interface FilterBarProps {
   eventCount: number;
   onSubmitEvent?: () => void;
   onSignIn?: () => void;
+  conferenceTabs?: TabConfig[];
 }
 
 export function FilterBar({
@@ -52,6 +54,7 @@ export function FilterBar({
   eventCount,
   onSubmitEvent,
   onSignIn,
+  conferenceTabs,
 }: FilterBarProps) {
   const [expanded, setExpanded] = useState(false);
   const [confOpen, setConfOpen] = useState(false);
@@ -183,7 +186,7 @@ export function FilterBar({
 
           {/* Desktop inline Start/End pickers */}
           {(() => {
-            const tabDates = getTabConfig(filters.conference).dates;
+            const tabDates = getTabConfig(filters.conference, conferenceTabs).dates;
             return (
               <div className={clsx('hidden lg:flex items-center gap-2', filters.nowMode && 'opacity-30 pointer-events-none')}>
                 <span className="text-xs uppercase text-[var(--theme-text-secondary)]">Start</span>
@@ -279,7 +282,7 @@ export function FilterBar({
 
             {/* Start + Type row */}
             {(() => {
-              const tabDates = getTabConfig(filters.conference).dates;
+              const tabDates = getTabConfig(filters.conference, conferenceTabs).dates;
               return (
                 <div className="flex gap-3 items-end">
                   <div className={clsx('w-40 shrink-0 lg:hidden', filters.nowMode && 'opacity-30 pointer-events-none')}>
@@ -329,7 +332,7 @@ export function FilterBar({
 
             {/* End + Tags row */}
             {(() => {
-              const tabDates = getTabConfig(filters.conference).dates;
+              const tabDates = getTabConfig(filters.conference, conferenceTabs).dates;
               return (
                 <div className="flex gap-3 items-end">
                   <div className={clsx('w-40 shrink-0 lg:hidden', filters.nowMode && 'opacity-30 pointer-events-none')}>
