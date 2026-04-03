@@ -1,6 +1,7 @@
 import { parseGVizResponse, GVizRow, getCellValue, getCellBool } from './gviz';
 import { ETHDenverEvent } from './types';
 import { SHEET_ID, EVENT_TABS } from './constants';
+import type { TabConfig } from './conferences';
 import { parseDateToISO, getTimeOfDay, isFreeEvent, normalizeAddress } from './utils';
 import geocodedData from '@/data/geocoded-addresses.json';
 
@@ -61,12 +62,13 @@ async function fetchPage(gid: number, offset: number): Promise<string> {
   return response.text();
 }
 
-export async function fetchEvents(runtimeAddresses?: GeoAddressMap): Promise<ETHDenverEvent[]> {
+export async function fetchEvents(runtimeAddresses?: GeoAddressMap, tabs?: TabConfig[]): Promise<ETHDenverEvent[]> {
+  const effectiveTabs = tabs || EVENT_TABS;
   const events: ETHDenverEvent[] = [];
   // Track seen IDs to detect collisions (duplicate data in sheet)
   const seenIds = new Map<string, number>();
 
-  for (const tab of EVENT_TABS) {
+  for (const tab of effectiveTabs) {
     // Paginate to get all rows from this tab
     let allRows: GVizRow[] = [];
     let firstTableCols: { id: string; label: string; type: string }[] = [];

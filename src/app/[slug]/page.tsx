@@ -2,12 +2,14 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { EventApp } from '@/components/EventApp';
-import { getTabBySlug, EVENT_TABS } from '@/lib/constants';
+import { FALLBACK_TABS, getTabBySlug } from '@/lib/constants';
+import { getAllConferenceTabs } from '@/lib/get-conferences';
 import { fetchEventsCached } from '@/lib/fetch-events-cached';
 import { buildCollectionPageJsonLd, buildBreadcrumbJsonLd } from '@/lib/json-ld';
 
 export function generateStaticParams() {
-  return EVENT_TABS.map((tab) => ({ slug: tab.slug }));
+  // Use fallback tabs for build-time static generation (guaranteed)
+  return FALLBACK_TABS.map((tab) => ({ slug: tab.slug }));
 }
 
 export async function generateMetadata({
@@ -16,7 +18,8 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const tab = getTabBySlug(slug);
+  const allTabs = await getAllConferenceTabs();
+  const tab = getTabBySlug(slug, allTabs);
   if (!tab) return {};
 
   const allEvents = await fetchEventsCached();
@@ -35,7 +38,8 @@ export async function generateMetadata({
 
 export default async function ConferencePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const tab = getTabBySlug(slug);
+  const allTabs = await getAllConferenceTabs();
+  const tab = getTabBySlug(slug, allTabs);
   if (!tab) redirect('/');
 
   const allEvents = await fetchEventsCached();

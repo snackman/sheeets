@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readRange, writeCell } from '@/lib/google-sheets';
-import { EVENT_TABS } from '@/lib/conferences';
+import { FALLBACK_TABS } from '@/lib/conferences';
+import { getConferenceTabs } from '@/lib/get-conferences';
 import { parseBody, ToggleFeaturedSchema } from '@/lib/api-validation';
 
 const ADMIN_PASSWORD = 'trusttheplan';
@@ -16,7 +17,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const tab = EVENT_TABS.find((t) => t.name === conference);
+    // Try dynamic conferences, fall back to hardcoded
+    let tabs = FALLBACK_TABS;
+    try {
+      tabs = await getConferenceTabs();
+    } catch {
+      // Use fallback
+    }
+
+    const tab = tabs.find((t) => t.name === conference);
     if (!tab) {
       return NextResponse.json({ error: 'Invalid conference' }, { status: 400 });
     }

@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Loader2, Check, Link as LinkIcon, ExternalLink } from 'lucide-react';
-import { EVENT_TABS, VIBE_COLORS, TYPE_TAGS, SHEET_ID, getTabConfig } from '@/lib/constants';
+import { VIBE_COLORS, TYPE_TAGS, SHEET_ID, getTabConfig } from '@/lib/constants';
+import type { TabConfig } from '@/lib/conferences';
 import { trackSubmitEventOpen, trackSubmitEventSuccess, trackSubmitEventFetch, trackSubmitEventTagToggle, trackModalDismiss } from '@/lib/analytics';
 import type { UpsellCopy } from '@/lib/types';
 import { Dropdown, TIME_OPTIONS, format12Hour } from './DateTimePicker';
@@ -14,6 +15,7 @@ interface SubmitEventModalProps {
   onClose: () => void;
   upsellCopy?: UpsellCopy;
   initialConference?: string;
+  conferenceTabs?: TabConfig[];
 }
 
 type Step = 'input' | 'form' | 'success';
@@ -34,7 +36,7 @@ const TOPIC_TAGS = Object.keys(VIBE_COLORS).filter(
 );
 const ALL_TAGS = [...FORMAT_TAGS, ...TOPIC_TAGS];
 
-export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConference }: SubmitEventModalProps) {
+export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConference, conferenceTabs = [] }: SubmitEventModalProps) {
   const [step, setStep] = useState<Step>('input');
   const [lumaUrl, setLumaUrl] = useState('');
   const [fetchLoading, setFetchLoading] = useState(false);
@@ -43,7 +45,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
   const [submitError, setSubmitError] = useState('');
 
   // Form fields — date as ISO "2026-03-10", times as 24h "19:00"
-  const [conference, setConference] = useState(initialConference || EVENT_TABS[0]?.name || '');
+  const [conference, setConference] = useState(initialConference || conferenceTabs[0]?.name || '');
   const [name, setName] = useState('');
   const [dateISO, setDateISO] = useState('');
   const [startTime24, setStartTime24] = useState('');
@@ -73,7 +75,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
     setFetchError('');
     setSubmitLoading(false);
     setSubmitError('');
-    setConference(initialConference || EVENT_TABS[0]?.name || '');
+    setConference(initialConference || conferenceTabs[0]?.name || '');
     setName('');
     setDateISO('');
     setStartTime24('');
@@ -150,7 +152,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
   }, [lumaUrl, step, handleFetchLuma]);
 
   function handleEnterManually() {
-    const tab = getTabConfig(conference);
+    const tab = getTabConfig(conference, conferenceTabs);
     if (!dateISO && tab.dates.length > 0) setDateISO(tab.dates[0]);
     setLink(lumaUrl.trim());
     setStep('form');
@@ -317,7 +319,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                     onChange={(e) => setConference(e.target.value)}
                     className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none"
                   >
-                    {EVENT_TABS.map((t) => (
+                    {conferenceTabs.map((t) => (
                       <option key={t.gid} value={t.name}>
                         {t.name}
                       </option>

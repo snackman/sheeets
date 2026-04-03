@@ -11,6 +11,8 @@ export const metadata = {
 
 export default async function Home() {
   const allEvents = await fetchEventsCached();
+  // The default conference is the first conference tab (dynamic or fallback)
+  // Use DEFAULT_TAB.name for the JSON-LD since metadata is static
   const conferenceEvents = allEvents.filter((e) => e.conference === DEFAULT_TAB.name);
   const collectionJsonLd = buildCollectionPageJsonLd(
     DEFAULT_TAB.name,

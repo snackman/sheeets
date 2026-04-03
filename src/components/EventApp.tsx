@@ -16,6 +16,7 @@ import { useAuthGatedActions } from '@/hooks/useAuthGatedActions';
 import { useConferenceData } from '@/hooks/useConferenceData';
 import { useNowMode } from '@/hooks/useNowMode';
 import { useAdminConfig } from '@/hooks/useAdminConfig';
+import { useConferenceTabs } from '@/hooks/useConferenceTabs';
 import { useABTest } from '@/hooks/useABTest';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeId, DEFAULT_THEME } from '@/lib/themes';
@@ -36,6 +37,7 @@ import { STORAGE_KEYS } from '@/lib/storage-keys';
 
 export function EventApp({ initialConference }: { initialConference?: string }) {
   const { config } = useAdminConfig();
+  const { tabs: conferenceTabs } = useConferenceTabs();
   const { events, loading, error } = useEvents();
   const {
     filters,
@@ -412,7 +414,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
       )}
 
       <AuthModal isOpen={showAuthForStar || showSignIn} onClose={() => { dismissAuth(); setShowSignIn(false); }} />
-      <SubmitEventModal isOpen={showSubmitEvent} onClose={() => setShowSubmitEvent(false)} upsellCopy={config?.upsell_copy} initialConference={filters.conference} />
+      <SubmitEventModal isOpen={showSubmitEvent} onClose={() => setShowSubmitEvent(false)} upsellCopy={config?.upsell_copy} initialConference={filters.conference} conferenceTabs={conferenceTabs} />
       <FriendsPanel
         isOpen={showFriends}
         onClose={() => setShowFriends(false)}
@@ -427,6 +429,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
         conferenceEventCounts={conferenceEventCounts}
         events={events}
         onOpenAuth={() => { setShowOnboarding(false); setShowSignIn(true); }}
+        conferenceTabs={conferenceTabs}
       />
     </div>
   );

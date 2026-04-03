@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { appendEventRow } from '@/lib/google-sheets';
-import { EVENT_TABS } from '@/lib/conferences';
+import { FALLBACK_TABS } from '@/lib/conferences';
+import { getConferenceTabs } from '@/lib/get-conferences';
 import { parseBody, SubmitEventSchema } from '@/lib/api-validation';
 import { normalizeAddress } from '@/lib/utils';
 import { createClient } from '@supabase/supabase-js';
@@ -12,10 +13,18 @@ export async function POST(request: NextRequest) {
 
     const { conference, coords, event } = data;
 
-    const tab = EVENT_TABS.find((t) => t.name === conference);
+    // Try dynamic conferences, fall back to hardcoded
+    let tabs = FALLBACK_TABS;
+    try {
+      tabs = await getConferenceTabs();
+    } catch {
+      // Use fallback
+    }
+
+    const tab = tabs.find((t) => t.name === conference);
     if (!tab) {
       return NextResponse.json(
-        { error: `Invalid conference: ${conference}. Valid options: ${EVENT_TABS.map((t) => t.name).join(', ')}` },
+        { error: `Invalid conference: ${conference}. Valid options: ${tabs.map((t) => t.name).join(', ')}` },
         { status: 400 }
       );
     }
