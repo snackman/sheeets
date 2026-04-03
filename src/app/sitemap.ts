@@ -1,10 +1,18 @@
 import type { MetadataRoute } from 'next';
-import { EVENT_TABS } from '@/lib/constants';
+import { FALLBACK_TABS } from '@/lib/constants';
+import { getConferenceTabs } from '@/lib/get-conferences';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://plan.wtf';
 
-  const conferencePages = EVENT_TABS.map((tab) => ({
+  let tabs = FALLBACK_TABS;
+  try {
+    tabs = await getConferenceTabs();
+  } catch {
+    // Use fallback
+  }
+
+  const conferencePages = tabs.map((tab) => ({
     url: `${baseUrl}/${tab.slug}`,
     lastModified: new Date(),
     changeFrequency: 'daily' as const,

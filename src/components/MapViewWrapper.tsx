@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { ChevronUp, ChevronDown, MapPinOff } from 'lucide-react';
 import type { ETHDenverEvent, POI, POICategory, ReactionEmoji, FriendLocation } from '@/lib/types';
+import type { TabConfig } from '@/lib/conferences';
 import { EventCard } from './EventCard';
 
 const MapView = dynamic(
@@ -39,6 +40,7 @@ interface MapViewWrapperProps {
   onUpdatePOI?: (id: string, updates: Partial<Pick<POI, 'name' | 'category' | 'note' | 'is_public'>>) => void;
   ownerNames?: Map<string, string>;
   onSignIn?: () => void;
+  conferenceTabs?: TabConfig[];
 }
 
 export function MapViewWrapper({
@@ -62,6 +64,7 @@ export function MapViewWrapper({
   onUpdatePOI,
   ownerNames,
   onSignIn,
+  conferenceTabs,
 }: MapViewWrapperProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -95,6 +98,7 @@ export function MapViewWrapper({
         onUpdatePOI={onUpdatePOI}
         ownerNames={ownerNames}
         onSignIn={onSignIn}
+        conferenceTabs={conferenceTabs}
       />
 
       {/* No-location drawer */}

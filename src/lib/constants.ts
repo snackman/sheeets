@@ -10,6 +10,7 @@
 export {
   SHEET_ID,
   EVENT_TABS,
+  FALLBACK_TABS,
   DEFAULT_TAB,
   getTabConfig,
   getTabBySlug,
@@ -17,7 +18,13 @@ export {
   EVENT_DATES,
   DENVER_CENTER,
   TIME_RANGES,
+  datesToArray,
+  isConferencePast,
+  getActiveConferences,
+  conferenceToTab,
 } from './conferences';
+
+export type { TabConfig } from './conferences';
 
 export { VIBE_COLORS, TYPE_TAGS } from './tags';
 

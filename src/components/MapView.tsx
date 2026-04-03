@@ -6,6 +6,7 @@ import type { MapRef } from 'react-map-gl/mapbox';
 import { LocateFixed } from 'lucide-react';
 import type { ETHDenverEvent, POI, POICategory, ReactionEmoji, FriendLocation } from '@/lib/types';
 import { getTabConfig } from '@/lib/constants';
+import type { TabConfig } from '@/lib/conferences';
 import { parseTimeToMinutes } from '@/lib/filters';
 import { trackLocateMe } from '@/lib/analytics';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,6 +39,7 @@ interface MapViewProps {
   onUpdatePOI?: (id: string, updates: Partial<Pick<POI, 'name' | 'category' | 'note' | 'is_public'>>) => void;
   ownerNames?: Map<string, string>;
   onSignIn?: () => void;
+  conferenceTabs?: TabConfig[];
 }
 
 /**
@@ -69,8 +71,9 @@ export function MapView({
   onUpdatePOI,
   ownerNames,
   onSignIn,
+  conferenceTabs,
 }: MapViewProps) {
-  const mapCenter = getTabConfig(conference ?? '').center;
+  const mapCenter = getTabConfig(conference ?? '', conferenceTabs).center;
   const { user } = useAuth();
   const { theme } = useTheme();
   const mapStyle = (theme === 'paper' || theme === 'light')

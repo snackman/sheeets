@@ -1,3 +1,14 @@
+export interface ConferenceConfig {
+  gid: number;           // Google Sheet tab GID
+  name: string;          // Display name, e.g. "PBW 2026"
+  slug: string;          // URL slug, e.g. "pbw"
+  timezone: string;      // IANA timezone, e.g. "Europe/Paris"
+  startDate: string;     // ISO date: "2026-04-11"
+  endDate: string;       // ISO date: "2026-04-17"
+  center: { lat: number; lng: number }; // Map center + geocoding proximity
+  hidden?: boolean;      // Manually hidden by admin
+}
+
 export interface ETHDenverEvent {
   id: string;
   date: string;          // Raw: "Tue, Feb 10"

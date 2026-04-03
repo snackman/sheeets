@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { X, Star, Zap, Users, Map, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
-import { EVENT_TABS, VIBE_COLORS, TYPE_TAGS } from '@/lib/constants';
+import { VIBE_COLORS, TYPE_TAGS } from '@/lib/constants';
+import type { TabConfig } from '@/lib/conferences';
 import type { ETHDenverEvent } from '@/lib/types';
 import { TAG_ICONS } from './TagBadge';
 import {
@@ -22,6 +23,7 @@ interface OnboardingWizardProps {
   conferenceEventCounts?: Record<string, number>;
   events: ETHDenverEvent[];
   onOpenAuth: () => void;
+  conferenceTabs?: TabConfig[];
 }
 
 type StepId = 'welcome' | 'conference' | 'interests' | 'tips' | 'signin';
@@ -69,9 +71,10 @@ export function OnboardingWizard({
   conferenceEventCounts = {},
   events,
   onOpenAuth,
+  conferenceTabs = [],
 }: OnboardingWizardProps) {
   const [currentStep, setCurrentStep] = useState(0);
-  const [selectedConference, setSelectedConference] = useState(EVENT_TABS[0]?.name || '');
+  const [selectedConference, setSelectedConference] = useState(conferenceTabs[0]?.name || availableConferences[0] || '');
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [mounted, setMounted] = useState(false);
 
@@ -167,7 +170,7 @@ export function OnboardingWizard({
 
   // Get conference date range display
   function getConferenceDates(confName: string): string {
-    const tab = EVENT_TABS.find((t) => t.name === confName);
+    const tab = conferenceTabs.find((t) => t.name === confName);
     if (!tab || tab.dates.length === 0) return '';
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const first = tab.dates[0];
@@ -259,7 +262,7 @@ export function OnboardingWizard({
                   </p>
                 </div>
                 <div className="space-y-2">
-                  {EVENT_TABS.filter(
+                  {conferenceTabs.filter(
                     (tab) => {
                       if (availableConferences.length > 0 && !availableConferences.includes(tab.name)) return false;
                       const today = new Date().toISOString().slice(0, 10);
