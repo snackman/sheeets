@@ -401,6 +401,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
             reactionsByEvent={reactionsByEvent}
             onToggleReaction={handleToggleReaction}
             commentCounts={commentCounts}
+            conference={filters.conference}
           />
         </main>
       ) : (
