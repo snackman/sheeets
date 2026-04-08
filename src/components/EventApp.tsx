@@ -34,6 +34,7 @@ import { FriendsPanel } from './FriendsPanel';
 import { SponsorsTicker } from './SponsorsTicker';
 import { OnboardingWizard } from './OnboardingWizard';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
+import { getTabConfig } from '@/lib/conferences';
 
 export function EventApp({ initialConference }: { initialConference?: string }) {
   const { config } = useAdminConfig();
@@ -134,6 +135,17 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
       setTheme(DEFAULT_THEME);
     }
   }, [config, filters.conference, setTheme]);
+
+  // Sync URL with selected conference
+  useEffect(() => {
+    const tab = getTabConfig(filters.conference, conferenceTabs);
+    if (tab?.slug) {
+      const newPath = `/${tab.slug}`;
+      if (window.location.pathname !== newPath) {
+        window.history.replaceState(null, '', newPath);
+      }
+    }
+  }, [filters.conference, conferenceTabs]);
 
   // Per-item A/B variant resolution
   const visitorId = useMemo(() => {
