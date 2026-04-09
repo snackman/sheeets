@@ -9,6 +9,7 @@ import { getTabConfig } from '@/lib/constants';
 import type { TabConfig } from '@/lib/conferences';
 import { parseTimeToMinutes } from '@/lib/filters';
 import { trackLocateMe } from '@/lib/analytics';
+import { trackEvent } from '@/lib/event-tracking';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { MapMarker } from './MapMarker';
@@ -349,12 +350,29 @@ export function MapView({
       const key = coordKey(lat, lng);
       const colocated = colocatedMap.get(key);
 
+      // Track pin click for all events at this location
       if (colocated && colocated.length > 1) {
+        for (const evt of colocated) {
+          trackEvent({
+            event_id: evt.id,
+            event_name: evt.name,
+            event_type: 'pin-click',
+            conference,
+            source: 'map',
+          });
+        }
         // Multiple events at this location
         setPopupEvent(null);
         setPopupEvents(colocated);
         setPopupCoords({ lat, lng });
       } else {
+        trackEvent({
+          event_id: event.id,
+          event_name: event.name,
+          event_type: 'pin-click',
+          conference,
+          source: 'map',
+        });
         // Single event
         setPopupEvents(null);
         setPopupEvent(event);
@@ -374,7 +392,7 @@ export function MapView({
         }
       }
     },
-    [colocatedMap]
+    [colocatedMap, conference]
   );
 
   const handlePopupClose = useCallback(() => {
@@ -543,6 +561,7 @@ export function MapView({
           reactions={reactionsByEvent?.get(popupEvent.id)}
           onToggleReaction={onToggleReaction}
           commentCount={commentCounts?.get(popupEvent.id)}
+          conference={conference}
         />
       )}
 

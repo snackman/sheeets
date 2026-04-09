@@ -4,6 +4,7 @@ import { Popup } from 'react-map-gl/mapbox';
 import { X, Calendar, MapPin, Users } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
+import { trackEvent } from '@/lib/event-tracking';
 import { StarButton } from './StarButton';
 import { AddressLink } from './AddressLink';
 import { TagBadge } from './TagBadge';
@@ -30,6 +31,7 @@ interface EventPopupProps {
   reactions?: { emoji: ReactionEmoji; count: number; reacted: boolean }[];
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
   commentCount?: number;
+  conference?: string;
 }
 
 interface MultiEventPopupProps {
@@ -91,6 +93,7 @@ function SingleEventContent({
   reactions,
   onToggleReaction,
   commentCount,
+  conference,
 }: {
   event: ETHDenverEvent;
   isInItinerary?: boolean;
@@ -102,6 +105,7 @@ function SingleEventContent({
   reactions?: { emoji: ReactionEmoji; count: number; reacted: boolean }[];
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
   commentCount?: number;
+  conference?: string;
 }) {
   const timeDisplay = event.isAllDay
     ? 'All Day'
@@ -124,7 +128,17 @@ function SingleEventContent({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-[var(--theme-accent)] transition-colors"
-                  onClick={() => trackEventClick(event.name, event.link!)}
+                  onClick={() => {
+                    trackEventClick(event.name, event.link!);
+                    trackEvent({
+                      event_id: event.id,
+                      event_name: event.name,
+                      event_type: 'click',
+                      conference,
+                      url: event.link!,
+                      source: 'map-popup',
+                    });
+                  }}
                 >
                   {event.name}
                 </a>
@@ -221,6 +235,7 @@ export function EventPopup({
   reactions,
   onToggleReaction,
   commentCount,
+  conference,
 }: EventPopupProps) {
   return (
     <Popup
@@ -244,6 +259,7 @@ export function EventPopup({
         reactions={reactions}
         onToggleReaction={onToggleReaction}
         commentCount={commentCount}
+        conference={conference}
       />
     </Popup>
   );

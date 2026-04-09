@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { AlertTriangle, Calendar, Download, ExternalLink, Star, X } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
+import { trackEvent } from '@/lib/event-tracking';
 import { AddressLink } from './AddressLink';
 import { TagBadge } from './TagBadge';
 import { EventCard } from './EventCard';
@@ -22,6 +23,7 @@ interface TableViewProps {
   reactionsByEvent?: Map<string, { emoji: ReactionEmoji; count: number; reacted: boolean }[]>;
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
   commentCounts?: Map<string, number>;
+  conference?: string;
 }
 
 /** Format a dateISO string like "2026-02-10" into "Mon Feb 10" */
@@ -66,6 +68,7 @@ export function TableView({
   reactionsByEvent,
   onToggleReaction,
   commentCounts,
+  conference,
 }: TableViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
@@ -313,6 +316,7 @@ export function TableView({
                 friendsCountByEvent={friendsCountByEvent}
                 checkInCounts={checkInCounts}
                 onSelectEvent={setSelectedEvent}
+                conference={conference}
               />
             ))}
           </tbody>
@@ -406,6 +410,7 @@ function DateGroup({
   friendsCountByEvent,
   checkInCounts,
   onSelectEvent,
+  conference,
 }: {
   group: { dateISO: string; label: string; events: ETHDenverEvent[] };
   itinerary?: Set<string>;
@@ -414,6 +419,7 @@ function DateGroup({
   friendsCountByEvent?: Map<string, number>;
   checkInCounts?: Map<string, number>;
   onSelectEvent: (event: ETHDenverEvent) => void;
+  conference?: string;
 }) {
   return (
     <>
@@ -511,7 +517,17 @@ function DateGroup({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:text-[var(--theme-accent)] transition-colors truncate"
-                    onClick={() => trackEventClick(event.name, event.link!)}
+                    onClick={() => {
+                      trackEventClick(event.name, event.link!);
+                      trackEvent({
+                        event_id: event.id,
+                        event_name: event.name,
+                        event_type: 'click',
+                        conference,
+                        url: event.link!,
+                        source: 'table',
+                      });
+                    }}
                   >
                     {event.name}
                   </a>

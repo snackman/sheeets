@@ -6,6 +6,7 @@ import { MapPin, Calendar, Users, X, Link, Check } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
 import { trackEventClick, trackCopyEventLink, trackFriendsGoingOpen, trackFriendsCheckedInOpen } from '@/lib/analytics';
 import { trackAdEvent } from '@/lib/ad-tracking';
+import { trackEvent } from '@/lib/event-tracking';
 import { formatFriendsText } from '@/lib/user-display';
 import { AddressLink } from './AddressLink';
 import { StarButton } from './StarButton';
@@ -127,6 +128,7 @@ export function EventCard({
   const [copied, setCopied] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const featuredImpressionTracked = useRef(false);
+  const eventImpressionTracked = useRef(false);
 
   // Track featured event impressions via IntersectionObserver
   useEffect(() => {
@@ -154,6 +156,32 @@ export function EventCard({
     observer.observe(el);
     return () => observer.disconnect();
   }, [event.id, event.name, event.isFeatured, conference]);
+
+  // Track event impressions via IntersectionObserver (all events in list view)
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el || eventImpressionTracked.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !eventImpressionTracked.current) {
+          eventImpressionTracked.current = true;
+          trackEvent({
+            event_id: event.id,
+            event_name: event.name,
+            event_type: 'impression',
+            conference,
+            source: 'list',
+          });
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [event.id, event.name, conference]);
 
   const handleCopyLink = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -194,6 +222,14 @@ export function EventCard({
                   className="hover:text-[var(--theme-accent)] active:text-[var(--theme-accent)] transition-colors"
                   onClick={() => {
                     trackEventClick(event.name, event.link!);
+                    trackEvent({
+                      event_id: event.id,
+                      event_name: event.name,
+                      event_type: 'click',
+                      conference,
+                      url: event.link!,
+                      source: 'list',
+                    });
                     if (event.isFeatured) {
                       trackAdEvent({
                         ad_id: `featured-${event.id}`,
