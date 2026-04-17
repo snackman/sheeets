@@ -121,7 +121,7 @@ export default async function Home() {
 
   return (
     <main
-      className="min-h-screen flex flex-col items-center px-4 py-16 sm:py-24"
+      className="min-h-screen flex flex-col items-center justify-center px-4 py-16 sm:py-24"
       style={{ backgroundColor: 'var(--theme-bg-primary)' }}
     >
       {/* Logo */}
