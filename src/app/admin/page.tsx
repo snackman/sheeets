@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Star, Search, Loader2, ArrowLeft, Plus, Trash2, Pencil, Save, X, GripVertical, Copy, MapPin, ChevronDown, FlaskConical, Play, Pause, Trophy, BarChart3, Eye, MousePointer, Download, ClipboardCopy, Check } from 'lucide-react';
+import { PlaceLookup } from '@/components/PlaceLookup';
 import { fetchEvents } from '@/lib/fetch-events';
 import { FALLBACK_TABS } from '@/lib/constants';
 import { THEME_OPTIONS, type ThemeId } from '@/lib/themes';
@@ -821,30 +822,11 @@ export default function AdminPage() {
                           />
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs text-stone-400 mb-1">Center Lat</label>
-                          <input
-                            type="number"
-                            step="0.0001"
-                            value={newConference.center.lat || ''}
-                            onChange={(e) => setNewConference({ ...newConference, center: { ...newConference.center, lat: Number(e.target.value) } })}
-                            placeholder="48.8566"
-                            className={inputClass}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-stone-400 mb-1">Center Lng</label>
-                          <input
-                            type="number"
-                            step="0.0001"
-                            value={newConference.center.lng || ''}
-                            onChange={(e) => setNewConference({ ...newConference, center: { ...newConference.center, lng: Number(e.target.value) } })}
-                            placeholder="2.3522"
-                            className={inputClass}
-                          />
-                        </div>
-                      </div>
+                      <PlaceLookup
+                        value={newConference.center}
+                        onChange={(center) => setNewConference({ ...newConference, center })}
+                        inputClass={inputClass}
+                      />
                       <div className="flex gap-2">
                         <button
                           onClick={() => {
@@ -1008,36 +990,15 @@ export default function AdminPage() {
                                         />
                                       </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                      <div>
-                                        <label className="block text-xs text-stone-400 mb-1">Center Lat</label>
-                                        <input
-                                          type="number"
-                                          step="0.0001"
-                                          value={conf.center.lat || ''}
-                                          onChange={(e) => {
-                                            const updated = [...conferences];
-                                            updated[idx] = { ...updated[idx], center: { ...updated[idx].center, lat: Number(e.target.value) } };
-                                            setConferences(updated);
-                                          }}
-                                          className={inputClass}
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-xs text-stone-400 mb-1">Center Lng</label>
-                                        <input
-                                          type="number"
-                                          step="0.0001"
-                                          value={conf.center.lng || ''}
-                                          onChange={(e) => {
-                                            const updated = [...conferences];
-                                            updated[idx] = { ...updated[idx], center: { ...updated[idx].center, lng: Number(e.target.value) } };
-                                            setConferences(updated);
-                                          }}
-                                          className={inputClass}
-                                        />
-                                      </div>
-                                    </div>
+                                    <PlaceLookup
+                                      value={conf.center}
+                                      onChange={(center) => {
+                                        const updated = [...conferences];
+                                        updated[idx] = { ...updated[idx], center };
+                                        setConferences(updated);
+                                      }}
+                                      inputClass={inputClass}
+                                    />
                                     <button
                                       onClick={() => { setEditingConfIdx(null); setShowGidDropdown(false); }}
                                       className="text-green-400 hover:text-green-300 cursor-pointer p-1 flex items-center gap-1 text-sm"
