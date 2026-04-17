@@ -59,6 +59,9 @@ export async function GET(req: NextRequest) {
       impressions: Number(row.impressions),
       unique_impressions: Number(row.unique_impressions),
       pin_clicks: Number(row.pin_clicks),
+      list_clicks: Number(row.list_clicks || 0),
+      table_clicks: Number(row.table_clicks || 0),
+      map_popup_clicks: Number(row.map_popup_clicks || 0),
       ctr: Number(row.ctr),
       first_seen: row.first_seen as string,
       last_seen: row.last_seen as string,
@@ -68,6 +71,9 @@ export async function GET(req: NextRequest) {
   const totalClicks = events.reduce((sum, e) => sum + e.clicks, 0);
   const totalImpressions = events.reduce((sum, e) => sum + e.impressions, 0);
   const totalPinClicks = events.reduce((sum, e) => sum + e.pin_clicks, 0);
+  const totalListClicks = events.reduce((sum, e) => sum + e.list_clicks, 0);
+  const totalTableClicks = events.reduce((sum, e) => sum + e.table_clicks, 0);
+  const totalMapPopupClicks = events.reduce((sum, e) => sum + e.map_popup_clicks, 0);
 
   return NextResponse.json({
     events,
@@ -75,6 +81,9 @@ export async function GET(req: NextRequest) {
       clicks: totalClicks,
       impressions: totalImpressions,
       pinClicks: totalPinClicks,
+      listClicks: totalListClicks,
+      tableClicks: totalTableClicks,
+      mapPopupClicks: totalMapPopupClicks,
       ctr: totalImpressions > 0 ? Math.round((totalClicks / totalImpressions) * 10000) / 100 : 0,
     },
     period: { start: startISO, end: endISO },
