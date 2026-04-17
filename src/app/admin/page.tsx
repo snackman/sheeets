@@ -210,13 +210,16 @@ export default function AdminPage() {
     impressions: number;
     unique_impressions: number;
     pin_clicks: number;
+    list_clicks: number;
+    table_clicks: number;
+    map_popup_clicks: number;
     ctr: number;
     first_seen: string;
     last_seen: string;
   }
   interface EventReportData {
     events: EventReportRow[];
-    totals: { clicks: number; impressions: number; pinClicks: number; ctr: number };
+    totals: { clicks: number; impressions: number; pinClicks: number; listClicks: number; tableClicks: number; mapPopupClicks: number; ctr: number };
     period: { start: string; end: string };
   }
   const [eventReport, setEventReport] = useState<EventReportData | null>(null);
@@ -3172,8 +3175,10 @@ export default function AdminPage() {
                           <th className="py-2 pr-4">Event Name</th>
                           <th className="py-2 pr-4">Conference</th>
                           <th className="py-2 pr-4 text-right">Clicks</th>
-                          <th className="py-2 pr-4 text-right">Unique</th>
-                          <th className="py-2 pr-4 text-right">Pin Clicks</th>
+                          <th className="py-2 pr-4 text-right">List</th>
+                          <th className="py-2 pr-4 text-right">Table</th>
+                          <th className="py-2 pr-4 text-right">Map</th>
+                          <th className="py-2 pr-4 text-right">Pin</th>
                           <th className="py-2 pr-4 text-right">Impressions</th>
                           <th className="py-2 pr-4 text-right">CTR</th>
                           <th className="py-2 text-right">Last Seen</th>
@@ -3191,8 +3196,10 @@ export default function AdminPage() {
                             <td className="py-2 pr-4 font-medium max-w-[250px] truncate" title={ev.event_name}>{ev.event_name}</td>
                             <td className="py-2 pr-4 text-stone-400 text-xs max-w-[150px] truncate" title={ev.conference}>{ev.conference}</td>
                             <td className="py-2 pr-4 text-right tabular-nums">{ev.clicks.toLocaleString()}</td>
-                            <td className="py-2 pr-4 text-right tabular-nums text-stone-400">{ev.unique_clicks.toLocaleString()}</td>
-                            <td className="py-2 pr-4 text-right tabular-nums">{ev.pin_clicks.toLocaleString()}</td>
+                            <td className="py-2 pr-4 text-right tabular-nums text-stone-400">{ev.list_clicks.toLocaleString()}</td>
+                            <td className="py-2 pr-4 text-right tabular-nums text-stone-400">{ev.table_clicks.toLocaleString()}</td>
+                            <td className="py-2 pr-4 text-right tabular-nums text-stone-400">{ev.map_popup_clicks.toLocaleString()}</td>
+                            <td className="py-2 pr-4 text-right tabular-nums text-stone-400">{ev.pin_clicks.toLocaleString()}</td>
                             <td className="py-2 pr-4 text-right tabular-nums">{ev.impressions.toLocaleString()}</td>
                             <td className="py-2 pr-4 text-right tabular-nums font-medium text-amber-400">{ev.ctr.toFixed(2)}%</td>
                             <td className="py-2 text-right text-stone-400 text-xs whitespace-nowrap">{ev.last_seen ? new Date(ev.last_seen).toLocaleDateString() : '-'}</td>
@@ -3202,8 +3209,10 @@ export default function AdminPage() {
                         <tr className="border-t-2 border-stone-600 text-white font-bold">
                           <td className="py-2 pr-4" colSpan={2}>Total</td>
                           <td className="py-2 pr-4 text-right tabular-nums">{eventReport.totals.clicks.toLocaleString()}</td>
-                          <td className="py-2 pr-4"></td>
-                          <td className="py-2 pr-4 text-right tabular-nums">{eventReport.totals.pinClicks.toLocaleString()}</td>
+                          <td className="py-2 pr-4 text-right tabular-nums text-stone-400">{eventReport.totals.listClicks.toLocaleString()}</td>
+                          <td className="py-2 pr-4 text-right tabular-nums text-stone-400">{eventReport.totals.tableClicks.toLocaleString()}</td>
+                          <td className="py-2 pr-4 text-right tabular-nums text-stone-400">{eventReport.totals.mapPopupClicks.toLocaleString()}</td>
+                          <td className="py-2 pr-4 text-right tabular-nums text-stone-400">{eventReport.totals.pinClicks.toLocaleString()}</td>
                           <td className="py-2 pr-4 text-right tabular-nums">{eventReport.totals.impressions.toLocaleString()}</td>
                           <td className="py-2 pr-4 text-right tabular-nums text-amber-400">{eventReport.totals.ctr.toFixed(2)}%</td>
                           <td className="py-2"></td>
@@ -3226,11 +3235,11 @@ export default function AdminPage() {
                           : eventReportSort === 'pin_clicks' ? b.pin_clicks - a.pin_clicks
                           : b.clicks - a.clicks
                         );
-                        const header = 'Event Name,Conference,Clicks,Unique Clicks,Pin Clicks,Impressions,Unique Impressions,CTR,Last Seen';
+                        const header = 'Event Name,Conference,Clicks,List,Table,Map Popup,Pin Clicks,Impressions,Unique Impressions,CTR,Last Seen';
                         const rows = sorted.map(ev =>
-                          `"${ev.event_name}","${ev.conference}",${ev.clicks},${ev.unique_clicks},${ev.pin_clicks},${ev.impressions},${ev.unique_impressions},${ev.ctr},"${ev.last_seen ? new Date(ev.last_seen).toLocaleDateString() : ''}"`
+                          `"${ev.event_name}","${ev.conference}",${ev.clicks},${ev.list_clicks},${ev.table_clicks},${ev.map_popup_clicks},${ev.pin_clicks},${ev.impressions},${ev.unique_impressions},${ev.ctr},"${ev.last_seen ? new Date(ev.last_seen).toLocaleDateString() : ''}"`
                         );
-                        rows.push(`"Total","",${eventReport.totals.clicks},,${eventReport.totals.pinClicks},${eventReport.totals.impressions},,${eventReport.totals.ctr},`);
+                        rows.push(`"Total","",${eventReport.totals.clicks},${eventReport.totals.listClicks},${eventReport.totals.tableClicks},${eventReport.totals.mapPopupClicks},${eventReport.totals.pinClicks},${eventReport.totals.impressions},,${eventReport.totals.ctr},`);
                         const csv = [header, ...rows].join('\n');
                         const blob = new Blob([csv], { type: 'text/csv' });
                         const url = URL.createObjectURL(blob);
@@ -3265,6 +3274,7 @@ export default function AdminPage() {
                         for (const ev of sorted) {
                           report += `${ev.event_name}${ev.conference ? ` (${ev.conference})` : ''}\n`;
                           report += `  Clicks: ${ev.clicks.toLocaleString()} (${ev.unique_clicks.toLocaleString()} unique)\n`;
+                          report += `    List: ${ev.list_clicks.toLocaleString()} | Table: ${ev.table_clicks.toLocaleString()} | Map: ${ev.map_popup_clicks.toLocaleString()}\n`;
                           report += `  Pin Clicks: ${ev.pin_clicks.toLocaleString()}\n`;
                           report += `  Impressions: ${ev.impressions.toLocaleString()} (${ev.unique_impressions.toLocaleString()} unique)\n`;
                           report += `  CTR: ${ev.ctr.toFixed(2)}%\n\n`;
@@ -3272,6 +3282,7 @@ export default function AdminPage() {
 
                         report += `[Total across all events]\n`;
                         report += `  Clicks: ${eventReport.totals.clicks.toLocaleString()}\n`;
+                        report += `    List: ${eventReport.totals.listClicks.toLocaleString()} | Table: ${eventReport.totals.tableClicks.toLocaleString()} | Map: ${eventReport.totals.mapPopupClicks.toLocaleString()}\n`;
                         report += `  Pin Clicks: ${eventReport.totals.pinClicks.toLocaleString()}\n`;
                         report += `  Impressions: ${eventReport.totals.impressions.toLocaleString()}\n`;
                         report += `  CTR: ${eventReport.totals.ctr.toFixed(2)}%\n\n`;
