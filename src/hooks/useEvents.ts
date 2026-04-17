@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { ETHDenverEvent } from '@/lib/types';
 import { fetchEvents, GeoAddressMap } from '@/lib/fetch-events';
+import type { TabConfig } from '@/lib/conferences';
+import { FALLBACK_TABS } from '@/lib/conferences';
 
 async function fetchRuntimeAddresses(): Promise<GeoAddressMap> {
   try {
@@ -15,6 +17,17 @@ async function fetchRuntimeAddresses(): Promise<GeoAddressMap> {
   }
 }
 
+async function fetchDynamicTabs(): Promise<TabConfig[]> {
+  try {
+    const res = await fetch('/api/conferences');
+    if (!res.ok) return FALLBACK_TABS;
+    const data = await res.json();
+    return Array.isArray(data) && data.length > 0 ? data : FALLBACK_TABS;
+  } catch {
+    return FALLBACK_TABS;
+  }
+}
+
 export function useEvents() {
   const [events, setEvents] = useState<ETHDenverEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,10 +36,11 @@ export function useEvents() {
   useEffect(() => {
     async function load() {
       try {
-        // Fetch runtime geocoded addresses first (fast, small payload),
-        // then pass them to fetchEvents so it can merge them with the static cache
-        const runtimeAddresses = await fetchRuntimeAddresses();
-        const data = await fetchEvents(runtimeAddresses);
+        const [runtimeAddresses, tabs] = await Promise.all([
+          fetchRuntimeAddresses(),
+          fetchDynamicTabs(),
+        ]);
+        const data = await fetchEvents(runtimeAddresses, tabs);
         setEvents(data);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load events');
