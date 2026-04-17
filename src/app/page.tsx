@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import { getConferenceTabs } from '@/lib/get-conferences';
+import { fetchEventsCached } from '@/lib/fetch-events-cached';
 import type { TabConfig } from '@/lib/conferences';
 
 export const metadata = {
@@ -63,6 +64,14 @@ function getCity(tab: TabConfig): string {
 
 export default async function Home() {
   const tabs = await getConferenceTabs();
+  const allEvents = await fetchEventsCached();
+
+  // Count events per conference
+  const eventCounts = new Map<string, number>();
+  for (const event of allEvents) {
+    eventCounts.set(event.conference, (eventCounts.get(event.conference) || 0) + 1);
+  }
+
 
   return (
     <main
@@ -94,6 +103,7 @@ export default async function Home() {
         {tabs.map((tab) => {
           const city = getCity(tab);
           const dateRange = formatDateRange(tab.dates);
+          const count = eventCounts.get(tab.name) || 0;
 
           return (
             <a
@@ -130,6 +140,16 @@ export default async function Home() {
                   style={{ color: 'var(--theme-text-muted)' }}
                 >
                   {city}
+                </p>
+              )}
+
+              {/* Event count */}
+              {count > 0 && (
+                <p
+                  className="text-sm font-medium mt-3"
+                  style={{ color: 'var(--theme-accent)' }}
+                >
+                  {count} events
                 </p>
               )}
             </a>
