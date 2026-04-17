@@ -1,4 +1,7 @@
--- Update event tracking RPC to include per-source click breakdown
+-- Drop existing function first (return type changed)
+DROP FUNCTION IF EXISTS get_event_tracking_report(timestamptz, timestamptz, text);
+
+-- Recreate with per-source click breakdown columns
 CREATE OR REPLACE FUNCTION get_event_tracking_report(
   p_start_date timestamptz,
   p_end_date timestamptz,
