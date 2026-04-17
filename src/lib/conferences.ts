@@ -64,7 +64,7 @@ export function conferenceToTab(conf: ConferenceConfig): TabConfig {
 export const FALLBACK_TABS: TabConfig[] = [
   {
     gid: 1604258025,
-    name: 'PBW 2026',
+    name: 'Paris Blockchain Week 2026',
     slug: 'pbw',
     timezone: 'Europe/Paris',
     dates: [
