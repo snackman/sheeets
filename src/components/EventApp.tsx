@@ -53,6 +53,15 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
     activeFilterCount,
   } = useFilters(initialConference, conferenceTabs);
 
+  // Re-apply conference date range once dynamic tabs load
+  // (fixes dates for conferences not in FALLBACK_TABS, e.g. Toronto Tech Week)
+  useEffect(() => {
+    if (initialConference && conferenceTabs.some(t => t.name === initialConference)) {
+      setConference(initialConference);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conferenceTabs]);
+
   const {
     viewMode,
     setViewMode,
