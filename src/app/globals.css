@@ -506,7 +506,7 @@ input, select, textarea {
 
 /* Sponsors ticker horizontal scroll */
 .sponsors-scroll {
-  animation: sponsors-scroll-left 62s linear infinite;
+  animation: sponsors-scroll-left 83s linear infinite;
 }
 .sponsors-scroll:hover {
   animation-play-state: paused;

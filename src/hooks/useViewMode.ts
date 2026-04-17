@@ -8,22 +8,17 @@ import { STORAGE_KEYS } from '@/lib/storage-keys';
  * Manages view mode (map/list/table) with localStorage persistence.
  * Returns the current mode, setter, restored flag, and scroll-tracking refs.
  */
-export function useViewMode() {
-  const [viewMode, setViewMode] = useState<ViewMode>('map');
-  const [viewRestored, setViewRestored] = useState(false);
-  const [contentScrolled, setContentScrolled] = useState(false);
+function getInitialViewMode(): ViewMode {
+  if (typeof window === 'undefined') return 'map';
+  const saved = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
+  if (saved === 'map' || saved === 'list' || saved === 'table') return saved;
+  return window.innerWidth >= 768 ? 'table' : 'list';
+}
 
-  // Restore view mode from localStorage on mount (after hydration)
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
-    if (saved === 'map' || saved === 'list' || saved === 'table') {
-      setViewMode(saved);
-    } else {
-      // Default: table on desktop, list on mobile
-      setViewMode(window.innerWidth >= 768 ? 'table' : 'list');
-    }
-    setViewRestored(true);
-  }, []);
+export function useViewMode() {
+  const [viewMode, setViewMode] = useState<ViewMode>(getInitialViewMode);
+  const [viewRestored] = useState(true);
+  const [contentScrolled, setContentScrolled] = useState(false);
 
   // Persist view mode to localStorage (skip the initial restore)
   useEffect(() => {

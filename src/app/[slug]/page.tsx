@@ -7,6 +7,9 @@ import { getAllConferenceTabs } from '@/lib/get-conferences';
 import { fetchEventsCached } from '@/lib/fetch-events-cached';
 import { buildCollectionPageJsonLd, buildBreadcrumbJsonLd } from '@/lib/json-ld';
 
+// Revalidate every 60s so new conferences/events appear without a redeploy
+export const revalidate = 60;
+
 export function generateStaticParams() {
   // Use fallback tabs for build-time static generation (guaranteed)
   return FALLBACK_TABS.map((tab) => ({ slug: tab.slug }));

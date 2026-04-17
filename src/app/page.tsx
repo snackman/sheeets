@@ -6,6 +6,9 @@ import type { TabConfig } from '@/lib/conferences';
 import type { ConferenceConfig } from '@/lib/types';
 import { NotifyForm } from '@/components/NotifyForm';
 
+// Revalidate every 60s so new conferences appear without a redeploy
+export const revalidate = 60;
+
 export const metadata = {
   title: 'plan.wtf — Conference Side Events',
   description:
