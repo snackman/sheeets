@@ -258,7 +258,21 @@ export default function AdminPage() {
         setNativeAds(data.native_ads || []);
         setUpsellCopy(data.upsell_copy || { heading: '', body: '', cta_text: '', cta_url: '' });
         setAbTests((data.ab_tests as ABTest[]) || []);
-        setConferences((data.conferences as ConferenceConfig[]) || []);
+        const savedConfs = (data.conferences as ConferenceConfig[]) || [];
+        if (savedConfs.length > 0) {
+          setConferences(savedConfs);
+        } else {
+          // Pre-populate from fallback tabs so admin sees existing conferences
+          setConferences(FALLBACK_TABS.map(t => ({
+            gid: t.gid,
+            name: t.name,
+            slug: t.slug,
+            timezone: t.timezone,
+            startDate: t.dates[0],
+            endDate: t.dates[t.dates.length - 1],
+            center: t.center,
+          })));
+        }
       })
       .catch(() => {})
       .finally(() => setConfigLoading(false));
