@@ -8,6 +8,7 @@ interface NotifyFormProps {
 }
 
 export function NotifyForm({ conferenceSlug, conferenceName }: NotifyFormProps) {
+  const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
@@ -46,31 +47,89 @@ export function NotifyForm({ conferenceSlug, conferenceName }: NotifyFormProps) 
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-3 flex gap-2">
-      <input
-        type="email"
-        placeholder="your@email.com"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-        className="flex-1 min-w-0 px-3 py-1.5 rounded-lg text-sm outline-none"
-        style={{
-          backgroundColor: 'var(--theme-bg-primary)',
-          color: 'var(--theme-text-primary)',
-          border: '1px solid var(--theme-border-primary)',
-        }}
-      />
+    <>
       <button
-        type="submit"
-        disabled={status === 'loading'}
-        className="px-3 py-1.5 rounded-lg text-sm font-medium shrink-0 transition-opacity disabled:opacity-50"
+        onClick={() => setOpen(true)}
+        className="mt-3 px-4 py-1.5 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 cursor-pointer"
         style={{
           backgroundColor: 'var(--theme-accent)',
           color: 'var(--theme-bg-primary)',
         }}
       >
-        {status === 'loading' ? '...' : 'Notify Me'}
+        Notify Me
       </button>
-    </form>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl p-6 shadow-2xl"
+            style={{
+              backgroundColor: 'var(--theme-bg-secondary)',
+              border: '1px solid var(--theme-border-primary)',
+            }}
+          >
+            <h3
+              className="text-lg font-semibold mb-1"
+              style={{ color: 'var(--theme-text-primary)' }}
+            >
+              Get Notified
+            </h3>
+            <p
+              className="text-sm mb-4"
+              style={{ color: 'var(--theme-text-secondary)' }}
+            >
+              We&apos;ll email you when {conferenceName} events are posted.
+            </p>
+
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <input
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoFocus
+                className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+                style={{
+                  backgroundColor: 'var(--theme-bg-primary)',
+                  color: 'var(--theme-text-primary)',
+                  border: '1px solid var(--theme-border-primary)',
+                }}
+              />
+
+              {status === 'error' && (
+                <p className="text-xs text-red-400">Something went wrong. Please try again.</p>
+              )}
+
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="px-4 py-2 rounded-lg text-sm cursor-pointer transition-colors"
+                  style={{ color: 'var(--theme-text-secondary)' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={status === 'loading'}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-opacity disabled:opacity-50 cursor-pointer"
+                  style={{
+                    backgroundColor: 'var(--theme-accent)',
+                    color: 'var(--theme-bg-primary)',
+                  }}
+                >
+                  {status === 'loading' ? 'Submitting...' : 'Notify Me'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
