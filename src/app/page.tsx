@@ -229,29 +229,27 @@ export default async function Home() {
                     borderColor: 'var(--theme-border-primary)',
                   }}
                 >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3
-                      className="text-lg font-semibold transition-colors duration-200"
-                      style={{ color: 'var(--theme-text-primary)' }}
+                  <h3
+                    className="text-lg font-semibold transition-colors duration-200 mb-1"
+                    style={{ color: 'var(--theme-text-primary)' }}
+                  >
+                    <span className="group-hover:text-[var(--theme-accent)]">{tab.name}</span>
+                  </h3>
+                  {daysLabel && (
+                    <span
+                      className="inline-block text-xs font-medium px-2 py-0.5 rounded-full mb-2"
+                      style={{
+                        backgroundColor: daysLabel === 'Happening now'
+                          ? 'var(--theme-accent)'
+                          : 'var(--theme-bg-primary)',
+                        color: daysLabel === 'Happening now'
+                          ? 'var(--theme-bg-primary)'
+                          : 'var(--theme-text-secondary)',
+                      }}
                     >
-                      <span className="group-hover:text-[var(--theme-accent)]">{tab.name}</span>
-                    </h3>
-                    {daysLabel && (
-                      <span
-                        className="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full"
-                        style={{
-                          backgroundColor: daysLabel === 'Happening now'
-                            ? 'var(--theme-accent)'
-                            : 'var(--theme-bg-primary)',
-                          color: daysLabel === 'Happening now'
-                            ? 'var(--theme-bg-primary)'
-                            : 'var(--theme-text-secondary)',
-                        }}
-                      >
-                        {daysLabel}
-                      </span>
-                    )}
-                  </div>
+                      {daysLabel}
+                    </span>
+                  )}
 
                   {dateRange && (
                     <p className="text-sm mb-1" style={{ color: 'var(--theme-text-secondary)' }}>
@@ -305,25 +303,23 @@ export default async function Home() {
                     borderColor: 'var(--theme-border-primary)',
                   }}
                 >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3
-                      className="text-lg font-semibold"
-                      style={{ color: 'var(--theme-text-primary)' }}
+                  <h3
+                    className="text-lg font-semibold mb-1"
+                    style={{ color: 'var(--theme-text-primary)' }}
+                  >
+                    {conf.name}
+                  </h3>
+                  {daysLabel && (
+                    <span
+                      className="inline-block text-xs font-medium px-2 py-0.5 rounded-full mb-2"
+                      style={{
+                        backgroundColor: 'var(--theme-bg-primary)',
+                        color: 'var(--theme-text-secondary)',
+                      }}
                     >
-                      {conf.name}
-                    </h3>
-                    {daysLabel && (
-                      <span
-                        className="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full"
-                        style={{
-                          backgroundColor: 'var(--theme-bg-primary)',
-                          color: 'var(--theme-text-secondary)',
-                        }}
-                      >
-                        {daysLabel}
-                      </span>
-                    )}
-                  </div>
+                      {daysLabel}
+                    </span>
+                  )}
 
                   {dateRange && (
                     <p className="text-sm mb-1" style={{ color: 'var(--theme-text-secondary)' }}>
