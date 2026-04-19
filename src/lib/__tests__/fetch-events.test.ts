@@ -21,7 +21,7 @@ describe('generateEventId', () => {
 
   it('produces different IDs for different conferences', () => {
     const a = generateEventId('PBW 2026', 'Sat, Apr 11', '9:00a', 'Keynote');
-    const b = generateEventId('Bitcoin Vegas 2026', 'Sat, Apr 11', '9:00a', 'Keynote');
+    const b = generateEventId('Bitcoin Vegas', 'Sat, Apr 11', '9:00a', 'Keynote');
     expect(a).not.toBe(b);
   });
 

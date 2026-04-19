@@ -59,14 +59,14 @@ describe('conferences', () => {
       expect(tab.slug).toBe('pbw');
     });
 
-    it('returns correct tab for Bitcoin Vegas 2026', () => {
-      const tab = getTabConfig('Bitcoin Vegas 2026');
-      expect(tab.name).toBe('Bitcoin Vegas 2026');
+    it('returns correct tab for Bitcoin Vegas', () => {
+      const tab = getTabConfig('Bitcoin Vegas');
+      expect(tab.name).toBe('Bitcoin Vegas');
       expect(tab.timezone).toBe('America/Los_Angeles');
     });
 
-    it('returns correct tab for Consensus Miami 2026', () => {
-      const tab = getTabConfig('Consensus Miami 2026');
+    it('returns correct tab for Consensus Miami', () => {
+      const tab = getTabConfig('Consensus Miami');
       expect(tab.slug).toBe('consensus');
       expect(tab.timezone).toBe('America/New_York');
     });
@@ -98,7 +98,7 @@ describe('conferences', () => {
     it('finds tab by mixed case slug', () => {
       const tab = getTabBySlug('Bitcoin');
       expect(tab).toBeDefined();
-      expect(tab!.name).toBe('Bitcoin Vegas 2026');
+      expect(tab!.name).toBe('Bitcoin Vegas');
     });
 
     it('returns undefined for unknown slug', () => {
@@ -114,7 +114,7 @@ describe('conferences', () => {
     it('finds consensus tab', () => {
       const tab = getTabBySlug('consensus');
       expect(tab).toBeDefined();
-      expect(tab!.name).toBe('Consensus Miami 2026');
+      expect(tab!.name).toBe('Consensus Miami');
     });
   });
 

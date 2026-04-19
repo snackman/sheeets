@@ -39,9 +39,9 @@ describe('applyFilters', () => {
     it('returns only Bitcoin Vegas events', () => {
       const result = applyFilters(
         sampleEvents,
-        makeFilters({ conference: 'Bitcoin Vegas 2026' }),
+        makeFilters({ conference: 'Bitcoin Vegas' }),
       );
-      expect(result.every((e) => e.conference === 'Bitcoin Vegas 2026')).toBe(true);
+      expect(result.every((e) => e.conference === 'Bitcoin Vegas')).toBe(true);
     });
 
     it('returns empty array for non-existent conference', () => {
@@ -76,7 +76,7 @@ describe('applyFilters', () => {
         }),
       );
       // Should only include Consensus Miami events (May 3-7)
-      expect(result.every((e) => e.conference === 'Consensus Miami 2026')).toBe(true);
+      expect(result.every((e) => e.conference === 'Consensus Miami')).toBe(true);
     });
 
     it('includes all-day events that overlap with the filter range', () => {
@@ -291,7 +291,7 @@ describe('applyFilters', () => {
       const result = applyFilters(
         sampleEvents,
         makeFilters({
-          conference: 'Consensus Miami 2026',
+          conference: 'Consensus Miami',
           searchQuery: 'yoga',
         }),
       );

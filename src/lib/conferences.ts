@@ -75,7 +75,7 @@ export const FALLBACK_TABS: TabConfig[] = [
   },
   {
     gid: 1002070994,
-    name: 'Bitcoin Vegas 2026',
+    name: 'Bitcoin Vegas',
     slug: 'bitcoin',
     timezone: 'America/Los_Angeles',
     dates: [
@@ -86,7 +86,7 @@ export const FALLBACK_TABS: TabConfig[] = [
   },
   {
     gid: 2092019144,
-    name: 'Consensus Miami 2026',
+    name: 'Consensus Miami',
     slug: 'consensus',
     timezone: 'America/New_York',
     dates: [
