@@ -165,6 +165,16 @@ export interface NativeAd {
   };
 }
 
+export interface SidebarAd {
+  id: string;
+  title: string;          // Alt text / tooltip
+  imageUrl: string;       // Full image URL (300px wide creative)
+  link: string;           // Click-through URL
+  conference: string;     // Per-conference targeting (or 'all')
+  active: boolean;
+  sortOrder: number;      // For manual ordering
+}
+
 export interface UpsellCopy {
   heading: string;
   body: string;
@@ -211,6 +221,7 @@ export interface AdminConfig {
   sponsors: SponsorEntry[];
   sponsors_cta: { text: string };
   native_ads: NativeAd[];
+  sidebar_ads?: SidebarAd[];
   upsell_copy: UpsellCopy;
   ad_inventory?: AdInventoryItem[];
   advertise_page?: AdvertisePageConfig;

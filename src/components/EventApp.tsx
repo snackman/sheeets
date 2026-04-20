@@ -32,9 +32,11 @@ import { AuthModal } from './AuthModal';
 import { SubmitEventModal } from './SubmitEventModal';
 import { FriendsPanel } from './FriendsPanel';
 import { SponsorsTicker } from './SponsorsTicker';
+import SidebarAdColumn from './SidebarAdColumn';
 import { OnboardingWizard } from './OnboardingWizard';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { getTabConfig } from '@/lib/conferences';
+import type { SidebarAd } from '@/lib/types';
 
 export function EventApp({ initialConference }: { initialConference?: string }) {
   const { config } = useAdminConfig();
@@ -170,6 +172,14 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
     () => resolveItemVariants(config?.native_ads || [], visitorId),
     [config?.native_ads, visitorId]
   );
+
+  // Sidebar ads: filter by current conference and active status
+  const filteredSidebarAds = useMemo(() => {
+    const allSidebarAds = (config?.sidebar_ads || []) as SidebarAd[];
+    return allSidebarAds
+      .filter(ad => ad.active && (!ad.conference || ad.conference === '' || ad.conference === 'all' || ad.conference === filters.conference))
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [config?.sidebar_ads, filters.conference]);
 
   // A/B Testing: find running tests by placement
   const abTests = useMemo(() => {
@@ -396,22 +406,25 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
           />
         </main>
       ) : viewMode === 'table' ? (
-        <main className="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
-          <TableView
-            events={filteredEvents}
-            totalCount={conferenceEventCount}
-            itinerary={itinerary}
-            onItineraryToggle={handleItineraryToggle}
-            onScrolledChange={setContentScrolled}
-            friendsCountByEvent={friendsCountByEvent}
-            friendsByEvent={friendsByEvent}
-            checkedInFriendsByEvent={checkedInFriendsByEvent}
-            checkInCounts={checkInCounts}
-            reactionsByEvent={reactionsByEvent}
-            onToggleReaction={handleToggleReaction}
-            commentCounts={commentCounts}
-            conference={filters.conference}
-          />
+        <main className="flex-1 min-h-0 min-w-0 flex overflow-hidden">
+          <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+            <TableView
+              events={filteredEvents}
+              totalCount={conferenceEventCount}
+              itinerary={itinerary}
+              onItineraryToggle={handleItineraryToggle}
+              onScrolledChange={setContentScrolled}
+              friendsCountByEvent={friendsCountByEvent}
+              friendsByEvent={friendsByEvent}
+              checkedInFriendsByEvent={checkedInFriendsByEvent}
+              checkInCounts={checkInCounts}
+              reactionsByEvent={reactionsByEvent}
+              onToggleReaction={handleToggleReaction}
+              commentCounts={commentCounts}
+              conference={filters.conference}
+            />
+          </div>
+          <SidebarAdColumn ads={filteredSidebarAds} conference={filters.conference} />
         </main>
       ) : (
         <main ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto">

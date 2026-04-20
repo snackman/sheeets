@@ -131,6 +131,24 @@ const DEFAULT_INVENTORY: AdInventoryItem[] = [
     sortOrder: 4,
   },
   {
+    id: 'sidebar-image-ad',
+    title: 'Sidebar Image Ad',
+    slug: 'sidebar-image-ad',
+    description:
+      'Fixed 300px image ad in the right sidebar of the table view on desktop. Always visible while users browse events -- premium visibility with IAB-standard sizing.',
+    price: 'From $400',
+    priceNote: 'per conference',
+    stats: 'Desktop xl+ breakpoint',
+    features: [
+      '300px wide image creative',
+      'Sticky sidebar placement',
+      'Impression & click tracking',
+      'Per-conference targeting',
+    ],
+    available: true,
+    sortOrder: 5,
+  },
+  {
     id: 'itinerary-banner',
     title: 'Itinerary Sponsor Banner',
     slug: 'itinerary-banner',
@@ -145,7 +163,7 @@ const DEFAULT_INVENTORY: AdInventoryItem[] = [
       'Full-width banner format',
     ],
     available: true,
-    sortOrder: 5,
+    sortOrder: 6,
   },
   {
     id: 'custom-package',
