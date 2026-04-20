@@ -218,6 +218,25 @@ export interface AdminConfig {
 }
 
 /* ------------------------------------------------------------------ */
+/* Event Sponsors (crawled from event pages)                           */
+/* ------------------------------------------------------------------ */
+
+export interface EventSponsor {
+  id: number;
+  event_id: string;
+  event_name: string;
+  event_url: string;
+  conference: string;
+  sponsor_name: string;
+  sponsor_url: string | null;
+  sponsor_logo_url: string | null;
+  sponsor_type: 'sponsor' | 'partner' | 'presenter' | 'host';
+  confidence: 'high' | 'medium' | 'low';
+  extraction_method: 'api' | 'json-ld' | 'html-section' | 'description';
+  crawled_at: string;
+}
+
+/* ------------------------------------------------------------------ */
 /* A/B Testing                                                         */
 /* ------------------------------------------------------------------ */
 
