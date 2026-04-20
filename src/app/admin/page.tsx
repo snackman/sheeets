@@ -7,19 +7,20 @@ import { fetchEvents } from '@/lib/fetch-events';
 import { FALLBACK_TABS } from '@/lib/constants';
 import { THEME_OPTIONS, type ThemeId } from '@/lib/themes';
 import type { ETHDenverEvent } from '@/lib/types';
-import type { AdminConfig, SponsorEntry, NativeAd, UpsellCopy, AdInventoryItem, AdvertisePageConfig, ABTest, ABTestVariant, ABTestStatus, ABVariantResult, ConferenceConfig } from '@/lib/types';
+import type { AdminConfig, SponsorEntry, NativeAd, SidebarAd, UpsellCopy, AdInventoryItem, AdvertisePageConfig, ABTest, ABTestVariant, ABTestStatus, ABVariantResult, ConferenceConfig } from '@/lib/types';
 import { isConferencePast, conferenceToTab } from '@/lib/conferences';
 import type { TabConfig } from '@/lib/conferences';
 
 const SESSION_KEY = 'sheeets-admin-auth';
 
-type AdminTab = 'featured' | 'conferences' | 'sponsors' | 'nativeAds' | 'upsell' | 'adInventory' | 'theme' | 'abTests' | 'adReports' | 'eventAnalytics';
+type AdminTab = 'featured' | 'conferences' | 'sponsors' | 'nativeAds' | 'sidebarAds' | 'upsell' | 'adInventory' | 'theme' | 'abTests' | 'adReports' | 'eventAnalytics';
 
 const TAB_LABELS: { key: AdminTab; label: string }[] = [
   { key: 'featured', label: 'Featured' },
   { key: 'conferences', label: 'Conferences' },
   { key: 'sponsors', label: 'Sponsors' },
   { key: 'nativeAds', label: 'Native Ads' },
+  { key: 'sidebarAds', label: 'Sidebar Ads' },
   { key: 'upsell', label: 'Upsell Copy' },
   { key: 'adInventory', label: 'Ad Inventory' },
   { key: 'theme', label: 'Theme' },
@@ -121,6 +122,12 @@ export default function AdminPage() {
   const [editingAdId, setEditingAdId] = useState<string | null>(null);
   const [adDragIndex, setAdDragIndex] = useState<number | null>(null);
   const [adDragOverIndex, setAdDragOverIndex] = useState<number | null>(null);
+
+  // Sidebar Ads state
+  const [sidebarAds, setSidebarAds] = useState<SidebarAd[]>([]);
+  const [editingSidebarAdId, setEditingSidebarAdId] = useState<string | null>(null);
+  const [sidebarAdDragIndex, setSidebarAdDragIndex] = useState<number | null>(null);
+  const [sidebarAdDragOverIndex, setSidebarAdDragOverIndex] = useState<number | null>(null);
 
   // Per-card A/B variant view state
   const [abVariantView, setAbVariantView] = useState<Record<number, 'a' | 'b'>>({});
@@ -256,6 +263,7 @@ export default function AdminPage() {
         setAdminConfig(data);
         setSponsors(data.sponsors || []);
         setNativeAds(data.native_ads || []);
+        setSidebarAds((data.sidebar_ads as SidebarAd[]) || []);
         setUpsellCopy(data.upsell_copy || { heading: '', body: '', cta_text: '', cta_url: '' });
         setAbTests((data.ab_tests as ABTest[]) || []);
         const savedConfs = (data.conferences as ConferenceConfig[]) || [];
@@ -1660,6 +1668,223 @@ export default function AdminPage() {
                 >
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                   Save Native Ads
+                </button>
+
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Tab: Sidebar Ads */}
+        {activeTab === 'sidebarAds' && (
+          <div className="space-y-6">
+            {configLoading ? (
+              <div className="flex items-center justify-center py-20 gap-2 text-stone-400">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Loading config...
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-white">Sidebar Ads ({sidebarAds.length})</h3>
+                  <button
+                    onClick={() => {
+                      const newAd: SidebarAd = {
+                        id: crypto.randomUUID(),
+                        title: '',
+                        imageUrl: '',
+                        link: '',
+                        conference: allConferenceTabs[0]?.name || '',
+                        active: true,
+                        sortOrder: sidebarAds.length + 1,
+                      };
+                      setSidebarAds([...sidebarAds, newAd]);
+                      setEditingSidebarAdId(newAd.id);
+                    }}
+                    className={`${btnPrimary} flex items-center gap-1.5`}
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Sidebar Ad
+                  </button>
+                </div>
+
+                {sidebarAds.length === 0 && (
+                  <p className="text-stone-500 text-sm py-4 text-center">No sidebar ads configured</p>
+                )}
+
+                <div className="space-y-4">
+                  {sidebarAds.map((ad, adIdx) => (
+                    <div
+                      key={ad.id}
+                      className={`bg-stone-900 rounded-xl p-4 border transition-colors ${
+                        sidebarAdDragOverIndex === adIdx && sidebarAdDragIndex !== adIdx
+                          ? 'border-amber-500 border-t-2'
+                          : 'border-stone-700'
+                      } ${sidebarAdDragIndex === adIdx ? 'opacity-40' : ''}`}
+                      draggable={editingSidebarAdId !== ad.id}
+                      onDragStart={(e) => {
+                        setSidebarAdDragIndex(adIdx);
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (sidebarAdDragIndex !== null && sidebarAdDragIndex !== adIdx) {
+                          setSidebarAdDragOverIndex(adIdx);
+                        }
+                      }}
+                      onDragLeave={() => {
+                        if (sidebarAdDragOverIndex === adIdx) setSidebarAdDragOverIndex(null);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (sidebarAdDragIndex !== null && sidebarAdDragIndex !== adIdx) {
+                          const updated = [...sidebarAds];
+                          const [moved] = updated.splice(sidebarAdDragIndex, 1);
+                          updated.splice(adIdx, 0, moved);
+                          // Re-assign sortOrder after drag
+                          updated.forEach((a, i) => { a.sortOrder = i + 1; });
+                          setSidebarAds(updated);
+                        }
+                        setSidebarAdDragIndex(null);
+                        setSidebarAdDragOverIndex(null);
+                      }}
+                      onDragEnd={() => {
+                        setSidebarAdDragIndex(null);
+                        setSidebarAdDragOverIndex(null);
+                      }}
+                    >
+                      {editingSidebarAdId === ad.id ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-stone-500 font-mono">{ad.id.slice(0, 8)}...</span>
+                            <button
+                              onClick={() => setEditingSidebarAdId(null)}
+                              className="text-stone-400 hover:text-white cursor-pointer"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-stone-400 mb-1">Title (alt text)</label>
+                            <input
+                              type="text"
+                              value={ad.title}
+                              onChange={(e) => setSidebarAds(sidebarAds.map(a => a.id === ad.id ? { ...a, title: e.target.value } : a))}
+                              className={inputClass}
+                              placeholder="Ad title / alt text"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-stone-400 mb-1">Image URL (300px wide creative)</label>
+                            <input
+                              type="url"
+                              value={ad.imageUrl}
+                              onChange={(e) => setSidebarAds(sidebarAds.map(a => a.id === ad.id ? { ...a, imageUrl: e.target.value } : a))}
+                              className={inputClass}
+                              placeholder="https://..."
+                            />
+                          </div>
+                          {ad.imageUrl && (
+                            <div className="rounded-lg overflow-hidden bg-stone-800 max-w-[300px]">
+                              <img src={ad.imageUrl} alt={ad.title} className="w-full h-auto object-contain" />
+                            </div>
+                          )}
+                          <div>
+                            <label className="block text-xs text-stone-400 mb-1">Link (click-through URL)</label>
+                            <input
+                              type="url"
+                              value={ad.link}
+                              onChange={(e) => setSidebarAds(sidebarAds.map(a => a.id === ad.id ? { ...a, link: e.target.value } : a))}
+                              className={inputClass}
+                              placeholder="https://..."
+                            />
+                          </div>
+                          <div className="flex gap-3">
+                            <div className="flex-1">
+                              <label className="block text-xs text-stone-400 mb-1">Conference</label>
+                              <select
+                                value={ad.conference}
+                                onChange={(e) => setSidebarAds(sidebarAds.map(a => a.id === ad.id ? { ...a, conference: e.target.value } : a))}
+                                className={inputClass}
+                              >
+                                <option value="">All Conferences</option>
+                                {allConferenceTabs.map((t) => (
+                                  <option key={t.gid} value={t.name}>{t.name}</option>
+                                ))}
+                                {ad.conference && !allConferenceTabs.some(t => t.name === ad.conference) && (
+                                  <option value={ad.conference}>{ad.conference} (legacy)</option>
+                                )}
+                              </select>
+                            </div>
+                            <div className="w-24">
+                              <label className="block text-xs text-stone-400 mb-1">Sort Order</label>
+                              <input
+                                type="number"
+                                min={1}
+                                value={ad.sortOrder}
+                                onChange={(e) => setSidebarAds(sidebarAds.map(a => a.id === ad.id ? { ...a, sortOrder: Number(e.target.value) } : a))}
+                                className={inputClass}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={ad.active}
+                                onChange={(e) => setSidebarAds(sidebarAds.map(a => a.id === ad.id ? { ...a, active: e.target.checked } : a))}
+                                className="w-4 h-4 rounded"
+                              />
+                              <span className="text-sm text-stone-300">Active</span>
+                            </label>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-start gap-4">
+                          <GripVertical className="w-4 h-4 text-stone-500 cursor-grab shrink-0 mt-1" />
+                          {ad.imageUrl && (
+                            <div className="w-[80px] h-[60px] flex-shrink-0 rounded-lg overflow-hidden bg-stone-800">
+                              <img src={ad.imageUrl} alt={ad.title} className="w-full h-full object-cover" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm font-medium text-white truncate">{ad.title || '(untitled)'}</span>
+                              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${ad.active ? 'bg-green-500' : 'bg-red-500'}`} />
+                              <span className="text-[10px] text-stone-500">{ad.active ? 'Active' : 'Inactive'}</span>
+                            </div>
+                            <p className="text-xs text-stone-400 line-clamp-1">{ad.link || '(no link)'}</p>
+                            <p className="text-xs text-stone-500 mt-0.5">{ad.conference || 'All'} &middot; Sort: {ad.sortOrder}</p>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => setEditingSidebarAdId(ad.id)}
+                              className="text-stone-400 hover:text-white cursor-pointer p-1"
+                              title="Edit"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setSidebarAds(sidebarAds.filter(a => a.id !== ad.id))}
+                              className="text-red-400 hover:text-red-300 cursor-pointer p-1"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => saveConfig('sidebar_ads', sidebarAds)}
+                  disabled={saving}
+                  className={`${btnPrimary} flex items-center gap-2 ${saving ? 'opacity-50' : ''}`}
+                >
+                  {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Save Sidebar Ads
                 </button>
 
               </>
