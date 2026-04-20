@@ -290,3 +290,42 @@ export interface ABVariantResult {
   ctr: number;          // clicks / impressions
   cvr: number;          // conversions / impressions
 }
+
+/* ------------------------------------------------------------------ */
+/* Crawled Sponsor Data                                                */
+/* ------------------------------------------------------------------ */
+
+export interface EventSponsor {
+  id: string;
+  event_id: string;
+  event_url: string;
+  event_name: string;
+  conference: string;
+  sponsor_name: string;
+  sponsor_url: string | null;
+  sponsor_type: string | null;
+  confidence: 'high' | 'medium' | 'low';
+  extraction_method: string;
+  crawled_at: string;
+}
+
+export interface SponsorCrawlLogEntry {
+  event_url: string;
+  event_id: string;
+  conference: string;
+  status: 'success' | 'no_sponsors' | 'error' | 'skipped';
+  sponsors_found: number;
+  error_message: string | null;
+  crawled_at: string;
+}
+
+export interface SponsorDataSummary {
+  total_sponsors: number;
+  total_events_crawled: number;
+  events_with_sponsors: number;
+  events_with_errors: number;
+  events_no_sponsors: number;
+  unique_sponsor_names: number;
+  by_confidence: { high: number; medium: number; low: number };
+  by_method: Record<string, number>;
+}
