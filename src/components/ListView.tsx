@@ -6,6 +6,7 @@ import type { ETHDenverEvent, ReactionEmoji, NativeAd } from '@/lib/types';
 import { formatDateLabel } from '@/lib/utils';
 import { sortByStartTime } from '@/lib/time-parse';
 import { EventCard } from './EventCard';
+import { FeaturedSection } from './FeaturedSection';
 import NativeAdCard from './NativeAdCard';
 
 /* ------------------------------------------------------------------ */
@@ -35,6 +36,8 @@ interface ListViewProps {
   onAdClick?: (adId: string) => void;
   /** Which conference context (for per-ad tracking) */
   conference?: string;
+  /** Featured events to show in a prominent section above the list */
+  featuredEvents?: ETHDenverEvent[];
 }
 
 interface DateGroup {
@@ -108,6 +111,7 @@ export function ListView({
   onAdImpression,
   onAdClick,
   conference,
+  featuredEvents,
 }: ListViewProps) {
   const activeAds = useMemo(() => nativeAds?.filter(ad => ad.active !== false) || [], [nativeAds]);
 
@@ -264,6 +268,21 @@ export function ListView({
 
   return (
     <div className="max-w-3xl mx-auto px-2 sm:px-4 pb-8 relative">
+      {/* Featured events section (above virtual list) */}
+      <FeaturedSection
+        featuredEvents={featuredEvents ?? []}
+        itinerary={itinerary}
+        onItineraryToggle={onItineraryToggle}
+        friendsCountByEvent={friendsCountByEvent}
+        friendsByEvent={friendsByEvent}
+        checkedInFriendsByEvent={checkedInFriendsByEvent}
+        checkInCounts={checkInCounts}
+        reactionsByEvent={reactionsByEvent}
+        onToggleReaction={onToggleReaction}
+        commentCounts={commentCounts}
+        conference={conference}
+      />
+
       {/* Overlay sticky date header */}
       {stickyLabel && (
         <div className="sticky top-0 z-20 bg-[var(--theme-bg-primary)] py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-[var(--theme-border-secondary)]">

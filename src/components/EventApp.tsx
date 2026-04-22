@@ -35,6 +35,7 @@ import { SponsorsTicker } from './SponsorsTicker';
 import { OnboardingWizard } from './OnboardingWizard';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { getTabConfig } from '@/lib/conferences';
+import { extractFeaturedEvents } from '@/lib/featured';
 
 export function EventApp({ initialConference }: { initialConference?: string }) {
   const { config } = useAdminConfig();
@@ -128,6 +129,11 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
     itinerary,
     selectedFriendEventIds,
   });
+
+  const featuredEvents = useMemo(
+    () => extractFeaturedEvents(filteredEvents),
+    [filteredEvents],
+  );
 
   // Theme: read from admin config per-conference and apply
   const { setTheme } = useTheme();
@@ -411,6 +417,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
             onToggleReaction={handleToggleReaction}
             commentCounts={commentCounts}
             conference={filters.conference}
+            featuredEvents={featuredEvents}
           />
         </main>
       ) : (
@@ -433,6 +440,7 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
             onAdImpression={handleAdImpression}
             onAdClick={handleAdClick}
             conference={filters.conference}
+            featuredEvents={featuredEvents}
           />
         </main>
       )}
