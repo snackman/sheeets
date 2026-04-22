@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readRange, writeCell } from '@/lib/google-sheets';
+import { readRange, writeCell, getSheetTitle } from '@/lib/google-sheets';
 import { FALLBACK_TABS } from '@/lib/conferences';
 import { getConferenceTabs } from '@/lib/get-conferences';
 import { parseBody, ToggleFeaturedSchema } from '@/lib/api-validation';
@@ -30,8 +30,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid conference' }, { status: 400 });
     }
 
+    const sheetName = await getSheetTitle(tab.gid);
+
     // Read columns A:M to find the event row
-    const rows = await readRange(tab.name, 'A1:M');
+    const rows = await readRange(sheetName, 'A1:M');
 
     // Find header row (col B = "Start Time")
     let headerIdx = -1;
@@ -61,7 +63,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Write to column M of the matched row
-    await writeCell(tab.name, `M${matchedRow}`, featured ? 'TRUE' : 'FALSE');
+    await writeCell(sheetName, `M${matchedRow}`, featured ? 'TRUE' : 'FALSE');
 
     return NextResponse.json({ success: true, row: matchedRow, featured });
   } catch (err) {

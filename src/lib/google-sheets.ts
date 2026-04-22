@@ -73,6 +73,46 @@ async function getAccessToken(): Promise<string> {
   return cachedToken.token;
 }
 
+// Cache for sheet titles by gid
+const sheetTitleCache = new Map<number, { title: string; expiresAt: number }>();
+
+/** Resolve a sheet tab's actual title from its gid (numeric sheet ID). */
+export async function getSheetTitle(gid: number): Promise<string> {
+  const cached = sheetTitleCache.get(gid);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.title;
+  }
+
+  const token = await getAccessToken();
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to fetch sheet metadata: ${res.status} ${text}`);
+  }
+
+  const data = await res.json();
+  const sheets: { properties: { sheetId: number; title: string } }[] = data.sheets || [];
+
+  // Cache all sheets from this response
+  for (const s of sheets) {
+    sheetTitleCache.set(s.properties.sheetId, {
+      title: s.properties.title,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
+  }
+
+  const match = sheets.find((s) => s.properties.sheetId === gid);
+  if (!match) {
+    throw new Error(`No sheet found with gid ${gid}`);
+  }
+
+  return match.properties.title;
+}
+
 /**
  * Find the next empty row in the "Add Events Here" section of a sheet tab.
  * Scans column A for the cell containing "Add Events Here", then looks for

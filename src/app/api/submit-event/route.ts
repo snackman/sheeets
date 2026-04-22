@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { appendEventRow } from '@/lib/google-sheets';
+import { appendEventRow, getSheetTitle } from '@/lib/google-sheets';
 import { FALLBACK_TABS } from '@/lib/conferences';
 import { getConferenceTabs } from '@/lib/get-conferences';
 import { parseBody, SubmitEventSchema } from '@/lib/api-validation';
@@ -29,7 +29,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const row = await appendEventRow(tab.name, {
+    const sheetName = await getSheetTitle(tab.gid);
+
+    const row = await appendEventRow(sheetName, {
       date: event.date.trim(),
       startTime: event.startTime.trim(),
       endTime: event.endTime.trim(),
