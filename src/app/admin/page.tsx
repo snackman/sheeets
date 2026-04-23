@@ -10,10 +10,11 @@ import type { ETHDenverEvent } from '@/lib/types';
 import type { AdminConfig, SponsorEntry, NativeAd, UpsellCopy, AdInventoryItem, AdvertisePageConfig, ABTest, ABTestVariant, ABTestStatus, ABVariantResult, ConferenceConfig } from '@/lib/types';
 import { isConferencePast, conferenceToTab } from '@/lib/conferences';
 import type { TabConfig } from '@/lib/conferences';
+import SponsorDataTab from '@/components/admin/SponsorDataTab';
 
 const SESSION_KEY = 'sheeets-admin-auth';
 
-type AdminTab = 'featured' | 'conferences' | 'sponsors' | 'nativeAds' | 'upsell' | 'adInventory' | 'theme' | 'abTests' | 'adReports' | 'eventAnalytics';
+type AdminTab = 'featured' | 'conferences' | 'sponsors' | 'nativeAds' | 'upsell' | 'adInventory' | 'theme' | 'abTests' | 'adReports' | 'eventAnalytics' | 'sponsorData';
 
 const TAB_LABELS: { key: AdminTab; label: string }[] = [
   { key: 'featured', label: 'Featured' },
@@ -26,6 +27,7 @@ const TAB_LABELS: { key: AdminTab; label: string }[] = [
   { key: 'abTests', label: 'A/B Tests' },
   { key: 'adReports', label: 'Ad Reports' },
   { key: 'eventAnalytics', label: 'Event Analytics' },
+  { key: 'sponsorData', label: 'Sponsor Data' },
 ];
 
 const KNOWN_GIDS: { gid: number; name: string }[] = [
@@ -3287,6 +3289,10 @@ export default function AdminPage() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'sponsorData' && (
+          <SponsorDataTab allConferenceTabs={allConferenceTabs} password={password} />
         )}
       </div>
     </div>
