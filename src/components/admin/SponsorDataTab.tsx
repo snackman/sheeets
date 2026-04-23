@@ -481,7 +481,7 @@ export default function SponsorDataTab({ allConferenceTabs, password }: Props) {
                             <input
                               type="text"
                               value={editFields.sponsor_type || ''}
-                              onChange={e => setEditFields(f => ({ ...f, sponsor_type: e.target.value }))}
+                              onChange={e => setEditFields(f => ({ ...f, sponsor_type: e.target.value as EventSponsor['sponsor_type'] }))}
                               className={inputClass + ' w-24'}
                             />
                           ) : (
