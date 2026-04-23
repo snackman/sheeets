@@ -216,7 +216,7 @@ export default function SponsorDataTab({ allConferenceTabs, password }: Props) {
     if (selectedIds.size === sponsors.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(sponsors.map(s => s.id)));
+      setSelectedIds(new Set(sponsors.map(s => String(s.id))));
     }
   };
 
@@ -455,8 +455,8 @@ export default function SponsorDataTab({ allConferenceTabs, password }: Props) {
                         <td className="py-2 pr-2">
                           <input
                             type="checkbox"
-                            checked={selectedIds.has(s.id)}
-                            onChange={() => toggleSelect(s.id)}
+                            checked={selectedIds.has(String(s.id))}
+                            onChange={() => toggleSelect(String(s.id))}
                             className="rounded"
                           />
                         </td>
