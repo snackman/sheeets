@@ -167,7 +167,7 @@ export default function SponsorDataTab({ allConferenceTabs, password }: Props) {
 
   // --- Inline edit ---
   const startEdit = (sponsor: EventSponsor) => {
-    setEditingId(sponsor.id);
+    setEditingId(String(sponsor.id));
     setEditFields({
       sponsor_name: sponsor.sponsor_name,
       sponsor_url: sponsor.sponsor_url,
@@ -192,7 +192,7 @@ export default function SponsorDataTab({ allConferenceTabs, password }: Props) {
       });
       const data = await res.json();
       if (data.success) {
-        setSponsors(prev => prev.map(s => s.id === editingId ? { ...s, ...editFields } as EventSponsor : s));
+        setSponsors(prev => prev.map(s => String(s.id) === editingId ? { ...s, ...editFields } as EventSponsor : s));
         setEditingId(null);
         setEditFields({});
       }
@@ -461,7 +461,7 @@ export default function SponsorDataTab({ allConferenceTabs, password }: Props) {
                           />
                         </td>
                         <td className="py-2 pr-4 font-medium max-w-[180px]">
-                          {editingId === s.id ? (
+                          {editingId === String(s.id) ? (
                             <input
                               type="text"
                               value={editFields.sponsor_name || ''}
@@ -477,7 +477,7 @@ export default function SponsorDataTab({ allConferenceTabs, password }: Props) {
                         </td>
                         <td className="py-2 pr-4 text-stone-400 text-xs">{s.conference}</td>
                         <td className="py-2 pr-4">
-                          {editingId === s.id ? (
+                          {editingId === String(s.id) ? (
                             <input
                               type="text"
                               value={editFields.sponsor_type || ''}
@@ -493,7 +493,7 @@ export default function SponsorDataTab({ allConferenceTabs, password }: Props) {
                           )}
                         </td>
                         <td className="py-2 pr-4">
-                          {editingId === s.id ? (
+                          {editingId === String(s.id) ? (
                             <select
                               value={editFields.confidence || 'medium'}
                               onChange={e => setEditFields(f => ({ ...f, confidence: e.target.value as EventSponsor['confidence'] }))}
@@ -514,7 +514,7 @@ export default function SponsorDataTab({ allConferenceTabs, password }: Props) {
                           {new Date(s.crawled_at).toLocaleDateString()}
                         </td>
                         <td className="py-2">
-                          {editingId === s.id ? (
+                          {editingId === String(s.id) ? (
                             <div className="flex gap-1">
                               <button
                                 onClick={saveEdit}
