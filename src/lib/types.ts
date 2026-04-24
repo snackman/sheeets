@@ -295,20 +295,6 @@ export interface ABVariantResult {
 /* Crawled Sponsor Data                                                */
 /* ------------------------------------------------------------------ */
 
-export interface EventSponsor {
-  id: string;
-  event_id: string;
-  event_url: string;
-  event_name: string;
-  conference: string;
-  sponsor_name: string;
-  sponsor_url: string | null;
-  sponsor_type: string | null;
-  confidence: 'high' | 'medium' | 'low';
-  extraction_method: string;
-  crawled_at: string;
-}
-
 export interface SponsorCrawlLogEntry {
   event_url: string;
   event_id: string;

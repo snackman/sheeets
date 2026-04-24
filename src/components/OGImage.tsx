@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 
 interface OGImageProps {
   url: string;
@@ -15,6 +17,7 @@ export function OGImage({ url, eventId }: OGImageProps) {
   );
   const [loaded, setLoaded] = useState(imageCache.has(url));
   const [error, setError] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,23 +54,72 @@ export function OGImage({ url, eventId }: OGImageProps) {
     return () => observer.disconnect();
   }, [url, eventId]);
 
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxOpen(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxOpen]);
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, [lightboxOpen]);
+
   if (loaded && !imageUrl) return null;
   if (error) return null;
 
   return (
-    <div ref={ref} className="shrink-0 w-[88px] sm:w-[106px] rounded-lg overflow-hidden bg-stone-800/30 self-center">
-      {imageUrl && (
-        <img
-          src={imageUrl}
-          alt=""
-          className="w-full h-auto rounded-lg"
-          loading="lazy"
-          onError={() => setError(true)}
-        />
+    <>
+      <div
+        ref={ref}
+        className="shrink-0 w-[88px] sm:w-[106px] rounded-lg overflow-hidden bg-stone-800/30 self-center cursor-pointer"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (imageUrl) setLightboxOpen(true);
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="View image fullscreen"
+      >
+        {imageUrl && (
+          <img
+            src={imageUrl}
+            alt=""
+            className="w-full h-auto rounded-lg"
+            loading="lazy"
+            onError={() => setError(true)}
+          />
+        )}
+        {!loaded && (
+          <div className="w-full h-[88px] sm:h-[106px] animate-pulse bg-stone-800/50" />
+        )}
+      </div>
+
+      {lightboxOpen && imageUrl && createPortal(
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <button
+            onClick={() => setLightboxOpen(false)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer z-10"
+            aria-label="Close lightbox"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={imageUrl}
+            alt=""
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>,
+        document.body
       )}
-      {!loaded && (
-        <div className="w-full h-[88px] sm:h-[106px] animate-pulse bg-stone-800/50" />
-      )}
-    </div>
+    </>
   );
 }
