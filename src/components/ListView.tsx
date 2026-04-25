@@ -177,41 +177,41 @@ export function ListView({
 
     const scrollTop = scrollEl.scrollTop;
 
-    // Don't show sticky overlay when not scrolled — the first in-flow header is still visible
-    if (scrollTop <= 10) {
-      // Synchronously hide to prevent flash
-      if (stickyRef.current) stickyRef.current.style.display = 'none';
-      setStickyLabel(null);
-      setStickyCount(0);
-      return;
-    }
+    // Compute offset from the virtual list container to the scroll container.
+    // The FeaturedSection (and any other content) sits between them.
+    const virtualListEl = scrollEl.querySelector('[style*="position: relative"]') as HTMLElement | null;
+    const listOffset = virtualListEl ? virtualListEl.offsetTop : 0;
 
-    // Offset for the wrapper's padding-top (32px = py-4 on the outer container)
-    const wrapperOffsetTop = 0;
+    // The sticky header height (date header row is ~44px)
+    const stickyHeight = stickyRef.current?.offsetHeight || 44;
 
-    // Find the last date-header that has scrolled past the top
+    // Find the last date-header whose bottom edge has scrolled past the top
     let lastHeader: { label: string; eventCount: number } | null = null;
 
     const virtualItems = virtualizer.getVirtualItems();
     for (const vItem of virtualItems) {
       const item = flatItems[vItem.index];
       if (item.kind === 'date-header') {
-        // vItem.start is relative to the virtual list top
-        if (vItem.start <= scrollTop + wrapperOffsetTop) {
+        // vItem.start is relative to the virtual list top; add listOffset for scroll container coords
+        // Only count this header as "scrolled past" once its bottom edge is above the viewport top
+        const headerBottom = listOffset + vItem.start + vItem.size;
+        if (headerBottom <= scrollTop + stickyHeight) {
           lastHeader = { label: item.label, eventCount: item.eventCount };
         }
       }
     }
 
-    // If we have no virtual items in range, check non-virtual items:
-    // fallback — find the last date-header before scroll position
+    // Fallback — check non-virtual items if nothing matched
     if (!lastHeader) {
       for (let i = 0; i < flatItems.length; i++) {
         const item = flatItems[i];
         if (item.kind === 'date-header') {
           const offset = virtualizer.getOffsetForIndex(i, 'start');
-          if (offset !== undefined && offset[0] <= scrollTop + wrapperOffsetTop) {
-            lastHeader = { label: item.label, eventCount: item.eventCount };
+          if (offset !== undefined) {
+            const headerBottom = listOffset + offset[0] + 44;
+            if (headerBottom <= scrollTop + stickyHeight) {
+              lastHeader = { label: item.label, eventCount: item.eventCount };
+            }
           }
         }
       }
@@ -221,14 +221,10 @@ export function ListView({
       if (stickyRef.current) stickyRef.current.style.display = '';
       setStickyLabel(lastHeader.label);
       setStickyCount(lastHeader.eventCount);
-    } else if (flatItems.length > 0 && flatItems[0].kind === 'date-header') {
-      // default to first header
-      if (stickyRef.current) stickyRef.current.style.display = '';
-      const first = flatItems[0];
-      setStickyLabel(first.label);
-      setStickyCount(first.eventCount);
     } else {
       if (stickyRef.current) stickyRef.current.style.display = 'none';
+      setStickyLabel(null);
+      setStickyCount(0);
     }
   }, [containerRef, flatItems, virtualizer]);
 
