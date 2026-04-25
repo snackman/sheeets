@@ -169,6 +169,7 @@ export function ListView({
   /* ---- sticky date header overlay ---- */
   const [stickyLabel, setStickyLabel] = useState<string | null>(null);
   const [stickyCount, setStickyCount] = useState<number>(0);
+  const stickyRef = useRef<HTMLDivElement>(null);
 
   const updateStickyHeader = useCallback(() => {
     const scrollEl = containerRef.current;
@@ -178,6 +179,8 @@ export function ListView({
 
     // Don't show sticky overlay when not scrolled — the first in-flow header is still visible
     if (scrollTop <= 10) {
+      // Synchronously hide to prevent flash
+      if (stickyRef.current) stickyRef.current.style.display = 'none';
       setStickyLabel(null);
       setStickyCount(0);
       return;
@@ -215,13 +218,17 @@ export function ListView({
     }
 
     if (lastHeader) {
+      if (stickyRef.current) stickyRef.current.style.display = '';
       setStickyLabel(lastHeader.label);
       setStickyCount(lastHeader.eventCount);
     } else if (flatItems.length > 0 && flatItems[0].kind === 'date-header') {
       // default to first header
+      if (stickyRef.current) stickyRef.current.style.display = '';
       const first = flatItems[0];
       setStickyLabel(first.label);
       setStickyCount(first.eventCount);
+    } else {
+      if (stickyRef.current) stickyRef.current.style.display = 'none';
     }
   }, [containerRef, flatItems, virtualizer]);
 
@@ -283,19 +290,21 @@ export function ListView({
         conference={conference}
       />
 
-      {/* Overlay sticky date header */}
-      {stickyLabel && (
-        <div className="sticky top-0 z-20 bg-[var(--theme-bg-primary)] py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-[var(--theme-border-secondary)]">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-[var(--theme-text-primary)]">
-              {stickyLabel}
-            </h2>
-            <span className="text-xs text-[var(--theme-text-muted)] font-medium">
-              {stickyCount} event{stickyCount !== 1 ? 's' : ''}
-            </span>
-          </div>
+      {/* Overlay sticky date header — always rendered, visibility controlled by ref */}
+      <div
+        ref={stickyRef}
+        className="sticky top-0 z-20 bg-[var(--theme-bg-primary)] py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-[var(--theme-border-secondary)]"
+        style={{ display: 'none' }}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-bold text-[var(--theme-text-primary)]">
+            {stickyLabel}
+          </h2>
+          <span className="text-xs text-[var(--theme-text-muted)] font-medium">
+            {stickyCount} event{stickyCount !== 1 ? 's' : ''}
+          </span>
         </div>
-      )}
+      </div>
 
       {/* Virtual list container */}
       <div
