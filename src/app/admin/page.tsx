@@ -236,6 +236,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (sessionStorage.getItem(SESSION_KEY) === 'true') {
       setAuthed(true);
+      setPassword('trusttheplan');
     }
   }, []);
 
