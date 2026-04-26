@@ -13,6 +13,8 @@
  *   --force               Re-crawl URLs already in the crawl log
  *   --dry-run             Extract sponsors but don't write to Supabase
  *   --concurrency <n>     Max parallel crawls (default: 1)
+ *   --skip-ai             Disable AI extraction (Layers 1-2 only)
+ *   --cleanup-description Delete all extraction_method='description' rows before crawling
  *
  * Env vars:
  *   NEXT_PUBLIC_SUPABASE_URL   Supabase project URL
@@ -25,6 +27,7 @@ import { getActiveConferences, conferenceToTab } from '../src/lib/conferences';
 import { fetchEvents } from '../src/lib/fetch-events';
 import type { TabConfig } from '../src/lib/conferences';
 import type { ConferenceConfig, ETHDenverEvent } from '../src/lib/types';
+import OpenAI from 'openai';
 import {
   detectPlatform,
   fetchHtml,
@@ -44,6 +47,8 @@ interface CliArgs {
   force: boolean;
   dryRun: boolean;
   concurrency: number;
+  skipAI: boolean;
+  cleanupDescription: boolean;
 }
 
 function parseArgs(): CliArgs {
@@ -53,6 +58,8 @@ function parseArgs(): CliArgs {
     force: false,
     dryRun: false,
     concurrency: 1,
+    skipAI: false,
+    cleanupDescription: false,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -68,6 +75,12 @@ function parseArgs(): CliArgs {
         break;
       case '--concurrency':
         result.concurrency = Math.max(1, parseInt(args[++i] || '1', 10));
+        break;
+      case '--skip-ai':
+        result.skipAI = true;
+        break;
+      case '--cleanup-description':
+        result.cleanupDescription = true;
         break;
       default:
         console.warn(`Unknown argument: ${args[i]}`);
@@ -177,7 +190,7 @@ interface CrawlResult {
   error?: string;
 }
 
-async function crawlEventUrl(url: string): Promise<CrawlResult> {
+async function crawlEventUrl(url: string, openaiClient?: OpenAI): Promise<CrawlResult> {
   const platform = detectPlatform(url);
 
   try {
@@ -198,12 +211,12 @@ async function crawlEventUrl(url: string): Promise<CrawlResult> {
         url,
       );
 
-      sponsors = extractSponsorsFromLuma(JSON.parse(apiData));
+      sponsors = await extractSponsorsFromLuma(JSON.parse(apiData), openaiClient);
 
       // Also fetch HTML for additional sponsor mentions
       try {
         const html = await fetchWithRetry(() => fetchHtml(url), url);
-        const htmlSponsors = extractSponsorsFromHtml(html, url);
+        const htmlSponsors = await extractSponsorsFromHtml(html, url, openaiClient);
         // Merge, dedup handled by the extraction layer
         const existingNames = new Set(sponsors.map((s) => s.sponsor_name.toLowerCase()));
         for (const hs of htmlSponsors) {
@@ -217,7 +230,7 @@ async function crawlEventUrl(url: string): Promise<CrawlResult> {
     } else {
       // HTML-based extraction for all other platforms
       const html = await fetchWithRetry(() => fetchHtml(url), url);
-      sponsors = extractSponsorsFromHtml(html, url);
+      sponsors = await extractSponsorsFromHtml(html, url, openaiClient);
     }
 
     if (sponsors.length === 0) {
@@ -299,6 +312,16 @@ async function main() {
   console.log(`  Concurrency: ${args.concurrency}`);
   console.log('');
 
+  // Init OpenAI client for AI-powered sponsor extraction
+  let openaiClient: OpenAI | undefined;
+  if (!args.skipAI && process.env.OPENAI_API_KEY) {
+    openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    console.log(`  AI extraction: enabled (GPT-4o-mini)`);
+  } else {
+    console.log(`  AI extraction: disabled${args.skipAI ? ' (--skip-ai)' : ' (no OPENAI_API_KEY)'}`);
+  }
+  console.log('');
+
   // 1. Create Supabase client (required even for dry-run to fetch tabs + crawl log)
   const supabase = createSupabaseClient();
 
@@ -354,6 +377,22 @@ async function main() {
   console.log(`  To crawl: ${eventsToCrawl.length}`);
   console.log('');
 
+  // Cleanup: delete garbage Layer 3 (description) rows if requested
+  if (args.cleanupDescription && !args.dryRun) {
+    console.log('Cleaning up description-method sponsor rows...');
+    const { count, error } = await supabase
+      .from('event_sponsors')
+      .delete({ count: 'exact' })
+      .eq('extraction_method', 'description');
+
+    if (error) {
+      console.error(`  Cleanup error: ${error.message}`);
+    } else {
+      console.log(`  Deleted ${count ?? 'unknown number of'} description rows`);
+    }
+    console.log('');
+  }
+
   if (eventsToCrawl.length === 0) {
     console.log('Nothing to crawl. Use --force to re-crawl.');
     return;
@@ -373,7 +412,7 @@ async function main() {
     console.log(`  URL: ${event.link}`);
     console.log(`  Platform: ${detectPlatform(event.link)}`);
 
-    const result = await crawlEventUrl(event.link);
+    const result = await crawlEventUrl(event.link, openaiClient);
     totalCrawled++;
 
     switch (result.status) {

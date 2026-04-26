@@ -5,8 +5,10 @@
  * Layers:
  *   1. Platform API data (Luma hosts/sponsors)
  *   2. HTML section detection (sponsor/partner headings + link/image grids)
- *   3. Description text mining ("Sponsored by X, Y, Z" patterns)
+ *   3. AI-powered sponsor extraction (GPT-4o-mini)
  */
+
+import type OpenAI from 'openai';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -16,7 +18,7 @@ export type Platform = 'luma' | 'eventbrite' | 'partiful' | 'meetup' | 'posh' | 
 
 export type SponsorType = 'sponsor' | 'partner' | 'presenter' | 'host';
 export type Confidence = 'high' | 'medium' | 'low';
-export type ExtractionMethod = 'api' | 'json-ld' | 'html-section' | 'description';
+export type ExtractionMethod = 'api' | 'json-ld' | 'html-section' | 'description' | 'ai';
 
 export interface ExtractedSponsor {
   sponsor_name: string;
@@ -145,7 +147,10 @@ export async function fetchLumaApi(slug: string): Promise<any> {
 // ---------------------------------------------------------------------------
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function extractSponsorsFromLuma(apiData: any): ExtractedSponsor[] {
+export async function extractSponsorsFromLuma(
+  apiData: any,
+  openaiClient?: OpenAI,
+): Promise<ExtractedSponsor[]> {
   const sponsors: ExtractedSponsor[] = [];
 
   if (!apiData?.data) return sponsors;
@@ -191,12 +196,11 @@ export function extractSponsorsFromLuma(apiData: any): ExtractedSponsor[] {
     }
   }
 
-  // Also mine the event description text for sponsor mentions
+  // Layer 3: AI-powered description extraction (replaces regex mining)
   const description = event?.description || event?.description_mirror || '';
-  if (description) {
-    const descSponsors = extractSponsorsFromDescription(description);
-    for (const ds of descSponsors) {
-      // Only add if not already found via API fields
+  if (description && openaiClient) {
+    const aiSponsors = await extractSponsorsWithAI(description, openaiClient);
+    for (const ds of aiSponsors) {
       if (!sponsors.some((s) => normalizeName(s.sponsor_name) === normalizeName(ds.sponsor_name))) {
         sponsors.push(ds);
       }
@@ -316,7 +320,11 @@ export function extractSponsorNames(sectionHtml: string): ExtractedSponsor[] {
 /**
  * Full HTML extraction: find sponsor section + extract names.
  */
-export function extractSponsorsFromHtml(html: string, _url: string): ExtractedSponsor[] {
+export async function extractSponsorsFromHtml(
+  html: string,
+  _url: string,
+  openaiClient?: OpenAI,
+): Promise<ExtractedSponsor[]> {
   const allSponsors: ExtractedSponsor[] = [];
 
   // Layer 1.5: JSON-LD structured data (organizer/sponsor fields)
@@ -330,25 +338,31 @@ export function extractSponsorsFromHtml(html: string, _url: string): ExtractedSp
     allSponsors.push(...sectionSponsors);
   }
 
-  // Layer 3: Description text mining
-  // Try to find description content: <meta property="og:description"> or common description containers
-  const ogDescMatch = html.match(
-    /<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i
-  ) || html.match(
-    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i
-  );
-  if (ogDescMatch) {
-    const descSponsors = extractSponsorsFromDescription(decodeHtmlEntities(ogDescMatch[1]));
-    allSponsors.push(...descSponsors);
-  }
+  // Layer 3: AI-powered sponsor extraction (replaces regex-based description mining)
+  if (openaiClient) {
+    let aiText = '';
 
-  // Also mine the full body text for sponsor patterns (within reason)
-  const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-  if (bodyMatch) {
-    const bodyText = bodyMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-    // Only process a reasonable chunk to avoid false positives
-    const descSponsors = extractSponsorsFromDescription(bodyText.slice(0, 10000));
-    allSponsors.push(...descSponsors);
+    // Get og:description
+    const ogDescMatch = html.match(
+      /<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i
+    ) || html.match(
+      /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i
+    );
+    if (ogDescMatch) {
+      aiText += decodeHtmlEntities(ogDescMatch[1]) + '\n\n';
+    }
+
+    // Get body text
+    const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    if (bodyMatch) {
+      const bodyText = bodyMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      aiText += bodyText;
+    }
+
+    if (aiText.trim()) {
+      const aiSponsors = await extractSponsorsWithAI(aiText, openaiClient);
+      allSponsors.push(...aiSponsors);
+    }
   }
 
   return deduplicateSponsors(allSponsors);
@@ -464,6 +478,64 @@ function extractSponsorsFromDescription(text: string): ExtractedSponsor[] {
   }
 
   return sponsors;
+}
+
+// ---------------------------------------------------------------------------
+// Layer 3 (AI): GPT-4o-mini sponsor extraction
+// ---------------------------------------------------------------------------
+
+export async function extractSponsorsWithAI(
+  text: string,
+  openaiClient: OpenAI,
+): Promise<ExtractedSponsor[]> {
+  try {
+    const truncated = text.slice(0, 4000).trim();
+    if (!truncated) return [];
+
+    const response = await openaiClient.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You extract sponsor and partner names from event descriptions. ' +
+            'Return a JSON object with a single key "sponsors" containing an array of strings. ' +
+            'Each string should be a real company or organization name. ' +
+            'Do NOT include generic words like "Open bar", "Cocktails", "Networking", "Builders", "VCs", etc. ' +
+            'Only include actual company/organization names that are clearly sponsors, partners, or hosts. ' +
+            'If there are no real sponsors/partners mentioned, return {"sponsors": []}.',
+        },
+        {
+          role: 'user',
+          content: `Extract sponsor and partner company names from this event description:\n\n${truncated}`,
+        },
+      ],
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) return [];
+
+    const parsed = JSON.parse(content);
+    const names: string[] = Array.isArray(parsed.sponsors) ? parsed.sponsors : [];
+
+    return names
+      .map((name) => name.trim())
+      .filter((name) => name && !isSkipName(name))
+      .map((name) => ({
+        sponsor_name: name,
+        sponsor_url: null,
+        sponsor_logo_url: null,
+        sponsor_type: 'sponsor' as SponsorType,
+        confidence: 'medium' as Confidence,
+        extraction_method: 'ai' as ExtractionMethod,
+      }));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`  AI extraction failed: ${message}`);
+    return [];
+  }
 }
 
 // ---------------------------------------------------------------------------

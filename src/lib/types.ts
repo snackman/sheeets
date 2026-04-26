@@ -232,7 +232,7 @@ export interface EventSponsor {
   sponsor_logo_url: string | null;
   sponsor_type: 'sponsor' | 'partner' | 'presenter' | 'host';
   confidence: 'high' | 'medium' | 'low';
-  extraction_method: 'api' | 'json-ld' | 'html-section' | 'description';
+  extraction_method: 'api' | 'json-ld' | 'html-section' | 'description' | 'ai';
   crawled_at: string;
 }
 
