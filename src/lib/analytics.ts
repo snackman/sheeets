@@ -137,6 +137,8 @@ export const trackItineraryExportIcs = () => track('itinerary_export_ics');
 export const trackItinerarySharePng = () => track('itinerary_share_png');
 export const trackItineraryShareLink = () => track('itinerary_share_link');
 export const trackItineraryReorder = () => track('itinerary_reorder');
+export const trackItineraryHideEvent = (hidden: boolean) =>
+  track('itinerary_hide_event', { hidden });
 
 // POI
 export const trackPoiAdd = (category: string) =>

@@ -15,6 +15,7 @@ interface ShareCardModalProps {
   events: ETHDenverEvent[];
   conferenceName: string;
   displayName: string | null;
+  hiddenEventIds?: Set<string>;
 }
 
 export function ShareCardModal({
@@ -23,6 +24,7 @@ export function ShareCardModal({
   events,
   conferenceName,
   displayName,
+  hiddenEventIds,
 }: ShareCardModalProps) {
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
   const [showPastEvents, setShowPastEvents] = useState(false);
@@ -128,13 +130,13 @@ export function ShareCardModal({
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setExcludedIds(new Set());
+      setExcludedIds(new Set(hiddenEventIds ?? []));
       setShowPastEvents(false);
       setCardTitle(conferenceName);
       setPreviewUrl(null);
       setCopyStatus('idle');
     }
-  }, [isOpen]);
+  }, [isOpen, hiddenEventIds]);
 
   const handleCopy = useCallback(async () => {
     if (!cardRef.current || selectedEvents.length === 0) return;

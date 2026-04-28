@@ -77,6 +77,8 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
     toggle: toggleItinerary,
     count: itineraryCount,
     ready: itineraryReady,
+    hiddenEvents,
+    toggleHidden,
   } = useItinerary();
 
   const { pois, addPOI, removePOI, updatePOI, ownerNames } = usePOIs();
