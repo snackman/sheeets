@@ -9,12 +9,13 @@ interface ShareCardTemplateProps {
   events: ETHDenverEvent[];
   conferenceName: string;
   displayName: string | null;
+  avatarUrl?: string | null;
 }
 
 const MAX_EVENTS = 15;
 
 const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
-  function ShareCardTemplate({ events, conferenceName, displayName }, ref) {
+  function ShareCardTemplate({ events, conferenceName, displayName, avatarUrl }, ref) {
     const dateGroups = useMemo(() => {
       const groupMap = new Map<string, ETHDenverEvent[]>();
       for (const event of events) {
@@ -80,7 +81,7 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
         <div style={{ marginBottom: '8px' }}>
           <div
             style={{
-              fontSize: '42px',
+              fontSize: '48px',
               fontWeight: 800,
               color: '#fafaf9',
               lineHeight: 1.2,
@@ -92,13 +93,34 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
           {displayName && (
             <div
               style={{
-                fontSize: '22px',
-                color: '#fbbf24',
-                marginTop: '8px',
-                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                marginTop: '12px',
               }}
             >
-              {displayName}&apos;s Itinerary
+              {avatarUrl && (
+                <img
+                  src={avatarUrl}
+                  alt={displayName}
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+              <div
+                style={{
+                  fontSize: '24px',
+                  color: '#fbbf24',
+                  fontWeight: 600,
+                }}
+              >
+                {displayName}&apos;s Itinerary
+              </div>
             </div>
           )}
         </div>
@@ -120,7 +142,7 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
               {/* Day header */}
               <div
                 style={{
-                  fontSize: '16px',
+                  fontSize: '20px',
                   fontWeight: 700,
                   color: '#fbbf24',
                   textTransform: 'uppercase',
@@ -152,9 +174,9 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
                     {/* Time */}
                     <div
                       style={{
-                        fontSize: '15px',
+                        fontSize: '18px',
                         color: '#a8a29e',
-                        minWidth: '130px',
+                        minWidth: '140px',
                         flexShrink: 0,
                         whiteSpace: 'nowrap',
                       }}
@@ -166,7 +188,7 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div
                         style={{
-                          fontSize: '18px',
+                          fontSize: '22px',
                           fontWeight: 600,
                           color: '#fafaf9',
                           lineHeight: 1.3,
@@ -177,7 +199,7 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
                       {event.address && (
                         <div
                           style={{
-                            fontSize: '14px',
+                            fontSize: '16px',
                             color: '#78716c',
                             marginTop: '3px',
                             overflow: 'hidden',
@@ -199,7 +221,7 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
           {truncated && remainingCount > 0 && (
             <div
               style={{
-                fontSize: '16px',
+                fontSize: '18px',
                 color: '#a8a29e',
                 fontStyle: 'italic',
                 textAlign: 'center',

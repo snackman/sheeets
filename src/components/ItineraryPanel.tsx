@@ -447,6 +447,7 @@ export function ItineraryPanel({
         events={itineraryEvents}
         conferenceName={selectedConference || 'My Itinerary'}
         displayName={profile?.display_name ?? null}
+        avatarUrl={profile?.avatar_url}
         hiddenEventIds={hiddenEvents}
       />
     </>

@@ -15,6 +15,7 @@ interface ShareCardModalProps {
   events: ETHDenverEvent[];
   conferenceName: string;
   displayName: string | null;
+  avatarUrl?: string | null;
   hiddenEventIds?: Set<string>;
 }
 
@@ -24,6 +25,7 @@ export function ShareCardModal({
   events,
   conferenceName,
   displayName,
+  avatarUrl,
   hiddenEventIds,
 }: ShareCardModalProps) {
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
@@ -369,6 +371,7 @@ export function ShareCardModal({
         events={selectedEvents}
         conferenceName={cardTitle || conferenceName}
         displayName={displayName}
+        avatarUrl={avatarUrl}
       />
     </>,
     document.body

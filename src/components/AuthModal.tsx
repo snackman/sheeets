@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, Settings, Link2, Share2 } from 'lucide-react';
+import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, Share2 } from 'lucide-react';
 import { ShareCardModal } from './ShareCardModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAuthSuccess, trackSignOut, trackFriendCodeGenerate, trackFriendCodeCopy, trackModalDismiss } from '@/lib/analytics';
@@ -660,9 +660,9 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
       <button
         onClick={() => setOpen(true)}
         className="relative p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
-        title="Settings"
+        title="Profile"
       >
-        <Settings className="w-4 h-4" />
+        <CircleUser className="w-4 h-4" />
         {badgeCount > 0 && (
           <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center text-[9px] font-bold rounded-full bg-[var(--theme-accent)] text-[var(--theme-accent-text)] px-0.5">
             {badgeCount}
@@ -1001,6 +1001,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
         events={itineraryEvents}
         conferenceName={shareConferenceName}
         displayName={profile?.display_name ?? null}
+        avatarUrl={profile?.avatar_url}
       />
     </>
   );

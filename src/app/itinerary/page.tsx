@@ -478,6 +478,7 @@ export default function ItineraryPage() {
         events={itineraryEvents}
         conferenceName={activeConference || 'My Itinerary'}
         displayName={profile?.display_name ?? null}
+        avatarUrl={profile?.avatar_url}
         hiddenEventIds={hiddenEvents}
       />
     </div>
