@@ -6,7 +6,8 @@ import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus,
 import { ShareCardModal } from './ShareCardModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAuthSuccess, trackSignOut, trackFriendCodeGenerate, trackFriendCodeCopy, trackModalDismiss } from '@/lib/analytics';
-import { getDisplayName, getDisplayInitial } from '@/lib/user-display';
+import { getDisplayName } from '@/lib/user-display';
+import UserAvatar from './UserAvatar';
 
 import { supabase } from '@/lib/supabase';
 import { distanceMeters } from '@/lib/geo';
@@ -235,11 +236,7 @@ function SearchResultRow({
 
   return (
     <div className="flex items-center gap-3 py-2">
-      <div className="w-8 h-8 rounded-full bg-[var(--theme-bg-tertiary)] flex items-center justify-center shrink-0">
-        <span className="text-sm font-medium text-[var(--theme-text-secondary)]">
-          {getDisplayInitial(result)}
-        </span>
-      </div>
+      <UserAvatar size="sm" avatarUrl={result.avatar_url} xHandle={result.x_handle} displayName={result.display_name} email={result.email} />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-white truncate">{displayName}</p>
         {secondary && result.display_name && (
@@ -292,15 +289,10 @@ function IncomingRequestRow({
 }) {
   const profile = request.sender_profile;
   const displayName = profile ? getDisplayName(profile) : 'Anonymous';
-  const initial = profile ? getDisplayInitial(profile) : '?';
 
   return (
     <div className="flex items-center gap-3 py-2">
-      <div className="w-8 h-8 rounded-full bg-[var(--theme-bg-tertiary)] flex items-center justify-center shrink-0">
-        <span className="text-sm font-medium text-[var(--theme-text-secondary)]">
-          {initial}
-        </span>
-      </div>
+      <UserAvatar size="sm" avatarUrl={profile?.avatar_url} xHandle={profile?.x_handle} displayName={profile?.display_name} email={profile?.email} />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-white truncate">{displayName}</p>
         {profile?.display_name && profile?.email && (
@@ -340,15 +332,10 @@ function OutgoingRequestRow({
 }) {
   const profile = request.receiver_profile;
   const displayName = profile ? getDisplayName(profile) : 'Anonymous';
-  const initial = profile ? getDisplayInitial(profile) : '?';
 
   return (
     <div className="flex items-center gap-3 py-2">
-      <div className="w-8 h-8 rounded-full bg-[var(--theme-bg-tertiary)] flex items-center justify-center shrink-0">
-        <span className="text-sm font-medium text-[var(--theme-text-secondary)]">
-          {initial}
-        </span>
-      </div>
+      <UserAvatar size="sm" avatarUrl={profile?.avatar_url} xHandle={profile?.x_handle} displayName={profile?.display_name} email={profile?.email} />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-white truncate">{displayName}</p>
         {profile?.display_name && profile?.email && (
@@ -384,7 +371,7 @@ interface UserMenuProps {
 
 export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pendingIncomingCount: externalCount, externalRefreshFriends }: UserMenuProps) {
   const { user, signOut } = useAuth();
-  const { profile, updateProfile } = useProfile();
+  const { profile, updateProfile, uploadAvatar } = useProfile();
   const { friendCount, refreshFriends: localRefreshFriends } = useFriends();
   const { config } = useAdminConfig();
 
@@ -418,6 +405,11 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Avatar upload state
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   // Friend search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -491,6 +483,29 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
       if (saveTimeout.current) clearTimeout(saveTimeout.current);
     };
   }, [displayName, xHandle, rsvpName, profile, updateProfile]);
+
+  async function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset input so re-selecting the same file triggers onChange
+    e.target.value = '';
+
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError('Image must be under 5MB');
+      return;
+    }
+
+    setAvatarError(null);
+    setAvatarUploading(true);
+    try {
+      await uploadAvatar(file);
+    } catch (err) {
+      console.error('Avatar upload failed:', err);
+      setAvatarError('Upload failed. Please try again.');
+    }
+    setAvatarUploading(false);
+  }
 
   if (!user) return null;
 
@@ -678,6 +693,46 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
               <div className="max-h-[80vh] overflow-y-auto px-4 py-5 space-y-4">
                 {/* Profile Fields */}
                 <div className="space-y-3">
+                  {/* Avatar upload */}
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={avatarUploading}
+                      className="relative group cursor-pointer shrink-0"
+                    >
+                      <UserAvatar
+                        size="lg"
+                        avatarUrl={profile?.avatar_url}
+                        xHandle={profile?.x_handle}
+                        displayName={profile?.display_name}
+                        email={profile?.email}
+                      />
+                      <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        {avatarUploading ? (
+                          <Loader2 className="w-5 h-5 text-white animate-spin" />
+                        ) : (
+                          <User className="w-5 h-5 text-white" />
+                        )}
+                      </div>
+                    </button>
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarSelect}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-[var(--theme-text-muted)]">
+                        {avatarUploading ? 'Uploading...' : 'Tap to change photo'}
+                      </p>
+                      {avatarError && (
+                        <p className="text-xs text-red-400 mt-0.5">{avatarError}</p>
+                      )}
+                    </div>
+                  </div>
+
                   <div>
                     <input
                       type="text"

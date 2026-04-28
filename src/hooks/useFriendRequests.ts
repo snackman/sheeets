@@ -48,15 +48,15 @@ export function useFriendRequests({ refreshFriends }: UseFriendRequestsOptions) 
     incoming?.forEach((r) => userIds.add(r.sender_id));
     outgoing?.forEach((r) => userIds.add(r.receiver_id));
 
-    let profileMap = new Map<string, { display_name: string | null; email: string | null; x_handle: string | null }>();
+    let profileMap = new Map<string, { display_name: string | null; email: string | null; x_handle: string | null; avatar_url: string | null }>();
     if (userIds.size > 0) {
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('user_id, display_name, email, x_handle')
+        .select('user_id, display_name, email, x_handle, avatar_url')
         .in('user_id', [...userIds]);
 
       profileMap = new Map(
-        (profiles ?? []).map((p) => [p.user_id, { display_name: p.display_name, email: p.email, x_handle: p.x_handle }])
+        (profiles ?? []).map((p) => [p.user_id, { display_name: p.display_name, email: p.email, x_handle: p.x_handle, avatar_url: p.avatar_url }])
       );
     }
 

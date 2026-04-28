@@ -29,7 +29,7 @@ export function useProfile() {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('user_id, email, display_name, x_handle, rsvp_name')
+          .select('user_id, email, display_name, x_handle, rsvp_name, avatar_url')
           .eq('user_id', user!.id)
           .maybeSingle();
 
@@ -49,6 +49,7 @@ export function useProfile() {
             display_name: null,
             x_handle: null,
             rsvp_name: null,
+            avatar_url: null,
           };
 
           const { error: insertError } = await supabase
@@ -59,7 +60,7 @@ export function useProfile() {
             // Could be a race condition — try fetching again
             const { data: retryData } = await supabase
               .from('profiles')
-              .select('user_id, email, display_name, x_handle, rsvp_name')
+              .select('user_id, email, display_name, x_handle, rsvp_name, avatar_url')
               .eq('user_id', user!.id)
               .maybeSingle();
 
@@ -102,5 +103,34 @@ export function useProfile() {
     [user]
   );
 
-  return { profile, loading, updateProfile };
+  const uploadAvatar = useCallback(async (file: File) => {
+    if (!user) return;
+
+    const { resizeAndCropAvatar } = await import('@/lib/image-resize');
+    const blob = await resizeAndCropAvatar(file);
+
+    const path = `${user.id}/avatar.webp`;
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(path, blob, { upsert: true, contentType: 'image/webp' });
+
+    if (uploadError) throw uploadError;
+
+    const { data: urlData } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(path);
+
+    const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ avatar_url: avatarUrl })
+      .eq('user_id', user.id);
+
+    if (updateError) throw updateError;
+
+    setProfile((prev) => prev ? { ...prev, avatar_url: avatarUrl } : prev);
+  }, [user]);
+
+  return { profile, loading, updateProfile, uploadAvatar };
 }

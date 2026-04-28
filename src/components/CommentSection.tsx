@@ -5,7 +5,8 @@ import { Send, Trash2, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEventComments } from '@/hooks/useEventComments';
 import { timeAgo } from '@/lib/time-parse';
-import { getDisplayName, getDisplayInitial } from '@/lib/user-display';
+import { getDisplayName } from '@/lib/user-display';
+import UserAvatar from './UserAvatar';
 import { trackCommentExpand, trackCommentAdd, trackCommentDelete, trackCommentVisibilityToggle } from '@/lib/analytics';
 
 interface CommentSectionProps {
@@ -65,13 +66,10 @@ export function CommentSection({ eventId, commentCount = 0 }: CommentSectionProp
         <div className="max-h-[200px] overflow-y-auto space-y-2 mb-2">
           {comments.map((comment) => {
             const name = getDisplayName(comment);
-            const initial = getDisplayInitial(comment);
 
             return (
               <div key={comment.id} className="flex gap-2 group/comment">
-                <div className="w-6 h-6 rounded-full bg-[var(--theme-bg-tertiary)] flex items-center justify-center shrink-0">
-                  <span className="text-[10px] font-medium text-[var(--theme-text-secondary)]">{initial}</span>
-                </div>
+                <UserAvatar size="xs" avatarUrl={comment.avatar_url} xHandle={comment.x_handle} displayName={comment.display_name} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[11px] font-medium text-[var(--theme-text-secondary)]">{name}</span>

@@ -35,7 +35,7 @@ export function useFriends() {
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('user_id, email, display_name, x_handle, rsvp_name')
+      .select('user_id, email, display_name, x_handle, rsvp_name, avatar_url')
       .in('user_id', [...friendIds]);
 
     const profileMap = new Map(
@@ -51,6 +51,7 @@ export function useFriends() {
           display_name: p?.display_name ?? null,
           x_handle: p?.x_handle ?? null,
           rsvp_name: p?.rsvp_name ?? null,
+          avatar_url: p?.avatar_url ?? null,
         };
       })
     );

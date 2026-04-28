@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 import { Marker } from 'react-map-gl/mapbox';
 import type { FriendLocation } from '@/lib/types';
 import { timeAgo } from '@/lib/time-parse';
-import { getDisplayName, getDisplayInitial } from '@/lib/user-display';
+import { getDisplayName } from '@/lib/user-display';
+import UserAvatar from './UserAvatar';
 
 interface FriendMarkerProps {
   location: FriendLocation;
@@ -12,20 +12,13 @@ interface FriendMarkerProps {
 }
 
 export function FriendMarker({ location, zoom = 12 }: FriendMarkerProps) {
-  const [imgError, setImgError] = useState(false);
-
   const name = getDisplayName(location, 'Friend');
-  const initial = getDisplayInitial(location);
   const showLabel = zoom >= 13;
 
   // Stale if >1h old
   const ageMs = Date.now() - new Date(location.updated_at).getTime();
   const isStale = ageMs > 60 * 60 * 1000;
   const isRecent = ageMs < 5 * 60 * 1000;
-
-  const avatarUrl = location.x_handle
-    ? `https://unavatar.io/x/${location.x_handle}`
-    : null;
 
   return (
     <Marker latitude={location.lat} longitude={location.lng} anchor="center">
@@ -35,21 +28,11 @@ export function FriendMarker({ location, zoom = 12 }: FriendMarkerProps) {
       >
         {/* Avatar circle */}
         <div
-          className={`w-8 h-8 rounded-full border-2 shadow-lg flex items-center justify-center overflow-hidden ${
+          className={`rounded-full border-2 shadow-lg overflow-hidden ${
             isRecent ? 'border-green-400' : 'border-slate-400'
           }`}
-          style={{ backgroundColor: '#1c1917' }}
         >
-          {avatarUrl && !imgError ? (
-            <img
-              src={avatarUrl}
-              alt={name}
-              className="w-full h-full object-cover"
-              onError={() => setImgError(true)}
-            />
-          ) : (
-            <span className="text-sm font-bold text-white">{initial}</span>
-          )}
+          <UserAvatar size="sm" avatarUrl={location.avatar_url} xHandle={location.x_handle} displayName={location.display_name} />
         </div>
 
         {/* Online pulse dot */}
