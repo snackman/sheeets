@@ -2,6 +2,7 @@ interface DisplayNameSource {
   display_name?: string | null;
   x_handle?: string | null;
   email?: string | null;
+  avatar_url?: string | null;
 }
 
 /**

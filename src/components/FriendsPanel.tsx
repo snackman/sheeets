@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { X, Trash2, ExternalLink, Users, ChevronRight, Mail } from 'lucide-react';
 import type { Friend } from '@/lib/types';
-import { getDisplayName, getDisplayInitial } from '@/lib/user-display';
+import { getDisplayName } from '@/lib/user-display';
+import UserAvatar from './UserAvatar';
 import { trackFriendExpand, trackFriendXProfileClick, trackFriendRemove, trackModalDismiss } from '@/lib/analytics';
 
 interface FriendsPanelProps {
@@ -31,12 +32,8 @@ function FriendCard({
         onClick={() => { if (!expanded) trackFriendExpand(displayName); setExpanded(!expanded); }}
         className="w-full flex items-center gap-3 p-3 text-left cursor-pointer hover:bg-[var(--theme-bg-tertiary)] transition-colors"
       >
-        {/* Avatar circle with initial */}
-        <div className="w-8 h-8 rounded-full bg-[var(--theme-bg-tertiary)] flex items-center justify-center shrink-0">
-          <span className="text-sm font-medium text-[var(--theme-text-secondary)]">
-            {getDisplayInitial(friend)}
-          </span>
-        </div>
+        {/* Avatar */}
+        <UserAvatar size="sm" avatarUrl={friend.avatar_url} xHandle={friend.x_handle} displayName={friend.display_name} email={friend.email} />
 
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-[var(--theme-text-primary)] truncate">{displayName}</p>

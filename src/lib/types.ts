@@ -59,6 +59,7 @@ export interface UserProfile {
   display_name: string | null;
   x_handle: string | null;
   rsvp_name: string | null;
+  avatar_url: string | null;
 }
 
 export interface Friend {
@@ -67,6 +68,7 @@ export interface Friend {
   display_name: string | null;
   x_handle: string | null;
   rsvp_name: string | null;
+  avatar_url: string | null;
 }
 
 export interface FriendRequest {
@@ -75,8 +77,8 @@ export interface FriendRequest {
   receiver_id: string;
   status: 'pending' | 'accepted' | 'rejected';
   created_at: string;
-  sender_profile?: { display_name: string | null; email: string | null; x_handle: string | null };
-  receiver_profile?: { display_name: string | null; email: string | null; x_handle: string | null };
+  sender_profile?: { display_name: string | null; email: string | null; x_handle: string | null; avatar_url?: string | null };
+  receiver_profile?: { display_name: string | null; email: string | null; x_handle: string | null; avatar_url?: string | null };
 }
 
 export interface UserSearchResult {
@@ -85,6 +87,7 @@ export interface UserSearchResult {
   x_handle: string | null;
   email: string | null;
   rsvp_name: string | null;
+  avatar_url: string | null;
   request_status: 'pending_outgoing' | 'pending_incoming' | null;
 }
 
@@ -108,6 +111,7 @@ export interface EventComment {
   created_at: string;
   display_name?: string;
   x_handle?: string;
+  avatar_url?: string;
 }
 
 export interface FriendLocation {
@@ -117,6 +121,7 @@ export interface FriendLocation {
   updated_at: string;
   display_name?: string;
   x_handle?: string;
+  avatar_url?: string;
 }
 
 export type POICategory = 'pin' | 'hotel' | 'food' | 'drink' | 'work' | 'meeting';

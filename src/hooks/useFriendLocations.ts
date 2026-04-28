@@ -74,6 +74,7 @@ export function useFriendLocations(friends: Friend[]) {
             updated_at: row.updated_at,
             display_name: friend?.display_name ?? undefined,
             x_handle: friend?.x_handle ?? undefined,
+            avatar_url: friend?.avatar_url ?? undefined,
           };
         }
       );
