@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { STORAGE_KEYS } from '@/lib/constants';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { trackItineraryHideEvent } from '@/lib/analytics';
 
 function getLocalUpdatedAt(): number {
   try {
@@ -22,13 +23,32 @@ function setLocalUpdatedAt(ts: number) {
   }
 }
 
+function getLocalHiddenUpdatedAt(): number {
+  try {
+    const val = localStorage.getItem(STORAGE_KEYS.HIDDEN_EVENTS_UPDATED);
+    return val ? parseInt(val, 10) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function setLocalHiddenUpdatedAt(ts: number) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.HIDDEN_EVENTS_UPDATED, String(ts));
+  } catch {
+    // ignore
+  }
+}
+
 export function useItinerary() {
   const { user, loading: authLoading } = useAuth();
   const [itinerary, setItinerary] = useState<Set<string>>(new Set());
+  const [hiddenEvents, setHiddenEvents] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
   const [ready, setReady] = useState(false);
   const initialSyncDone = useRef(false);
   const skipNextPush = useRef(false);
+  const skipNextHiddenPush = useRef(false);
   // Track whether a clear is due to logout so we skip persisting the empty set
   const clearingForLogout = useRef(false);
 
@@ -46,10 +66,19 @@ export function useItinerary() {
       } catch {
         // Ignore parse errors
       }
+      try {
+        const savedHidden = localStorage.getItem(STORAGE_KEYS.HIDDEN_EVENTS);
+        if (savedHidden) {
+          setHiddenEvents(new Set(JSON.parse(savedHidden)));
+        }
+      } catch {
+        // Ignore parse errors
+      }
     } else {
       // User is logged out — clear displayed itinerary (keep localStorage intact)
       clearingForLogout.current = true;
       setItinerary(new Set());
+      setHiddenEvents(new Set());
       setReady(true);
     }
     setLoaded(true);
@@ -65,7 +94,7 @@ export function useItinerary() {
       try {
         const { data } = await supabase
           .from('itineraries')
-          .select('event_ids, updated_at')
+          .select('event_ids, hidden_event_ids, updated_at')
           .eq('user_id', user!.id)
           .maybeSingle();
 
@@ -83,6 +112,19 @@ export function useItinerary() {
           }
           // else: local is newer — keep local, will push to server on next save
         }
+
+        if (data?.hidden_event_ids) {
+          const serverTime = data.updated_at
+            ? new Date(data.updated_at).getTime()
+            : 0;
+          const localHiddenTime = getLocalHiddenUpdatedAt();
+
+          if (serverTime >= localHiddenTime) {
+            skipNextHiddenPush.current = true;
+            setHiddenEvents(new Set(data.hidden_event_ids));
+            setLocalHiddenUpdatedAt(serverTime);
+          }
+        }
       } catch {
         // Error fetching — proceed with local data only
       }
@@ -93,7 +135,7 @@ export function useItinerary() {
     syncWithSupabase();
   }, [user, loaded]);
 
-  // Save to localStorage + Supabase on change
+  // Save itinerary to localStorage + Supabase on change
   useEffect(() => {
     if (!loaded) return;
 
@@ -134,6 +176,47 @@ export function useItinerary() {
     }
   }, [itinerary, loaded, user]);
 
+  // Save hiddenEvents to localStorage + Supabase on change
+  useEffect(() => {
+    if (!loaded) return;
+
+    // Don't overwrite localStorage when clearing due to logout
+    if (clearingForLogout.current) {
+      // Already handled by the itinerary effect above
+      return;
+    }
+
+    localStorage.setItem(
+      STORAGE_KEYS.HIDDEN_EVENTS,
+      JSON.stringify([...hiddenEvents])
+    );
+
+    // Skip the push triggered by replacing local with server data
+    if (skipNextHiddenPush.current) {
+      skipNextHiddenPush.current = false;
+      return;
+    }
+
+    if (user && initialSyncDone.current) {
+      const now = new Date().toISOString();
+      setLocalHiddenUpdatedAt(new Date(now).getTime());
+
+      supabase
+        .from('itineraries')
+        .upsert(
+          {
+            user_id: user.id,
+            hidden_event_ids: [...hiddenEvents],
+            updated_at: now,
+          },
+          { onConflict: 'user_id' }
+        )
+        .then(({ error }) => {
+          if (error) console.error('Failed to sync hidden events:', error);
+        });
+    }
+  }, [hiddenEvents, loaded, user]);
+
   const add = useCallback((eventId: string) => {
     setItinerary((prev) => {
       const next = new Set(prev);
@@ -148,13 +231,30 @@ export function useItinerary() {
       next.delete(eventId);
       return next;
     });
+    // Also remove from hidden events to avoid stale entries
+    setHiddenEvents((prev) => {
+      if (!prev.has(eventId)) return prev;
+      const next = new Set(prev);
+      next.delete(eventId);
+      return next;
+    });
   }, []);
 
   const toggle = useCallback((eventId: string) => {
     setItinerary((prev) => {
       const next = new Set(prev);
-      if (next.has(eventId)) next.delete(eventId);
-      else next.add(eventId);
+      if (next.has(eventId)) {
+        next.delete(eventId);
+        // Also remove from hidden events when un-starring
+        setHiddenEvents((prevHidden) => {
+          if (!prevHidden.has(eventId)) return prevHidden;
+          const nextHidden = new Set(prevHidden);
+          nextHidden.delete(eventId);
+          return nextHidden;
+        });
+      } else {
+        next.add(eventId);
+      }
       return next;
     });
   }, []);
@@ -174,11 +274,31 @@ export function useItinerary() {
 
   const clear = useCallback(() => {
     setItinerary(new Set());
+    setHiddenEvents(new Set());
   }, []);
 
   const reorder = useCallback((orderedIds: string[]) => {
     setItinerary(new Set(orderedIds));
   }, []);
+
+  const toggleHidden = useCallback((eventId: string) => {
+    setHiddenEvents((prev) => {
+      const next = new Set(prev);
+      const nowHidden = !next.has(eventId);
+      if (nowHidden) {
+        next.add(eventId);
+      } else {
+        next.delete(eventId);
+      }
+      trackItineraryHideEvent(nowHidden);
+      return next;
+    });
+  }, []);
+
+  const isHidden = useCallback(
+    (eventId: string) => hiddenEvents.has(eventId),
+    [hiddenEvents]
+  );
 
   return {
     itinerary,
@@ -191,5 +311,9 @@ export function useItinerary() {
     reorder,
     count: itinerary.size,
     ready,
+    hiddenEvents,
+    toggleHidden,
+    isHidden,
+    hiddenCount: hiddenEvents.size,
   };
 }

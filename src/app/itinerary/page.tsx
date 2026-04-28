@@ -4,7 +4,7 @@ import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { AddressLink } from '@/components/AddressLink';
-import { ArrowLeft, AlertTriangle, Trash2, CalendarX, Share2, Map as MapIcon, List, GripVertical, Star, ExternalLink } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Trash2, CalendarX, Share2, Map as MapIcon, List, GripVertical, Star, ExternalLink, Eye, EyeOff } from 'lucide-react';
 import clsx from 'clsx';
 import { useEvents } from '@/hooks/useEvents';
 import { useItinerary } from '@/hooks/useItinerary';
@@ -45,7 +45,7 @@ function generateShortCode(): string {
 
 export default function ItineraryPage() {
   const { events, loading } = useEvents();
-  const { itinerary, toggle: toggleItinerary, clear: clearItinerary, reorder: reorderItinerary } = useItinerary();
+  const { itinerary, toggle: toggleItinerary, clear: clearItinerary, reorder: reorderItinerary, hiddenEvents, toggleHidden } = useItinerary();
   const { user } = useAuth();
   const { profile } = useProfile();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -133,7 +133,9 @@ export default function ItineraryPage() {
     setShareStatus('sharing');
     try {
       const shortCode = generateShortCode();
-      const eventIds = itineraryEvents.map((e) => e.id);
+      const eventIds = itineraryEvents
+        .filter((e) => !hiddenEvents.has(e.id))
+        .map((e) => e.id);
       const { error } = await supabase.from('shared_itineraries').insert({
         short_code: shortCode,
         event_ids: eventIds,
@@ -152,7 +154,7 @@ export default function ItineraryPage() {
       console.error('Share failed:', err);
       setShareStatus('idle');
     }
-  }, [itineraryEvents, user]);
+  }, [itineraryEvents, hiddenEvents, user]);
 
   if (loading) {
     return (
@@ -368,6 +370,20 @@ export default function ItineraryPage() {
                                 </a>
                               )}
                               <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleHidden(event.id);
+                                }}
+                                className={`p-1 transition-colors cursor-pointer ${
+                                  hiddenEvents.has(event.id)
+                                    ? 'text-[var(--theme-text-muted)]'
+                                    : 'text-[var(--theme-text-faint)] hover:text-[var(--theme-text-muted)]'
+                                }`}
+                                title={hiddenEvents.has(event.id) ? 'Hidden from friends (tap to show)' : 'Hide from friends'}
+                              >
+                                {hiddenEvents.has(event.id) ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                              </button>
+                              <button
                                 onClick={() => toggleItinerary(event.id)}
                                 className="p-1 text-[var(--theme-accent)] hover:text-[var(--theme-accent)] transition-colors cursor-pointer"
                                 aria-label="Remove from itinerary"
@@ -462,6 +478,7 @@ export default function ItineraryPage() {
         events={itineraryEvents}
         conferenceName={activeConference || 'My Itinerary'}
         displayName={profile?.display_name ?? null}
+        hiddenEventIds={hiddenEvents}
       />
     </div>
   );

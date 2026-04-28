@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { X, AlertTriangle, Trash2, CalendarX, Share2, ExternalLink, GripVertical, Star } from 'lucide-react';
+import { X, AlertTriangle, Trash2, CalendarX, Share2, ExternalLink, GripVertical, Star, Eye, EyeOff } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { VIBE_COLORS } from '@/lib/tags';
 import { formatDateLabel } from '@/lib/utils';
@@ -21,6 +21,8 @@ interface ItineraryPanelProps {
   onItineraryClear: () => void;
   onReorder?: (orderedIds: string[]) => void;
   activeConference?: string;
+  hiddenEvents: Set<string>;
+  onToggleHidden: (eventId: string) => void;
 }
 
 interface DateGroup {
@@ -38,6 +40,8 @@ export function ItineraryPanel({
   onItineraryClear,
   onReorder,
   activeConference,
+  hiddenEvents,
+  onToggleHidden,
 }: ItineraryPanelProps) {
   const { profile } = useProfile();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -336,6 +340,20 @@ export function ItineraryPanel({
                                     </a>
                                   )}
                                   <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onToggleHidden(event.id);
+                                    }}
+                                    className={`p-1 transition-colors cursor-pointer ${
+                                      hiddenEvents.has(event.id)
+                                        ? 'text-[var(--theme-text-muted)]'
+                                        : 'text-[var(--theme-text-faint)] hover:text-[var(--theme-text-muted)]'
+                                    }`}
+                                    title={hiddenEvents.has(event.id) ? 'Hidden from friends (tap to show)' : 'Hide from friends'}
+                                  >
+                                    {hiddenEvents.has(event.id) ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                  </button>
+                                  <button
                                     onClick={() => onItineraryToggle(event.id)}
                                     className="p-1 text-[var(--theme-accent-link)] hover:text-[var(--theme-accent-link)] active:text-[var(--theme-accent-link)] transition-colors cursor-pointer"
                                     aria-label="Remove from itinerary"
@@ -429,6 +447,7 @@ export function ItineraryPanel({
         events={itineraryEvents}
         conferenceName={selectedConference || 'My Itinerary'}
         displayName={profile?.display_name ?? null}
+        hiddenEventIds={hiddenEvents}
       />
     </>
   );
