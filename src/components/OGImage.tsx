@@ -7,11 +7,12 @@ import { X } from 'lucide-react';
 interface OGImageProps {
   url: string;
   eventId?: string;
+  rsvpUrl?: string;
 }
 
 const imageCache = new Map<string, string | null>();
 
-export function OGImage({ url, eventId }: OGImageProps) {
+export function OGImage({ url, eventId, rsvpUrl }: OGImageProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(
     imageCache.get(url) ?? null
   );
@@ -111,12 +112,23 @@ export function OGImage({ url, eventId }: OGImageProps) {
           >
             <X className="w-6 h-6" />
           </button>
-          <img
-            src={imageUrl}
-            alt=""
-            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
-            onClick={(e) => e.stopPropagation()}
-          />
+          <div className="flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={imageUrl}
+              alt=""
+              className="max-w-[60vw] max-h-[60vh] object-contain rounded-lg"
+            />
+            {rsvpUrl && (
+              <a
+                href={rsvpUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                RSVP / Event Page &rarr;
+              </a>
+            )}
+          </div>
         </div>,
         document.body
       )}

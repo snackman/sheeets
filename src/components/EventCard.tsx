@@ -212,7 +212,7 @@ export function EventCard({
       style={event.isFeatured ? { borderColor: 'var(--theme-popup-featured-border)' } : undefined}
     >
       {/* Left: cover image */}
-      {event.link && <OGImage url={event.link} eventId={event.id} />}
+      {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} />}
 
       {/* Right: event details */}
       <div className="flex-1 min-w-0">
