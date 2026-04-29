@@ -78,69 +78,58 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
         }}
       >
         {/* Header */}
-        <div style={{ marginBottom: '8px' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '18px',
+            marginBottom: '8px',
+          }}
+        >
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt=""
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                objectFit: 'cover',
+                flexShrink: 0,
+              }}
+            />
+          ) : displayName ? (
+            <div
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                backgroundColor: '#292524',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '24px',
+                fontWeight: 700,
+                color: '#fbbf24',
+                flexShrink: 0,
+              }}
+            >
+              {displayName.charAt(0).toUpperCase()}
+            </div>
+          ) : null}
           <div
             style={{
-              fontSize: '48px',
+              fontSize: '44px',
               fontWeight: 800,
               color: '#fafaf9',
               lineHeight: 1.2,
               letterSpacing: '-0.02em',
+              flex: 1,
+              minWidth: 0,
             }}
           >
             {conferenceName}
           </div>
-          {displayName && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '14px',
-                marginTop: '12px',
-              }}
-            >
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt={displayName}
-                  style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                    flexShrink: 0,
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    backgroundColor: '#292524',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '18px',
-                    fontWeight: 700,
-                    color: '#fbbf24',
-                    flexShrink: 0,
-                  }}
-                >
-                  {displayName.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div
-                style={{
-                  fontSize: '24px',
-                  color: '#fbbf24',
-                  fontWeight: 600,
-                }}
-              >
-                {displayName}&apos;s Itinerary
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Amber separator */}

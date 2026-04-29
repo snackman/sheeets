@@ -30,7 +30,8 @@ export function ShareCardModal({
 }: ShareCardModalProps) {
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
   const [showPastEvents, setShowPastEvents] = useState(false);
-  const [cardTitle, setCardTitle] = useState(conferenceName);
+  const defaultTitle = displayName ? `${displayName}'s ${conferenceName} Plan` : conferenceName;
+  const [cardTitle, setCardTitle] = useState(defaultTitle);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copying' | 'copied'>('idle');
@@ -134,7 +135,7 @@ export function ShareCardModal({
     if (!isOpen) {
       setExcludedIds(new Set(hiddenEventIds ?? []));
       setShowPastEvents(false);
-      setCardTitle(conferenceName);
+      setCardTitle(displayName ? `${displayName}'s ${conferenceName} Plan` : conferenceName);
       setPreviewUrl(null);
       setCopyStatus('idle');
     }
@@ -229,7 +230,7 @@ export function ShareCardModal({
                 value={cardTitle}
                 onChange={(e) => setCardTitle(e.target.value)}
                 className="w-full px-3 py-2 bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm focus:outline-none focus:border-[var(--theme-accent)] transition-colors"
-                placeholder={conferenceName}
+                placeholder={defaultTitle}
               />
             </div>
 
