@@ -30,7 +30,7 @@ export function ShareCardModal({
 }: ShareCardModalProps) {
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
   const [showPastEvents, setShowPastEvents] = useState(false);
-  const defaultTitle = displayName ? `${displayName}'s ${conferenceName} Plan` : conferenceName;
+  const defaultTitle = displayName ? `${displayName}'s ${conferenceName} Plan` : `My ${conferenceName} Plan`;
   const [cardTitle, setCardTitle] = useState(defaultTitle);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -135,7 +135,7 @@ export function ShareCardModal({
     if (!isOpen) {
       setExcludedIds(new Set(hiddenEventIds ?? []));
       setShowPastEvents(false);
-      setCardTitle(displayName ? `${displayName}'s ${conferenceName} Plan` : conferenceName);
+      setCardTitle(displayName ? `${displayName}'s ${conferenceName} Plan` : `My ${conferenceName} Plan`);
       setPreviewUrl(null);
       setCopyStatus('idle');
     }
@@ -209,7 +209,7 @@ export function ShareCardModal({
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)] shrink-0">
-            <h2 className="text-base font-bold text-[var(--theme-text-primary)]">Share Itinerary</h2>
+            <h2 className="text-base font-bold text-[var(--theme-text-primary)]">Share My Plan</h2>
             <button
               onClick={onClose}
               className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
