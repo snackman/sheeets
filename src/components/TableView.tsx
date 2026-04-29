@@ -493,7 +493,8 @@ function DateGroup({
             </td>
             <td className="px-3 py-2 text-[var(--theme-text-secondary)] truncate hidden sm:table-cell" title={event.organizer}>{event.organizer}</td>
             <td className="px-3 py-2 font-medium text-[var(--theme-text-primary)] overflow-hidden truncate max-w-[25ch] sm:max-w-none" title={event.name}>
-              <span className="inline-flex items-center gap-1 max-w-full truncate">
+              <span className="inline-flex items-center gap-1.5 max-w-full truncate">
+                <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ color: 'var(--theme-popup-featured-border)', background: 'var(--theme-accent-muted)' }}>Featured</span>
                 {event.link ? (
                   <a href={event.link} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--theme-accent)] transition-colors truncate"
                     onClick={() => { trackEventClick(event.name, event.link!); trackEvent({ event_id: event.id, event_name: event.name, event_type: 'click', conference, url: event.link!, source: 'table' }); }}>
