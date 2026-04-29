@@ -424,7 +424,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   );
   const shareConferenceName = useMemo(() => {
     const confs = [...new Set(itineraryEvents.map((e) => e.conference).filter(Boolean))];
-    if (confs.length === 0) return 'My Itinerary';
+    if (confs.length === 0) return 'Itinerary';
     if (confs.length === 1) return confs[0];
     // Pick the conference with the most itinerary events
     const counts = new Map<string, number>();

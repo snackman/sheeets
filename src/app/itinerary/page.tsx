@@ -519,7 +519,7 @@ export default function ItineraryPage() {
         isOpen={showShareCard}
         onClose={() => setShowShareCard(false)}
         events={itineraryEvents}
-        conferenceName={activeConference || 'My Itinerary'}
+        conferenceName={activeConference || 'Itinerary'}
         displayName={profile?.display_name ?? null}
         avatarUrl={profile?.avatar_url}
         hiddenEventIds={hiddenEvents}

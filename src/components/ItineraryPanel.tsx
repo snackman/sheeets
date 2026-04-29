@@ -445,7 +445,7 @@ export function ItineraryPanel({
         isOpen={showShareCard}
         onClose={() => setShowShareCard(false)}
         events={itineraryEvents}
-        conferenceName={selectedConference || 'My Itinerary'}
+        conferenceName={selectedConference || 'Itinerary'}
         displayName={profile?.display_name ?? null}
         avatarUrl={profile?.avatar_url}
         hiddenEventIds={hiddenEvents}
