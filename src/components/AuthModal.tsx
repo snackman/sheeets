@@ -659,12 +659,12 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
     <>
       <button
         onClick={() => setOpen(true)}
-        className="relative p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
+        className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--theme-border-primary)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] transition-colors text-sm cursor-pointer"
         title="Profile"
       >
         <CircleUser className="w-4 h-4" />
         {badgeCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center text-[9px] font-bold rounded-full bg-[var(--theme-accent)] text-[var(--theme-accent-text)] px-0.5">
+          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full px-1 border border-[var(--theme-accent)] bg-[var(--theme-accent)] text-[var(--theme-accent-text)]">
             {badgeCount}
           </span>
         )}
