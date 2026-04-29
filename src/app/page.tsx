@@ -278,6 +278,14 @@ export default async function Home() {
         </div>
       )}
 
+      {/* Spreadsheet link */}
+      <p className="text-sm mb-8" style={{ color: 'var(--theme-text-muted)' }}>
+        Looking for the old spreadsheet?{' '}
+        <a href="/data" className="underline hover:opacity-80 transition-opacity" style={{ color: 'var(--theme-text-secondary)' }}>
+          Find it at plan.wtf/data
+        </a>
+      </p>
+
       {/* Upcoming conferences */}
       {upcoming.length > 0 && (
         <div className="w-full max-w-3xl">
