@@ -280,7 +280,7 @@ export default async function Home() {
 
       {/* Spreadsheet link */}
       <p className="text-sm mb-8" style={{ color: 'var(--theme-text-muted)' }}>
-        Looking for the old spreadsheet?{' '}
+        Looking for the old sheeets.xyz?{' '}
         <a href="/data" className="underline hover:opacity-80 transition-opacity" style={{ color: 'var(--theme-text-secondary)' }}>
           Find it at plan.wtf/data
         </a>
