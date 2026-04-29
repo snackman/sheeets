@@ -99,7 +99,7 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
                 marginTop: '12px',
               }}
             >
-              {avatarUrl && (
+              {avatarUrl ? (
                 <img
                   src={avatarUrl}
                   alt={displayName}
@@ -111,6 +111,24 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
                     flexShrink: 0,
                   }}
                 />
+              ) : (
+                <div
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    backgroundColor: '#292524',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '18px',
+                    fontWeight: 700,
+                    color: '#fbbf24',
+                    flexShrink: 0,
+                  }}
+                >
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
               )}
               <div
                 style={{
