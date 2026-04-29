@@ -35,6 +35,7 @@ export async function generateMetadata({
       title: `${tab.name} Side Events | plan.wtf`,
       description: `Browse ${count}+ side events for ${tab.name}. Filter by date, time, tags, and more.`,
       url: `https://plan.wtf/${tab.slug}`,
+      images: [{ url: '/logo.png' }],
     },
   };
 }
