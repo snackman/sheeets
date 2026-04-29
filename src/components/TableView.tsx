@@ -392,13 +392,6 @@ function EventDetailModal({
             onToggleReaction={onToggleReaction}
             commentCount={commentCount}
           />
-          <button
-            onClick={onClose}
-            className="absolute top-2 right-2 p-1.5 rounded-full bg-[var(--theme-bg-tertiary)]/80 hover:bg-[var(--theme-border-primary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer z-10"
-            aria-label="Close"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
       </div>
     </>
