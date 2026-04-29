@@ -229,8 +229,30 @@ export default function AdminPage() {
   const [eventReportLoading, setEventReportLoading] = useState(false);
   const [eventReportConference, setEventReportConference] = useState('');
   const [eventReportRange, setEventReportRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
-  const [eventReportSort, setEventReportSort] = useState<'clicks' | 'ctr' | 'pin_clicks'>('clicks');
+  type EventReportSortKey = 'clicks' | 'ctr' | 'pin_clicks' | 'list_clicks' | 'table_clicks' | 'map_popup_clicks' | 'impressions' | 'last_seen' | 'event_name' | 'conference';
+  const [eventReportSort, setEventReportSort] = useState<EventReportSortKey>('clicks');
   const [eventReportCopied, setEventReportCopied] = useState(false);
+
+  const sortEvents = (events: EventReportRow[]) => {
+    const numericKeys: EventReportSortKey[] = ['clicks', 'ctr', 'pin_clicks', 'list_clicks', 'table_clicks', 'map_popup_clicks', 'impressions'];
+    const stringKeys: EventReportSortKey[] = ['event_name', 'conference'];
+    return [...events].sort((a, b) => {
+      if (numericKeys.includes(eventReportSort)) {
+        return (b[eventReportSort as keyof EventReportRow] as number) - (a[eventReportSort as keyof EventReportRow] as number);
+      }
+      if (stringKeys.includes(eventReportSort)) {
+        const aVal = ((a[eventReportSort as keyof EventReportRow] as string) || '').toLowerCase();
+        const bVal = ((b[eventReportSort as keyof EventReportRow] as string) || '').toLowerCase();
+        return aVal.localeCompare(bVal);
+      }
+      if (eventReportSort === 'last_seen') {
+        const aDate = a.last_seen ? new Date(a.last_seen).getTime() : 0;
+        const bDate = b.last_seen ? new Date(b.last_seen).getTime() : 0;
+        return bDate - aDate;
+      }
+      return 0;
+    });
+  };
 
   // Check session on mount
   useEffect(() => {
@@ -3121,18 +3143,6 @@ export default function AdminPage() {
                   <option value="all">All time</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-xs text-stone-400 mb-1">Sort by</label>
-                <select
-                  value={eventReportSort}
-                  onChange={e => setEventReportSort(e.target.value as typeof eventReportSort)}
-                  className={inputClass + ' w-36'}
-                >
-                  <option value="clicks">Clicks</option>
-                  <option value="ctr">CTR</option>
-                  <option value="pin_clicks">Pin Clicks</option>
-                </select>
-              </div>
               <button
                 onClick={fetchEventReport}
                 disabled={eventReportLoading}
@@ -3158,25 +3168,20 @@ export default function AdminPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-left text-stone-400 border-b border-stone-700">
-                          <th className="py-2 pr-4">Event Name</th>
-                          <th className="py-2 pr-4">Conference</th>
-                          <th className="py-2 pr-4 text-right">Clicks</th>
-                          <th className="py-2 pr-4 text-right">List</th>
-                          <th className="py-2 pr-4 text-right">Table</th>
-                          <th className="py-2 pr-4 text-right">Map</th>
-                          <th className="py-2 pr-4 text-right">Pin</th>
-                          <th className="py-2 pr-4 text-right">Impressions</th>
-                          <th className="py-2 pr-4 text-right">CTR</th>
-                          <th className="py-2 text-right">Last Seen</th>
+                          <th className="py-2 pr-4"><button className="cursor-pointer hover:text-white" onClick={() => setEventReportSort('event_name')}>Event Name{eventReportSort === 'event_name' ? ' ▼' : ''}</button></th>
+                          <th className="py-2 pr-4"><button className="cursor-pointer hover:text-white" onClick={() => setEventReportSort('conference')}>Conference{eventReportSort === 'conference' ? ' ▼' : ''}</button></th>
+                          <th className="py-2 pr-4 text-right"><button className="cursor-pointer hover:text-white" onClick={() => setEventReportSort('clicks')}>Clicks{eventReportSort === 'clicks' ? ' ▼' : ''}</button></th>
+                          <th className="py-2 pr-4 text-right"><button className="cursor-pointer hover:text-white" onClick={() => setEventReportSort('list_clicks')}>List{eventReportSort === 'list_clicks' ? ' ▼' : ''}</button></th>
+                          <th className="py-2 pr-4 text-right"><button className="cursor-pointer hover:text-white" onClick={() => setEventReportSort('table_clicks')}>Table{eventReportSort === 'table_clicks' ? ' ▼' : ''}</button></th>
+                          <th className="py-2 pr-4 text-right"><button className="cursor-pointer hover:text-white" onClick={() => setEventReportSort('map_popup_clicks')}>Map{eventReportSort === 'map_popup_clicks' ? ' ▼' : ''}</button></th>
+                          <th className="py-2 pr-4 text-right"><button className="cursor-pointer hover:text-white" onClick={() => setEventReportSort('pin_clicks')}>Pin{eventReportSort === 'pin_clicks' ? ' ▼' : ''}</button></th>
+                          <th className="py-2 pr-4 text-right"><button className="cursor-pointer hover:text-white" onClick={() => setEventReportSort('impressions')}>Impressions{eventReportSort === 'impressions' ? ' ▼' : ''}</button></th>
+                          <th className="py-2 pr-4 text-right"><button className="cursor-pointer hover:text-white" onClick={() => setEventReportSort('ctr')}>CTR{eventReportSort === 'ctr' ? ' ▼' : ''}</button></th>
+                          <th className="py-2 text-right"><button className="cursor-pointer hover:text-white" onClick={() => setEventReportSort('last_seen')}>Last Seen{eventReportSort === 'last_seen' ? ' ▼' : ''}</button></th>
                         </tr>
                       </thead>
                       <tbody>
-                        {[...eventReport.events]
-                          .sort((a, b) =>
-                            eventReportSort === 'ctr' ? b.ctr - a.ctr
-                            : eventReportSort === 'pin_clicks' ? b.pin_clicks - a.pin_clicks
-                            : b.clicks - a.clicks
-                          )
+                        {sortEvents(eventReport.events)
                           .map(ev => (
                           <tr key={ev.event_id} className="border-b border-stone-800 text-white">
                             <td className="py-2 pr-4 font-medium max-w-[250px] truncate" title={ev.event_name}>{ev.event_name}</td>
@@ -3216,11 +3221,7 @@ export default function AdminPage() {
                     {/* Export CSV */}
                     <button
                       onClick={() => {
-                        const sorted = [...eventReport.events].sort((a, b) =>
-                          eventReportSort === 'ctr' ? b.ctr - a.ctr
-                          : eventReportSort === 'pin_clicks' ? b.pin_clicks - a.pin_clicks
-                          : b.clicks - a.clicks
-                        );
+                        const sorted = sortEvents(eventReport.events);
                         const header = 'Event Name,Conference,Clicks,List,Table,Map Popup,Pin Clicks,Impressions,Unique Impressions,CTR,Last Seen';
                         const rows = sorted.map(ev =>
                           `"${ev.event_name}","${ev.conference}",${ev.clicks},${ev.list_clicks},${ev.table_clicks},${ev.map_popup_clicks},${ev.pin_clicks},${ev.impressions},${ev.unique_impressions},${ev.ctr},"${ev.last_seen ? new Date(ev.last_seen).toLocaleDateString() : ''}"`
@@ -3244,11 +3245,7 @@ export default function AdminPage() {
                     {/* Generate Report */}
                     <button
                       onClick={() => {
-                        const sorted = [...eventReport.events].sort((a, b) =>
-                          eventReportSort === 'ctr' ? b.ctr - a.ctr
-                          : eventReportSort === 'pin_clicks' ? b.pin_clicks - a.pin_clicks
-                          : b.clicks - a.clicks
-                        );
+                        const sorted = sortEvents(eventReport.events);
                         const startDate = new Date(eventReport.period.start);
                         const endDate = new Date(eventReport.period.end);
                         const fmtDate = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
