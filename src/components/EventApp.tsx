@@ -20,7 +20,7 @@ import { useConferenceTabs } from '@/hooks/useConferenceTabs';
 import { useABTest } from '@/hooks/useABTest';
 import { useEventCheckIn } from '@/hooks/useEventCheckIn';
 import { useTheme } from '@/contexts/ThemeContext';
-import { ThemeId, DEFAULT_THEME } from '@/lib/themes';
+import { ThemeId, DEFAULT_THEME, THEME_OPTIONS } from '@/lib/themes';
 import type { ABTest } from '@/lib/types';
 import { resolveItemVariants, getVisitorId } from '@/lib/ab-testing';
 import { Header } from './Header';
@@ -215,7 +215,8 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
     }
     const configKey = `theme:${filters.conference}`;
     const configTheme = (config as Record<string, unknown>)[configKey] as string | undefined;
-    if (configTheme === 'dark' || configTheme === 'paper' || configTheme === 'light' || configTheme === 'sxsw' || configTheme === 'sxsw2' || configTheme === 'gdc' || configTheme === 'ethcc') {
+    const validIds = THEME_OPTIONS.map(t => t.id) as string[];
+    if (configTheme && validIds.includes(configTheme)) {
       setTheme(configTheme as ThemeId);
     } else {
       setTheme(DEFAULT_THEME);
