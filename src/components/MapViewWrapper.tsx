@@ -41,6 +41,9 @@ interface MapViewWrapperProps {
   ownerNames?: Map<string, string>;
   onSignIn?: () => void;
   conferenceTabs?: TabConfig[];
+  onCheckIn?: (eventId: string) => void;
+  checkInLoading?: boolean;
+  liveEventIds?: Set<string>;
 }
 
 export function MapViewWrapper({
@@ -65,6 +68,9 @@ export function MapViewWrapper({
   ownerNames,
   onSignIn,
   conferenceTabs,
+  onCheckIn,
+  checkInLoading,
+  liveEventIds,
 }: MapViewWrapperProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -99,6 +105,9 @@ export function MapViewWrapper({
         ownerNames={ownerNames}
         onSignIn={onSignIn}
         conferenceTabs={conferenceTabs}
+        onCheckIn={onCheckIn}
+        checkInLoading={checkInLoading}
+        liveEventIds={liveEventIds}
       />
 
       {/* No-location drawer */}

@@ -4,7 +4,7 @@ import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { AddressLink } from '@/components/AddressLink';
-import { ArrowLeft, AlertTriangle, Trash2, CalendarX, Share2, Map as MapIcon, List, GripVertical, Star, ExternalLink, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Trash2, CalendarX, Share2, Map as MapIcon, List, GripVertical, Star, ExternalLink, Eye, EyeOff, MapPinCheck, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import { useEvents } from '@/hooks/useEvents';
 import { useItinerary } from '@/hooks/useItinerary';
@@ -16,6 +16,8 @@ import { sortByStartTime, detectConflicts } from '@/lib/time-parse';
 import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryShareLink, trackItineraryReorder } from '@/lib/analytics';
 import type { ETHDenverEvent } from '@/lib/types';
 import { Loading } from '@/components/Loading';
+import { useEventCheckIn } from '@/hooks/useEventCheckIn';
+import { passesNowFilter, getConferenceNow } from '@/lib/filters';
 import { useDragReorder } from '@/hooks/useDragReorder';
 import { useProfile } from '@/hooks/useProfile';
 import { ShareCardModal } from '@/components/ShareCardModal';
@@ -43,11 +45,29 @@ function generateShortCode(): string {
   return code;
 }
 
+function CheckInToast({ result, onDismiss }: { result: { ok: boolean; message: string }; onDismiss: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 3000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+
+  return (
+    <div className={`mx-4 mt-2 px-3 py-2 rounded-lg text-sm font-medium ${
+      result.ok
+        ? 'bg-green-600 text-white'
+        : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] border border-[var(--theme-border-primary)]'
+    }`}>
+      {result.message}
+    </div>
+  );
+}
+
 export default function ItineraryPage() {
   const { events, loading } = useEvents();
   const { itinerary, toggle: toggleItinerary, clear: clearItinerary, reorder: reorderItinerary, hiddenEvents, toggleHidden } = useItinerary();
   const { user } = useAuth();
   const { profile } = useProfile();
+  const { checkInToEvent, loading: checkInLoading, result: checkInResult, clearResult: clearCheckInResult } = useEventCheckIn();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [viewMode, setViewMode] = useState<ItineraryViewMode>('list');
   const [shareStatus, setShareStatus] = useState<'idle' | 'sharing' | 'copied'>('idle');
@@ -256,6 +276,11 @@ export default function ItineraryPage() {
         </div>
       </header>
 
+      {/* Check-in result toast */}
+      {checkInResult && (
+        <CheckInToast result={checkInResult} onDismiss={clearCheckInResult} />
+      )}
+
       {/* Content */}
       {itineraryEvents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center px-4">
@@ -357,6 +382,24 @@ export default function ItineraryPage() {
                               {event.name}
                             </h4>
                             <div className="flex items-center gap-0.5 shrink-0" data-export-hide>
+                              {passesNowFilter(event, getConferenceNow(activeConference)) && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    checkInToEvent(event.id, event.name);
+                                  }}
+                                  disabled={checkInLoading}
+                                  className="p-1 text-green-400 hover:text-green-300 transition-colors cursor-pointer"
+                                  aria-label="Check in"
+                                  title="Check in"
+                                >
+                                  {checkInLoading ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <MapPinCheck className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                              )}
                               {event.link && (
                                 <a
                                   href={event.link}

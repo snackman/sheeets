@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useEvents } from '@/hooks/useEvents';
 import { useFilters } from '@/hooks/useFilters';
 import { useItinerary } from '@/hooks/useItinerary';
@@ -18,6 +18,7 @@ import { useNowMode } from '@/hooks/useNowMode';
 import { useAdminConfig } from '@/hooks/useAdminConfig';
 import { useConferenceTabs } from '@/hooks/useConferenceTabs';
 import { useABTest } from '@/hooks/useABTest';
+import { useEventCheckIn } from '@/hooks/useEventCheckIn';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeId, DEFAULT_THEME } from '@/lib/themes';
 import type { ABTest } from '@/lib/types';
@@ -32,10 +33,14 @@ import { AuthModal } from './AuthModal';
 import { SubmitEventModal } from './SubmitEventModal';
 import { FriendsPanel } from './FriendsPanel';
 import { SponsorsTicker } from './SponsorsTicker';
+import { CheckInFAB } from './CheckInFAB';
 import { OnboardingWizard } from './OnboardingWizard';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { getTabConfig } from '@/lib/conferences';
 import { extractFeaturedEvents } from '@/lib/featured';
+import { passesNowFilter, getConferenceNow } from '@/lib/filters';
+import { distanceMeters } from '@/lib/geo';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function EventApp({ initialConference }: { initialConference?: string }) {
   const { config } = useAdminConfig();
@@ -136,6 +141,70 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
     () => extractFeaturedEvents(filteredEvents),
     [filteredEvents],
   );
+
+  // Check-in hook + proximity watcher
+  const { user: authUser } = useAuth();
+  const {
+    checkInToEvent,
+    checkInToNearbyEvents,
+    loading: checkInLoading,
+    result: checkInResult,
+    clearResult: clearCheckInResult,
+  } = useEventCheckIn();
+
+  const liveEventIds = useMemo(() => {
+    const now = getConferenceNow(filters.conference);
+    const ids = new Set<string>();
+    for (const e of events) {
+      if (passesNowFilter(e, now)) ids.add(e.id);
+    }
+    return ids;
+  }, [events, filters.conference]);
+
+  const liveItineraryCount = useMemo(() => {
+    let count = 0;
+    for (const id of itinerary) {
+      if (liveEventIds.has(id)) count++;
+    }
+    return count;
+  }, [itinerary, liveEventIds]);
+
+  const [hasNearbyLiveEvents, setHasNearbyLiveEvents] = useState(false);
+
+  // Proximity watcher: detect when user is within 150m of a live RSVP'd event
+  const liveItineraryEventsRef = useRef<typeof events>([]);
+  useEffect(() => {
+    liveItineraryEventsRef.current = events.filter(
+      (e) => itinerary.has(e.id) && liveEventIds.has(e.id) && e.lat && e.lng
+    );
+  }, [events, itinerary, liveEventIds]);
+
+  useEffect(() => {
+    if (liveItineraryCount <= 0 || !authUser) {
+      setHasNearbyLiveEvents(false);
+      return;
+    }
+
+    if (!navigator.geolocation) return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude: uLat, longitude: uLng } = pos.coords;
+        const nearby = liveItineraryEventsRef.current.some(
+          (e) => distanceMeters(uLat, uLng, e.lat!, e.lng!) <= 150
+        );
+        setHasNearbyLiveEvents(nearby);
+      },
+      () => setHasNearbyLiveEvents(false),
+      { maximumAge: 30000, enableHighAccuracy: false }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [liveItineraryCount, authUser]);
+
+  const handleBulkCheckIn = useCallback(() => {
+    checkInToNearbyEvents(events, itinerary, filters.conference);
+  }, [checkInToNearbyEvents, events, itinerary, filters.conference]);
 
   // Theme: read from admin config per-conference and apply
   const { setTheme } = useTheme();
@@ -340,6 +409,9 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
         onOpenFriends={() => setShowFriends(true)}
         onSubmitEvent={() => setShowSubmitEvent(true)}
         refreshFriends={refreshFriends}
+        hasNearbyLiveEvents={hasNearbyLiveEvents}
+        onBulkCheckIn={handleBulkCheckIn}
+        checkInLoading={checkInLoading}
       />
 
       <SponsorsTicker
@@ -401,6 +473,9 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
             ownerNames={ownerNames}
             onSignIn={() => setShowSignIn(true)}
             conferenceTabs={conferenceTabs}
+            onCheckIn={checkInToEvent}
+            checkInLoading={checkInLoading}
+            liveEventIds={liveEventIds}
           />
         </main>
       ) : viewMode === 'table' ? (
@@ -443,9 +518,19 @@ export function EventApp({ initialConference }: { initialConference?: string }) 
             onAdClick={handleAdClick}
             conference={filters.conference}
             featuredEvents={featuredEvents}
+            onCheckIn={checkInToEvent}
+            checkInLoading={checkInLoading}
+            liveEventIds={liveEventIds}
           />
         </main>
       )}
+
+      <CheckInFAB
+        liveItineraryCount={liveItineraryCount}
+        onCheckIn={handleBulkCheckIn}
+        loading={checkInLoading}
+        result={checkInResult}
+      />
 
       <AuthModal isOpen={showAuthForStar || showSignIn} onClose={() => { dismissAuth(); setShowSignIn(false); }} />
       <SubmitEventModal isOpen={showSubmitEvent} onClose={() => setShowSubmitEvent(false)} upsellCopy={config?.upsell_copy} initialConference={filters.conference} conferenceTabs={conferenceTabs} />

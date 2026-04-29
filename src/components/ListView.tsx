@@ -38,6 +38,9 @@ interface ListViewProps {
   conference?: string;
   /** Featured events to show in a prominent section above the list */
   featuredEvents?: ETHDenverEvent[];
+  onCheckIn?: (eventId: string) => void;
+  checkInLoading?: boolean;
+  liveEventIds?: Set<string>;
 }
 
 interface DateGroup {
@@ -112,6 +115,9 @@ export function ListView({
   onAdClick,
   conference,
   featuredEvents,
+  onCheckIn,
+  checkInLoading,
+  liveEventIds,
 }: ListViewProps) {
   const activeAds = useMemo(() => nativeAds?.filter(ad => ad.active !== false) || [], [nativeAds]);
 
@@ -356,6 +362,9 @@ export function ListView({
                     onToggleReaction={onToggleReaction}
                     commentCount={commentCounts?.get(item.event.id)}
                     conference={conference}
+                    onCheckIn={onCheckIn}
+                    checkInLoading={checkInLoading}
+                    isLive={liveEventIds?.has(item.event.id)}
                   />
                 </div>
               )}

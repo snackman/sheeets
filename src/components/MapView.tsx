@@ -41,6 +41,9 @@ interface MapViewProps {
   ownerNames?: Map<string, string>;
   onSignIn?: () => void;
   conferenceTabs?: TabConfig[];
+  onCheckIn?: (eventId: string) => void;
+  checkInLoading?: boolean;
+  liveEventIds?: Set<string>;
 }
 
 /**
@@ -73,6 +76,9 @@ export function MapView({
   ownerNames,
   onSignIn,
   conferenceTabs,
+  onCheckIn,
+  checkInLoading,
+  liveEventIds,
 }: MapViewProps) {
   const mapCenter = getTabConfig(conference ?? '', conferenceTabs).center;
   const { user } = useAuth();
@@ -562,6 +568,9 @@ export function MapView({
           onToggleReaction={onToggleReaction}
           commentCount={commentCounts?.get(popupEvent.id)}
           conference={conference}
+          onCheckIn={onCheckIn}
+          checkInLoading={checkInLoading}
+          isLive={liveEventIds?.has(popupEvent.id)}
         />
       )}
 

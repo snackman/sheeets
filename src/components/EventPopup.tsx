@@ -1,7 +1,7 @@
 'use client';
 
 import { Popup } from 'react-map-gl/mapbox';
-import { X, Calendar, MapPin, Users } from 'lucide-react';
+import { X, Calendar, MapPin, Users, MapPinCheck, Loader2 } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
 import { trackEvent } from '@/lib/event-tracking';
@@ -32,6 +32,9 @@ interface EventPopupProps {
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
   commentCount?: number;
   conference?: string;
+  onCheckIn?: (eventId: string) => void;
+  checkInLoading?: boolean;
+  isLive?: boolean;
 }
 
 interface MultiEventPopupProps {
@@ -94,6 +97,9 @@ function SingleEventContent({
   onToggleReaction,
   commentCount,
   conference,
+  onCheckIn,
+  checkInLoading,
+  isLive,
 }: {
   event: ETHDenverEvent;
   isInItinerary?: boolean;
@@ -106,6 +112,9 @@ function SingleEventContent({
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
   commentCount?: number;
   conference?: string;
+  onCheckIn?: (eventId: string) => void;
+  checkInLoading?: boolean;
+  isLive?: boolean;
 }) {
   const timeDisplay = event.isAllDay
     ? 'All Day'
@@ -216,6 +225,25 @@ function SingleEventContent({
           )}
           <CommentSection eventId={event.id} commentCount={commentCount} />
         </div>
+
+        {/* Check In button (live events only) */}
+        {isLive && onCheckIn && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onCheckIn(event.id);
+            }}
+            disabled={checkInLoading}
+            className="flex items-center gap-1 mt-1.5 px-2 py-1 rounded-md bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-[10px] font-medium transition-colors cursor-pointer w-fit"
+          >
+            {checkInLoading ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <MapPinCheck className="w-3 h-3" />
+            )}
+            Check In
+          </button>
+        )}
       </div>
     </div>
   );
@@ -236,6 +264,9 @@ export function EventPopup({
   onToggleReaction,
   commentCount,
   conference,
+  onCheckIn,
+  checkInLoading,
+  isLive,
 }: EventPopupProps) {
   return (
     <Popup
@@ -260,6 +291,9 @@ export function EventPopup({
         onToggleReaction={onToggleReaction}
         commentCount={commentCount}
         conference={conference}
+        onCheckIn={onCheckIn}
+        checkInLoading={checkInLoading}
+        isLive={isLive}
       />
     </Popup>
   );

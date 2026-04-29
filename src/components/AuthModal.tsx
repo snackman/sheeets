@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, LogOut, User, MapPin, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, Share2 } from 'lucide-react';
+import { X, Mail, LogOut, User, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, Share2 } from 'lucide-react';
 import { ShareCardModal } from './ShareCardModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAuthSuccess, trackSignOut, trackFriendCodeGenerate, trackFriendCodeCopy, trackModalDismiss } from '@/lib/analytics';
@@ -10,8 +10,6 @@ import { getDisplayName } from '@/lib/user-display';
 import UserAvatar from './UserAvatar';
 
 import { supabase } from '@/lib/supabase';
-import { distanceMeters } from '@/lib/geo';
-import { passesNowFilter } from '@/lib/filters';
 import { useProfile } from '@/hooks/useProfile';
 import { useFriends } from '@/hooks/useFriends';
 import { useFriendRequests } from '@/hooks/useFriendRequests';
@@ -392,11 +390,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   } = useFriendRequests({ refreshFriends });
 
   const [open, setOpen] = useState(false);
-  const [checking, setChecking] = useState(false);
-  const [checkResult, setCheckResult] = useState<{
-    ok: boolean;
-    message: string;
-  } | null>(null);
 
   // Profile form state
   const [displayName, setDisplayName] = useState('');
@@ -542,68 +535,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
     setCancellingId(null);
   }
 
-  async function handleCheckIn() {
-    setChecking(true);
-    setCheckResult(null);
-
-    try {
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10_000,
-        })
-      );
-
-      const { latitude: uLat, longitude: uLng } = pos.coords;
-      const now = new Date();
-
-      const nearby = events.filter((e) => {
-        if (!itinerary.has(e.id)) return false;
-        if (!e.lat || !e.lng) return false;
-        if (!passesNowFilter(e, now)) return false;
-        return distanceMeters(uLat, uLng, e.lat, e.lng) <= 150;
-      });
-
-      if (nearby.length === 0) {
-        setCheckResult({
-          ok: false,
-          message: 'No active itinerary events nearby',
-        });
-        setChecking(false);
-        return;
-      }
-
-      const rows = nearby.map((e) => ({
-        user_id: user!.id,
-        event_id: e.id,
-        lat: uLat,
-        lng: uLng,
-      }));
-
-      const { error } = await supabase.from('check_ins').upsert(rows, {
-        onConflict: 'user_id,event_id',
-      });
-
-      if (error) throw error;
-
-      const names = nearby.map((e) => e.name).join(', ');
-      setCheckResult({
-        ok: true,
-        message: `Checked in at ${names}!`,
-      });
-    } catch (err: unknown) {
-      const msg =
-        err instanceof GeolocationPositionError
-          ? 'Location access denied'
-          : err instanceof Error
-            ? err.message
-            : 'Check-in failed';
-      setCheckResult({ ok: false, message: msg });
-    }
-
-    setChecking(false);
-  }
-
   async function handleCopyFriendLink() {
     if (!user || friendLinkLoading) return;
     setFriendLinkLoading(true);
@@ -673,7 +604,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
       {open && createPortal(
           <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-4" onClick={() => {
             setOpen(false);
-            setCheckResult(null);
             setSearchQuery('');
           }}>
             <div className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
@@ -682,7 +612,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                 <h2 className="text-base font-bold text-[var(--theme-text-primary)] truncate">{user.email}</h2>
                 <button onClick={() => {
                   setOpen(false);
-                  setCheckResult(null);
                   setSearchQuery('');
                 }} className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer">
                   <X className="w-4 h-4" />
@@ -887,47 +816,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                     <p className="text-xs text-[var(--theme-text-muted)]">
                       Search by email, name, or @handle to find friends
                     </p>
-                  )}
-                </div>
-
-                {/* Check In */}
-                <div className="border-t border-[var(--theme-border-primary)] pt-4 space-y-3">
-                  <button
-                    onClick={handleCheckIn}
-                    disabled={checking}
-                    className="w-full flex flex-col items-center gap-1 px-3 py-2.5 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white transition-colors cursor-pointer"
-                  >
-                    {checking ? (
-                      <span className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Checking in...
-                      </span>
-                    ) : (
-                      <>
-                        <span className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
-                          Check In
-                        </span>
-                        <span className="text-xs font-normal text-green-200/70">Checks into nearest live RSVP'd event</span>
-                      </>
-                    )}
-                  </button>
-
-                  {checkResult && (
-                    <div
-                      className={`flex items-start gap-2 text-sm rounded-lg px-3 py-2 ${
-                        checkResult.ok
-                          ? 'bg-green-900/40 text-green-300'
-                          : 'bg-[var(--theme-bg-tertiary)]/60 text-[var(--theme-text-secondary)]'
-                      }`}
-                    >
-                      {checkResult.ok ? (
-                        <Check className="w-4 h-4 mt-0.5 shrink-0" />
-                      ) : (
-                        <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
-                      )}
-                      <span>{checkResult.message}</span>
-                    </div>
                   )}
                 </div>
 

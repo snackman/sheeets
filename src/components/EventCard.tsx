@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { MapPin, Calendar, Users, X, Link, Check } from 'lucide-react';
+import { MapPin, Calendar, Users, X, Link, Check, MapPinCheck, Loader2 } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
 import { trackEventClick, trackCopyEventLink, trackFriendsGoingOpen, trackFriendsCheckedInOpen } from '@/lib/analytics';
 import { trackAdEvent } from '@/lib/ad-tracking';
@@ -33,6 +33,9 @@ interface EventCardProps {
   commentCount?: number;
   /** Conference context for featured event ad tracking */
   conference?: string;
+  onCheckIn?: (eventId: string) => void;
+  checkInLoading?: boolean;
+  isLive?: boolean;
 }
 
 function FriendsGoingModal({
@@ -122,6 +125,9 @@ export function EventCard({
   onToggleReaction,
   commentCount,
   conference,
+  onCheckIn,
+  checkInLoading,
+  isLive,
 }: EventCardProps) {
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [showCheckedInModal, setShowCheckedInModal] = useState(false);
@@ -309,6 +315,25 @@ export function EventCard({
               <TagBadge key={tag} tag={tag} />
             ))}
           </div>
+        )}
+
+        {/* Check In button (live + RSVP'd only) */}
+        {isInItinerary && isLive && onCheckIn && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onCheckIn(event.id);
+            }}
+            disabled={checkInLoading}
+            className="flex items-center gap-1.5 mt-2 px-2.5 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-xs font-medium transition-colors cursor-pointer w-fit"
+          >
+            {checkInLoading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <MapPinCheck className="w-3.5 h-3.5" />
+            )}
+            Check In
+          </button>
         )}
 
         {/* Friends going row */}
