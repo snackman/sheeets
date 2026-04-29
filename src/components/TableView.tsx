@@ -427,9 +427,6 @@ function DateGroup({
   conference?: string;
   featuredEvents?: ETHDenverEvent[];
 }) {
-  // Build a set of featured IDs so we can skip them in the regular list
-  const featuredIds = useMemo(() => new Set(featuredEvents?.map(e => e.id) ?? []), [featuredEvents]);
-
   return (
     <>
       {/* Date separator row */}
@@ -520,8 +517,8 @@ function DateGroup({
         );
       })}
 
-      {/* Regular event rows (skip any that are already shown as featured) */}
-      {group.events.filter(e => !featuredIds.has(e.id)).map((event) => {
+      {/* Regular event rows */}
+      {group.events.map((event) => {
         const isInItinerary = itinerary?.has(event.id) ?? false;
 
         return (
