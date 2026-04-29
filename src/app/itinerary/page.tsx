@@ -252,8 +252,8 @@ export default function ItineraryPage() {
                 <button
                   onClick={() => setShowShareCard(true)}
                   className="p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] transition-colors cursor-pointer"
-                  aria-label="Share itinerary"
-                  title="Share itinerary as PNG"
+                  aria-label="Share my plan"
+                  title="Share my plan as PNG"
                 >
                   <Share2 className="w-4 h-4" />
                 </button>

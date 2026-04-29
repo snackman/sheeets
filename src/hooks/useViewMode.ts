@@ -6,26 +6,30 @@ import { STORAGE_KEYS } from '@/lib/storage-keys';
 
 /**
  * Manages view mode (map/list/table) with localStorage persistence.
- * Returns the current mode, setter, restored flag, and scroll-tracking refs.
+ * Returns the current mode, setter, and scroll-tracking refs.
  */
-function getInitialViewMode(): ViewMode {
-  if (typeof window === 'undefined') return 'map';
-  const saved = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
-  if (saved === 'map' || saved === 'list' || saved === 'table') return saved;
-  return window.innerWidth >= 768 ? 'table' : 'list';
-}
-
 export function useViewMode() {
-  const [viewMode, setViewMode] = useState<ViewMode>(getInitialViewMode);
-  const [viewRestored] = useState(true);
+  // Use 'list' as the SSR-safe default (most common on mobile)
+  const [viewMode, setViewModeState] = useState<ViewMode>('list');
   const [contentScrolled, setContentScrolled] = useState(false);
+  const restoredRef = useRef(false);
 
-  // Persist view mode to localStorage (skip the initial restore)
+  // Restore from localStorage after mount (avoids hydration mismatch)
   useEffect(() => {
-    if (viewRestored) {
-      localStorage.setItem(STORAGE_KEYS.VIEW_MODE, viewMode);
+    const saved = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
+    if (saved === 'map' || saved === 'list' || saved === 'table') {
+      setViewModeState(saved);
+    } else {
+      setViewModeState(window.innerWidth >= 768 ? 'table' : 'list');
     }
-  }, [viewMode, viewRestored]);
+    restoredRef.current = true;
+  }, []);
+
+  // Persist to localStorage on change (after initial restore)
+  const setViewMode = useCallback((mode: ViewMode) => {
+    setViewModeState(mode);
+    localStorage.setItem(STORAGE_KEYS.VIEW_MODE, mode);
+  }, []);
 
   // List view scroll tracking (mirrors TableView's onScrolledChange)
   const listMainRef = useRef<HTMLDivElement>(null);

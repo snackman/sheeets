@@ -424,7 +424,14 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   );
   const shareConferenceName = useMemo(() => {
     const confs = [...new Set(itineraryEvents.map((e) => e.conference).filter(Boolean))];
-    return confs.length === 1 ? confs[0] : 'My Itinerary';
+    if (confs.length === 0) return 'My Itinerary';
+    if (confs.length === 1) return confs[0];
+    // Pick the conference with the most itinerary events
+    const counts = new Map<string, number>();
+    for (const e of itineraryEvents) {
+      if (e.conference) counts.set(e.conference, (counts.get(e.conference) || 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
   }, [itineraryEvents]);
   const badgeCount = externalCount ?? pendingIncomingCount;
 
@@ -827,7 +834,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                       className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
                     >
                       <Share2 className="w-4 h-4" />
-                      Share Itinerary
+                      Share My Plan
                     </button>
                   )}
                   <button
