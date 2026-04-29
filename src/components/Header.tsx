@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Calendar, User } from 'lucide-react';
+import { Calendar, User, MapPin, Loader2 } from 'lucide-react';
 import { trackAuthPrompt } from '@/lib/analytics';
 import { ViewMode, ETHDenverEvent } from '@/lib/types';
 import { ViewToggle } from './ViewToggle';
@@ -20,6 +20,9 @@ interface HeaderProps {
   onOpenFriends: () => void;
   onSubmitEvent?: () => void;
   refreshFriends?: () => Promise<void>;
+  hasNearbyLiveEvents?: boolean;
+  onBulkCheckIn?: () => void;
+  checkInLoading?: boolean;
 }
 
 export function Header({
@@ -33,6 +36,9 @@ export function Header({
   onOpenFriends,
   onSubmitEvent,
   refreshFriends,
+  hasNearbyLiveEvents,
+  onBulkCheckIn,
+  checkInLoading,
 }: HeaderProps) {
   const { user, loading } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
@@ -78,6 +84,23 @@ export function Header({
                 </span>
               )}
             </button>
+
+            {/* Proximity check-in indicator */}
+            {hasNearbyLiveEvents && user && (
+              <button
+                onClick={onBulkCheckIn}
+                disabled={checkInLoading}
+                className="p-1.5 rounded-lg bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white transition-colors cursor-pointer animate-pulse"
+                aria-label="Check in to nearby events"
+                title="Check in to nearby events"
+              >
+                {checkInLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <MapPin className="w-4 h-4" />
+                )}
+              </button>
+            )}
 
             {/* Auth / Profile — far right */}
             {!loading && (
