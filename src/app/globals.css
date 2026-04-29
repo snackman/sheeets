@@ -219,7 +219,7 @@
 
   --theme-now-bg: #22c55e;
 
-  --theme-logo-filter: invert(0);
+  --theme-logo-filter: brightness(0) saturate(100%) invert(22%) sepia(60%) saturate(1200%) hue-rotate(198deg) brightness(95%) contrast(95%);
 
   --theme-scrollbar-track: #fafafa;
   --theme-scrollbar-thumb: #d4d4d4;
@@ -238,6 +238,11 @@
   --tag-purple: #7C3AED;
   --tag-default: #4B5563;
   --friend-blue: #2563EB;
+}
+
+/* Light-blue: alternating table rows */
+[data-theme="light-blue"] table tbody tr:nth-child(even):not([data-date]) {
+  background-color: rgba(28, 69, 134, 0.05);
 }
 
 /* --- SXSW theme — neon lime on dark forest green --- */
