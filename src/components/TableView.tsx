@@ -309,149 +309,6 @@ export function TableView({
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--theme-border-primary)]/50">
-            {/* Featured events section at top */}
-            {featuredEvents && featuredEvents.length > 0 && (
-              <>
-                {/* Featured separator row */}
-                <tr className="bg-[var(--theme-bg-secondary)]/80">
-                  <td className="border-b border-[var(--theme-border-primary)]/70 px-2 py-1.5">
-                    <Star
-                      className="w-3.5 h-3.5 fill-current"
-                      style={{ color: 'var(--theme-popup-featured-border)' }}
-                    />
-                  </td>
-                  <td
-                    colSpan={COLUMN_COUNT - 1}
-                    className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider border-b border-[var(--theme-border-primary)]/70"
-                    style={{ color: 'var(--theme-popup-featured-border)' }}
-                  >
-                    Featured
-                  </td>
-                </tr>
-
-                {/* Featured event rows */}
-                {featuredEvents.map((event) => {
-                  const isInItinerary = itinerary?.has(event.id) ?? false;
-                  return (
-                    <tr
-                      key={`featured-${event.id}`}
-                      className={`hover:bg-[var(--theme-bg-secondary)]/70 transition-colors cursor-pointer bg-[var(--theme-bg-primary)]`}
-                      style={{ outline: '2px solid var(--theme-popup-featured-border)', outlineOffset: '-2px' }}
-                      onClick={(e) => {
-                        const target = e.target as HTMLElement;
-                        if (target.closest('a, button')) return;
-                        setSelectedEvent(event);
-                      }}
-                    >
-                      {/* Star */}
-                      <td className="px-2 py-2">
-                        {(() => {
-                          const fc = friendsCountByEvent?.get(event.id) ?? 0;
-                          return (
-                            <button
-                              onClick={() => onItineraryToggle?.(event.id)}
-                              className="relative cursor-pointer p-0.5"
-                              title={
-                                fc > 0
-                                  ? `${fc} friend${fc !== 1 ? 's' : ''} going`
-                                  : isInItinerary
-                                    ? 'Remove from itinerary'
-                                    : 'Add to itinerary'
-                              }
-                            >
-                              <Star
-                                className={`w-4 h-4 ${isInItinerary ? 'fill-current' : 'hover:opacity-60'}`}
-                                style={{ color: isInItinerary ? 'var(--theme-star-active)' : 'var(--theme-star-inactive)' }}
-                              />
-                              {fc > 0 && (
-                                <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-[var(--theme-accent)] text-[var(--theme-accent-text)] text-[8px] font-bold px-0.5 pointer-events-none">
-                                  {fc}
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })()}
-                      </td>
-
-                      {/* Time */}
-                      <td className="px-3 py-2 text-[var(--theme-text-secondary)] whitespace-nowrap">
-                        <span className="relative inline-block">
-                          <span>
-                            {event.startTime}
-                            {event.endTime ? `-${event.endTime}` : ''}
-                          </span>
-                          {(checkInCounts?.get(event.id) ?? 0) > 0 && (
-                            <span className="absolute -top-1.5 -right-3 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-green-500 text-white text-[8px] font-bold px-0.5 pointer-events-none">
-                              {checkInCounts!.get(event.id)}
-                            </span>
-                          )}
-                        </span>
-                      </td>
-
-                      {/* Organizer */}
-                      <td className="px-3 py-2 text-[var(--theme-text-secondary)] truncate hidden sm:table-cell" title={event.organizer}>
-                        {event.organizer}
-                      </td>
-
-                      {/* Event Name */}
-                      <td className="px-3 py-2 font-medium text-[var(--theme-text-primary)] overflow-hidden truncate max-w-[25ch] sm:max-w-none" title={event.name}>
-                        <span className="inline-flex items-center gap-1 max-w-full truncate">
-                          {event.link ? (
-                            <a
-                              href={event.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="hover:text-[var(--theme-accent)] transition-colors truncate"
-                              onClick={() => {
-                                trackEventClick(event.name, event.link!);
-                                trackEvent({
-                                  event_id: event.id,
-                                  event_name: event.name,
-                                  event_type: 'click',
-                                  conference,
-                                  url: event.link!,
-                                  source: 'table',
-                                });
-                              }}
-                            >
-                              {event.name}
-                            </a>
-                          ) : (
-                            <span className="truncate">{event.name}</span>
-                          )}
-                        </span>
-                        {event.organizer && (
-                          <div className="sm:hidden text-[var(--theme-text-secondary)] text-xs font-normal truncate mt-0.5">
-                            {event.organizer}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Location */}
-                      <td className="px-3 py-2 text-[var(--theme-text-secondary)] truncate max-w-[20ch] sm:max-w-none" title={event.address}>
-                        {event.address ? (
-                          <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
-                            eventId={event.id} eventName={event.name}
-                            className="hover:text-[var(--theme-accent)] transition-colors">
-                            {event.address}
-                          </AddressLink>
-                        ) : null}
-                      </td>
-
-                      {/* Tags */}
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        <div className="flex gap-1 items-center" title={event.tags.join(', ')}>
-                          {event.tags.slice(0, 10).map((tag) => (
-                            <TagBadge key={tag} tag={tag} iconOnly />
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </>
-            )}
-
             {groups.map((group) => (
               <DateGroup
                 key={group.dateISO}
@@ -463,6 +320,7 @@ export function TableView({
                 checkInCounts={checkInCounts}
                 onSelectEvent={setSelectedEvent}
                 conference={conference}
+                featuredEvents={featuredEvents?.filter(e => e.dateISO === group.dateISO)}
               />
             ))}
           </tbody>
@@ -557,6 +415,7 @@ function DateGroup({
   checkInCounts,
   onSelectEvent,
   conference,
+  featuredEvents,
 }: {
   group: { dateISO: string; label: string; events: ETHDenverEvent[] };
   itinerary?: Set<string>;
@@ -566,6 +425,7 @@ function DateGroup({
   checkInCounts?: Map<string, number>;
   onSelectEvent: (event: ETHDenverEvent) => void;
   conference?: string;
+  featuredEvents?: ETHDenverEvent[];
 }) {
   return (
     <>
@@ -585,7 +445,79 @@ function DateGroup({
         </td>
       </tr>
 
-      {/* Event rows */}
+      {/* Featured events for this date */}
+      {featuredEvents && featuredEvents.length > 0 && featuredEvents.map((event) => {
+        const isInItinerary = itinerary?.has(event.id) ?? false;
+        return (
+          <tr
+            key={`featured-${event.id}`}
+            className="hover:bg-[var(--theme-bg-secondary)]/70 transition-colors cursor-pointer bg-[var(--theme-bg-primary)]"
+            style={{ outline: '2px solid var(--theme-popup-featured-border)', outlineOffset: '-2px' }}
+            onClick={(e) => {
+              const target = e.target as HTMLElement;
+              if (target.closest('a, button')) return;
+              onSelectEvent(event);
+            }}
+          >
+            <td className="px-2 py-2">
+              {(() => {
+                const fc = friendsCountByEvent?.get(event.id) ?? 0;
+                return (
+                  <button
+                    onClick={() => onItineraryToggle?.(event.id)}
+                    className="relative cursor-pointer p-0.5"
+                    title={fc > 0 ? `${fc} friend${fc !== 1 ? 's' : ''} going` : isInItinerary ? 'Remove from itinerary' : 'Add to itinerary'}
+                  >
+                    <Star
+                      className={`w-4 h-4 ${isInItinerary ? 'fill-current' : 'hover:opacity-60'}`}
+                      style={{ color: isInItinerary ? 'var(--theme-star-active)' : 'var(--theme-star-inactive)' }}
+                    />
+                    {fc > 0 && (
+                      <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-[var(--theme-accent)] text-[var(--theme-accent-text)] text-[8px] font-bold px-0.5 pointer-events-none">
+                        {fc}
+                      </span>
+                    )}
+                  </button>
+                );
+              })()}
+            </td>
+            <td className="px-3 py-2 text-[var(--theme-text-secondary)] whitespace-nowrap">
+              <span className="relative inline-block">
+                <span>{event.startTime}{event.endTime ? `-${event.endTime}` : ''}</span>
+                {(checkInCounts?.get(event.id) ?? 0) > 0 && (
+                  <span className="absolute -top-1.5 -right-3 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-green-500 text-white text-[8px] font-bold px-0.5 pointer-events-none">
+                    {checkInCounts!.get(event.id)}
+                  </span>
+                )}
+              </span>
+            </td>
+            <td className="px-3 py-2 text-[var(--theme-text-secondary)] truncate hidden sm:table-cell" title={event.organizer}>{event.organizer}</td>
+            <td className="px-3 py-2 font-medium text-[var(--theme-text-primary)] overflow-hidden truncate max-w-[25ch] sm:max-w-none" title={event.name}>
+              <span className="inline-flex items-center gap-1 max-w-full truncate">
+                {event.link ? (
+                  <a href={event.link} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--theme-accent)] transition-colors truncate"
+                    onClick={() => { trackEventClick(event.name, event.link!); trackEvent({ event_id: event.id, event_name: event.name, event_type: 'click', conference, url: event.link!, source: 'table' }); }}>
+                    {event.name}
+                  </a>
+                ) : (<span className="truncate">{event.name}</span>)}
+              </span>
+              {event.organizer && (<div className="sm:hidden text-[var(--theme-text-secondary)] text-xs font-normal truncate mt-0.5">{event.organizer}</div>)}
+            </td>
+            <td className="px-3 py-2 text-[var(--theme-text-secondary)] truncate max-w-[20ch] sm:max-w-none" title={event.address}>
+              {event.address ? (
+                <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng} eventId={event.id} eventName={event.name} className="hover:text-[var(--theme-accent)] transition-colors">{event.address}</AddressLink>
+              ) : null}
+            </td>
+            <td className="px-3 py-2 whitespace-nowrap">
+              <div className="flex gap-1 items-center" title={event.tags.join(', ')}>
+                {event.tags.slice(0, 10).map((tag) => (<TagBadge key={tag} tag={tag} iconOnly />))}
+              </div>
+            </td>
+          </tr>
+        );
+      })}
+
+      {/* Regular event rows */}
       {group.events.map((event) => {
         const isInItinerary = itinerary?.has(event.id) ?? false;
 

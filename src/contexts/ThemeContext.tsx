@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
-import { ThemeId, DEFAULT_THEME } from '@/lib/themes';
+import { ThemeId, DEFAULT_THEME, THEME_OPTIONS } from '@/lib/themes';
 
 interface ThemeContextValue {
   theme: ThemeId;
@@ -36,8 +36,9 @@ export function ThemeProvider({ children, adminConfig, conference }: ThemeProvid
     const configKey = `theme:${conference}`;
     const configTheme = adminConfig[configKey] as string | undefined;
 
-    if (configTheme === 'dark' || configTheme === 'paper' || configTheme === 'light' || configTheme === 'sxsw' || configTheme === 'sxsw2' || configTheme === 'gdc' || configTheme === 'ethcc') {
-      setThemeState(configTheme);
+    const validIds = THEME_OPTIONS.map(t => t.id) as string[];
+    if (configTheme && validIds.includes(configTheme)) {
+      setThemeState(configTheme as ThemeId);
     } else {
       setThemeState(DEFAULT_THEME);
     }

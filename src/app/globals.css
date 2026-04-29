@@ -184,6 +184,67 @@
   --friend-blue: #2563EB;
 }
 
+/* --- Light Blue theme — clean modern white with dark blue accent --- */
+[data-theme="light-blue"] {
+  --background: #fafafa;
+  --foreground: #1a1a1a;
+  --card: #ffffff;
+  --card-hover: #f5f5f5;
+  --accent: #1c4586;
+  --accent-hover: #153a73;
+
+  --theme-bg-primary: #fafafa;
+  --theme-bg-secondary: #f5f5f5;
+  --theme-bg-tertiary: #e5e5e5;
+  --theme-bg-card: #ffffff;
+  --theme-bg-card-hover: #f5f5f5;
+  --theme-bg-input: #ffffff;
+
+  --theme-border-primary: #d4d4d4;
+  --theme-border-secondary: #e5e5e5;
+
+  --theme-text-primary: #1a1a1a;
+  --theme-text-secondary: #525252;
+  --theme-text-muted: #737373;
+  --theme-text-faint: #a3a3a3;
+
+  --theme-accent: #1c4586;
+  --theme-accent-hover: #153a73;
+  --theme-accent-text: #ffffff;
+  --theme-accent-muted: rgba(28, 69, 134, 0.10);
+  --theme-accent-link: #1c4586;
+
+  --theme-star-active: #facc15;
+  --theme-star-inactive: #d4d4d4;
+
+  --theme-now-bg: #22c55e;
+
+  --theme-logo-filter: brightness(0) saturate(100%) invert(22%) sepia(60%) saturate(1200%) hue-rotate(198deg) brightness(95%) contrast(95%);
+
+  --theme-scrollbar-track: #fafafa;
+  --theme-scrollbar-thumb: #d4d4d4;
+  --theme-scrollbar-thumb-hover: #a3a3a3;
+
+  --theme-popup-bg: #ffffff;
+  --theme-popup-border: #d4d4d4;
+  --theme-popup-featured-border: rgba(28, 69, 134, 0.5);
+  --theme-popup-shadow: rgba(0, 0, 0, 0.1);
+
+  --tag-green: #059669;
+  --tag-blue: #2563EB;
+  --tag-yellow: #D97706;
+  --tag-pink: #DB2777;
+  --tag-teal: #0D9488;
+  --tag-purple: #7C3AED;
+  --tag-default: #4B5563;
+  --friend-blue: #2563EB;
+}
+
+/* Light-blue: alternating table rows */
+[data-theme="light-blue"] table tbody tr:nth-child(even):not([data-date]) {
+  background-color: rgba(28, 69, 134, 0.05);
+}
+
 /* --- SXSW theme — neon lime on dark forest green --- */
 [data-theme="sxsw"] {
   --background: #0a1410;
