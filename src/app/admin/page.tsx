@@ -2319,6 +2319,13 @@ export default function AdminPage() {
                           <span className="w-5 h-5 rounded" style={{ background: '#ef4444' }} />
                         </>
                       )}
+                      {opt.id === 'light-blue' && (
+                        <>
+                          <span className="w-5 h-5 rounded border border-stone-600" style={{ background: '#fafafa' }} />
+                          <span className="w-5 h-5 rounded border border-stone-600" style={{ background: '#ffffff' }} />
+                          <span className="w-5 h-5 rounded" style={{ background: '#1c4586' }} />
+                        </>
+                      )}
                       {opt.id === 'sxsw' && (
                         <>
                           <span className="w-5 h-5 rounded" style={{ background: '#0a1410' }} />
