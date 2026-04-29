@@ -148,7 +148,7 @@ export default async function Home() {
       </p>
 
       {/* Social links */}
-      <div className="flex gap-5 mb-12">
+      <div className="flex gap-5 mb-4">
         <a
           href="https://x.com/planwtf"
           target="_blank"
@@ -200,6 +200,14 @@ export default async function Home() {
           </svg>
         </a>
       </div>
+
+      {/* Spreadsheet link */}
+      <p className="text-sm mb-12 -mt-6" style={{ color: 'var(--theme-text-muted)' }}>
+        Looking for the old spreadsheet?{' '}
+        <a href="/data" className="underline hover:opacity-80 transition-opacity" style={{ color: 'var(--theme-text-secondary)' }}>
+          Find it at plan.wtf/data
+        </a>
+      </p>
 
       {/* Active conferences */}
       {tabs.length > 0 && (
