@@ -1,6 +1,6 @@
 'use client';
 
-import { Star } from 'lucide-react';
+import { Bookmark } from 'lucide-react';
 import clsx from 'clsx';
 
 interface StarButtonProps {
@@ -31,16 +31,16 @@ export function StarButton({
         size === 'sm' ? 'p-1.5' : 'p-1',
       )}
       style={{ color: isStarred ? 'var(--theme-star-active)' : 'var(--theme-star-inactive)' }}
-      aria-label={isStarred ? 'Remove star' : 'Add star'}
+      aria-label={isStarred ? 'Remove from plan' : 'Add to plan'}
       title={
         friendsCount > 0
           ? `${friendsCount} friend${friendsCount !== 1 ? 's' : ''} going`
           : isStarred
-            ? 'Remove star'
-            : 'Star this event'
+            ? 'Remove from plan'
+            : 'Add to plan'
       }
     >
-      <Star
+      <Bookmark
         className={iconSize}
         fill={isStarred ? 'currentColor' : 'none'}
       />

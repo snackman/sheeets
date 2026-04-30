@@ -103,7 +103,6 @@ export function useFilters(initialConference?: string, conferenceTabs?: TabConfi
     count += filters.vibes.length;
     if (filters.selectedFriends.length > 0) count++;
     if (filters.searchQuery) count++;
-    if (filters.nowMode) count++;
     return count;
   }, [filters, conferenceTabs]);
 
