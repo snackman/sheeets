@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import clsx from 'clsx';
-import { X, ListFilter, Clock, Zap, Users, MapPin, Plus, Link2, Check, Loader2, ChevronDown } from 'lucide-react';
+import { X, ListFilter, Clock, Users, MapPin, Plus, Link2, Check, Loader2, ChevronDown } from 'lucide-react';
 import type { FilterState } from '@/lib/types';
 import { VIBE_COLORS, getTabConfig } from '@/lib/constants';
 import type { TabConfig } from '@/lib/conferences';
@@ -275,7 +275,7 @@ export function FilterBar({
             {/* Now mode notice */}
             {filters.nowMode && (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
-                <Zap className="w-4 h-4 shrink-0" />
+                <Clock className="w-4 h-4 shrink-0" />
                 <span>Showing events happening now or starting within 1 hour. Start/end filters are overridden.</span>
               </div>
             )}
