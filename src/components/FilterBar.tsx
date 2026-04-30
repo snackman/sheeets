@@ -24,6 +24,7 @@ interface FilterBarProps {
   availableConferences: string[];
   availableTypes: string[];
   availableVibes: string[];
+  tagCounts: Map<string, number>;
   friendsForFilter: Array<{ userId: string; displayName: string }>;
   selectedFriends: string[];
   onToggleFriend: (friendId: string) => void;
@@ -49,6 +50,7 @@ export function FilterBar({
   availableConferences,
   availableTypes,
   availableVibes,
+  tagCounts,
   friendsForFilter,
   selectedFriends,
   onToggleFriend,
@@ -293,10 +295,11 @@ export function FilterBar({
                     <div className="flex-1 min-w-0">
                       <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-1">Type</div>
                       <div className="overflow-x-auto flex gap-2 pb-1">
-                        {availableTypes.map((vibe) => {
+                        {availableTypes.filter((vibe) => (tagCounts.get(vibe) ?? 0) > 0).map((vibe) => {
                           const isActive = filters.vibes.includes(vibe);
                           const vibeColor = VIBE_COLORS[vibe] || VIBE_COLORS['default'];
                           const Icon = TAG_ICONS[vibe];
+                          const count = tagCounts.get(vibe) ?? 0;
                           return (
                             <button
                               key={vibe}
@@ -311,6 +314,9 @@ export function FilterBar({
                             >
                               {Icon && <Icon className="w-3.5 h-3.5" />}
                               {vibe}
+                              <span className={clsx('text-xs', isActive ? 'text-white/70' : 'text-[var(--theme-text-muted)]')}>
+                                ({count})
+                              </span>
                             </button>
                           );
                         })}
@@ -343,10 +349,11 @@ export function FilterBar({
                     <div className="flex-1 min-w-0">
                       <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-1">Tags</div>
                       <div className="overflow-x-auto flex gap-2 pb-1">
-                        {availableVibes.map((vibe) => {
+                        {availableVibes.filter((vibe) => (tagCounts.get(vibe) ?? 0) > 0).map((vibe) => {
                           const isActive = filters.vibes.includes(vibe);
                           const vibeColor = VIBE_COLORS[vibe] || VIBE_COLORS['default'];
                           const Icon = TAG_ICONS[vibe];
+                          const count = tagCounts.get(vibe) ?? 0;
                           return (
                             <button
                               key={vibe}
@@ -361,6 +368,9 @@ export function FilterBar({
                             >
                               {Icon && <Icon className="w-3.5 h-3.5" />}
                               {vibe}
+                              <span className={clsx('text-xs', isActive ? 'text-white/70' : 'text-[var(--theme-text-muted)]')}>
+                                ({count})
+                              </span>
                             </button>
                           );
                         })}

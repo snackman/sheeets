@@ -39,7 +39,7 @@ import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { trackAuthPrompt } from '@/lib/analytics';
 import { getTabConfig } from '@/lib/conferences';
 import { extractFeaturedEvents } from '@/lib/featured';
-import { passesNowFilter, getConferenceNow } from '@/lib/filters';
+import { passesNowFilter, getConferenceNow, applyFilters, computeTagCounts } from '@/lib/filters';
 import { distanceMeters } from '@/lib/geo';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -141,6 +141,18 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
   const featuredEvents = useMemo(
     () => extractFeaturedEvents(filteredEvents),
     [filteredEvents],
+  );
+
+  // Events filtered by everything EXCEPT vibes — used to compute tag counts
+  const baseFilteredEvents = useMemo(
+    () => applyFilters(events, filters, itinerary, filters.nowMode ? getConferenceNow(filters.conference).getTime() : undefined, selectedFriendEventIds, { skipVibes: true }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [events, filters, itinerary, selectedFriendEventIds]
+  );
+
+  const tagCounts = useMemo(
+    () => computeTagCounts(baseFilteredEvents),
+    [baseFilteredEvents]
   );
 
   // Check-in hook + proximity watcher
@@ -439,6 +451,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           availableConferences={availableConferences}
           availableTypes={availableTypes}
           availableVibes={availableVibes}
+          tagCounts={tagCounts}
           friendsForFilter={friendsForFilter}
           selectedFriends={filters.selectedFriends}
           onToggleFriend={toggleFriend}
