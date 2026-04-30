@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import clsx from 'clsx';
-import { X, ListFilter, Clock, Users, MapPin, Plus, Link2, Check, Loader2, ChevronDown } from 'lucide-react';
+import { X, ListFilter, Clock, Star, Users, MapPin, Plus, Link2, Check, Loader2, ChevronDown } from 'lucide-react';
 import type { FilterState } from '@/lib/types';
 import { VIBE_COLORS, getTabConfig } from '@/lib/constants';
 import type { TabConfig } from '@/lib/conferences';
@@ -33,6 +33,9 @@ interface FilterBarProps {
   onSubmitEvent?: () => void;
   onSignIn?: () => void;
   conferenceTabs?: TabConfig[];
+  itineraryCount: number;
+  onItineraryToggle: () => void;
+  isItineraryActive: boolean;
 }
 
 export function FilterBar({
@@ -55,6 +58,9 @@ export function FilterBar({
   onSubmitEvent,
   onSignIn,
   conferenceTabs,
+  itineraryCount,
+  onItineraryToggle,
+  isItineraryActive,
 }: FilterBarProps) {
   const [expanded, setExpanded] = useState(false);
   const [confOpen, setConfOpen] = useState(false);
@@ -184,37 +190,6 @@ export function FilterBar({
           {/* Spacer pushes Now + Filters to the right */}
           <div className="flex-1 lg:hidden" />
 
-          {/* Desktop inline Start/End pickers */}
-          {(() => {
-            const tabDates = getTabConfig(filters.conference, conferenceTabs).dates;
-            return (
-              <div className={clsx('hidden lg:flex items-center gap-2', filters.nowMode && 'opacity-30 pointer-events-none')}>
-                <span className="text-xs uppercase text-[var(--theme-text-secondary)]">Start</span>
-                <DateTimePicker
-                  value={filters.startDateTime}
-                  min={`${tabDates[0]}T00:00`}
-                  max={filters.endDateTime}
-                  dates={tabDates}
-                  onChange={(v) => {
-                    trackDateTimeRange(v, filters.endDateTime);
-                    onSetDateTimeRange(v, filters.endDateTime);
-                  }}
-                />
-                <span className="text-xs uppercase text-[var(--theme-text-secondary)] ml-1">End</span>
-                <DateTimePicker
-                  value={filters.endDateTime}
-                  min={filters.startDateTime}
-                  max={`${tabDates[tabDates.length - 1]}T23:30`}
-                  dates={tabDates}
-                  onChange={(v) => {
-                    trackDateTimeRange(filters.startDateTime, v);
-                    onSetDateTimeRange(filters.startDateTime, v);
-                  }}
-                />
-              </div>
-            );
-          })()}
-
           {/* Now toggle button */}
           <button
             onClick={() => { trackNowMode(!filters.nowMode); onToggleNowMode(); }}
@@ -253,6 +228,26 @@ export function FilterBar({
               </span>
             )}
           </button>
+
+          {/* Itinerary toggle */}
+          <button
+            onClick={onItineraryToggle}
+            aria-label={`Itinerary: ${itineraryCount} events`}
+            className={clsx(
+              'shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
+              isItineraryActive
+                ? 'text-[var(--theme-accent)] border border-[var(--theme-accent)]'
+                : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)]'
+            )}
+            style={isItineraryActive ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
+          >
+            <Star className="w-4 h-4" />
+            {itineraryCount > 0 && (
+              <span className="bg-[var(--theme-accent)] text-[var(--theme-accent-text)] text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
+                {itineraryCount}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Search bar — mobile only (desktop is inline in the row above) */}
@@ -285,7 +280,7 @@ export function FilterBar({
               const tabDates = getTabConfig(filters.conference, conferenceTabs).dates;
               return (
                 <div className="flex gap-3 items-end">
-                  <div className={clsx('w-40 shrink-0 lg:hidden', filters.nowMode && 'opacity-30 pointer-events-none')}>
+                  <div className={clsx('w-40 shrink-0', filters.nowMode && 'opacity-30 pointer-events-none')}>
                     <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-2">Start</div>
                     <DateTimePicker
                       value={filters.startDateTime}
@@ -335,7 +330,7 @@ export function FilterBar({
               const tabDates = getTabConfig(filters.conference, conferenceTabs).dates;
               return (
                 <div className="flex gap-3 items-end">
-                  <div className={clsx('w-40 shrink-0 lg:hidden', filters.nowMode && 'opacity-30 pointer-events-none')}>
+                  <div className={clsx('w-40 shrink-0', filters.nowMode && 'opacity-30 pointer-events-none')}>
                     <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-2">End</div>
                     <DateTimePicker
                       value={filters.endDateTime}

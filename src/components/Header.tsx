@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Calendar, User, MapPin, Loader2 } from 'lucide-react';
+import { User, MapPin, Loader2 } from 'lucide-react';
 import { trackAuthPrompt } from '@/lib/analytics';
 import { ViewMode, ETHDenverEvent } from '@/lib/types';
 import { ViewToggle } from './ViewToggle';
@@ -12,9 +12,6 @@ import { AuthModal, UserMenu } from './AuthModal';
 interface HeaderProps {
   viewMode: ViewMode;
   onViewChange: (mode: ViewMode) => void;
-  itineraryCount: number;
-  onItineraryToggle: () => void;
-  isItineraryActive: boolean;
   events: ETHDenverEvent[];
   itinerary: Set<string>;
   onOpenFriends: () => void;
@@ -28,9 +25,6 @@ interface HeaderProps {
 export function Header({
   viewMode,
   onViewChange,
-  itineraryCount,
-  onItineraryToggle,
-  isItineraryActive,
   events,
   itinerary,
   onOpenFriends,
@@ -55,35 +49,6 @@ export function Header({
           {/* Right: Controls */}
           <div className="flex items-center gap-3 shrink-0">
             <ViewToggle viewMode={viewMode} onViewChange={onViewChange} />
-
-            {/* Itinerary filter toggle */}
-            <button
-              onClick={() => {
-                if (!user) {
-                  trackAuthPrompt('itinerary_button');
-                  setShowAuth(true);
-                  return;
-                }
-                onItineraryToggle();
-              }}
-              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm cursor-pointer transition-colors ${
-                isItineraryActive
-                  ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)] border-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] active:bg-[var(--theme-accent-hover)]'
-                  : 'border-[var(--theme-border-primary)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)]'
-              }`}
-              aria-label={`Itinerary: ${itineraryCount} events`}
-            >
-              <Calendar className="w-4 h-4" />
-              {itineraryCount > 0 && (
-                <span className={`absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full px-1 border border-[var(--theme-accent)] ${
-                  isItineraryActive
-                    ? 'bg-[var(--theme-bg-secondary)] text-[var(--theme-accent)]'
-                    : 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
-                }`}>
-                  {itineraryCount}
-                </span>
-              )}
-            </button>
 
             {/* Proximity check-in indicator */}
             {hasNearbyLiveEvents && user && (

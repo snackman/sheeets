@@ -36,6 +36,7 @@ import { SponsorsTicker } from './SponsorsTicker';
 import { CheckInFAB } from './CheckInFAB';
 import { OnboardingWizard } from './OnboardingWizard';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
+import { trackAuthPrompt } from '@/lib/analytics';
 import { getTabConfig } from '@/lib/conferences';
 import { extractFeaturedEvents } from '@/lib/featured';
 import { passesNowFilter, getConferenceNow } from '@/lib/filters';
@@ -206,6 +207,15 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
     checkInToNearbyEvents(events, itinerary, filters.conference);
   }, [checkInToNearbyEvents, events, itinerary, filters.conference]);
 
+  const handleItineraryFilterToggle = useCallback(() => {
+    if (!authUser) {
+      trackAuthPrompt('itinerary_button');
+      setShowSignIn(true);
+      return;
+    }
+    toggleBool('itineraryOnly');
+  }, [authUser, toggleBool]);
+
   // Theme: read from admin config per-conference and apply
   const { setTheme } = useTheme();
   useEffect(() => {
@@ -356,9 +366,6 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         <Header
           viewMode={viewMode}
           onViewChange={setViewMode}
-          itineraryCount={0}
-          onItineraryToggle={() => toggleBool('itineraryOnly')}
-          isItineraryActive={filters.itineraryOnly}
           events={events}
           itinerary={itinerary}
           onOpenFriends={() => setShowFriends(true)}
@@ -375,9 +382,6 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         <Header
           viewMode={viewMode}
           onViewChange={setViewMode}
-          itineraryCount={0}
-          onItineraryToggle={() => toggleBool('itineraryOnly')}
-          isItineraryActive={filters.itineraryOnly}
           events={events}
           itinerary={itinerary}
           onOpenFriends={() => setShowFriends(true)}
@@ -402,9 +406,6 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
       <Header
         viewMode={viewMode}
         onViewChange={setViewMode}
-        itineraryCount={conferenceItineraryCount}
-        onItineraryToggle={() => toggleBool('itineraryOnly')}
-        isItineraryActive={filters.itineraryOnly}
         events={events}
         itinerary={itinerary}
         onOpenFriends={() => setShowFriends(true)}
@@ -447,6 +448,9 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           onSubmitEvent={() => setShowSubmitEvent(true)}
           onSignIn={() => setShowSignIn(true)}
           conferenceTabs={conferenceTabs}
+          itineraryCount={conferenceItineraryCount}
+          onItineraryToggle={handleItineraryFilterToggle}
+          isItineraryActive={filters.itineraryOnly}
         />
       </div>
 
