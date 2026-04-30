@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-export const dynamic = 'force-dynamic';
-
 export async function GET() {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -31,7 +29,11 @@ export async function GET() {
       };
     }
 
-    return NextResponse.json({ addresses });
+    return NextResponse.json({ addresses }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      },
+    });
   } catch (err) {
     console.error('Geocoded addresses API error:', err);
     return NextResponse.json({ addresses: {} });
