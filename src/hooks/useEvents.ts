@@ -35,9 +35,9 @@ function readStaleCache(): ETHDenverEvent[] | null {
   }
 }
 
-export function useEvents() {
-  const [events, setEvents] = useState<ETHDenverEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+export function useEvents(initialEvents?: ETHDenverEvent[]) {
+  const [events, setEvents] = useState<ETHDenverEvent[]>(initialEvents ?? []);
+  const [loading, setLoading] = useState(!initialEvents);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -62,7 +62,7 @@ export function useEvents() {
         const stale = readStaleCache();
         if (stale) {
           setEvents(stale);
-        } else {
+        } else if (!initialEvents) {
           setError(e instanceof Error ? e.message : 'Failed to load events');
         }
       } finally {

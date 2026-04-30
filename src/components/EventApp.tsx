@@ -21,7 +21,7 @@ import { useABTest } from '@/hooks/useABTest';
 import { useEventCheckIn } from '@/hooks/useEventCheckIn';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeId, DEFAULT_THEME, THEME_OPTIONS } from '@/lib/themes';
-import type { ABTest } from '@/lib/types';
+import type { ABTest, ETHDenverEvent } from '@/lib/types';
 import { resolveItemVariants, getVisitorId } from '@/lib/ab-testing';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
@@ -42,10 +42,10 @@ import { passesNowFilter, getConferenceNow } from '@/lib/filters';
 import { distanceMeters } from '@/lib/geo';
 import { useAuth } from '@/contexts/AuthContext';
 
-export function EventApp({ initialConference }: { initialConference?: string }) {
+export function EventApp({ initialConference, initialEvents }: { initialConference?: string; initialEvents?: ETHDenverEvent[] }) {
   const { config } = useAdminConfig();
   const { tabs: conferenceTabs } = useConferenceTabs();
-  const { events, loading, error } = useEvents();
+  const { events, loading, error } = useEvents(initialEvents);
   const {
     filters,
     setFilter,
