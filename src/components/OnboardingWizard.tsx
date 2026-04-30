@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
-import { X, Star, Zap, Users, Map, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, CirclePlus, Zap, Users, Map, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { VIBE_COLORS, TYPE_TAGS } from '@/lib/constants';
 import type { TabConfig } from '@/lib/conferences';
 import type { ETHDenverEvent } from '@/lib/types';
@@ -37,9 +37,9 @@ const TOPIC_TAGS = Object.keys(VIBE_COLORS).filter(
 
 const TIPS = [
   {
-    icon: Star,
-    title: 'Build Your Itinerary',
-    description: 'Tap the star on any event to save it to your personal schedule.',
+    icon: CirclePlus,
+    title: 'Build Your Plan',
+    description: 'Tap + on any event to add it to your plan.',
   },
   {
     icon: Zap,

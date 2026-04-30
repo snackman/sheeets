@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, Calendar, Download, ExternalLink, Star, X } from 'lucide-react';
+import { AlertTriangle, Calendar, Download, ExternalLink, Plus, Check, X } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
 import { trackEvent } from '@/lib/event-tracking';
@@ -461,10 +461,13 @@ function DateGroup({
                     className="relative cursor-pointer p-0.5"
                     title={fc > 0 ? `${fc} friend${fc !== 1 ? 's' : ''} going` : isInItinerary ? 'Remove from itinerary' : 'Add to itinerary'}
                   >
-                    <Star
-                      className={`w-4 h-4 ${isInItinerary ? 'fill-current' : 'hover:opacity-60'}`}
-                      style={{ color: isInItinerary ? 'var(--theme-star-active)' : 'var(--theme-star-inactive)' }}
-                    />
+                    <span className={`w-6 h-6 flex items-center justify-center rounded-full border transition-colors ${
+                      isInItinerary
+                        ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)] border-[var(--theme-accent)]'
+                        : 'text-[var(--theme-text-secondary)] border-[var(--theme-border-primary)] hover:text-[var(--theme-text-primary)]'
+                    }`}>
+                      {isInItinerary ? <Check className="w-3 h-3" strokeWidth={3} /> : <Plus className="w-3 h-3" strokeWidth={2.5} />}
+                    </span>
                     {fc > 0 && (
                       <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-[var(--theme-accent)] text-[var(--theme-accent-text)] text-[8px] font-bold px-0.5 pointer-events-none">
                         {fc}
@@ -543,10 +546,13 @@ function DateGroup({
                           : 'Add to itinerary'
                     }
                   >
-                    <Star
-                      className={`w-4 h-4 ${isInItinerary ? 'fill-current' : 'hover:opacity-60'}`}
-                      style={{ color: isInItinerary ? 'var(--theme-star-active)' : 'var(--theme-star-inactive)' }}
-                    />
+                    <span className={`w-6 h-6 flex items-center justify-center rounded-full border transition-colors ${
+                      isInItinerary
+                        ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)] border-[var(--theme-accent)]'
+                        : 'text-[var(--theme-text-secondary)] border-[var(--theme-border-primary)] hover:text-[var(--theme-text-primary)]'
+                    }`}>
+                      {isInItinerary ? <Check className="w-3 h-3" strokeWidth={3} /> : <Plus className="w-3 h-3" strokeWidth={2.5} />}
+                    </span>
                     {fc > 0 && (
                       <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-[var(--theme-accent)] text-[var(--theme-accent-text)] text-[8px] font-bold px-0.5 pointer-events-none">
                         {fc}
