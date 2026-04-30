@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import clsx from 'clsx';
-import { X, SlidersHorizontal, Zap, Users, MapPin, Plus, Link2, Check, Loader2, ChevronDown } from 'lucide-react';
+import { X, ListFilter, Zap, Users, MapPin, Plus, Link2, Check, Loader2, ChevronDown } from 'lucide-react';
 import type { FilterState } from '@/lib/types';
 import { VIBE_COLORS, getTabConfig } from '@/lib/constants';
 import type { TabConfig } from '@/lib/conferences';
@@ -246,7 +246,7 @@ export function FilterBar({
             )}
             style={expanded || activeFilterCount > 0 ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
           >
-            <SlidersHorizontal className="w-4 h-4" />
+            <ListFilter className="w-4 h-4" />
             {activeFilterCount > 0 && (
               <span className="bg-[var(--theme-accent)] text-[var(--theme-accent-text)] text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
                 {activeFilterCount}
