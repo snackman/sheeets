@@ -6,4 +6,6 @@ export const STORAGE_KEYS = {
   VIEW_MODE: 'sheeets-view',
   ONBOARDING_COMPLETED: 'sheeets-onboarding-done',
   AB_VISITOR_ID: 'sheeets-ab-visitor',
+  EVENTS_CACHE: 'sheeets-events-cache',
+  EVENTS_CACHE_TS: 'sheeets-events-cache-ts',
 };

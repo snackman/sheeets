@@ -2,29 +2,36 @@
 
 import { useState, useEffect } from 'react';
 import { ETHDenverEvent } from '@/lib/types';
-import { fetchEvents, GeoAddressMap } from '@/lib/fetch-events';
-import type { TabConfig } from '@/lib/conferences';
-import { FALLBACK_TABS } from '@/lib/conferences';
+import { STORAGE_KEYS } from '@/lib/storage-keys';
 
-async function fetchRuntimeAddresses(): Promise<GeoAddressMap> {
+const STALENESS_MS = 5 * 60 * 1000; // 5 minutes
+
+function readCache(): ETHDenverEvent[] | null {
   try {
-    const res = await fetch('/api/geocoded-addresses');
-    if (!res.ok) return {};
-    const data = await res.json();
-    return data.addresses || {};
+    const ts = sessionStorage.getItem(STORAGE_KEYS.EVENTS_CACHE_TS);
+    if (!ts || Date.now() - Number(ts) > STALENESS_MS) return null;
+    const raw = sessionStorage.getItem(STORAGE_KEYS.EVENTS_CACHE);
+    return raw ? JSON.parse(raw) : null;
   } catch {
-    return {};
+    return null;
   }
 }
 
-async function fetchDynamicTabs(): Promise<TabConfig[]> {
+function writeCache(events: ETHDenverEvent[]) {
   try {
-    const res = await fetch('/api/conferences');
-    if (!res.ok) return FALLBACK_TABS;
-    const data = await res.json();
-    return Array.isArray(data) && data.length > 0 ? data : FALLBACK_TABS;
+    sessionStorage.setItem(STORAGE_KEYS.EVENTS_CACHE, JSON.stringify(events));
+    sessionStorage.setItem(STORAGE_KEYS.EVENTS_CACHE_TS, String(Date.now()));
   } catch {
-    return FALLBACK_TABS;
+    // sessionStorage full or unavailable — ignore
+  }
+}
+
+function readStaleCache(): ETHDenverEvent[] | null {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEYS.EVENTS_CACHE);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
   }
 }
 
@@ -35,15 +42,29 @@ export function useEvents() {
 
   useEffect(() => {
     async function load() {
+      // Check sessionStorage for fresh cache
+      const cached = readCache();
+      if (cached) {
+        setEvents(cached);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch from API
       try {
-        const [runtimeAddresses, tabs] = await Promise.all([
-          fetchRuntimeAddresses(),
-          fetchDynamicTabs(),
-        ]);
-        const data = await fetchEvents(runtimeAddresses, tabs);
+        const res = await fetch('/api/events');
+        if (!res.ok) throw new Error(`API returned ${res.status}`);
+        const data: ETHDenverEvent[] = await res.json();
+        writeCache(data);
         setEvents(data);
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load events');
+        // Fall back to stale cache if available
+        const stale = readStaleCache();
+        if (stale) {
+          setEvents(stale);
+        } else {
+          setError(e instanceof Error ? e.message : 'Failed to load events');
+        }
       } finally {
         setLoading(false);
       }
