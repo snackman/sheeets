@@ -63,7 +63,7 @@ export default async function ConferencePage({ params }: { params: Promise<{ slu
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       <Suspense>
-        <EventApp initialConference={tab.name} />
+        <EventApp initialConference={tab.name} initialEvents={conferenceEvents} />
       </Suspense>
     </>
   );
