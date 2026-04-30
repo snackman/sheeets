@@ -58,14 +58,26 @@ type VirtualListItem =
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-/** Build the flat virtual list from date-grouped events, interleaving ads. */
+/** Build the flat virtual list from date-grouped events, interleaving ads.
+ *  Featured events are injected at the top of their date group (before time-sorted events). */
 function buildFlatList(
   dateGroups: DateGroup[],
   activeAds: NativeAd[],
   adFrequency: number,
+  featuredEvents?: ETHDenverEvent[],
 ): VirtualListItem[] {
   const items: VirtualListItem[] = [];
   let globalEventIndex = 0;
+
+  // Index featured events by date for quick lookup
+  const featuredByDate = new Map<string, ETHDenverEvent[]>();
+  if (featuredEvents) {
+    for (const fe of featuredEvents) {
+      const key = fe.dateISO || 'unknown';
+      if (!featuredByDate.has(key)) featuredByDate.set(key, []);
+      featuredByDate.get(key)!.push(fe);
+    }
+  }
 
   for (const group of dateGroups) {
     items.push({
@@ -74,6 +86,15 @@ function buildFlatList(
       label: group.label,
       eventCount: group.events.length,
     });
+
+    // Insert featured events at top of their date group
+    const dateFeatured = featuredByDate.get(group.dateISO);
+    if (dateFeatured) {
+      for (const event of dateFeatured) {
+        items.push({ kind: 'event', event });
+        globalEventIndex++;
+      }
+    }
 
     for (const event of group.events) {
       items.push({ kind: 'event', event });
@@ -140,8 +161,8 @@ export function ListView({
 
   /* ---- flatten into virtual items ---- */
   const flatItems = useMemo(
-    () => buildFlatList(dateGroups, activeAds, adFrequency),
-    [dateGroups, activeAds, adFrequency],
+    () => buildFlatList(dateGroups, activeAds, adFrequency, featuredEvents),
+    [dateGroups, activeAds, adFrequency, featuredEvents],
   );
 
   /* ---- fallback scroll container ref ---- */
@@ -274,21 +295,6 @@ export function ListView({
 
   return (
     <div className="max-w-3xl mx-auto px-2 sm:px-4 pb-8 relative">
-      {/* Featured events section (above virtual list) */}
-      <FeaturedSection
-        featuredEvents={featuredEvents ?? []}
-        itinerary={itinerary}
-        onItineraryToggle={onItineraryToggle}
-        friendsCountByEvent={friendsCountByEvent}
-        friendsByEvent={friendsByEvent}
-        checkedInFriendsByEvent={checkedInFriendsByEvent}
-        checkInCounts={checkInCounts}
-        reactionsByEvent={reactionsByEvent}
-        onToggleReaction={onToggleReaction}
-        commentCounts={commentCounts}
-        conference={conference}
-      />
-
       {/* Overlay sticky date header */}
       {stickyLabel && (
         <div className="sticky top-0 z-20 bg-[var(--theme-bg-primary)] py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-[var(--theme-border-secondary)]">
