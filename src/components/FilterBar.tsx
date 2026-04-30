@@ -197,16 +197,12 @@ export function FilterBar({
             className={clsx(
               'shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer',
               filters.nowMode
-                ? 'bg-green-500 text-white shadow-[0_0_12px_rgba(34,197,94,0.4)]'
+                ? 'text-[var(--theme-accent)] border border-[var(--theme-accent)]'
                 : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)]'
             )}
+            style={filters.nowMode ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
           >
-            <span className="relative flex items-center">
-              <Clock className="w-4 h-4" />
-              {filters.nowMode && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-300 rounded-full animate-ping" />
-              )}
-            </span>
+            <Clock className="w-4 h-4" />
           </button>
 
           {/* Filter toggle button */}
