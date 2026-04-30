@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import clsx from 'clsx';
-import { X, ListFilter, Zap, Users, MapPin, Plus, Link2, Check, Loader2, ChevronDown } from 'lucide-react';
+import { X, ListFilter, Clock, Zap, Users, MapPin, Plus, Link2, Check, Loader2, ChevronDown } from 'lucide-react';
 import type { FilterState } from '@/lib/types';
 import { VIBE_COLORS, getTabConfig } from '@/lib/constants';
 import type { TabConfig } from '@/lib/conferences';
@@ -218,20 +218,20 @@ export function FilterBar({
           {/* Now toggle button */}
           <button
             onClick={() => { trackNowMode(!filters.nowMode); onToggleNowMode(); }}
+            aria-label="Now"
             className={clsx(
-              'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer',
+              'shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer',
               filters.nowMode
                 ? 'bg-green-500 text-white shadow-[0_0_12px_rgba(34,197,94,0.4)]'
                 : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)]'
             )}
           >
             <span className="relative flex items-center">
-              <Zap className="w-4 h-4" />
+              <Clock className="w-4 h-4" />
               {filters.nowMode && (
                 <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-300 rounded-full animate-ping" />
               )}
             </span>
-            Now
           </button>
 
           {/* Filter toggle button */}
