@@ -365,9 +365,10 @@ interface UserMenuProps {
   onSubmitEvent?: () => void;
   pendingIncomingCount?: number;
   externalRefreshFriends?: () => Promise<void>;
+  activeConference?: string;
 }
 
-export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pendingIncomingCount: externalCount, externalRefreshFriends }: UserMenuProps) {
+export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pendingIncomingCount: externalCount, externalRefreshFriends, activeConference }: UserMenuProps) {
   const { user, signOut } = useAuth();
   const { profile, updateProfile, uploadAvatar } = useProfile();
   const { friendCount, refreshFriends: localRefreshFriends } = useFriends();
@@ -419,20 +420,10 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   // Share itinerary card state
   const [showShareCard, setShowShareCard] = useState(false);
   const itineraryEvents = useMemo(
-    () => events.filter((e) => itinerary.has(e.id)),
-    [events, itinerary]
+    () => events.filter((e) => itinerary.has(e.id) && (!activeConference || e.conference === activeConference)),
+    [events, itinerary, activeConference]
   );
-  const shareConferenceName = useMemo(() => {
-    const confs = [...new Set(itineraryEvents.map((e) => e.conference).filter(Boolean))];
-    if (confs.length === 0) return 'Itinerary';
-    if (confs.length === 1) return confs[0];
-    // Pick the conference with the most itinerary events
-    const counts = new Map<string, number>();
-    for (const e of itineraryEvents) {
-      if (e.conference) counts.set(e.conference, (counts.get(e.conference) || 0) + 1);
-    }
-    return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
-  }, [itineraryEvents]);
+  const shareConferenceName = activeConference || 'Itinerary';
   const badgeCount = externalCount ?? pendingIncomingCount;
 
   // Sync form state when profile loads

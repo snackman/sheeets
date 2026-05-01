@@ -3,11 +3,33 @@
 import { useState } from 'react';
 import { getDisplayInitial } from '@/lib/user-display';
 
+const AVATAR_COLORS = [
+  '#e63946', // red
+  '#f4a261', // orange
+  '#e9c46a', // gold
+  '#2a9d8f', // teal
+  '#264653', // dark teal
+  '#7b2cbf', // purple
+  '#3a86ff', // blue
+  '#06d6a0', // green
+  '#ef476f', // pink
+  '#118ab2', // ocean
+];
+
+function hashToColor(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
 interface UserAvatarProps {
   avatarUrl?: string | null;
   xHandle?: string | null;
   displayName?: string | null;
   email?: string | null;
+  userId?: string | null;
   size?: 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -24,6 +46,7 @@ export default function UserAvatar({
   xHandle,
   displayName,
   email,
+  userId,
   size = 'sm',
   className = '',
 }: UserAvatarProps) {
@@ -57,10 +80,12 @@ export default function UserAvatar({
     );
   }
 
-  // Priority 3: Initials circle
+  // Priority 3: Initials circle with deterministic color
+  const bgColor = userId ? hashToColor(userId) : undefined;
   return (
     <div
-      className={`${sizeClass} rounded-full bg-[var(--theme-bg-tertiary)] flex items-center justify-center font-bold text-[var(--theme-text-secondary)] shrink-0 ${className}`}
+      className={`${sizeClass} rounded-full flex items-center justify-center font-bold text-white shrink-0 ${className}`}
+      style={{ backgroundColor: bgColor || 'var(--theme-bg-tertiary)' }}
     >
       {initial}
     </div>

@@ -40,6 +40,7 @@ import { trackAuthPrompt } from '@/lib/analytics';
 import { getTabConfig } from '@/lib/conferences';
 import { extractFeaturedEvents } from '@/lib/featured';
 import { passesNowFilter, getConferenceNow, applyFilters, computeTagCounts } from '@/lib/filters';
+import { parseTimeToMinutes } from '@/lib/time-parse';
 import { distanceMeters } from '@/lib/geo';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -167,11 +168,27 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
 
   const liveEventIds = useMemo(() => {
     const now = getConferenceNow(filters.conference);
-    const ids = new Set<string>();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const map = new Map<string, 'green' | 'yellow' | 'red'>();
     for (const e of events) {
-      if (passesNowFilter(e, now)) ids.add(e.id);
+      if (passesNowFilter(e, now)) {
+        const endMin = parseTimeToMinutes(e.endTime);
+        let urgency: 'green' | 'yellow' | 'red' = 'green';
+        if (endMin !== null) {
+          const startMin = parseTimeToMinutes(e.startTime);
+          let remaining: number;
+          if (startMin !== null && endMin < startMin) {
+            remaining = (endMin + 24 * 60) - nowMinutes;
+          } else {
+            remaining = endMin - nowMinutes;
+          }
+          if (remaining <= 30) urgency = 'red';
+          else if (remaining <= 60) urgency = 'yellow';
+        }
+        map.set(e.id, urgency);
+      }
     }
-    return ids;
+    return map;
   }, [events, filters.conference]);
 
   const liveItineraryCount = useMemo(() => {
@@ -183,6 +200,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
   }, [itinerary, liveEventIds]);
 
   const [hasNearbyLiveEvents, setHasNearbyLiveEvents] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   // Proximity watcher: detect when user is within 150m of a live RSVP'd event
   const liveItineraryEventsRef = useRef<typeof events>([]);
@@ -203,6 +221,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude: uLat, longitude: uLng } = pos.coords;
+        setUserLocation({ lat: uLat, lng: uLng });
         const nearby = liveItineraryEventsRef.current.some(
           (e) => distanceMeters(uLat, uLng, e.lat!, e.lng!) <= 150
         );
@@ -423,6 +442,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         onOpenFriends={() => setShowFriends(true)}
         onSubmitEvent={() => setShowSubmitEvent(true)}
         refreshFriends={refreshFriends}
+        activeConference={filters.conference}
         hasNearbyLiveEvents={hasNearbyLiveEvents}
         onBulkCheckIn={handleBulkCheckIn}
         checkInLoading={checkInLoading}
@@ -513,6 +533,10 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
             commentCounts={commentCounts}
             conference={filters.conference}
             featuredEvents={featuredEvents}
+            isSignedIn={!!authUser}
+            onSignIn={() => setShowSignIn(true)}
+            liveEventIds={liveEventIds}
+            userLocation={userLocation}
           />
         </main>
       ) : (
@@ -539,6 +563,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
             onCheckIn={checkInToEvent}
             checkInLoading={checkInLoading}
             liveEventIds={liveEventIds}
+            userLocation={userLocation}
           />
         </main>
       )}

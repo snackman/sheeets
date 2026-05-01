@@ -71,6 +71,13 @@ export interface Friend {
   avatar_url: string | null;
 }
 
+export interface FriendInfo {
+  userId: string;
+  displayName: string;
+  avatarUrl?: string | null;
+  xHandle?: string | null;
+}
+
 export interface FriendRequest {
   id: string;
   sender_id: string;

@@ -2,7 +2,7 @@
 
 import { useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import type { ETHDenverEvent, ReactionEmoji, NativeAd } from '@/lib/types';
+import type { ETHDenverEvent, ReactionEmoji, NativeAd, FriendInfo } from '@/lib/types';
 import { formatDateLabel } from '@/lib/utils';
 import { sortByStartTime } from '@/lib/time-parse';
 import { EventCard } from './EventCard';
@@ -19,8 +19,8 @@ interface ListViewProps {
   itinerary?: Set<string>;
   onItineraryToggle?: (eventId: string) => void;
   friendsCountByEvent?: Map<string, number>;
-  friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
-  checkedInFriendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  friendsByEvent?: Map<string, FriendInfo[]>;
+  checkedInFriendsByEvent?: Map<string, FriendInfo[]>;
   checkInCounts?: Map<string, number>;
   reactionsByEvent?: Map<string, { emoji: ReactionEmoji; count: number; reacted: boolean }[]>;
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
@@ -40,7 +40,8 @@ interface ListViewProps {
   featuredEvents?: ETHDenverEvent[];
   onCheckIn?: (eventId: string) => void;
   checkInLoading?: boolean;
-  liveEventIds?: Set<string>;
+  liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
+  userLocation?: { lat: number; lng: number } | null;
 }
 
 interface DateGroup {
@@ -139,6 +140,7 @@ export function ListView({
   onCheckIn,
   checkInLoading,
   liveEventIds,
+  userLocation,
 }: ListViewProps) {
   const activeAds = useMemo(() => nativeAds?.filter(ad => ad.active !== false) || [], [nativeAds]);
 
@@ -370,7 +372,8 @@ export function ListView({
                     conference={conference}
                     onCheckIn={onCheckIn}
                     checkInLoading={checkInLoading}
-                    isLive={liveEventIds?.has(item.event.id)}
+                    liveUrgency={liveEventIds?.get(item.event.id)}
+                    userLocation={userLocation}
                   />
                 </div>
               )}

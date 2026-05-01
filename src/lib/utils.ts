@@ -50,6 +50,37 @@ export function normalizeAddress(address: string): string {
   return address.toLowerCase().trim().replace(/\s+/g, ' ').replace(/[.,]+$/, '');
 }
 
+/**
+ * Shorten a full address to just the venue name or street address.
+ * Strips city, state, ZIP, and country suffixes.
+ * "Improper City 3201 Walnut St #107, Denver, CO 80205, USA" → "Improper City 3201 Walnut St #107"
+ * "4850 National Western Dr Denver, CO 80216, USA" → "4850 National Western Dr"
+ * "CSU Spur Hydro Building" → "CSU Spur Hydro Building"
+ */
+export function shortenAddress(address: string): string {
+  if (!address) return '';
+
+  // Split on common separators: comma, middle dot, pipe
+  const parts = address.split(/[,·|]/).map(s => s.trim());
+
+  // Take the first segment — it's usually "Venue Name Street Address"
+  let short = parts[0];
+
+  // Strip trailing city name if it's glued on without comma
+  // Pattern: "... St Denver" or "... Dr Denver" — street suffix followed by city
+  const streetSuffixCity = short.match(/^(.+?\b(?:st|street|ave|avenue|blvd|boulevard|dr|drive|rd|road|way|pl|place|ct|court|ln|lane|cir|circle|pkwy|parkway|hwy|highway)\b(?:\s+(?:#|ste|suite|unit|apt|bldg|floor|fl)\s*\S+)?)\s+([a-zA-Z][a-zA-Z\s]+)$/i);
+  if (streetSuffixCity) {
+    const possibleCity = streetSuffixCity[2].trim().toLowerCase();
+    // Common city names and state abbreviations to strip
+    const cities = ['denver', 'boulder', 'miami', 'austin', 'new york', 'san francisco', 'las vegas', 'edgewater', 'paris', 'prague', 'london', 'lisbon', 'singapore', 'dubai', 'hong kong', 'bangkok', 'istanbul', 'barcelona'];
+    if (cities.includes(possibleCity) || /^[a-z]{2}$/.test(possibleCity)) {
+      short = streetSuffixCity[1];
+    }
+  }
+
+  return short;
+}
+
 export function formatDateLabel(isoDate: string): string {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

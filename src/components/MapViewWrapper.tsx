@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { ChevronUp, ChevronDown, MapPinOff } from 'lucide-react';
-import type { ETHDenverEvent, POI, POICategory, ReactionEmoji, FriendLocation } from '@/lib/types';
+import type { ETHDenverEvent, POI, POICategory, ReactionEmoji, FriendLocation, FriendInfo } from '@/lib/types';
 import type { TabConfig } from '@/lib/conferences';
 import { EventCard } from './EventCard';
 
@@ -26,8 +26,8 @@ interface MapViewWrapperProps {
   onItineraryToggle?: (eventId: string) => void;
   isItineraryView?: boolean;
   friendsCountByEvent?: Map<string, number>;
-  friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
-  checkedInFriendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  friendsByEvent?: Map<string, FriendInfo[]>;
+  checkedInFriendsByEvent?: Map<string, FriendInfo[]>;
   checkInCounts?: Map<string, number>;
   reactionsByEvent?: Map<string, { emoji: ReactionEmoji; count: number; reacted: boolean }[]>;
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
@@ -43,7 +43,7 @@ interface MapViewWrapperProps {
   conferenceTabs?: TabConfig[];
   onCheckIn?: (eventId: string) => void;
   checkInLoading?: boolean;
-  liveEventIds?: Set<string>;
+  liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
 }
 
 export function MapViewWrapper({

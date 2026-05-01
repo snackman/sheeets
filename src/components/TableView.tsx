@@ -2,13 +2,18 @@
 
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, Calendar, Download, ExternalLink, Plus, Check, X } from 'lucide-react';
-import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
+import { AlertTriangle, Download, ExternalLink, Plus, Check, X, Users } from 'lucide-react';
+import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
 import { trackEvent } from '@/lib/event-tracking';
+import { shortenAddress } from '@/lib/utils';
 import { AddressLink } from './AddressLink';
 import { TagBadge } from './TagBadge';
 import { EventCard } from './EventCard';
+import { CalendarIcon } from './icons/CalendarIcon';
+import { FriendAvatarStack } from './FriendAvatarStack';
+import UserAvatar from './UserAvatar';
+import { distanceMeters } from '@/lib/geo';
 
 interface TableViewProps {
   events: ETHDenverEvent[];
@@ -17,8 +22,8 @@ interface TableViewProps {
   onItineraryToggle?: (eventId: string) => void;
   onScrolledChange?: (scrolled: boolean) => void;
   friendsCountByEvent?: Map<string, number>;
-  friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
-  checkedInFriendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  friendsByEvent?: Map<string, FriendInfo[]>;
+  checkedInFriendsByEvent?: Map<string, FriendInfo[]>;
   checkInCounts?: Map<string, number>;
   reactionsByEvent?: Map<string, { emoji: ReactionEmoji; count: number; reacted: boolean }[]>;
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
@@ -26,6 +31,14 @@ interface TableViewProps {
   conference?: string;
   /** Featured events to show in a prominent section at the top of the table */
   featuredEvents?: ETHDenverEvent[];
+  /** Whether user is signed in (shows ? tooltip in friends column when false) */
+  isSignedIn?: boolean;
+  /** Callback to open sign-in modal */
+  onSignIn?: () => void;
+  /** Set of event IDs that are currently live */
+  liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
+  /** User's current location for distance display */
+  userLocation?: { lat: number; lng: number } | null;
 }
 
 /** Format a dateISO string like "2026-02-10" into "Mon Feb 10" */
@@ -55,7 +68,50 @@ function groupByDate(events: ETHDenverEvent[]): { dateISO: string; label: string
   return groups;
 }
 
-const COLUMN_COUNT = 6; // star, time, organizer, event, location, tags
+/** Format distance for display */
+function formatDistance(meters: number): string {
+  if (meters < 1000) return `${Math.round(meters)}m`;
+  const km = meters / 1000;
+  return km < 10 ? `${km.toFixed(1)}km` : `${Math.round(km)}km`;
+}
+
+/** Friends going modal for table view */
+function FriendsGoingModal({ eventName, friends, onClose }: { eventName: string; friends: FriendInfo[]; onClose: () => void }) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60" />
+      <div className="relative bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)]">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-bold text-[var(--theme-text-primary)]">Friends Going</h3>
+            <p className="text-xs text-[var(--theme-text-secondary)] truncate">{eventName}</p>
+          </div>
+          <button onClick={onClose} className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer shrink-0 ml-2" aria-label="Close">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="overflow-y-auto max-h-[60vh] p-3 space-y-2">
+          {friends.map((friend) => (
+            <div key={friend.userId} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--theme-bg-tertiary)]">
+              <div className="w-8 h-8 rounded-full shrink-0 overflow-hidden" style={{ backgroundColor: 'color-mix(in srgb, var(--friend-blue) 20%, transparent)' }}>
+                <UserAvatar avatarUrl={friend.avatarUrl} xHandle={friend.xHandle} displayName={friend.displayName} userId={friend.userId} size="sm" className="!w-full !h-full" />
+              </div>
+              <span className="text-sm text-[var(--theme-text-primary)] truncate">{friend.displayName}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const COLUMN_COUNT = 7; // star, friends, time, organizer, event, location, tags
 
 export function TableView({
   events,
@@ -72,6 +128,10 @@ export function TableView({
   commentCounts,
   conference,
   featuredEvents,
+  isSignedIn,
+  onSignIn,
+  liveEventIds,
+  userLocation,
 }: TableViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
@@ -79,6 +139,7 @@ export function TableView({
   const lastScrolledRef = useRef(false);
   const lastScrollTopRef = useRef(0);
   const [selectedEvent, setSelectedEvent] = useState<ETHDenverEvent | null>(null);
+  const [friendsModalEvent, setFriendsModalEvent] = useState<{ name: string; friends: FriendInfo[] } | null>(null);
 
   const groups = useMemo(() => groupByDate(events), [events]);
 
@@ -259,16 +320,18 @@ export function TableView({
       >
         <table className="w-full text-sm text-left md:table-fixed" style={{ minWidth: Math.max(640, 142 + tagsColWidth + 420) }}>
           <colgroup>
-            <col style={{ width: 32 }} />                                                                          {/* star */}
+            <col style={{ width: 36 }} />                                                                          {/* star */}
+            <col style={{ width: 44 }} />                                                                          {/* friends */}
             <col style={{ width: 100 }} />                                                                         {/* when */}
-            <col style={{ width: `calc((100% - 32px - 100px - ${tagsColWidth}px) * 0.22)` }} />                    {/* organizer */}
-            <col style={{ width: `calc((100% - 32px - 100px - ${tagsColWidth}px) * 0.50)` }} />                    {/* event */}
-            <col style={{ width: `calc((100% - 32px - 100px - ${tagsColWidth}px) * 0.28)` }} />                    {/* where */}
+            <col style={{ width: `calc((100% - 36px - 44px - 100px - ${tagsColWidth}px) * 0.22)` }} />             {/* organizer */}
+            <col style={{ width: `calc((100% - 36px - 44px - 100px - ${tagsColWidth}px) * 0.50)` }} />             {/* event */}
+            <col style={{ width: `calc((100% - 36px - 44px - 100px - ${tagsColWidth}px) * 0.28)` }} />             {/* where */}
             <col style={{ width: tagsColWidth }} />                                                                {/* tags */}
           </colgroup>
           <thead className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] bg-[var(--theme-bg-secondary)] border-b border-[var(--theme-border-primary)] sticky top-0 z-20">
             <tr>
-              <th className="px-3 py-2.5"><Calendar className="w-3.5 h-3.5" /></th>
+              <th className="py-2.5"><div className="flex justify-center"><CalendarIcon className="w-5 h-5" /></div></th>
+              <th className="px-1 py-2.5 text-center" title={!isSignedIn ? 'Sign in to add friends and see who\'s going' : 'Friends going'}><Users className="w-3.5 h-3.5 mx-auto" /></th>
               <th className="px-3 py-2.5 whitespace-nowrap">
                 {currentDateLabel === 'Time' ? (
                   'WHEN'
@@ -317,10 +380,17 @@ export function TableView({
                 onItineraryToggle={onItineraryToggle}
                 setSeparatorRef={setSeparatorRef}
                 friendsCountByEvent={friendsCountByEvent}
+                friendsByEvent={friendsByEvent}
                 checkInCounts={checkInCounts}
                 onSelectEvent={setSelectedEvent}
                 conference={conference}
                 featuredEvents={featuredEvents?.filter(e => e.dateISO === group.dateISO)}
+                selectedEventId={selectedEvent?.id}
+                isSignedIn={isSignedIn}
+                onSignIn={onSignIn}
+                liveEventIds={liveEventIds}
+                userLocation={userLocation}
+                onShowFriends={(name, friends) => setFriendsModalEvent({ name, friends })}
               />
             ))}
           </tbody>
@@ -346,6 +416,14 @@ export function TableView({
         />,
         document.body
       )}
+      {friendsModalEvent && createPortal(
+        <FriendsGoingModal
+          eventName={friendsModalEvent.name}
+          friends={friendsModalEvent.friends}
+          onClose={() => setFriendsModalEvent(null)}
+        />,
+        document.body
+      )}
     </div>
   );
 }
@@ -367,8 +445,8 @@ function EventDetailModal({
   isInItinerary: boolean;
   onItineraryToggle?: (eventId: string) => void;
   friendsCount: number;
-  friendsGoing?: { userId: string; displayName: string }[];
-  checkedInFriends?: { userId: string; displayName: string }[];
+  friendsGoing?: FriendInfo[];
+  checkedInFriends?: FriendInfo[];
   reactions?: { emoji: ReactionEmoji; count: number; reacted: boolean }[];
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
   commentCount?: number;
@@ -405,20 +483,34 @@ function DateGroup({
   onItineraryToggle,
   setSeparatorRef,
   friendsCountByEvent,
+  friendsByEvent,
   checkInCounts,
   onSelectEvent,
   conference,
   featuredEvents,
+  selectedEventId,
+  isSignedIn,
+  onSignIn,
+  liveEventIds,
+  userLocation,
+  onShowFriends,
 }: {
   group: { dateISO: string; label: string; events: ETHDenverEvent[] };
   itinerary?: Set<string>;
   onItineraryToggle?: (eventId: string) => void;
   setSeparatorRef: (dateISO: string, el: HTMLTableRowElement | null) => void;
   friendsCountByEvent?: Map<string, number>;
+  friendsByEvent?: Map<string, FriendInfo[]>;
   checkInCounts?: Map<string, number>;
   onSelectEvent: (event: ETHDenverEvent) => void;
   conference?: string;
   featuredEvents?: ETHDenverEvent[];
+  selectedEventId?: string;
+  isSignedIn?: boolean;
+  onSignIn?: () => void;
+  liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
+  userLocation?: { lat: number; lng: number } | null;
+  onShowFriends?: (eventName: string, friends: FriendInfo[]) => void;
 }) {
   return (
     <>
@@ -453,31 +545,39 @@ function DateGroup({
             }}
           >
             <td className="px-2 py-2">
-              {(() => {
-                const fc = friendsCountByEvent?.get(event.id) ?? 0;
-                return (
-                  <button
-                    onClick={() => onItineraryToggle?.(event.id)}
-                    className="relative cursor-pointer p-0.5"
-                    title={fc > 0 ? `${fc} friend${fc !== 1 ? 's' : ''} going` : isInItinerary ? 'Remove from itinerary' : 'Add to itinerary'}
-                  >
-                    <span className={`w-6 h-6 flex items-center justify-center rounded-full border transition-colors ${
-                      isInItinerary
-                        ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)] border-[var(--theme-accent)]'
-                        : 'text-[var(--theme-text-secondary)] border-[var(--theme-border-primary)] hover:text-[var(--theme-text-primary)]'
-                    }`}>
-                      {isInItinerary ? <Check className="w-3 h-3" strokeWidth={3} /> : <Plus className="w-3 h-3" strokeWidth={2.5} />}
-                    </span>
-                    {fc > 0 && (
-                      <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-[var(--theme-accent)] text-[var(--theme-accent-text)] text-[8px] font-bold px-0.5 pointer-events-none">
-                        {fc}
-                      </span>
-                    )}
-                  </button>
-                );
-              })()}
+              <button
+                onClick={() => onItineraryToggle?.(event.id)}
+                className="cursor-pointer p-0.5"
+                title={isInItinerary ? 'Remove from itinerary' : 'Add to itinerary'}
+              >
+                <span className={`w-6 h-6 flex items-center justify-center rounded-full border transition-colors ${
+                  isInItinerary
+                    ? 'text-[var(--theme-accent)] border-[var(--theme-accent)]'
+                    : 'text-[var(--theme-text-secondary)] border-[var(--theme-border-primary)] hover:text-[var(--theme-text-primary)]'
+                }`} style={isInItinerary ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}>
+                  {isInItinerary ? <Check className="w-3 h-3" strokeWidth={3} /> : <Plus className="w-3 h-3" strokeWidth={2.5} />}
+                </span>
+              </button>
+            </td>
+            <td className="px-1 py-2">
+              <div className="flex justify-center">
+                {(() => {
+                  if (!isSignedIn) return (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onSignIn?.(); }}
+                      className="text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-xs cursor-pointer transition-colors"
+                      title="Sign in to add friends and see who's going"
+                    >?</button>
+                  );
+                  const friends = friendsByEvent?.get(event.id);
+                  return friends && friends.length > 0 ? (
+                    <FriendAvatarStack friends={friends} maxShow={1} size="sm" />
+                  ) : null;
+                })()}
+              </div>
             </td>
             <td className="px-3 py-2 text-[var(--theme-text-secondary)] whitespace-nowrap">
+              {(() => { const u = liveEventIds?.get(event.id); return u ? <span className={`w-1.5 h-1.5 rounded-full animate-pulse inline-block align-middle mr-1.5 ${u === 'red' ? 'bg-red-400' : u === 'yellow' ? 'bg-yellow-400' : 'bg-green-400'}`} title={u === 'red' ? 'Ending soon' : u === 'yellow' ? 'Less than 1hr left' : 'Live now'} /> : null; })()}
               <span className="relative inline-block">
                 <span>{event.startTime}{event.endTime ? `-${event.endTime}` : ''}</span>
                 {(checkInCounts?.get(event.id) ?? 0) > 0 && (
@@ -486,6 +586,9 @@ function DateGroup({
                   </span>
                 )}
               </span>
+              {userLocation && event.lat && event.lng && (
+                <span className="text-[10px] text-[var(--theme-text-muted)] ml-1.5">{formatDistance(distanceMeters(userLocation.lat, userLocation.lng, event.lat, event.lng))}</span>
+              )}
             </td>
             <td className="px-3 py-2 text-[var(--theme-text-secondary)] truncate hidden sm:table-cell" title={event.organizer}>{event.organizer}</td>
             <td className="px-3 py-2 font-medium text-[var(--theme-text-primary)] overflow-hidden truncate max-w-[25ch] sm:max-w-none" title={event.name}>
@@ -502,7 +605,7 @@ function DateGroup({
             </td>
             <td className="px-3 py-2 text-[var(--theme-text-secondary)] truncate max-w-[20ch] sm:max-w-none" title={event.address}>
               {event.address ? (
-                <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng} eventId={event.id} eventName={event.name} className="hover:text-[var(--theme-accent)] transition-colors">{event.address}</AddressLink>
+                <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng} eventId={event.id} eventName={event.name} className="hover:text-[var(--theme-accent)] transition-colors">{shortenAddress(event.address)}</AddressLink>
               ) : null}
             </td>
             <td className="px-3 py-2 whitespace-nowrap">
@@ -532,39 +635,43 @@ function DateGroup({
           >
             {/* Star (toggles itinerary) */}
             <td className="px-2 py-2">
-              {(() => {
-                const fc = friendsCountByEvent?.get(event.id) ?? 0;
-                return (
-                  <button
-                    onClick={() => onItineraryToggle?.(event.id)}
-                    className="relative cursor-pointer p-0.5"
-                    title={
-                      fc > 0
-                        ? `${fc} friend${fc !== 1 ? 's' : ''} going`
-                        : isInItinerary
-                          ? 'Remove from itinerary'
-                          : 'Add to itinerary'
-                    }
-                  >
-                    <span className={`w-6 h-6 flex items-center justify-center rounded-full border transition-colors ${
-                      isInItinerary
-                        ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)] border-[var(--theme-accent)]'
-                        : 'text-[var(--theme-text-secondary)] border-[var(--theme-border-primary)] hover:text-[var(--theme-text-primary)]'
-                    }`}>
-                      {isInItinerary ? <Check className="w-3 h-3" strokeWidth={3} /> : <Plus className="w-3 h-3" strokeWidth={2.5} />}
-                    </span>
-                    {fc > 0 && (
-                      <span className="absolute -top-1 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-[var(--theme-accent)] text-[var(--theme-accent-text)] text-[8px] font-bold px-0.5 pointer-events-none">
-                        {fc}
-                      </span>
-                    )}
-                  </button>
-                );
-              })()}
+              <button
+                onClick={() => onItineraryToggle?.(event.id)}
+                className="cursor-pointer p-0.5"
+                title={isInItinerary ? 'Remove from itinerary' : 'Add to itinerary'}
+              >
+                <span className={`w-6 h-6 flex items-center justify-center rounded-full border transition-colors ${
+                  isInItinerary
+                    ? 'text-[var(--theme-accent)] border-[var(--theme-accent)]'
+                    : 'text-[var(--theme-text-secondary)] border-[var(--theme-border-primary)] hover:text-[var(--theme-text-primary)]'
+                }`} style={isInItinerary ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}>
+                  {isInItinerary ? <Check className="w-3 h-3" strokeWidth={3} /> : <Plus className="w-3 h-3" strokeWidth={2.5} />}
+                </span>
+              </button>
+            </td>
+
+            {/* Friends avatars */}
+            <td className="px-1 py-2" onClick={(e) => { e.stopPropagation(); const friends = friendsByEvent?.get(event.id); if (friends && friends.length > 0) onShowFriends?.(event.name, friends); }}>
+              <div className="flex justify-center">
+                {(() => {
+                  if (!isSignedIn) return (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onSignIn?.(); }}
+                      className="text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-xs cursor-pointer transition-colors"
+                      title="Sign in to add friends and see who's going"
+                    >?</button>
+                  );
+                  const friends = friendsByEvent?.get(event.id);
+                  return friends && friends.length > 0 ? (
+                    <FriendAvatarStack friends={friends} maxShow={1} size="sm" />
+                  ) : null;
+                })()}
+              </div>
             </td>
 
             {/* Time */}
             <td className="px-3 py-2 text-[var(--theme-text-secondary)] whitespace-nowrap">
+              {(() => { const u = liveEventIds?.get(event.id); return u ? <span className={`w-1.5 h-1.5 rounded-full animate-pulse inline-block align-middle mr-1.5 ${u === 'red' ? 'bg-red-400' : u === 'yellow' ? 'bg-yellow-400' : 'bg-green-400'}`} title={u === 'red' ? 'Ending soon' : u === 'yellow' ? 'Less than 1hr left' : 'Live now'} /> : null; })()}
               <span className="relative inline-block">
                 <span>
                   {event.startTime}
@@ -576,6 +683,9 @@ function DateGroup({
                   </span>
                 )}
               </span>
+              {userLocation && event.lat && event.lng && (
+                <span className="text-[10px] text-[var(--theme-text-muted)] ml-1.5">{formatDistance(distanceMeters(userLocation.lat, userLocation.lng, event.lat, event.lng))}</span>
+              )}
             </td>
 
             {/* Organizer (hidden on mobile portrait — shown inside Event cell instead) */}
@@ -626,7 +736,7 @@ function DateGroup({
                 <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
                   eventId={event.id} eventName={event.name}
                   className="hover:text-[var(--theme-accent)] transition-colors">
-                  {event.address}
+                  {shortenAddress(event.address)}
                 </AddressLink>
               ) : null}
             </td>

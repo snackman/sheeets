@@ -2,20 +2,16 @@
 
 import { Popup } from 'react-map-gl/mapbox';
 import { X, Calendar, MapPin, Users, MapPinCheck, Loader2 } from 'lucide-react';
-import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
+import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
 import { trackEvent } from '@/lib/event-tracking';
+import { shortenAddress } from '@/lib/utils';
 import { StarButton } from './StarButton';
 import { AddressLink } from './AddressLink';
 import { TagBadge } from './TagBadge';
 import { OGImage } from './OGImage';
 import { EmojiReactions } from './EmojiReactions';
 import { CommentSection } from './CommentSection';
-
-interface FriendInfo {
-  userId: string;
-  displayName: string;
-}
 
 interface EventPopupProps {
   event: ETHDenverEvent;
@@ -34,7 +30,7 @@ interface EventPopupProps {
   conference?: string;
   onCheckIn?: (eventId: string) => void;
   checkInLoading?: boolean;
-  isLive?: boolean;
+  liveUrgency?: 'green' | 'yellow' | 'red';
 }
 
 interface MultiEventPopupProps {
@@ -99,7 +95,7 @@ function SingleEventContent({
   conference,
   onCheckIn,
   checkInLoading,
-  isLive,
+  liveUrgency,
 }: {
   event: ETHDenverEvent;
   isInItinerary?: boolean;
@@ -114,7 +110,7 @@ function SingleEventContent({
   conference?: string;
   onCheckIn?: (eventId: string) => void;
   checkInLoading?: boolean;
-  isLive?: boolean;
+  liveUrgency?: 'green' | 'yellow' | 'red';
 }) {
   const timeDisplay = event.isAllDay
     ? 'All Day'
@@ -189,7 +185,7 @@ function SingleEventContent({
             eventId={event.id} eventName={event.name}
             className="w-full text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-xs mt-1 flex items-center gap-1 overflow-hidden transition-colors">
             <MapPin className="w-3 h-3 shrink-0" />
-            <span className="truncate">{event.address}</span>
+            <span className="truncate">{shortenAddress(event.address)}</span>
           </AddressLink>
         )}
 
@@ -227,7 +223,7 @@ function SingleEventContent({
         </div>
 
         {/* Check In button (live events only) */}
-        {isLive && onCheckIn && (
+        {liveUrgency && onCheckIn && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -266,7 +262,7 @@ export function EventPopup({
   conference,
   onCheckIn,
   checkInLoading,
-  isLive,
+  liveUrgency,
 }: EventPopupProps) {
   return (
     <Popup
@@ -293,7 +289,7 @@ export function EventPopup({
         conference={conference}
         onCheckIn={onCheckIn}
         checkInLoading={checkInLoading}
-        isLive={isLive}
+        liveUrgency={liveUrgency}
       />
     </Popup>
   );
@@ -391,7 +387,7 @@ export function MultiEventPopup({
                       eventId={event.id} eventName={event.name}
                       className="w-full text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-[10px] mt-0.5 flex items-center gap-1 overflow-hidden transition-colors">
                       <MapPin className="w-2.5 h-2.5 shrink-0" />
-                      <span className="truncate">{event.address}</span>
+                      <span className="truncate">{shortenAddress(event.address)}</span>
                     </AddressLink>
                   )}
                   {event.tags.length > 0 && (

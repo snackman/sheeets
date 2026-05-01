@@ -1,15 +1,15 @@
 'use client';
 
 import { useMemo, useEffect } from 'react';
-import type { ETHDenverEvent } from '@/lib/types';
-import type { FilterState } from '@/lib/types';
+import type { ETHDenverEvent, FilterState, Friend, FriendInfo } from '@/lib/types';
 import { TYPE_TAGS } from '@/lib/tags';
 import { getDisplayName } from '@/lib/user-display';
-import type { Friend } from '@/lib/types';
 
 interface FriendItinerary {
   userId: string;
   displayName: string;
+  avatarUrl?: string | null;
+  xHandle?: string | null;
   eventIds: Set<string>;
 }
 
@@ -103,7 +103,7 @@ export function useConferenceData({
           }
           return false;
         })
-        .map((fi) => ({ userId: fi.userId, displayName: fi.displayName })),
+        .map((fi) => ({ userId: fi.userId, displayName: fi.displayName, avatarUrl: fi.avatarUrl, xHandle: fi.xHandle })),
     [friendItineraries, conferenceEventIds]
   );
 
@@ -154,11 +154,11 @@ export function useConferenceData({
 
   // Inverted index: eventId -> list of friends going
   const friendsByEvent = useMemo(() => {
-    const map = new Map<string, { userId: string; displayName: string }[]>();
+    const map = new Map<string, FriendInfo[]>();
     for (const fi of friendItineraries) {
       for (const eid of fi.eventIds) {
         if (!map.has(eid)) map.set(eid, []);
-        map.get(eid)!.push({ userId: fi.userId, displayName: fi.displayName });
+        map.get(eid)!.push({ userId: fi.userId, displayName: fi.displayName, avatarUrl: fi.avatarUrl, xHandle: fi.xHandle });
       }
     }
     return map;
@@ -167,15 +167,17 @@ export function useConferenceData({
   // Inverted index: eventId -> list of friends checked in (green indicators)
   const checkedInFriendsByEvent = useMemo(() => {
     const friendMap = new Map(friends.map((f) => [f.user_id, f]));
-    const map = new Map<string, { userId: string; displayName: string }[]>();
+    const map = new Map<string, FriendInfo[]>();
     for (const [eid, userIds] of checkInUsersByEvent) {
-      const friendInfos: { userId: string; displayName: string }[] = [];
+      const friendInfos: FriendInfo[] = [];
       for (const uid of userIds) {
         const friend = friendMap.get(uid);
         if (friend) {
           friendInfos.push({
             userId: uid,
             displayName: getDisplayName(friend, uid.slice(0, 8)),
+            avatarUrl: friend.avatar_url,
+            xHandle: friend.x_handle,
           });
         }
       }

@@ -1,7 +1,7 @@
 'use client';
 
 import { Star } from 'lucide-react';
-import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
+import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
 import { EventCard } from './EventCard';
 
 interface FeaturedSectionProps {
@@ -9,8 +9,8 @@ interface FeaturedSectionProps {
   itinerary?: Set<string>;
   onItineraryToggle?: (eventId: string) => void;
   friendsCountByEvent?: Map<string, number>;
-  friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
-  checkedInFriendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  friendsByEvent?: Map<string, FriendInfo[]>;
+  checkedInFriendsByEvent?: Map<string, FriendInfo[]>;
   checkInCounts?: Map<string, number>;
   reactionsByEvent?: Map<string, { emoji: ReactionEmoji; count: number; reacted: boolean }[]>;
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;

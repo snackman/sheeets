@@ -4,7 +4,7 @@ import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import MapGL, { NavigationControl, Marker } from 'react-map-gl/mapbox';
 import type { MapRef } from 'react-map-gl/mapbox';
 import { LocateFixed } from 'lucide-react';
-import type { ETHDenverEvent, POI, POICategory, ReactionEmoji, FriendLocation } from '@/lib/types';
+import type { ETHDenverEvent, POI, POICategory, ReactionEmoji, FriendLocation, FriendInfo } from '@/lib/types';
 import { getTabConfig } from '@/lib/constants';
 import type { TabConfig } from '@/lib/conferences';
 import { parseTimeToMinutes } from '@/lib/filters';
@@ -26,8 +26,8 @@ interface MapViewProps {
   onItineraryToggle?: (eventId: string) => void;
   isItineraryView?: boolean;
   friendsCountByEvent?: Map<string, number>;
-  friendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
-  checkedInFriendsByEvent?: Map<string, { userId: string; displayName: string }[]>;
+  friendsByEvent?: Map<string, FriendInfo[]>;
+  checkedInFriendsByEvent?: Map<string, FriendInfo[]>;
   checkInCounts?: Map<string, number>;
   reactionsByEvent?: Map<string, { emoji: ReactionEmoji; count: number; reacted: boolean }[]>;
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
@@ -43,7 +43,7 @@ interface MapViewProps {
   conferenceTabs?: TabConfig[];
   onCheckIn?: (eventId: string) => void;
   checkInLoading?: boolean;
-  liveEventIds?: Set<string>;
+  liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
 }
 
 /**
@@ -570,7 +570,7 @@ export function MapView({
           conference={conference}
           onCheckIn={onCheckIn}
           checkInLoading={checkInLoading}
-          isLive={liveEventIds?.has(popupEvent.id)}
+          liveUrgency={liveEventIds?.get(popupEvent.id)}
         />
       )}
 
