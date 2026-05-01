@@ -29,6 +29,8 @@ interface TableViewProps {
   conference?: string;
   /** Featured events to show in a prominent section at the top of the table */
   featuredEvents?: ETHDenverEvent[];
+  /** Whether user is signed in (shows ? tooltip in friends column when false) */
+  isSignedIn?: boolean;
 }
 
 /** Format a dateISO string like "2026-02-10" into "Mon Feb 10" */
@@ -75,6 +77,7 @@ export function TableView({
   commentCounts,
   conference,
   featuredEvents,
+  isSignedIn,
 }: TableViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
@@ -273,7 +276,7 @@ export function TableView({
           <thead className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] bg-[var(--theme-bg-secondary)] border-b border-[var(--theme-border-primary)] sticky top-0 z-20">
             <tr>
               <th className="py-2.5"><div className="flex justify-center"><CalendarIcon className="w-5 h-5" /></div></th>
-              <th className="px-1 py-2.5 text-center"><Users className="w-3.5 h-3.5 mx-auto" /></th>
+              <th className="px-1 py-2.5 text-center" title={!isSignedIn ? 'Sign in to add friends and see who\'s going' : 'Friends going'}><Users className="w-3.5 h-3.5 mx-auto" /></th>
               <th className="px-3 py-2.5 whitespace-nowrap">
                 {currentDateLabel === 'Time' ? (
                   'WHEN'
@@ -328,6 +331,7 @@ export function TableView({
                 conference={conference}
                 featuredEvents={featuredEvents?.filter(e => e.dateISO === group.dateISO)}
                 selectedEventId={selectedEvent?.id}
+                isSignedIn={isSignedIn}
               />
             ))}
           </tbody>
@@ -418,6 +422,7 @@ function DateGroup({
   conference,
   featuredEvents,
   selectedEventId,
+  isSignedIn,
 }: {
   group: { dateISO: string; label: string; events: ETHDenverEvent[] };
   itinerary?: Set<string>;
@@ -430,6 +435,7 @@ function DateGroup({
   conference?: string;
   featuredEvents?: ETHDenverEvent[];
   selectedEventId?: string;
+  isSignedIn?: boolean;
 }) {
   return (
     <>
@@ -481,6 +487,9 @@ function DateGroup({
             <td className="px-1 py-2">
               <div className="flex justify-center">
                 {(() => {
+                  if (!isSignedIn) return (
+                    <span className="text-[var(--theme-text-muted)] text-xs cursor-default" title="Sign in to add friends and see who's going">?</span>
+                  );
                   const friends = friendsByEvent?.get(event.id);
                   return friends && friends.length > 0 ? (
                     <FriendAvatarStack friends={friends} maxShow={1} size="sm" />
@@ -562,6 +571,9 @@ function DateGroup({
             <td className="px-1 py-2">
               <div className="flex justify-center">
                 {(() => {
+                  if (!isSignedIn) return (
+                    <span className="text-[var(--theme-text-muted)] text-xs cursor-default" title="Sign in to add friends and see who's going">?</span>
+                  );
                   const friends = friendsByEvent?.get(event.id);
                   return friends && friends.length > 0 ? (
                     <FriendAvatarStack friends={friends} maxShow={1} size="sm" />

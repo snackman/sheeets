@@ -513,6 +513,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
             commentCounts={commentCounts}
             conference={filters.conference}
             featuredEvents={featuredEvents}
+            isSignedIn={!!authUser}
           />
         </main>
       ) : (
