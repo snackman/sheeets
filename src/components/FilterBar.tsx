@@ -241,7 +241,12 @@ export function FilterBar({
           >
             <ClipboardList className="w-4 h-4" />
             {itineraryCount > 0 && (
-              <span className="bg-[var(--theme-accent)] text-[var(--theme-accent-text)] text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
+              <span className={clsx(
+                'text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1',
+                isItineraryActive
+                  ? 'bg-[var(--theme-accent-text)] text-[var(--theme-accent)]'
+                  : 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+              )}>
                 {itineraryCount}
               </span>
             )}
