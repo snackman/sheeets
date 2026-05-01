@@ -543,12 +543,14 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         </main>
       )}
 
-      <CheckInFAB
-        liveItineraryCount={liveItineraryCount}
-        onCheckIn={handleBulkCheckIn}
-        loading={checkInLoading}
-        result={checkInResult}
-      />
+      {hasNearbyLiveEvents && (
+        <CheckInFAB
+          liveItineraryCount={liveItineraryCount}
+          onCheckIn={handleBulkCheckIn}
+          loading={checkInLoading}
+          result={checkInResult}
+        />
+      )}
 
       <AuthModal isOpen={showAuthForStar || showSignIn} onClose={() => { dismissAuth(); setShowSignIn(false); }} />
       <SubmitEventModal isOpen={showSubmitEvent} onClose={() => setShowSubmitEvent(false)} upsellCopy={config?.upsell_copy} initialConference={filters.conference} conferenceTabs={conferenceTabs} />
