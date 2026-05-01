@@ -2,7 +2,8 @@
 
 import { useState, useRef } from 'react';
 import clsx from 'clsx';
-import { X, ListFilter, Clock, ClipboardList, Users, MapPin, Plus, Link2, Check, Loader2, ChevronDown } from 'lucide-react';
+import { X, ListFilter, Clock, Users, MapPin, Plus, Link2, Check, Loader2, ChevronDown } from 'lucide-react';
+import { CalendarIcon } from './icons/CalendarIcon';
 import type { FilterState } from '@/lib/types';
 import { VIBE_COLORS, getTabConfig } from '@/lib/constants';
 import type { TabConfig } from '@/lib/conferences';
@@ -239,7 +240,7 @@ export function FilterBar({
             )}
             style={isItineraryActive ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
           >
-            <ClipboardList className="w-4 h-4" />
+            <CalendarIcon className="w-4 h-4" />
             {itineraryCount > 0 && (
               <span className={clsx(
                 'text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1',
