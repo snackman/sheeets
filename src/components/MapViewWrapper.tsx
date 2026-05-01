@@ -43,7 +43,7 @@ interface MapViewWrapperProps {
   conferenceTabs?: TabConfig[];
   onCheckIn?: (eventId: string) => void;
   checkInLoading?: boolean;
-  liveEventIds?: Set<string>;
+  liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
 }
 
 export function MapViewWrapper({

@@ -40,7 +40,7 @@ interface ListViewProps {
   featuredEvents?: ETHDenverEvent[];
   onCheckIn?: (eventId: string) => void;
   checkInLoading?: boolean;
-  liveEventIds?: Set<string>;
+  liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
   userLocation?: { lat: number; lng: number } | null;
 }
 
@@ -372,7 +372,7 @@ export function ListView({
                     conference={conference}
                     onCheckIn={onCheckIn}
                     checkInLoading={checkInLoading}
-                    isLive={liveEventIds?.has(item.event.id)}
+                    liveUrgency={liveEventIds?.get(item.event.id)}
                     userLocation={userLocation}
                   />
                 </div>

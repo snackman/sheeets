@@ -43,7 +43,7 @@ interface MapViewProps {
   conferenceTabs?: TabConfig[];
   onCheckIn?: (eventId: string) => void;
   checkInLoading?: boolean;
-  liveEventIds?: Set<string>;
+  liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
 }
 
 /**
@@ -570,7 +570,7 @@ export function MapView({
           conference={conference}
           onCheckIn={onCheckIn}
           checkInLoading={checkInLoading}
-          isLive={liveEventIds?.has(popupEvent.id)}
+          liveUrgency={liveEventIds?.get(popupEvent.id)}
         />
       )}
 

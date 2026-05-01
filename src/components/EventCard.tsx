@@ -34,7 +34,7 @@ interface EventCardProps {
   conference?: string;
   onCheckIn?: (eventId: string) => void;
   checkInLoading?: boolean;
-  isLive?: boolean;
+  liveUrgency?: 'green' | 'yellow' | 'red';
   userLocation?: { lat: number; lng: number } | null;
 }
 
@@ -132,7 +132,7 @@ export function EventCard({
   conference,
   onCheckIn,
   checkInLoading,
-  isLive,
+  liveUrgency,
   userLocation,
 }: EventCardProps) {
   const [showFriendsModal, setShowFriendsModal] = useState(false);
@@ -310,15 +310,23 @@ export function EventCard({
         {/* Date + Time + Check In */}
         <div className="flex items-center gap-2 mt-1">
           <div className="relative w-fit">
-            <p className="text-[var(--theme-text-secondary)] text-sm flex items-start gap-1">
-              <Calendar className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-              <span>{event.date} · {timeDisplay}</span>
-              {isLive && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0 rounded text-[9px] font-bold uppercase tracking-wide text-green-400 bg-green-500/15">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            <p className="text-[var(--theme-text-secondary)] text-sm flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5 shrink-0" />
+              {liveUrgency && (
+                <span className={`inline-flex items-center gap-1 px-1.5 py-0 rounded text-[9px] font-bold uppercase tracking-wide ${
+                  liveUrgency === 'red' ? 'text-red-400 bg-red-500/15' :
+                  liveUrgency === 'yellow' ? 'text-yellow-400 bg-yellow-500/15' :
+                  'text-green-400 bg-green-500/15'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                    liveUrgency === 'red' ? 'bg-red-400' :
+                    liveUrgency === 'yellow' ? 'bg-yellow-400' :
+                    'bg-green-400'
+                  }`} />
                   Live
                 </span>
               )}
+              <span>{event.date} · {timeDisplay}</span>
             </p>
             {(checkInCount ?? 0) > 0 && (
               <span className="absolute -top-1 -right-3 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-green-500 text-white text-[9px] font-bold px-0.5 pointer-events-none">
@@ -326,7 +334,7 @@ export function EventCard({
               </span>
             )}
           </div>
-          {isInItinerary && isLive && onCheckIn && (
+          {isInItinerary && liveUrgency && onCheckIn && (
             <button
               onClick={(e) => {
                 e.stopPropagation();

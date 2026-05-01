@@ -36,7 +36,7 @@ interface TableViewProps {
   /** Callback to open sign-in modal */
   onSignIn?: () => void;
   /** Set of event IDs that are currently live */
-  liveEventIds?: Set<string>;
+  liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
   /** User's current location for distance display */
   userLocation?: { lat: number; lng: number } | null;
 }
@@ -508,7 +508,7 @@ function DateGroup({
   selectedEventId?: string;
   isSignedIn?: boolean;
   onSignIn?: () => void;
-  liveEventIds?: Set<string>;
+  liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
   userLocation?: { lat: number; lng: number } | null;
   onShowFriends?: (eventName: string, friends: FriendInfo[]) => void;
 }) {
@@ -577,6 +577,7 @@ function DateGroup({
               </div>
             </td>
             <td className="px-3 py-2 text-[var(--theme-text-secondary)] whitespace-nowrap">
+              {(() => { const u = liveEventIds?.get(event.id); return u ? <span className={`w-1.5 h-1.5 rounded-full animate-pulse inline-block mr-1.5 ${u === 'red' ? 'bg-red-400' : u === 'yellow' ? 'bg-yellow-400' : 'bg-green-400'}`} title={u === 'red' ? 'Ending soon' : u === 'yellow' ? 'Less than 1hr left' : 'Live now'} /> : null; })()}
               <span className="relative inline-block">
                 <span>{event.startTime}{event.endTime ? `-${event.endTime}` : ''}</span>
                 {(checkInCounts?.get(event.id) ?? 0) > 0 && (
@@ -585,9 +586,6 @@ function DateGroup({
                   </span>
                 )}
               </span>
-              {liveEventIds?.has(event.id) && (
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse inline-block ml-1.5" title="Live now" />
-              )}
               {userLocation && event.lat && event.lng && (
                 <span className="text-[10px] text-[var(--theme-text-muted)] ml-1.5">{formatDistance(distanceMeters(userLocation.lat, userLocation.lng, event.lat, event.lng))}</span>
               )}
@@ -673,6 +671,7 @@ function DateGroup({
 
             {/* Time */}
             <td className="px-3 py-2 text-[var(--theme-text-secondary)] whitespace-nowrap">
+              {(() => { const u = liveEventIds?.get(event.id); return u ? <span className={`w-1.5 h-1.5 rounded-full animate-pulse inline-block mr-1.5 ${u === 'red' ? 'bg-red-400' : u === 'yellow' ? 'bg-yellow-400' : 'bg-green-400'}`} title={u === 'red' ? 'Ending soon' : u === 'yellow' ? 'Less than 1hr left' : 'Live now'} /> : null; })()}
               <span className="relative inline-block">
                 <span>
                   {event.startTime}
@@ -684,9 +683,6 @@ function DateGroup({
                   </span>
                 )}
               </span>
-              {liveEventIds?.has(event.id) && (
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse inline-block ml-1.5" title="Live now" />
-              )}
               {userLocation && event.lat && event.lng && (
                 <span className="text-[10px] text-[var(--theme-text-muted)] ml-1.5">{formatDistance(distanceMeters(userLocation.lat, userLocation.lng, event.lat, event.lng))}</span>
               )}

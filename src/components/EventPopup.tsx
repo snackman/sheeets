@@ -30,7 +30,7 @@ interface EventPopupProps {
   conference?: string;
   onCheckIn?: (eventId: string) => void;
   checkInLoading?: boolean;
-  isLive?: boolean;
+  liveUrgency?: 'green' | 'yellow' | 'red';
 }
 
 interface MultiEventPopupProps {
@@ -95,7 +95,7 @@ function SingleEventContent({
   conference,
   onCheckIn,
   checkInLoading,
-  isLive,
+  liveUrgency,
 }: {
   event: ETHDenverEvent;
   isInItinerary?: boolean;
@@ -110,7 +110,7 @@ function SingleEventContent({
   conference?: string;
   onCheckIn?: (eventId: string) => void;
   checkInLoading?: boolean;
-  isLive?: boolean;
+  liveUrgency?: 'green' | 'yellow' | 'red';
 }) {
   const timeDisplay = event.isAllDay
     ? 'All Day'
@@ -223,7 +223,7 @@ function SingleEventContent({
         </div>
 
         {/* Check In button (live events only) */}
-        {isLive && onCheckIn && (
+        {liveUrgency && onCheckIn && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -262,7 +262,7 @@ export function EventPopup({
   conference,
   onCheckIn,
   checkInLoading,
-  isLive,
+  liveUrgency,
 }: EventPopupProps) {
   return (
     <Popup
@@ -289,7 +289,7 @@ export function EventPopup({
         conference={conference}
         onCheckIn={onCheckIn}
         checkInLoading={checkInLoading}
-        isLive={isLive}
+        liveUrgency={liveUrgency}
       />
     </Popup>
   );
