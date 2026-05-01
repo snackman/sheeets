@@ -604,7 +604,7 @@ function DateGroup({
             </td>
 
             {/* Friends avatars */}
-            <td className="px-1 py-2">
+            <td className="px-1 py-2" onClick={(e) => { e.stopPropagation(); const friends = friendsByEvent?.get(event.id); if (friends && friends.length > 0) onSelectEvent(event); }}>
               <div className="flex justify-center">
                 {(() => {
                   if (!isSignedIn) return (
