@@ -32,14 +32,14 @@ export const metadata: Metadata = {
     description:
       'Browse and discover conference side events. Filter by date, time, tags, and more.',
     url: 'https://plan.wtf',
-    images: [{ url: '/logo.png' }],
+    images: [{ url: '/og-image.png', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'plan.wtf — Conference Side Events',
     description:
       'Browse and discover conference side events. Filter by date, time, tags, and more.',
-    images: ['/logo.png'],
+    images: [{ url: '/og-image.png', width: 1200, height: 630 }],
   },
 };
 
