@@ -12,10 +12,10 @@ interface FriendAvatarStackProps {
 export function FriendAvatarStack({ friends, maxShow = 3, size = 'sm' }: FriendAvatarStackProps) {
   const shown = friends.slice(0, maxShow);
   const overflow = friends.length - maxShow;
-  const dim = size === 'sm' ? 'w-5 h-5' : 'w-6 h-6';
+  const dim = size === 'sm' ? 'w-6 h-6' : 'w-7 h-7';
   const avatarSize = size === 'sm' ? 'xs' as const : 'sm' as const;
-  const overflowTextSize = size === 'sm' ? 'text-[8px]' : 'text-[9px]';
-  const ml = size === 'sm' ? '-ml-1.5' : '-ml-2';
+  const overflowTextSize = size === 'sm' ? 'text-[9px]' : 'text-[10px]';
+  const ml = size === 'sm' ? '-ml-2' : '-ml-2.5';
 
   return (
     <div className="flex items-center">
