@@ -93,7 +93,7 @@ export function useFilters(initialConference?: string, conferenceTabs?: TabConfi
     setFilters((prev) => ({ ...prev, nowMode: !prev.nowMode }));
   }, []);
 
-  const clearFilters = useCallback(() => setFilters(initialState), [initialState]);
+  const clearFilters = useCallback(() => setFilters(buildDefaultFilters(filters.conference, conferenceTabs)), [filters.conference, conferenceTabs]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
