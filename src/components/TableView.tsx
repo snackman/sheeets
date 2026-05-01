@@ -12,6 +12,7 @@ import { TagBadge } from './TagBadge';
 import { EventCard } from './EventCard';
 import { CalendarIcon } from './icons/CalendarIcon';
 import { FriendAvatarStack } from './FriendAvatarStack';
+import UserAvatar from './UserAvatar';
 import { distanceMeters } from '@/lib/geo';
 
 interface TableViewProps {
@@ -74,6 +75,42 @@ function formatDistance(meters: number): string {
   return km < 10 ? `${km.toFixed(1)}km` : `${Math.round(km)}km`;
 }
 
+/** Friends going modal for table view */
+function FriendsGoingModal({ eventName, friends, onClose }: { eventName: string; friends: FriendInfo[]; onClose: () => void }) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60" />
+      <div className="relative bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)]">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-bold text-[var(--theme-text-primary)]">Friends Going</h3>
+            <p className="text-xs text-[var(--theme-text-secondary)] truncate">{eventName}</p>
+          </div>
+          <button onClick={onClose} className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer shrink-0 ml-2" aria-label="Close">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="overflow-y-auto max-h-[60vh] p-3 space-y-2">
+          {friends.map((friend) => (
+            <div key={friend.userId} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--theme-bg-tertiary)]">
+              <div className="w-8 h-8 rounded-full shrink-0 overflow-hidden" style={{ backgroundColor: 'color-mix(in srgb, var(--friend-blue) 20%, transparent)' }}>
+                <UserAvatar avatarUrl={friend.avatarUrl} xHandle={friend.xHandle} displayName={friend.displayName} userId={friend.userId} size="sm" className="!w-full !h-full" />
+              </div>
+              <span className="text-sm text-[var(--theme-text-primary)] truncate">{friend.displayName}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const COLUMN_COUNT = 7; // star, friends, time, organizer, event, location, tags
 
 export function TableView({
@@ -102,6 +139,7 @@ export function TableView({
   const lastScrolledRef = useRef(false);
   const lastScrollTopRef = useRef(0);
   const [selectedEvent, setSelectedEvent] = useState<ETHDenverEvent | null>(null);
+  const [friendsModalEvent, setFriendsModalEvent] = useState<{ name: string; friends: FriendInfo[] } | null>(null);
 
   const groups = useMemo(() => groupByDate(events), [events]);
 
@@ -352,6 +390,7 @@ export function TableView({
                 onSignIn={onSignIn}
                 liveEventIds={liveEventIds}
                 userLocation={userLocation}
+                onShowFriends={(name, friends) => setFriendsModalEvent({ name, friends })}
               />
             ))}
           </tbody>
@@ -374,6 +413,14 @@ export function TableView({
           onToggleReaction={onToggleReaction}
           commentCount={commentCounts?.get(selectedEvent.id)}
           onClose={() => setSelectedEvent(null)}
+        />,
+        document.body
+      )}
+      {friendsModalEvent && createPortal(
+        <FriendsGoingModal
+          eventName={friendsModalEvent.name}
+          friends={friendsModalEvent.friends}
+          onClose={() => setFriendsModalEvent(null)}
         />,
         document.body
       )}
@@ -446,6 +493,7 @@ function DateGroup({
   onSignIn,
   liveEventIds,
   userLocation,
+  onShowFriends,
 }: {
   group: { dateISO: string; label: string; events: ETHDenverEvent[] };
   itinerary?: Set<string>;
@@ -462,6 +510,7 @@ function DateGroup({
   onSignIn?: () => void;
   liveEventIds?: Set<string>;
   userLocation?: { lat: number; lng: number } | null;
+  onShowFriends?: (eventName: string, friends: FriendInfo[]) => void;
 }) {
   return (
     <>
@@ -604,7 +653,7 @@ function DateGroup({
             </td>
 
             {/* Friends avatars */}
-            <td className="px-1 py-2" onClick={(e) => { e.stopPropagation(); const friends = friendsByEvent?.get(event.id); if (friends && friends.length > 0) onSelectEvent(event); }}>
+            <td className="px-1 py-2" onClick={(e) => { e.stopPropagation(); const friends = friendsByEvent?.get(event.id); if (friends && friends.length > 0) onShowFriends?.(event.name, friends); }}>
               <div className="flex justify-center">
                 {(() => {
                   if (!isSignedIn) return (
