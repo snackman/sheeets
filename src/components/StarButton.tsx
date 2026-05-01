@@ -33,7 +33,7 @@ export function StarButton({
         'relative shrink-0 transition-colors cursor-pointer flex items-center justify-center rounded-full border',
         containerSize,
         isStarred
-          ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)] border-[var(--theme-accent)]'
+          ? 'text-[var(--theme-accent)] border-[var(--theme-accent)] bg-[var(--theme-accent-muted)]'
           : 'text-[var(--theme-text-secondary)] border-[var(--theme-border-primary)] hover:text-[var(--theme-text-primary)] hover:border-[var(--theme-text-secondary)]',
       )}
       aria-label={isStarred ? 'Remove from plan' : 'Add to plan'}
