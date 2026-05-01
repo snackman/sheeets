@@ -1,12 +1,13 @@
 'use client';
 
 import { Popup } from 'react-map-gl/mapbox';
-import { X, Calendar, MapPin, Users, MapPinCheck, Loader2 } from 'lucide-react';
+import { X, Calendar, MapPin, MapPinCheck, Loader2 } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
 import { trackEvent } from '@/lib/event-tracking';
 import { shortenAddress } from '@/lib/utils';
 import { StarButton } from './StarButton';
+import { FriendAvatarStack } from './FriendAvatarStack';
 import { AddressLink } from './AddressLink';
 import { TagBadge } from './TagBadge';
 import { OGImage } from './OGImage';
@@ -60,10 +61,10 @@ function formatFriendsText(friends: FriendInfo[]): string {
 function FriendsRow({ friends }: { friends: FriendInfo[] }) {
   if (!friends || friends.length === 0) return null;
   return (
-    <div className="flex items-center gap-1 mt-1.5">
-      <Users className="w-2.5 h-2.5 shrink-0" style={{ color: 'var(--friend-blue)' }} />
+    <div className="flex items-center gap-1.5 mt-1.5">
+      <FriendAvatarStack friends={friends} maxShow={3} size="sm" />
       <span className="text-[10px] truncate" style={{ color: 'var(--friend-blue)', opacity: 0.8 }}>
-        {formatFriendsText(friends)}
+        {friends.length === 1 ? friends[0].displayName : `${friends.length} friends`} going
       </span>
     </div>
   );
@@ -161,7 +162,6 @@ function SingleEventContent({
               isStarred={isInItinerary}
               onToggle={onItineraryToggle}
               size="sm"
-              friendsCount={friendsCount}
             />
           )}
         </div>
@@ -359,7 +359,6 @@ export function MultiEventPopup({
                         isStarred={isInItinerary}
                         onToggle={onItineraryToggle}
                         size="sm"
-                        friendsCount={friendsCountByEvent?.get(event.id)}
                       />
                     )}
                     <div className="flex-1 min-w-0">
