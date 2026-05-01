@@ -58,8 +58,8 @@ export function StarButton({
               ? 'bg-[var(--theme-accent-text)] text-[var(--theme-accent)] border border-[var(--theme-accent)]'
               : 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]',
             size === 'sm'
-              ? '-top-0.5 -right-0.5 min-w-[14px] h-[14px] text-[8px] px-0.5'
-              : '-top-1 -right-1 min-w-[16px] h-[16px] text-[9px] px-0.5'
+              ? '-top-1 -right-1.5 min-w-[14px] h-[14px] text-[8px] px-0.5'
+              : '-top-1 -right-1.5 min-w-[16px] h-[16px] text-[9px] px-0.5'
           )}
         >
           {friendsCount}

@@ -249,7 +249,7 @@ export function FilterBar({
             )}
             style={isItineraryActive ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
           >
-            <CalendarIcon className="w-4 h-4" />
+            <CalendarIcon className="w-5 h-5" />
             {itineraryCount > 0 && (
               <span className={clsx(
                 'text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1',
