@@ -349,7 +349,7 @@ export function EventCard({
             className="flex items-center gap-2 mt-2 px-2 py-1.5 -mx-1 rounded-lg hover:bg-[var(--theme-bg-tertiary)]/50 transition-colors cursor-pointer group/friends w-fit"
           >
             <FriendAvatarStack friends={friendsGoing} maxShow={3} size="sm" />
-            <span className="text-xs transition-colors" style={{ color: 'var(--friend-blue)' }}>
+            <span className="text-xs text-[var(--theme-text-secondary)] transition-colors">
               {formatFriendsText(friendsGoing)}
             </span>
           </button>
