@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { MapPin, Calendar, X, Link, Check, MapPinCheck, Loader2 } from 'lucide-react';
+import { MapPin, Calendar, Users, X, Link, Check, MapPinCheck, Loader2 } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
 import { trackEventClick, trackCopyEventLink, trackFriendsGoingOpen, trackFriendsCheckedInOpen } from '@/lib/analytics';
 import { trackAdEvent } from '@/lib/ad-tracking';
@@ -348,6 +348,7 @@ export function EventCard({
             }}
             className="flex items-center gap-2 mt-2 px-2 py-1.5 -mx-1 rounded-lg hover:bg-[var(--theme-bg-tertiary)]/50 transition-colors cursor-pointer group/friends w-fit"
           >
+            <Users className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--friend-blue)' }} />
             <FriendAvatarStack friends={friendsGoing} maxShow={3} size="sm" />
             <span className="text-xs text-[var(--theme-text-secondary)] transition-colors">
               {formatFriendsText(friendsGoing)}
