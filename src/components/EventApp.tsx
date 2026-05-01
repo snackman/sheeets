@@ -183,6 +183,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
   }, [itinerary, liveEventIds]);
 
   const [hasNearbyLiveEvents, setHasNearbyLiveEvents] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   // Proximity watcher: detect when user is within 150m of a live RSVP'd event
   const liveItineraryEventsRef = useRef<typeof events>([]);
@@ -203,6 +204,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude: uLat, longitude: uLng } = pos.coords;
+        setUserLocation({ lat: uLat, lng: uLng });
         const nearby = liveItineraryEventsRef.current.some(
           (e) => distanceMeters(uLat, uLng, e.lat!, e.lng!) <= 150
         );
@@ -514,6 +516,9 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
             conference={filters.conference}
             featuredEvents={featuredEvents}
             isSignedIn={!!authUser}
+            onSignIn={() => setShowSignIn(true)}
+            liveEventIds={liveEventIds}
+            userLocation={userLocation}
           />
         </main>
       ) : (
@@ -540,6 +545,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
             onCheckIn={checkInToEvent}
             checkInLoading={checkInLoading}
             liveEventIds={liveEventIds}
+            userLocation={userLocation}
           />
         </main>
       )}

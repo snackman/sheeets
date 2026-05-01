@@ -12,6 +12,7 @@ import { TagBadge } from './TagBadge';
 import { EventCard } from './EventCard';
 import { CalendarIcon } from './icons/CalendarIcon';
 import { FriendAvatarStack } from './FriendAvatarStack';
+import { distanceMeters } from '@/lib/geo';
 
 interface TableViewProps {
   events: ETHDenverEvent[];
@@ -31,6 +32,12 @@ interface TableViewProps {
   featuredEvents?: ETHDenverEvent[];
   /** Whether user is signed in (shows ? tooltip in friends column when false) */
   isSignedIn?: boolean;
+  /** Callback to open sign-in modal */
+  onSignIn?: () => void;
+  /** Set of event IDs that are currently live */
+  liveEventIds?: Set<string>;
+  /** User's current location for distance display */
+  userLocation?: { lat: number; lng: number } | null;
 }
 
 /** Format a dateISO string like "2026-02-10" into "Mon Feb 10" */
@@ -60,6 +67,13 @@ function groupByDate(events: ETHDenverEvent[]): { dateISO: string; label: string
   return groups;
 }
 
+/** Format distance for display */
+function formatDistance(meters: number): string {
+  if (meters < 1000) return `${Math.round(meters)}m`;
+  const km = meters / 1000;
+  return km < 10 ? `${km.toFixed(1)}km` : `${Math.round(km)}km`;
+}
+
 const COLUMN_COUNT = 7; // star, friends, time, organizer, event, location, tags
 
 export function TableView({
@@ -78,6 +92,9 @@ export function TableView({
   conference,
   featuredEvents,
   isSignedIn,
+  onSignIn,
+  liveEventIds,
+  userLocation,
 }: TableViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
@@ -332,6 +349,9 @@ export function TableView({
                 featuredEvents={featuredEvents?.filter(e => e.dateISO === group.dateISO)}
                 selectedEventId={selectedEvent?.id}
                 isSignedIn={isSignedIn}
+                onSignIn={onSignIn}
+                liveEventIds={liveEventIds}
+                userLocation={userLocation}
               />
             ))}
           </tbody>
@@ -423,6 +443,9 @@ function DateGroup({
   featuredEvents,
   selectedEventId,
   isSignedIn,
+  onSignIn,
+  liveEventIds,
+  userLocation,
 }: {
   group: { dateISO: string; label: string; events: ETHDenverEvent[] };
   itinerary?: Set<string>;
@@ -436,6 +459,9 @@ function DateGroup({
   featuredEvents?: ETHDenverEvent[];
   selectedEventId?: string;
   isSignedIn?: boolean;
+  onSignIn?: () => void;
+  liveEventIds?: Set<string>;
+  userLocation?: { lat: number; lng: number } | null;
 }) {
   return (
     <>
@@ -488,7 +514,11 @@ function DateGroup({
               <div className="flex justify-center">
                 {(() => {
                   if (!isSignedIn) return (
-                    <span className="text-[var(--theme-text-muted)] text-xs cursor-default" title="Sign in to add friends and see who's going">?</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onSignIn?.(); }}
+                      className="text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-xs cursor-pointer transition-colors"
+                      title="Sign in to add friends and see who's going"
+                    >?</button>
                   );
                   const friends = friendsByEvent?.get(event.id);
                   return friends && friends.length > 0 ? (
@@ -506,6 +536,15 @@ function DateGroup({
                   </span>
                 )}
               </span>
+              {liveEventIds?.has(event.id) && (
+                <span className="inline-flex items-center gap-0.5 ml-1.5 text-[8px] font-bold text-green-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                  LIVE
+                </span>
+              )}
+              {userLocation && event.lat && event.lng && (
+                <span className="text-[10px] text-[var(--theme-text-muted)] ml-1.5">{formatDistance(distanceMeters(userLocation.lat, userLocation.lng, event.lat, event.lng))}</span>
+              )}
             </td>
             <td className="px-3 py-2 text-[var(--theme-text-secondary)] truncate hidden sm:table-cell" title={event.organizer}>{event.organizer}</td>
             <td className="px-3 py-2 font-medium text-[var(--theme-text-primary)] overflow-hidden truncate max-w-[25ch] sm:max-w-none" title={event.name}>
@@ -572,7 +611,11 @@ function DateGroup({
               <div className="flex justify-center">
                 {(() => {
                   if (!isSignedIn) return (
-                    <span className="text-[var(--theme-text-muted)] text-xs cursor-default" title="Sign in to add friends and see who's going">?</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onSignIn?.(); }}
+                      className="text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-xs cursor-pointer transition-colors"
+                      title="Sign in to add friends and see who's going"
+                    >?</button>
                   );
                   const friends = friendsByEvent?.get(event.id);
                   return friends && friends.length > 0 ? (
@@ -595,6 +638,15 @@ function DateGroup({
                   </span>
                 )}
               </span>
+              {liveEventIds?.has(event.id) && (
+                <span className="inline-flex items-center gap-0.5 ml-1.5 text-[8px] font-bold text-green-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                  LIVE
+                </span>
+              )}
+              {userLocation && event.lat && event.lng && (
+                <span className="text-[10px] text-[var(--theme-text-muted)] ml-1.5">{formatDistance(distanceMeters(userLocation.lat, userLocation.lng, event.lat, event.lng))}</span>
+              )}
             </td>
 
             {/* Organizer (hidden on mobile portrait — shown inside Event cell instead) */}

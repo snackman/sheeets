@@ -30,6 +30,7 @@ export function FriendAvatarStack({ friends, maxShow = 3, size = 'sm' }: FriendA
             avatarUrl={friend.avatarUrl}
             xHandle={friend.xHandle}
             displayName={friend.displayName}
+            userId={friend.userId}
             size={avatarSize}
             className="!w-full !h-full"
           />

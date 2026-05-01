@@ -9,6 +9,7 @@ import { trackAdEvent } from '@/lib/ad-tracking';
 import { trackEvent } from '@/lib/event-tracking';
 import { formatFriendsText } from '@/lib/user-display';
 import { shortenAddress } from '@/lib/utils';
+import { distanceMeters } from '@/lib/geo';
 import { AddressLink } from './AddressLink';
 import { StarButton } from './StarButton';
 import { TagBadge } from './TagBadge';
@@ -34,6 +35,7 @@ interface EventCardProps {
   onCheckIn?: (eventId: string) => void;
   checkInLoading?: boolean;
   isLive?: boolean;
+  userLocation?: { lat: number; lng: number } | null;
 }
 
 function FriendsGoingModal({
@@ -101,6 +103,7 @@ function FriendsGoingModal({
                   avatarUrl={friend.avatarUrl}
                   xHandle={friend.xHandle}
                   displayName={friend.displayName}
+                  userId={friend.userId}
                   size="sm"
                   className="!w-full !h-full"
                 />
@@ -130,6 +133,7 @@ export function EventCard({
   onCheckIn,
   checkInLoading,
   isLive,
+  userLocation,
 }: EventCardProps) {
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [showCheckedInModal, setShowCheckedInModal] = useState(false);
@@ -309,6 +313,12 @@ export function EventCard({
             <p className="text-[var(--theme-text-secondary)] text-sm flex items-start gap-1">
               <Calendar className="w-3.5 h-3.5 mt-0.5 shrink-0" />
               <span>{event.date} · {timeDisplay}</span>
+              {isLive && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0 rounded text-[9px] font-bold uppercase tracking-wide text-green-400 bg-green-500/15">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                  Live
+                </span>
+              )}
             </p>
             {(checkInCount ?? 0) > 0 && (
               <span className="absolute -top-1 -right-3 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-green-500 text-white text-[9px] font-bold px-0.5 pointer-events-none">
@@ -342,6 +352,14 @@ export function EventCard({
             className="w-full text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-sm mt-1 flex items-start gap-1 overflow-hidden transition-colors min-w-0">
             <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
             <span className="truncate">{shortenAddress(event.address)}</span>
+            {userLocation && event.lat && event.lng && (
+              <span className="shrink-0 text-[var(--theme-text-muted)] text-xs">
+                · {(() => {
+                  const m = distanceMeters(userLocation.lat, userLocation.lng, event.lat, event.lng);
+                  return m < 1000 ? `${Math.round(m)}m` : `${(m / 1000).toFixed(1)}km`;
+                })()}
+              </span>
+            )}
           </AddressLink>
         )}
 

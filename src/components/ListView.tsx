@@ -41,6 +41,7 @@ interface ListViewProps {
   onCheckIn?: (eventId: string) => void;
   checkInLoading?: boolean;
   liveEventIds?: Set<string>;
+  userLocation?: { lat: number; lng: number } | null;
 }
 
 interface DateGroup {
@@ -139,6 +140,7 @@ export function ListView({
   onCheckIn,
   checkInLoading,
   liveEventIds,
+  userLocation,
 }: ListViewProps) {
   const activeAds = useMemo(() => nativeAds?.filter(ad => ad.active !== false) || [], [nativeAds]);
 
@@ -371,6 +373,7 @@ export function ListView({
                     onCheckIn={onCheckIn}
                     checkInLoading={checkInLoading}
                     isLive={liveEventIds?.has(item.event.id)}
+                    userLocation={userLocation}
                   />
                 </div>
               )}

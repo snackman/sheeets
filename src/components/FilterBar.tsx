@@ -423,6 +423,7 @@ export function FilterBar({
                             avatarUrl={friend.avatarUrl}
                             xHandle={friend.xHandle}
                             displayName={friend.displayName}
+                            userId={friend.userId}
                             size="xs"
                             className="!w-full !h-full"
                           />
