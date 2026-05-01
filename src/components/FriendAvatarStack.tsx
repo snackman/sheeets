@@ -22,7 +22,7 @@ export function FriendAvatarStack({ friends, maxShow = 3, size = 'sm' }: FriendA
       {shown.map((friend, i) => (
         <div
           key={friend.userId}
-          className={`${dim} rounded-full border-2 border-[var(--theme-bg-card)] shrink-0 overflow-hidden ${i > 0 ? ml : ''}`}
+          className={`${dim} rounded-full border border-[var(--theme-bg-card)] shrink-0 overflow-hidden ${i > 0 ? ml : ''}`}
           style={{ zIndex: maxShow - i }}
           title={friend.displayName}
         >
@@ -37,7 +37,7 @@ export function FriendAvatarStack({ friends, maxShow = 3, size = 'sm' }: FriendA
       ))}
       {overflow > 0 && (
         <div
-          className={`${dim} rounded-full border-2 border-[var(--theme-bg-card)] flex items-center justify-center shrink-0 ${ml}`}
+          className={`${dim} rounded-full border border-[var(--theme-bg-card)] flex items-center justify-center shrink-0 ${ml}`}
           style={{ backgroundColor: 'var(--friend-blue)', zIndex: 0 }}
         >
           <span className={`${overflowTextSize} font-bold text-white`}>+{overflow}</span>
