@@ -461,7 +461,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           onSubmitEvent={() => setShowSubmitEvent(true)}
           onSignIn={() => setShowSignIn(true)}
           conferenceTabs={conferenceTabs}
-          itineraryCount={conferenceItineraryCount}
+          itineraryCount={filteredEvents.filter(e => itinerary.has(e.id)).length}
           onItineraryToggle={handleItineraryFilterToggle}
           isItineraryActive={filters.itineraryOnly}
         />

@@ -214,11 +214,11 @@ export function FilterBar({
             aria-label="Filters"
             className={clsx(
               'shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
-              expanded || activeFilterCount > 0
+              expanded
                 ? 'text-[var(--theme-accent)] border border-[var(--theme-accent)]'
                 : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)]'
             )}
-            style={expanded || activeFilterCount > 0 ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
+            style={expanded ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
           >
             <ListFilter className="w-4 h-4" />
             {activeFilterCount > 0 && (
