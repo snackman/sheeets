@@ -273,7 +273,7 @@ export function EventCard({
                 className="cursor-pointer hover:opacity-80 transition-opacity"
                 title={formatFriendsText(friendsGoing)}
               >
-                <FriendAvatarStack friends={friendsGoing} maxShow={3} size="sm" />
+                <FriendAvatarStack friends={friendsGoing} maxShow={2} size="sm" />
               </button>
             )}
             {onItineraryToggle && (
