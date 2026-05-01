@@ -272,7 +272,7 @@ export function TableView({
           </colgroup>
           <thead className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] bg-[var(--theme-bg-secondary)] border-b border-[var(--theme-border-primary)] sticky top-0 z-20">
             <tr>
-              <th className="px-2 py-2.5"><CalendarIcon className="w-4 h-4" /></th>
+              <th className="py-2.5"><div className="flex justify-center"><CalendarIcon className="w-5 h-5" /></div></th>
               <th className="px-1 py-2.5 text-center"><Users className="w-3.5 h-3.5 mx-auto" /></th>
               <th className="px-3 py-2.5 whitespace-nowrap">
                 {currentDateLabel === 'Time' ? (
@@ -478,13 +478,15 @@ function DateGroup({
                 </span>
               </button>
             </td>
-            <td className="px-1 py-2 text-center">
-              {(() => {
-                const friends = friendsByEvent?.get(event.id);
-                return friends && friends.length > 0 ? (
-                  <FriendAvatarStack friends={friends} maxShow={1} size="sm" />
-                ) : null;
-              })()}
+            <td className="px-1 py-2">
+              <div className="flex justify-center">
+                {(() => {
+                  const friends = friendsByEvent?.get(event.id);
+                  return friends && friends.length > 0 ? (
+                    <FriendAvatarStack friends={friends} maxShow={1} size="sm" />
+                  ) : null;
+                })()}
+              </div>
             </td>
             <td className="px-3 py-2 text-[var(--theme-text-secondary)] whitespace-nowrap">
               <span className="relative inline-block">
@@ -557,13 +559,15 @@ function DateGroup({
             </td>
 
             {/* Friends avatars */}
-            <td className="px-1 py-2 text-center">
-              {(() => {
-                const friends = friendsByEvent?.get(event.id);
-                return friends && friends.length > 0 ? (
-                  <FriendAvatarStack friends={friends} maxShow={1} size="sm" />
-                ) : null;
-              })()}
+            <td className="px-1 py-2">
+              <div className="flex justify-center">
+                {(() => {
+                  const friends = friendsByEvent?.get(event.id);
+                  return friends && friends.length > 0 ? (
+                    <FriendAvatarStack friends={friends} maxShow={1} size="sm" />
+                  ) : null;
+                })()}
+              </div>
             </td>
 
             {/* Time */}

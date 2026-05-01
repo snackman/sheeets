@@ -10,6 +10,7 @@ import type { TabConfig } from '@/lib/conferences';
 import { TAG_ICONS } from './TagBadge';
 import { SearchBar } from './SearchBar';
 import { DateTimePicker } from './DateTimePicker';
+import UserAvatar from './UserAvatar';
 import { trackConferenceSelect, trackDateTimeRange, trackTagToggle, trackNowMode, trackClearFilters, trackFriendFilter, trackFriendCodeGenerate, trackFriendCodeCopy } from '@/lib/analytics';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -26,7 +27,7 @@ interface FilterBarProps {
   availableTypes: string[];
   availableVibes: string[];
   tagCounts: Map<string, number>;
-  friendsForFilter: Array<{ userId: string; displayName: string }>;
+  friendsForFilter: Array<{ userId: string; displayName: string; avatarUrl?: string | null; xHandle?: string | null }>;
   selectedFriends: string[];
   onToggleFriend: (friendId: string) => void;
   searchQuery: string;
@@ -230,7 +231,7 @@ export function FilterBar({
                 'text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1',
                 expanded
                   ? 'bg-[var(--theme-accent-text)] text-[var(--theme-accent)] border border-[var(--theme-accent)]'
-                  : 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+                  : 'bg-[var(--theme-text-secondary)] text-[var(--theme-bg-primary)]'
               )}>
                 {activeFilterCount}
               </span>
@@ -255,7 +256,7 @@ export function FilterBar({
                 'text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1',
                 isItineraryActive
                   ? 'bg-[var(--theme-accent-text)] text-[var(--theme-accent)] border border-[var(--theme-accent)]'
-                  : 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+                  : 'bg-[var(--theme-text-secondary)] text-[var(--theme-bg-primary)]'
               )}>
                 {itineraryCount}
               </span>
@@ -417,7 +418,15 @@ export function FilterBar({
                         )}
                         style={isActive ? { backgroundColor: 'var(--friend-blue)' } : undefined}
                       >
-                        <Users className="w-3.5 h-3.5" />
+                        <div className="w-5 h-5 rounded-full overflow-hidden shrink-0">
+                          <UserAvatar
+                            avatarUrl={friend.avatarUrl}
+                            xHandle={friend.xHandle}
+                            displayName={friend.displayName}
+                            size="xs"
+                            className="!w-full !h-full"
+                          />
+                        </div>
                         {friend.displayName}
                       </button>
                     );

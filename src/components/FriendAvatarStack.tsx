@@ -37,10 +37,10 @@ export function FriendAvatarStack({ friends, maxShow = 3, size = 'sm' }: FriendA
       ))}
       {overflow > 0 && (
         <div
-          className={`${dim} rounded-full border border-[var(--theme-bg-card)] flex items-center justify-center shrink-0 ${ml}`}
-          style={{ backgroundColor: 'var(--friend-blue)', zIndex: 0 }}
+          className={`${dim} rounded-full border border-[var(--theme-bg-card)] flex items-center justify-center shrink-0 ${ml} bg-[var(--theme-bg-tertiary)]`}
+          style={{ zIndex: 0 }}
         >
-          <span className={`${overflowTextSize} font-bold text-white`}>+{overflow}</span>
+          <span className={`${overflowTextSize} font-bold text-[var(--theme-text-secondary)]`}>+{overflow}</span>
         </div>
       )}
     </div>

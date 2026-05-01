@@ -103,7 +103,7 @@ export function useConferenceData({
           }
           return false;
         })
-        .map((fi) => ({ userId: fi.userId, displayName: fi.displayName })),
+        .map((fi) => ({ userId: fi.userId, displayName: fi.displayName, avatarUrl: fi.avatarUrl, xHandle: fi.xHandle })),
     [friendItineraries, conferenceEventIds]
   );
 
