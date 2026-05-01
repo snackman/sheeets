@@ -17,6 +17,7 @@ interface HeaderProps {
   onOpenFriends: () => void;
   onSubmitEvent?: () => void;
   refreshFriends?: () => Promise<void>;
+  activeConference?: string;
   hasNearbyLiveEvents?: boolean;
   onBulkCheckIn?: () => void;
   checkInLoading?: boolean;
@@ -30,6 +31,7 @@ export function Header({
   onOpenFriends,
   onSubmitEvent,
   refreshFriends,
+  activeConference,
   hasNearbyLiveEvents,
   onBulkCheckIn,
   checkInLoading,
@@ -70,7 +72,7 @@ export function Header({
             {/* Auth / Profile — far right */}
             {!loading && (
               user ? (
-                <UserMenu events={events} itinerary={itinerary} onOpenFriends={onOpenFriends} onSubmitEvent={onSubmitEvent} externalRefreshFriends={refreshFriends} />
+                <UserMenu events={events} itinerary={itinerary} onOpenFriends={onOpenFriends} onSubmitEvent={onSubmitEvent} externalRefreshFriends={refreshFriends} activeConference={activeConference} />
               ) : (
                 <button
                   onClick={() => { trackAuthPrompt('sign_in_button'); setShowAuth(true); }}

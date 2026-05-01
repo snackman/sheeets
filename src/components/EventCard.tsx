@@ -227,6 +227,9 @@ export function EventCard({
         <div className="flex items-start gap-2">
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-[var(--theme-text-primary)] text-sm sm:text-base leading-tight">
+              {event.isFeatured && (
+                <span className="inline-block text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded mr-1.5 align-middle" style={{ color: 'var(--theme-popup-featured-border)', background: 'var(--theme-accent-muted)' }}>Featured</span>
+              )}
               {event.link ? (
                 <a
                   href={event.link}

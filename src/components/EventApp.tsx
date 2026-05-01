@@ -442,6 +442,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         onOpenFriends={() => setShowFriends(true)}
         onSubmitEvent={() => setShowSubmitEvent(true)}
         refreshFriends={refreshFriends}
+        activeConference={filters.conference}
         hasNearbyLiveEvents={hasNearbyLiveEvents}
         onBulkCheckIn={handleBulkCheckIn}
         checkInLoading={checkInLoading}
