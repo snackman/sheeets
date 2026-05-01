@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { Megaphone } from 'lucide-react';
 import { NativeAd } from '@/lib/types';
 import { trackAdClick, trackAdImpression } from '@/lib/analytics';
 import { trackAdEvent } from '@/lib/ad-tracking';
@@ -74,31 +74,36 @@ export default function NativeAdCard({ ad, conference, onImpression, onClick }: 
       className="block group"
       onClick={handleClick}
     >
-      <div className="flex gap-4 overflow-hidden rounded-xl bg-purple-500/5 border border-purple-500/30 ring-1 ring-purple-500/40 hover:bg-purple-500/10 p-4 transition-colors">
-        {ad.imageUrl && (
-          <div className="w-[90px] h-[90px] flex-shrink-0 rounded-lg overflow-hidden bg-[var(--theme-bg-tertiary)]">
+      <div className="flex items-center gap-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent border border-amber-500/20 hover:border-amber-500/30 px-4 py-3 transition-colors">
+        {/* Left: image or Megaphone icon */}
+        {ad.imageUrl ? (
+          <div className="w-10 h-10 flex-shrink-0 rounded-lg overflow-hidden bg-[var(--theme-bg-tertiary)]">
             <img
               src={ad.imageUrl}
               alt={ad.title}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover"
             />
           </div>
+        ) : (
+          <Megaphone className="w-4 h-4 flex-shrink-0 text-amber-400" />
         )}
+
+        {/* Middle: title + description */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-semibold text-[var(--theme-text-primary)] group-hover:text-purple-300 transition-colors truncate">
-              {ad.title}
+          <span className="text-sm font-medium text-[var(--theme-text-primary)] truncate block">
+            {ad.title}
+          </span>
+          {ad.description && (
+            <span className="text-xs text-[var(--theme-text-secondary)] truncate block">
+              {ad.description}
             </span>
-            <span className="flex-shrink-0 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 rounded-full border border-purple-500/30">
-              {ad.badge || 'Sponsored'}
-            </span>
-          </div>
-          <p className="text-xs text-[var(--theme-text-secondary)] line-clamp-2 mb-2">{ad.description}</p>
-          <div className="flex items-center gap-1 text-xs text-purple-400">
-            <ExternalLink className="w-3 h-3" />
-            <span>Learn more</span>
-          </div>
+          )}
         </div>
+
+        {/* Right: CTA pill */}
+        <span className="flex-shrink-0 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 px-3 py-1 rounded-full text-xs font-medium transition-colors">
+          {ad.badge || 'Contact Us'}
+        </span>
       </div>
     </a>
   );
