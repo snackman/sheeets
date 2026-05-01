@@ -63,9 +63,6 @@ function FriendsRow({ friends }: { friends: FriendInfo[] }) {
   return (
     <div className="flex items-center gap-1.5 mt-1.5">
       <FriendAvatarStack friends={friends} maxShow={3} size="sm" />
-      <span className="text-[10px] truncate" style={{ color: 'var(--friend-blue)', opacity: 0.8 }}>
-        {friends.length === 1 ? friends[0].displayName : `${friends.length} friends`} going
-      </span>
     </div>
   );
 }
@@ -162,6 +159,7 @@ function SingleEventContent({
               isStarred={isInItinerary}
               onToggle={onItineraryToggle}
               size="sm"
+              friendsCount={friendsCount}
             />
           )}
         </div>
@@ -353,14 +351,6 @@ export function MultiEventPopup({
                 {/* Details */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start gap-1">
-                    {onItineraryToggle && (
-                      <StarButton
-                        eventId={event.id}
-                        isStarred={isInItinerary}
-                        onToggle={onItineraryToggle}
-                        size="sm"
-                      />
-                    )}
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-[var(--theme-text-primary)] leading-tight truncate">
                         {event.name}
@@ -369,6 +359,15 @@ export function MultiEventPopup({
                         <p className="text-[10px] text-[var(--theme-text-muted)] mt-0.5 truncate">{event.organizer}</p>
                       )}
                     </div>
+                    {onItineraryToggle && (
+                      <StarButton
+                        eventId={event.id}
+                        isStarred={isInItinerary}
+                        onToggle={onItineraryToggle}
+                        size="sm"
+                        friendsCount={friendsCountByEvent?.get(event.id)}
+                      />
+                    )}
                   </div>
                   <div className="relative w-fit mt-1">
                     <p className="text-[var(--theme-text-secondary)] text-[10px] flex items-center gap-1">
