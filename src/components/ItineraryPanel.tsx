@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { X, AlertTriangle, Trash2, CalendarX, Share2, ExternalLink, GripVertical, Star, Eye, EyeOff } from 'lucide-react';
+import { X, AlertTriangle, Trash2, CalendarX, Share2, ExternalLink, GripVertical, Eye, EyeOff } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import { VIBE_COLORS } from '@/lib/tags';
 import { formatDateLabel } from '@/lib/utils';
@@ -232,7 +232,7 @@ export function ItineraryPanel({
                 No events in your itinerary yet
               </p>
               <p className="text-[var(--theme-text-muted)] text-sm max-w-xs">
-                Star events and add them to build your schedule!
+                Tap + on any event to add it to your plan!
               </p>
             </div>
           ) : (
@@ -359,7 +359,7 @@ export function ItineraryPanel({
                                     aria-label="Remove from itinerary"
                                     title="Remove from itinerary"
                                   >
-                                    <Star className="w-3.5 h-3.5 fill-current" />
+                                    <X className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               </div>

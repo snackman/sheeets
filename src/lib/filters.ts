@@ -104,6 +104,7 @@ export function applyFilters(
   itinerary?: Set<string>,
   nowTimestamp?: number,
   friendEventIds?: Set<string>,
+  options?: { skipVibes?: boolean },
 ): ETHDenverEvent[] {
   // Create the "now" Date once using conference timezone
   const now = nowTimestamp ? new Date(nowTimestamp) : getConferenceNow(filters.conference);
@@ -131,8 +132,8 @@ export function applyFilters(
       }
     }
 
-    // Tag filter (event must have ALL selected tags)
-    if (filters.vibes.length > 0 && !filters.vibes.every(t => event.tags.includes(t))) {
+    // Tag filter (event must have ALL selected tags) — skip when computing base for tag counts
+    if (!options?.skipVibes && filters.vibes.length > 0 && !filters.vibes.every(t => event.tags.includes(t))) {
       return false;
     }
 
@@ -163,4 +164,15 @@ export function applyFilters(
 
     return true;
   });
+}
+
+/** Count how many events each tag appears in from a pre-filtered list */
+export function computeTagCounts(events: ETHDenverEvent[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const event of events) {
+    for (const tag of event.tags) {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+  }
+  return counts;
 }

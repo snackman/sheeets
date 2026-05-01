@@ -36,9 +36,10 @@ import { SponsorsTicker } from './SponsorsTicker';
 import { CheckInFAB } from './CheckInFAB';
 import { OnboardingWizard } from './OnboardingWizard';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
+import { trackAuthPrompt } from '@/lib/analytics';
 import { getTabConfig } from '@/lib/conferences';
 import { extractFeaturedEvents } from '@/lib/featured';
-import { passesNowFilter, getConferenceNow } from '@/lib/filters';
+import { passesNowFilter, getConferenceNow, applyFilters, computeTagCounts } from '@/lib/filters';
 import { distanceMeters } from '@/lib/geo';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -142,6 +143,18 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
     [filteredEvents],
   );
 
+  // Events filtered by everything EXCEPT vibes — used to compute tag counts
+  const baseFilteredEvents = useMemo(
+    () => applyFilters(events, filters, itinerary, filters.nowMode ? getConferenceNow(filters.conference).getTime() : undefined, selectedFriendEventIds, { skipVibes: true }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [events, filters, itinerary, selectedFriendEventIds]
+  );
+
+  const tagCounts = useMemo(
+    () => computeTagCounts(baseFilteredEvents),
+    [baseFilteredEvents]
+  );
+
   // Check-in hook + proximity watcher
   const { user: authUser } = useAuth();
   const {
@@ -205,6 +218,15 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
   const handleBulkCheckIn = useCallback(() => {
     checkInToNearbyEvents(events, itinerary, filters.conference);
   }, [checkInToNearbyEvents, events, itinerary, filters.conference]);
+
+  const handleItineraryFilterToggle = useCallback(() => {
+    if (!authUser) {
+      trackAuthPrompt('itinerary_button');
+      setShowSignIn(true);
+      return;
+    }
+    toggleBool('itineraryOnly');
+  }, [authUser, toggleBool]);
 
   // Theme: read from admin config per-conference and apply
   const { setTheme } = useTheme();
@@ -356,9 +378,6 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         <Header
           viewMode={viewMode}
           onViewChange={setViewMode}
-          itineraryCount={0}
-          onItineraryToggle={() => toggleBool('itineraryOnly')}
-          isItineraryActive={filters.itineraryOnly}
           events={events}
           itinerary={itinerary}
           onOpenFriends={() => setShowFriends(true)}
@@ -375,9 +394,6 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         <Header
           viewMode={viewMode}
           onViewChange={setViewMode}
-          itineraryCount={0}
-          onItineraryToggle={() => toggleBool('itineraryOnly')}
-          isItineraryActive={filters.itineraryOnly}
           events={events}
           itinerary={itinerary}
           onOpenFriends={() => setShowFriends(true)}
@@ -402,9 +418,6 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
       <Header
         viewMode={viewMode}
         onViewChange={setViewMode}
-        itineraryCount={conferenceItineraryCount}
-        onItineraryToggle={() => toggleBool('itineraryOnly')}
-        isItineraryActive={filters.itineraryOnly}
         events={events}
         itinerary={itinerary}
         onOpenFriends={() => setShowFriends(true)}
@@ -438,6 +451,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           availableConferences={availableConferences}
           availableTypes={availableTypes}
           availableVibes={availableVibes}
+          tagCounts={tagCounts}
           friendsForFilter={friendsForFilter}
           selectedFriends={filters.selectedFriends}
           onToggleFriend={toggleFriend}
@@ -447,6 +461,9 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           onSubmitEvent={() => setShowSubmitEvent(true)}
           onSignIn={() => setShowSignIn(true)}
           conferenceTabs={conferenceTabs}
+          itineraryCount={filteredEvents.filter(e => itinerary.has(e.id)).length}
+          onItineraryToggle={handleItineraryFilterToggle}
+          isItineraryActive={filters.itineraryOnly}
         />
       </div>
 

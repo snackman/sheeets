@@ -259,7 +259,7 @@ export function EventCard({
             )}
           </div>
 
-          <div className="flex flex-col items-center shrink-0">
+          <div className="flex flex-col items-center shrink-0 gap-0.5">
             {onItineraryToggle && (
               <StarButton
                 eventId={event.id}
