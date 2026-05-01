@@ -537,10 +537,7 @@ function DateGroup({
                 )}
               </span>
               {liveEventIds?.has(event.id) && (
-                <span className="inline-flex items-center gap-0.5 ml-1.5 text-[8px] font-bold text-green-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                  LIVE
-                </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse inline-block ml-1.5" title="Live now" />
               )}
               {userLocation && event.lat && event.lng && (
                 <span className="text-[10px] text-[var(--theme-text-muted)] ml-1.5">{formatDistance(distanceMeters(userLocation.lat, userLocation.lng, event.lat, event.lng))}</span>
@@ -639,10 +636,7 @@ function DateGroup({
                 )}
               </span>
               {liveEventIds?.has(event.id) && (
-                <span className="inline-flex items-center gap-0.5 ml-1.5 text-[8px] font-bold text-green-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                  LIVE
-                </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse inline-block ml-1.5" title="Live now" />
               )}
               {userLocation && event.lat && event.lng && (
                 <span className="text-[10px] text-[var(--theme-text-muted)] ml-1.5">{formatDistance(distanceMeters(userLocation.lat, userLocation.lng, event.lat, event.lng))}</span>
