@@ -315,18 +315,11 @@ export function EventCard({
           <div className="relative w-fit">
             <p className="text-[var(--theme-text-secondary)] text-sm flex items-center gap-1">
               {liveUrgency && (
-                <span className={`inline-flex items-center gap-1 px-1.5 py-0 rounded text-[9px] font-bold uppercase tracking-wide ${
-                  liveUrgency === 'red' ? 'text-red-400 bg-red-500/15' :
-                  liveUrgency === 'yellow' ? 'text-yellow-400 bg-yellow-500/15' :
-                  'text-green-400 bg-green-500/15'
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${
-                    liveUrgency === 'red' ? 'bg-red-400' :
-                    liveUrgency === 'yellow' ? 'bg-yellow-400' :
-                    'bg-green-400'
-                  }`} />
-                  Live
-                </span>
+                <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${
+                  liveUrgency === 'red' ? 'bg-red-400' :
+                  liveUrgency === 'yellow' ? 'bg-yellow-400' :
+                  'bg-green-400'
+                }`} title={liveUrgency === 'red' ? 'Ending soon' : liveUrgency === 'yellow' ? 'Less than 1hr left' : 'Live now'} />
               )}
               <Calendar className="w-3.5 h-3.5 shrink-0" />
               <span>{event.date} · {timeDisplay}</span>
