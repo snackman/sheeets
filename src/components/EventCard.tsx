@@ -262,7 +262,7 @@ export function EventCard({
             )}
           </div>
 
-          <div className="flex items-center shrink-0 gap-1.5">
+          <div className="flex items-start shrink-0 gap-1.5">
             {/* Friend avatars — inline with star button */}
             {friendsGoing && friendsGoing.length > 0 && (
               <button
