@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, Calendar, Download, ExternalLink, Plus, Check, X, Users } from 'lucide-react';
+import { AlertTriangle, Download, ExternalLink, Plus, Check, X, Users } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
 import { trackEvent } from '@/lib/event-tracking';
@@ -10,6 +10,8 @@ import { shortenAddress } from '@/lib/utils';
 import { AddressLink } from './AddressLink';
 import { TagBadge } from './TagBadge';
 import { EventCard } from './EventCard';
+import { CalendarIcon } from './icons/CalendarIcon';
+import { FriendAvatarStack } from './FriendAvatarStack';
 
 interface TableViewProps {
   events: ETHDenverEvent[];
@@ -260,17 +262,17 @@ export function TableView({
       >
         <table className="w-full text-sm text-left md:table-fixed" style={{ minWidth: Math.max(640, 142 + tagsColWidth + 420) }}>
           <colgroup>
-            <col style={{ width: 32 }} />                                                                          {/* star */}
-            <col style={{ width: 36 }} />                                                                          {/* friends */}
+            <col style={{ width: 36 }} />                                                                          {/* star */}
+            <col style={{ width: 44 }} />                                                                          {/* friends */}
             <col style={{ width: 100 }} />                                                                         {/* when */}
-            <col style={{ width: `calc((100% - 32px - 36px - 100px - ${tagsColWidth}px) * 0.22)` }} />             {/* organizer */}
-            <col style={{ width: `calc((100% - 32px - 36px - 100px - ${tagsColWidth}px) * 0.50)` }} />             {/* event */}
-            <col style={{ width: `calc((100% - 32px - 36px - 100px - ${tagsColWidth}px) * 0.28)` }} />             {/* where */}
+            <col style={{ width: `calc((100% - 36px - 44px - 100px - ${tagsColWidth}px) * 0.22)` }} />             {/* organizer */}
+            <col style={{ width: `calc((100% - 36px - 44px - 100px - ${tagsColWidth}px) * 0.50)` }} />             {/* event */}
+            <col style={{ width: `calc((100% - 36px - 44px - 100px - ${tagsColWidth}px) * 0.28)` }} />             {/* where */}
             <col style={{ width: tagsColWidth }} />                                                                {/* tags */}
           </colgroup>
           <thead className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] bg-[var(--theme-bg-secondary)] border-b border-[var(--theme-border-primary)] sticky top-0 z-20">
             <tr>
-              <th className="px-3 py-2.5"><Calendar className="w-3.5 h-3.5" /></th>
+              <th className="px-2 py-2.5"><CalendarIcon className="w-4 h-4" /></th>
               <th className="px-1 py-2.5 text-center"><Users className="w-3.5 h-3.5 mx-auto" /></th>
               <th className="px-3 py-2.5 whitespace-nowrap">
                 {currentDateLabel === 'Time' ? (
@@ -320,6 +322,7 @@ export function TableView({
                 onItineraryToggle={onItineraryToggle}
                 setSeparatorRef={setSeparatorRef}
                 friendsCountByEvent={friendsCountByEvent}
+                friendsByEvent={friendsByEvent}
                 checkInCounts={checkInCounts}
                 onSelectEvent={setSelectedEvent}
                 conference={conference}
@@ -409,6 +412,7 @@ function DateGroup({
   onItineraryToggle,
   setSeparatorRef,
   friendsCountByEvent,
+  friendsByEvent,
   checkInCounts,
   onSelectEvent,
   conference,
@@ -420,6 +424,7 @@ function DateGroup({
   onItineraryToggle?: (eventId: string) => void;
   setSeparatorRef: (dateISO: string, el: HTMLTableRowElement | null) => void;
   friendsCountByEvent?: Map<string, number>;
+  friendsByEvent?: Map<string, FriendInfo[]>;
   checkInCounts?: Map<string, number>;
   onSelectEvent: (event: ETHDenverEvent) => void;
   conference?: string;
@@ -475,11 +480,9 @@ function DateGroup({
             </td>
             <td className="px-1 py-2 text-center">
               {(() => {
-                const fc = friendsCountByEvent?.get(event.id) ?? 0;
-                return fc > 0 ? (
-                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-[9px] font-bold px-1" style={{ backgroundColor: 'color-mix(in srgb, var(--friend-blue) 20%, transparent)', color: 'var(--friend-blue)' }}>
-                    {fc}
-                  </span>
+                const friends = friendsByEvent?.get(event.id);
+                return friends && friends.length > 0 ? (
+                  <FriendAvatarStack friends={friends} maxShow={1} size="sm" />
                 ) : null;
               })()}
             </td>
@@ -553,14 +556,12 @@ function DateGroup({
               </button>
             </td>
 
-            {/* Friends count */}
+            {/* Friends avatars */}
             <td className="px-1 py-2 text-center">
               {(() => {
-                const fc = friendsCountByEvent?.get(event.id) ?? 0;
-                return fc > 0 ? (
-                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-[9px] font-bold px-1" style={{ backgroundColor: 'color-mix(in srgb, var(--friend-blue) 20%, transparent)', color: 'var(--friend-blue)' }}>
-                    {fc}
-                  </span>
+                const friends = friendsByEvent?.get(event.id);
+                return friends && friends.length > 0 ? (
+                  <FriendAvatarStack friends={friends} maxShow={1} size="sm" />
                 ) : null;
               })()}
             </td>
