@@ -2,7 +2,7 @@
 
 import { Popup } from 'react-map-gl/mapbox';
 import { X, Calendar, MapPin, Users, MapPinCheck, Loader2 } from 'lucide-react';
-import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
+import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
 import { trackEvent } from '@/lib/event-tracking';
 import { StarButton } from './StarButton';
@@ -11,11 +11,6 @@ import { TagBadge } from './TagBadge';
 import { OGImage } from './OGImage';
 import { EmojiReactions } from './EmojiReactions';
 import { CommentSection } from './CommentSection';
-
-interface FriendInfo {
-  userId: string;
-  displayName: string;
-}
 
 interface EventPopupProps {
   event: ETHDenverEvent;

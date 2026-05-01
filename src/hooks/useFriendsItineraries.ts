@@ -9,6 +9,7 @@ import { getDisplayName } from '@/lib/user-display';
 interface FriendItinerary {
   userId: string;
   displayName: string;
+  avatarUrl?: string | null;
   eventIds: Set<string>;
 }
 
@@ -74,6 +75,7 @@ export function useFriendsItineraries(friends: Friend[]) {
       return {
         userId: ri.userId,
         displayName: friend ? getDisplayName(friend, ri.userId.slice(0, 8)) : ri.userId.slice(0, 8),
+        avatarUrl: friend?.avatar_url,
         eventIds: new Set(ri.eventIds),
       };
     });

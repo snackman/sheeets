@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { MapPin, Calendar, Users, X, Link, Check, MapPinCheck, Loader2 } from 'lucide-react';
-import type { ETHDenverEvent, ReactionEmoji } from '@/lib/types';
+import { MapPin, Calendar, X, Link, Check, MapPinCheck, Loader2 } from 'lucide-react';
+import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
 import { trackEventClick, trackCopyEventLink, trackFriendsGoingOpen, trackFriendsCheckedInOpen } from '@/lib/analytics';
 import { trackAdEvent } from '@/lib/ad-tracking';
 import { trackEvent } from '@/lib/event-tracking';
@@ -14,11 +14,7 @@ import { TagBadge } from './TagBadge';
 import { OGImage } from './OGImage';
 import { EmojiReactions } from './EmojiReactions';
 import { CommentSection } from './CommentSection';
-
-interface FriendInfo {
-  userId: string;
-  displayName: string;
-}
+import { FriendAvatarStack } from './FriendAvatarStack';
 
 interface EventCardProps {
   event: ETHDenverEvent;
@@ -98,10 +94,14 @@ function FriendsGoingModal({
               key={friend.userId}
               className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--theme-bg-tertiary)] transition-colors"
             >
-              <div className={`w-8 h-8 rounded-full ${avatarBg} flex items-center justify-center shrink-0`} style={avatarBgStyle}>
-                <span className={`text-sm font-medium ${avatarText}`} style={accentColor !== 'green' ? { color: 'var(--friend-blue)' } : undefined}>
-                  {friend.displayName[0]?.toUpperCase() ?? '?'}
-                </span>
+              <div className={`w-8 h-8 rounded-full ${avatarBg} flex items-center justify-center shrink-0 overflow-hidden`} style={avatarBgStyle}>
+                {friend.avatarUrl ? (
+                  <img src={friend.avatarUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className={`text-sm font-medium ${avatarText}`} style={accentColor !== 'green' ? { color: 'var(--friend-blue)' } : undefined}>
+                    {friend.displayName[0]?.toUpperCase() ?? '?'}
+                  </span>
+                )}
               </div>
               <span className="text-sm text-[var(--theme-text-primary)] truncate">{friend.displayName}</span>
             </div>
@@ -133,6 +133,7 @@ export function EventCard({
   const [showCheckedInModal, setShowCheckedInModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const hasFriends = (friendsGoing?.length ?? 0) > 0;
   const featuredImpressionTracked = useRef(false);
   const eventImpressionTracked = useRef(false);
 
@@ -207,9 +208,9 @@ export function EventCard({
     <div ref={cardRef} className={`rounded-lg p-4 transition-colors group flex gap-4 overflow-hidden ${
       event.isFeatured
         ? 'bg-[var(--theme-bg-card)] border-2 hover:bg-[var(--theme-bg-card-hover)]'
-        : 'bg-[var(--theme-bg-card)] border border-[var(--theme-border-primary)] hover:bg-[var(--theme-bg-card-hover)] hover:border-[var(--theme-border-primary)] active:bg-[var(--theme-bg-card-hover)]'
+        : `bg-[var(--theme-bg-card)] border border-[var(--theme-border-primary)] hover:bg-[var(--theme-bg-card-hover)] hover:border-[var(--theme-border-primary)] active:bg-[var(--theme-bg-card-hover)]${hasFriends ? ' border-l-[3px]' : ''}`
     }`}
-      style={event.isFeatured ? { borderColor: 'var(--theme-popup-featured-border)' } : undefined}
+      style={event.isFeatured ? { borderColor: 'var(--theme-popup-featured-border)' } : hasFriends ? { borderLeftColor: 'var(--friend-blue)' } : undefined}
     >
       {/* Left: cover image */}
       {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} />}
@@ -346,7 +347,7 @@ export function EventCard({
             }}
             className="flex items-center gap-2 mt-2 px-2 py-1.5 -mx-1 rounded-lg hover:bg-[var(--theme-bg-tertiary)]/50 transition-colors cursor-pointer group/friends w-fit"
           >
-            <Users className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--friend-blue)' }} />
+            <FriendAvatarStack friends={friendsGoing} maxShow={3} size="sm" />
             <span className="text-xs transition-colors" style={{ color: 'var(--friend-blue)' }}>
               {formatFriendsText(friendsGoing)}
             </span>
