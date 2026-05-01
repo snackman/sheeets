@@ -5,6 +5,7 @@ import { X, Calendar, MapPin, Users, MapPinCheck, Loader2 } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
 import { trackEvent } from '@/lib/event-tracking';
+import { shortenAddress } from '@/lib/utils';
 import { StarButton } from './StarButton';
 import { AddressLink } from './AddressLink';
 import { TagBadge } from './TagBadge';
@@ -184,7 +185,7 @@ function SingleEventContent({
             eventId={event.id} eventName={event.name}
             className="w-full text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-xs mt-1 flex items-center gap-1 overflow-hidden transition-colors">
             <MapPin className="w-3 h-3 shrink-0" />
-            <span className="truncate">{event.address}</span>
+            <span className="truncate">{shortenAddress(event.address)}</span>
           </AddressLink>
         )}
 
@@ -386,7 +387,7 @@ export function MultiEventPopup({
                       eventId={event.id} eventName={event.name}
                       className="w-full text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-[10px] mt-0.5 flex items-center gap-1 overflow-hidden transition-colors">
                       <MapPin className="w-2.5 h-2.5 shrink-0" />
-                      <span className="truncate">{event.address}</span>
+                      <span className="truncate">{shortenAddress(event.address)}</span>
                     </AddressLink>
                   )}
                   {event.tags.length > 0 && (

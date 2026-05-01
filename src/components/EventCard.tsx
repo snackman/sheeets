@@ -8,6 +8,7 @@ import { trackEventClick, trackCopyEventLink, trackFriendsGoingOpen, trackFriend
 import { trackAdEvent } from '@/lib/ad-tracking';
 import { trackEvent } from '@/lib/event-tracking';
 import { formatFriendsText } from '@/lib/user-display';
+import { shortenAddress } from '@/lib/utils';
 import { AddressLink } from './AddressLink';
 import { StarButton } from './StarButton';
 import { TagBadge } from './TagBadge';
@@ -276,27 +277,29 @@ export function EventCard({
                 <FriendAvatarStack friends={friendsGoing} maxShow={2} size="sm" />
               </button>
             )}
-            {onItineraryToggle && (
-              <StarButton
-                eventId={event.id}
-                isStarred={isInItinerary}
-                onToggle={onItineraryToggle}
-              />
-            )}
-            {event.link && (
-              <button
-                onClick={handleCopyLink}
-                className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
-                aria-label="Copy event link"
-                title="Copy link"
-              >
-                {copied ? (
-                  <Check className="w-3.5 h-3.5 text-green-400" />
-                ) : (
-                  <Link className="w-3.5 h-3.5" />
-                )}
-              </button>
-            )}
+            <div className="flex flex-col items-center gap-0.5">
+              {onItineraryToggle && (
+                <StarButton
+                  eventId={event.id}
+                  isStarred={isInItinerary}
+                  onToggle={onItineraryToggle}
+                />
+              )}
+              {event.link && (
+                <button
+                  onClick={handleCopyLink}
+                  className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
+                  aria-label="Copy event link"
+                  title="Copy link"
+                >
+                  {copied ? (
+                    <Check className="w-3.5 h-3.5 text-green-400" />
+                  ) : (
+                    <Link className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -338,7 +341,7 @@ export function EventCard({
             eventId={event.id} eventName={event.name}
             className="w-full text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-sm mt-1 flex items-start gap-1 overflow-hidden transition-colors min-w-0">
             <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-            <span className="truncate">{event.address}</span>
+            <span className="truncate">{shortenAddress(event.address)}</span>
           </AddressLink>
         )}
 

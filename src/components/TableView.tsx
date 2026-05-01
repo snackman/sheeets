@@ -6,6 +6,7 @@ import { AlertTriangle, Calendar, Download, ExternalLink, Plus, Check, X, Users 
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
 import { trackEventClick } from '@/lib/analytics';
 import { trackEvent } from '@/lib/event-tracking';
+import { shortenAddress } from '@/lib/utils';
 import { AddressLink } from './AddressLink';
 import { TagBadge } from './TagBadge';
 import { EventCard } from './EventCard';
@@ -507,7 +508,7 @@ function DateGroup({
             </td>
             <td className="px-3 py-2 text-[var(--theme-text-secondary)] truncate max-w-[20ch] sm:max-w-none" title={event.address}>
               {event.address ? (
-                <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng} eventId={event.id} eventName={event.name} className="hover:text-[var(--theme-accent)] transition-colors">{event.address}</AddressLink>
+                <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng} eventId={event.id} eventName={event.name} className="hover:text-[var(--theme-accent)] transition-colors">{shortenAddress(event.address)}</AddressLink>
               ) : null}
             </td>
             <td className="px-3 py-2 whitespace-nowrap">
@@ -627,7 +628,7 @@ function DateGroup({
                 <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
                   eventId={event.id} eventName={event.name}
                   className="hover:text-[var(--theme-accent)] transition-colors">
-                  {event.address}
+                  {shortenAddress(event.address)}
                 </AddressLink>
               ) : null}
             </td>
