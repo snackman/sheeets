@@ -262,7 +262,7 @@ export function EventCard({
           </div>
 
           <div className="flex items-center shrink-0 gap-1.5">
-            {/* Friend avatars — top right for high visibility */}
+            {/* Friend avatars — inline with star button */}
             {friendsGoing && friendsGoing.length > 0 && (
               <button
                 onClick={(e) => {
@@ -276,30 +276,27 @@ export function EventCard({
                 <FriendAvatarStack friends={friendsGoing} maxShow={3} size="sm" />
               </button>
             )}
-            <div className="flex flex-col items-center gap-0.5">
-              {onItineraryToggle && (
-                <StarButton
-                  eventId={event.id}
-                  isStarred={isInItinerary}
-                  onToggle={onItineraryToggle}
-                  friendsCount={friendsCount}
-                />
-              )}
-              {event.link && (
-                <button
-                  onClick={handleCopyLink}
-                  className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
-                  aria-label="Copy event link"
-                  title="Copy link"
-                >
-                  {copied ? (
-                    <Check className="w-3.5 h-3.5 text-green-400" />
-                  ) : (
-                    <Link className="w-3.5 h-3.5" />
-                  )}
-                </button>
-              )}
-            </div>
+            {onItineraryToggle && (
+              <StarButton
+                eventId={event.id}
+                isStarred={isInItinerary}
+                onToggle={onItineraryToggle}
+              />
+            )}
+            {event.link && (
+              <button
+                onClick={handleCopyLink}
+                className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
+                aria-label="Copy event link"
+                title="Copy link"
+              >
+                {copied ? (
+                  <Check className="w-3.5 h-3.5 text-green-400" />
+                ) : (
+                  <Link className="w-3.5 h-3.5" />
+                )}
+              </button>
+            )}
           </div>
         </div>
 
