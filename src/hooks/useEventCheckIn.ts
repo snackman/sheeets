@@ -2,7 +2,6 @@
 
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { distanceMeters } from '@/lib/geo';
 import { passesNowFilter, getConferenceNow } from '@/lib/filters';
 import { trackCheckIn } from '@/lib/analytics';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +10,21 @@ import type { ETHDenverEvent } from '@/lib/types';
 interface CheckInResult {
   ok: boolean;
   message: string;
+}
+
+async function tryGetPosition(): Promise<{ lat: number; lng: number } | null> {
+  if (!navigator.geolocation) return null;
+  try {
+    const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 10_000,
+      })
+    );
+    return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+  } catch {
+    return null;
+  }
 }
 
 export function useEventCheckIn() {
@@ -27,17 +41,10 @@ export function useEventCheckIn() {
       setResult(null);
 
       try {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 10_000,
-          })
-        );
-
-        const { latitude: uLat, longitude: uLng } = pos.coords;
+        const coords = await tryGetPosition();
 
         const { error } = await supabase.from('check_ins').upsert(
-          [{ user_id: user.id, event_id: eventId, lat: uLat, lng: uLng }],
+          [{ user_id: user.id, event_id: eventId, lat: coords?.lat ?? null, lng: coords?.lng ?? null }],
           { onConflict: 'user_id,event_id' }
         );
 
@@ -49,12 +56,7 @@ export function useEventCheckIn() {
           message: eventName ? `Checked in at ${eventName}!` : 'Checked in!',
         });
       } catch (err: unknown) {
-        const msg =
-          err instanceof GeolocationPositionError
-            ? 'Location access denied'
-            : err instanceof Error
-              ? err.message
-              : 'Check-in failed';
+        const msg = err instanceof Error ? err.message : 'Check-in failed';
         trackCheckIn(eventId, false);
         setResult({ ok: false, message: msg });
       }
@@ -75,37 +77,28 @@ export function useEventCheckIn() {
       setResult(null);
 
       try {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 10_000,
-          })
-        );
-
-        const { latitude: uLat, longitude: uLng } = pos.coords;
         const now = getConferenceNow(conference);
 
-        const nearby = events.filter((e) => {
+        // Get live itinerary events
+        const liveItinerary = events.filter((e) => {
           if (!itinerary.has(e.id)) return false;
-          if (!e.lat || !e.lng) return false;
           if (!passesNowFilter(e, now)) return false;
-          return distanceMeters(uLat, uLng, e.lat, e.lng) <= 150;
+          return true;
         });
 
-        if (nearby.length === 0) {
-          setResult({
-            ok: false,
-            message: 'No active itinerary events nearby',
-          });
+        if (liveItinerary.length === 0) {
+          setResult({ ok: false, message: 'No active itinerary events right now' });
           setLoading(false);
           return;
         }
 
-        const rows = nearby.map((e) => ({
+        const coords = await tryGetPosition();
+
+        const rows = liveItinerary.map((e) => ({
           user_id: user.id,
           event_id: e.id,
-          lat: uLat,
-          lng: uLng,
+          lat: coords?.lat ?? null,
+          lng: coords?.lng ?? null,
         }));
 
         const { error } = await supabase.from('check_ins').upsert(rows, {
@@ -114,18 +107,13 @@ export function useEventCheckIn() {
 
         if (error) throw error;
 
-        const names = nearby.map((e) => e.name).join(', ');
+        const names = liveItinerary.map((e) => e.name).join(', ');
         setResult({
           ok: true,
           message: `Checked in at ${names}!`,
         });
       } catch (err: unknown) {
-        const msg =
-          err instanceof GeolocationPositionError
-            ? 'Location access denied'
-            : err instanceof Error
-              ? err.message
-              : 'Check-in failed';
+        const msg = err instanceof Error ? err.message : 'Check-in failed';
         setResult({ ok: false, message: msg });
       }
 
