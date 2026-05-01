@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { ArrowRight, Users, TrendingUp, DollarSign } from 'lucide-react';
 import { NativeAd } from '@/lib/types';
 import { trackAdClick, trackAdImpression } from '@/lib/analytics';
 import { trackAdEvent } from '@/lib/ad-tracking';
@@ -15,6 +15,12 @@ interface NativeAdCardProps {
   /** Called when the user clicks the ad */
   onClick?: (adId: string) => void;
 }
+
+const SOCIAL_STATS = [
+  { icon: Users, label: '10K+ users' },
+  { icon: TrendingUp, label: '3.2% CTR' },
+  { icon: DollarSign, label: 'From $200' },
+];
 
 export default function NativeAdCard({ ad, conference, onImpression, onClick }: NativeAdCardProps) {
   const cardRef = useRef<HTMLAnchorElement>(null);
@@ -74,29 +80,50 @@ export default function NativeAdCard({ ad, conference, onImpression, onClick }: 
       className="block group"
       onClick={handleClick}
     >
-      <div className="flex gap-4 overflow-hidden rounded-xl bg-purple-500/5 border border-purple-500/30 ring-1 ring-purple-500/40 hover:bg-purple-500/10 p-4 transition-colors">
-        {ad.imageUrl && (
-          <div className="w-[90px] h-[90px] flex-shrink-0 rounded-lg overflow-hidden bg-[var(--theme-bg-tertiary)]">
-            <img
-              src={ad.imageUrl}
-              alt={ad.title}
-              className="w-full h-full object-contain"
-            />
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-semibold text-[var(--theme-text-primary)] group-hover:text-purple-300 transition-colors truncate">
-              {ad.title}
+      <div className="bg-[var(--theme-bg-card)] border border-[var(--theme-border-primary)] rounded-lg p-4 transition-colors hover:border-amber-500/30">
+        <div className="flex gap-4">
+          {ad.imageUrl && (
+            <div className="w-[90px] h-[90px] flex-shrink-0 rounded-lg overflow-hidden bg-[var(--theme-bg-tertiary)]">
+              <img
+                src={ad.imageUrl}
+                alt={ad.title}
+                className="w-full h-full object-contain"
+              />
+            </div>
+          )}
+
+          <div className="flex-1 min-w-0">
+            {/* Top: Title + Ad badge */}
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm font-semibold text-[var(--theme-text-primary)] truncate">
+                {ad.title}
+              </span>
+              <span className="flex-shrink-0 text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20">
+                Ad
+              </span>
+            </div>
+
+            {/* Middle: Social proof stat pills */}
+            <div className="flex flex-wrap items-center gap-1.5 mb-2">
+              {SOCIAL_STATS.map(({ icon: Icon, label }) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--theme-bg-tertiary)] text-[10px] text-[var(--theme-text-secondary)] border border-[var(--theme-border-primary)]"
+                >
+                  <Icon className="w-2.5 h-2.5" />
+                  {label}
+                </span>
+              ))}
+            </div>
+
+            {/* Bottom: Description + CTA */}
+            <p className="text-xs text-[var(--theme-text-secondary)] line-clamp-2 mb-2">
+              {ad.description}
+            </p>
+            <span className="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 text-xs font-medium transition-colors">
+              {ad.badge || 'Learn more'}
+              <ArrowRight className="w-3 h-3" />
             </span>
-            <span className="flex-shrink-0 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 rounded-full border border-purple-500/30">
-              {ad.badge || 'Sponsored'}
-            </span>
-          </div>
-          <p className="text-xs text-[var(--theme-text-secondary)] line-clamp-2 mb-2">{ad.description}</p>
-          <div className="flex items-center gap-1 text-xs text-purple-400">
-            <ExternalLink className="w-3 h-3" />
-            <span>Learn more</span>
           </div>
         </div>
       </div>
