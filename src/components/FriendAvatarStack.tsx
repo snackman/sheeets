@@ -1,6 +1,7 @@
 'use client';
 
 import type { FriendInfo } from '@/lib/types';
+import UserAvatar from './UserAvatar';
 
 interface FriendAvatarStackProps {
   friends: FriendInfo[];
@@ -12,7 +13,7 @@ export function FriendAvatarStack({ friends, maxShow = 3, size = 'sm' }: FriendA
   const shown = friends.slice(0, maxShow);
   const overflow = friends.length - maxShow;
   const dim = size === 'sm' ? 'w-5 h-5' : 'w-6 h-6';
-  const textSize = size === 'sm' ? 'text-[9px]' : 'text-[10px]';
+  const avatarSize = size === 'sm' ? 'xs' as const : 'sm' as const;
   const overflowTextSize = size === 'sm' ? 'text-[8px]' : 'text-[9px]';
   const ml = size === 'sm' ? '-ml-1.5' : '-ml-2';
 
@@ -21,20 +22,17 @@ export function FriendAvatarStack({ friends, maxShow = 3, size = 'sm' }: FriendA
       {shown.map((friend, i) => (
         <div
           key={friend.userId}
-          className={`${dim} rounded-full border-2 border-[var(--theme-bg-card)] flex items-center justify-center shrink-0 overflow-hidden ${i > 0 ? ml : ''}`}
+          className={`${dim} rounded-full border-2 border-[var(--theme-bg-card)] shrink-0 overflow-hidden ${i > 0 ? ml : ''}`}
           style={{ zIndex: maxShow - i }}
           title={friend.displayName}
         >
-          {friend.avatarUrl ? (
-            <img src={friend.avatarUrl} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <span
-              className={`${textSize} font-bold text-white flex items-center justify-center w-full h-full`}
-              style={{ backgroundColor: 'var(--friend-blue)' }}
-            >
-              {friend.displayName[0]?.toUpperCase() ?? '?'}
-            </span>
-          )}
+          <UserAvatar
+            avatarUrl={friend.avatarUrl}
+            xHandle={friend.xHandle}
+            displayName={friend.displayName}
+            size={avatarSize}
+            className="!w-full !h-full"
+          />
         </div>
       ))}
       {overflow > 0 && (

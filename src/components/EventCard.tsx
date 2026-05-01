@@ -13,6 +13,7 @@ import { StarButton } from './StarButton';
 import { TagBadge } from './TagBadge';
 import { OGImage } from './OGImage';
 import { EmojiReactions } from './EmojiReactions';
+import UserAvatar from './UserAvatar';
 import { CommentSection } from './CommentSection';
 import { FriendAvatarStack } from './FriendAvatarStack';
 
@@ -94,14 +95,14 @@ function FriendsGoingModal({
               key={friend.userId}
               className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--theme-bg-tertiary)] transition-colors"
             >
-              <div className={`w-8 h-8 rounded-full ${avatarBg} flex items-center justify-center shrink-0 overflow-hidden`} style={avatarBgStyle}>
-                {friend.avatarUrl ? (
-                  <img src={friend.avatarUrl} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <span className={`text-sm font-medium ${avatarText}`} style={accentColor !== 'green' ? { color: 'var(--friend-blue)' } : undefined}>
-                    {friend.displayName[0]?.toUpperCase() ?? '?'}
-                  </span>
-                )}
+              <div className={`w-8 h-8 rounded-full ${avatarBg} shrink-0 overflow-hidden ${accentColor === 'green' ? 'border-2 border-green-500/40' : ''}`} style={avatarBgStyle}>
+                <UserAvatar
+                  avatarUrl={friend.avatarUrl}
+                  xHandle={friend.xHandle}
+                  displayName={friend.displayName}
+                  size="sm"
+                  className="!w-full !h-full"
+                />
               </div>
               <span className="text-sm text-[var(--theme-text-primary)] truncate">{friend.displayName}</span>
             </div>

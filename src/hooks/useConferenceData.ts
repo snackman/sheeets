@@ -9,6 +9,7 @@ interface FriendItinerary {
   userId: string;
   displayName: string;
   avatarUrl?: string | null;
+  xHandle?: string | null;
   eventIds: Set<string>;
 }
 
@@ -157,7 +158,7 @@ export function useConferenceData({
     for (const fi of friendItineraries) {
       for (const eid of fi.eventIds) {
         if (!map.has(eid)) map.set(eid, []);
-        map.get(eid)!.push({ userId: fi.userId, displayName: fi.displayName, avatarUrl: fi.avatarUrl });
+        map.get(eid)!.push({ userId: fi.userId, displayName: fi.displayName, avatarUrl: fi.avatarUrl, xHandle: fi.xHandle });
       }
     }
     return map;
@@ -176,6 +177,7 @@ export function useConferenceData({
             userId: uid,
             displayName: getDisplayName(friend, uid.slice(0, 8)),
             avatarUrl: friend.avatar_url,
+            xHandle: friend.x_handle,
           });
         }
       }
