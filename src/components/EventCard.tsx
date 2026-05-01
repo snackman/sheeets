@@ -311,7 +311,6 @@ export function EventCard({
         <div className="flex items-center gap-2 mt-1">
           <div className="relative w-fit">
             <p className="text-[var(--theme-text-secondary)] text-sm flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5 shrink-0" />
               {liveUrgency && (
                 <span className={`inline-flex items-center gap-1 px-1.5 py-0 rounded text-[9px] font-bold uppercase tracking-wide ${
                   liveUrgency === 'red' ? 'text-red-400 bg-red-500/15' :
@@ -326,6 +325,7 @@ export function EventCard({
                   Live
                 </span>
               )}
+              <Calendar className="w-3.5 h-3.5 shrink-0" />
               <span>{event.date} · {timeDisplay}</span>
             </p>
             {(checkInCount ?? 0) > 0 && (
