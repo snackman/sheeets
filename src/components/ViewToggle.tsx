@@ -26,9 +26,10 @@ export function ViewToggle({ viewMode, onViewChange }: ViewToggleProps) {
           className={clsx(
             'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer',
             viewMode === mode
-              ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+              ? 'text-[var(--theme-accent)]'
               : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)]'
           )}
+          style={viewMode === mode ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
           aria-label={`${label} view`}
         >
           <Icon className="w-4 h-4" />

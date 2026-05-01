@@ -20,8 +20,8 @@ export function StarButton({
 }: StarButtonProps) {
   const iconSize = size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5';
   const containerSize = size === 'sm'
-    ? 'w-6 h-6'
-    : 'w-7 h-7';
+    ? 'w-5 h-5'
+    : 'w-6 h-6';
 
   return (
     <button
@@ -55,7 +55,7 @@ export function StarButton({
           className={clsx(
             'absolute flex items-center justify-center rounded-full font-bold pointer-events-none',
             isStarred
-              ? 'bg-[var(--theme-accent-text)] text-[var(--theme-accent)]'
+              ? 'bg-[var(--theme-accent-text)] text-[var(--theme-accent)] border border-[var(--theme-accent)]'
               : 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]',
             size === 'sm'
               ? '-top-0.5 -right-0.5 min-w-[14px] h-[14px] text-[8px] px-0.5'

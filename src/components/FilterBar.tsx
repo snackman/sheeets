@@ -137,9 +137,13 @@ export function FilterBar({
                 ref={(el) => { confBtnRef.current = el; }}
                 onClick={() => setConfOpen(!confOpen)}
                 className={clsx(
-                  'flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[var(--theme-accent)] text-[var(--theme-accent-text)] font-semibold cursor-pointer',
+                  'flex items-center gap-1.5 px-3 py-2 rounded-lg font-semibold cursor-pointer transition-colors border',
+                  confOpen
+                    ? 'text-[var(--theme-accent)] border-[var(--theme-accent)]'
+                    : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border-[var(--theme-border-primary)]',
                   (filters.conference || 'All').length > 12 ? 'text-xs' : 'text-sm'
                 )}
+                style={confOpen ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
               >
                 <MapPin className="w-3.5 h-3.5 shrink-0" />
                 <span className="whitespace-nowrap">{filters.conference || 'All'}</span>
