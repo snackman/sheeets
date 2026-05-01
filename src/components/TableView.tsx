@@ -577,7 +577,7 @@ function DateGroup({
               </div>
             </td>
             <td className="px-3 py-2 text-[var(--theme-text-secondary)] whitespace-nowrap">
-              {(() => { const u = liveEventIds?.get(event.id); return u ? <span className={`w-1.5 h-1.5 rounded-full animate-pulse inline-block mr-1.5 ${u === 'red' ? 'bg-red-400' : u === 'yellow' ? 'bg-yellow-400' : 'bg-green-400'}`} title={u === 'red' ? 'Ending soon' : u === 'yellow' ? 'Less than 1hr left' : 'Live now'} /> : null; })()}
+              {(() => { const u = liveEventIds?.get(event.id); return u ? <span className={`w-1.5 h-1.5 rounded-full animate-pulse inline-block align-middle mr-1.5 ${u === 'red' ? 'bg-red-400' : u === 'yellow' ? 'bg-yellow-400' : 'bg-green-400'}`} title={u === 'red' ? 'Ending soon' : u === 'yellow' ? 'Less than 1hr left' : 'Live now'} /> : null; })()}
               <span className="relative inline-block">
                 <span>{event.startTime}{event.endTime ? `-${event.endTime}` : ''}</span>
                 {(checkInCounts?.get(event.id) ?? 0) > 0 && (
@@ -671,7 +671,7 @@ function DateGroup({
 
             {/* Time */}
             <td className="px-3 py-2 text-[var(--theme-text-secondary)] whitespace-nowrap">
-              {(() => { const u = liveEventIds?.get(event.id); return u ? <span className={`w-1.5 h-1.5 rounded-full animate-pulse inline-block mr-1.5 ${u === 'red' ? 'bg-red-400' : u === 'yellow' ? 'bg-yellow-400' : 'bg-green-400'}`} title={u === 'red' ? 'Ending soon' : u === 'yellow' ? 'Less than 1hr left' : 'Live now'} /> : null; })()}
+              {(() => { const u = liveEventIds?.get(event.id); return u ? <span className={`w-1.5 h-1.5 rounded-full animate-pulse inline-block align-middle mr-1.5 ${u === 'red' ? 'bg-red-400' : u === 'yellow' ? 'bg-yellow-400' : 'bg-green-400'}`} title={u === 'red' ? 'Ending soon' : u === 'yellow' ? 'Less than 1hr left' : 'Live now'} /> : null; })()}
               <span className="relative inline-block">
                 <span>
                   {event.startTime}
