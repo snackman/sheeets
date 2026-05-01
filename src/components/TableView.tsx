@@ -261,17 +261,17 @@ export function TableView({
         <table className="w-full text-sm text-left md:table-fixed" style={{ minWidth: Math.max(640, 142 + tagsColWidth + 420) }}>
           <colgroup>
             <col style={{ width: 32 }} />                                                                          {/* star */}
-            <col style={{ width: 48 }} />                                                                          {/* friends */}
+            <col style={{ width: 36 }} />                                                                          {/* friends */}
             <col style={{ width: 100 }} />                                                                         {/* when */}
-            <col style={{ width: `calc((100% - 32px - 48px - 100px - ${tagsColWidth}px) * 0.22)` }} />             {/* organizer */}
-            <col style={{ width: `calc((100% - 32px - 48px - 100px - ${tagsColWidth}px) * 0.50)` }} />             {/* event */}
-            <col style={{ width: `calc((100% - 32px - 48px - 100px - ${tagsColWidth}px) * 0.28)` }} />             {/* where */}
+            <col style={{ width: `calc((100% - 32px - 36px - 100px - ${tagsColWidth}px) * 0.22)` }} />             {/* organizer */}
+            <col style={{ width: `calc((100% - 32px - 36px - 100px - ${tagsColWidth}px) * 0.50)` }} />             {/* event */}
+            <col style={{ width: `calc((100% - 32px - 36px - 100px - ${tagsColWidth}px) * 0.28)` }} />             {/* where */}
             <col style={{ width: tagsColWidth }} />                                                                {/* tags */}
           </colgroup>
           <thead className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] bg-[var(--theme-bg-secondary)] border-b border-[var(--theme-border-primary)] sticky top-0 z-20">
             <tr>
               <th className="px-3 py-2.5"><Calendar className="w-3.5 h-3.5" /></th>
-              <th className="px-2 py-2.5 text-center"><Users className="w-3.5 h-3.5 mx-auto" /></th>
+              <th className="px-1 py-2.5 text-center"><Users className="w-3.5 h-3.5 mx-auto" /></th>
               <th className="px-3 py-2.5 whitespace-nowrap">
                 {currentDateLabel === 'Time' ? (
                   'WHEN'
@@ -466,14 +466,14 @@ function DateGroup({
               >
                 <span className={`w-6 h-6 flex items-center justify-center rounded-full border transition-colors ${
                   isInItinerary
-                    ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)] border-[var(--theme-accent)]'
+                    ? 'text-[var(--theme-accent)] border-[var(--theme-accent)]'
                     : 'text-[var(--theme-text-secondary)] border-[var(--theme-border-primary)] hover:text-[var(--theme-text-primary)]'
-                }`}>
+                }`} style={isInItinerary ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}>
                   {isInItinerary ? <Check className="w-3 h-3" strokeWidth={3} /> : <Plus className="w-3 h-3" strokeWidth={2.5} />}
                 </span>
               </button>
             </td>
-            <td className="px-2 py-2 text-center">
+            <td className="px-1 py-2 text-center">
               {(() => {
                 const fc = friendsCountByEvent?.get(event.id) ?? 0;
                 return fc > 0 ? (
@@ -545,16 +545,16 @@ function DateGroup({
               >
                 <span className={`w-6 h-6 flex items-center justify-center rounded-full border transition-colors ${
                   isInItinerary
-                    ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)] border-[var(--theme-accent)]'
+                    ? 'text-[var(--theme-accent)] border-[var(--theme-accent)]'
                     : 'text-[var(--theme-text-secondary)] border-[var(--theme-border-primary)] hover:text-[var(--theme-text-primary)]'
-                }`}>
+                }`} style={isInItinerary ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}>
                   {isInItinerary ? <Check className="w-3 h-3" strokeWidth={3} /> : <Plus className="w-3 h-3" strokeWidth={2.5} />}
                 </span>
               </button>
             </td>
 
             {/* Friends count */}
-            <td className="px-2 py-2 text-center">
+            <td className="px-1 py-2 text-center">
               {(() => {
                 const fc = friendsCountByEvent?.get(event.id) ?? 0;
                 return fc > 0 ? (
