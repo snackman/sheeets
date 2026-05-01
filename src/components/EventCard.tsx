@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { MapPin, Calendar, Users, X, Link, Check, MapPinCheck, Loader2 } from 'lucide-react';
+import { MapPin, Calendar, X, Link, Check, MapPinCheck, Loader2 } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
 import { trackEventClick, trackCopyEventLink, trackFriendsGoingOpen, trackFriendsCheckedInOpen } from '@/lib/analytics';
 import { trackAdEvent } from '@/lib/ad-tracking';
@@ -218,7 +218,7 @@ export function EventCard({
 
       {/* Right: event details */}
       <div className="flex-1 min-w-0">
-        {/* Top row: Name + Star */}
+        {/* Top row: Name + Avatars + Star */}
         <div className="flex items-start gap-2">
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-[var(--theme-text-primary)] text-sm sm:text-base leading-tight">
@@ -261,42 +261,77 @@ export function EventCard({
             )}
           </div>
 
-          <div className="flex flex-col items-center shrink-0 gap-0.5">
-            {onItineraryToggle && (
-              <StarButton
-                eventId={event.id}
-                isStarred={isInItinerary}
-                onToggle={onItineraryToggle}
-                friendsCount={friendsCount}
-              />
-            )}
-            {event.link && (
+          <div className="flex items-center shrink-0 gap-1.5">
+            {/* Friend avatars — top right for high visibility */}
+            {friendsGoing && friendsGoing.length > 0 && (
               <button
-                onClick={handleCopyLink}
-                className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
-                aria-label="Copy event link"
-                title="Copy link"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  trackFriendsGoingOpen(event.name);
+                  setShowFriendsModal(true);
+                }}
+                className="cursor-pointer hover:opacity-80 transition-opacity"
+                title={formatFriendsText(friendsGoing)}
               >
-                {copied ? (
-                  <Check className="w-3.5 h-3.5 text-green-400" />
-                ) : (
-                  <Link className="w-3.5 h-3.5" />
-                )}
+                <FriendAvatarStack friends={friendsGoing} maxShow={3} size="sm" />
               </button>
             )}
+            <div className="flex flex-col items-center gap-0.5">
+              {onItineraryToggle && (
+                <StarButton
+                  eventId={event.id}
+                  isStarred={isInItinerary}
+                  onToggle={onItineraryToggle}
+                  friendsCount={friendsCount}
+                />
+              )}
+              {event.link && (
+                <button
+                  onClick={handleCopyLink}
+                  className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
+                  aria-label="Copy event link"
+                  title="Copy link"
+                >
+                  {copied ? (
+                    <Check className="w-3.5 h-3.5 text-green-400" />
+                  ) : (
+                    <Link className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Date + Time */}
-        <div className="relative w-fit mt-1">
-          <p className="text-[var(--theme-text-secondary)] text-sm flex items-start gap-1">
-            <Calendar className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-            <span>{event.date} · {timeDisplay}</span>
-          </p>
-          {(checkInCount ?? 0) > 0 && (
-            <span className="absolute -top-1 -right-3 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-green-500 text-white text-[9px] font-bold px-0.5 pointer-events-none">
-              {checkInCount}
-            </span>
+        {/* Date + Time + Check In */}
+        <div className="flex items-center gap-2 mt-1">
+          <div className="relative w-fit">
+            <p className="text-[var(--theme-text-secondary)] text-sm flex items-start gap-1">
+              <Calendar className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              <span>{event.date} · {timeDisplay}</span>
+            </p>
+            {(checkInCount ?? 0) > 0 && (
+              <span className="absolute -top-1 -right-3 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-green-500 text-white text-[9px] font-bold px-0.5 pointer-events-none">
+                {checkInCount}
+              </span>
+            )}
+          </div>
+          {isInItinerary && isLive && onCheckIn && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCheckIn(event.id);
+              }}
+              disabled={checkInLoading}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-[10px] font-medium transition-colors cursor-pointer"
+            >
+              {checkInLoading ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <MapPinCheck className="w-3 h-3" />
+              )}
+              Check In
+            </button>
           )}
         </div>
 
@@ -310,7 +345,7 @@ export function EventCard({
           </AddressLink>
         )}
 
-        {/* Badges row */}
+        {/* Tags row */}
         {event.tags.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5 mt-3">
             {event.tags.map((tag) => (
@@ -319,66 +354,12 @@ export function EventCard({
           </div>
         )}
 
-        {/* Check In button (live + RSVP'd only) */}
-        {isInItinerary && isLive && onCheckIn && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onCheckIn(event.id);
-            }}
-            disabled={checkInLoading}
-            className="flex items-center gap-1.5 mt-2 px-2.5 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-xs font-medium transition-colors cursor-pointer w-fit"
-          >
-            {checkInLoading ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <MapPinCheck className="w-3.5 h-3.5" />
-            )}
-            Check In
-          </button>
-        )}
-
-        {/* Friends going row */}
-        {friendsGoing && friendsGoing.length > 0 && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              trackFriendsGoingOpen(event.name);
-              setShowFriendsModal(true);
-            }}
-            className="flex items-center gap-2 mt-2 px-2 py-1.5 -mx-1 rounded-lg hover:bg-[var(--theme-bg-tertiary)]/50 transition-colors cursor-pointer group/friends w-fit"
-          >
-            <Users className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--friend-blue)' }} />
-            <FriendAvatarStack friends={friendsGoing} maxShow={3} size="sm" />
-            <span className="text-xs text-[var(--theme-text-secondary)] transition-colors">
-              {formatFriendsText(friendsGoing)}
-            </span>
-          </button>
-        )}
-
-        {/* Friends checked in row (green) */}
-        {checkedInFriends && checkedInFriends.length > 0 && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              trackFriendsCheckedInOpen(event.name);
-              setShowCheckedInModal(true);
-            }}
-            className="flex items-center gap-2 mt-1 px-2 py-1.5 -mx-1 rounded-lg hover:bg-[var(--theme-bg-tertiary)]/50 transition-colors cursor-pointer group/checkin w-fit"
-          >
-            <MapPin className="w-3.5 h-3.5 text-green-400 shrink-0" />
-            <span className="text-xs text-green-400 group-hover/checkin:text-green-300 transition-colors">
-              {formatFriendsText(checkedInFriends)} checked in
-            </span>
-          </button>
-        )}
-
         {/* Note */}
         {event.note && (
           <p className="text-[var(--theme-text-faint)] text-xs mt-1 italic truncate">{event.note}</p>
         )}
 
-        {/* Emoji reactions + Comments inline */}
+        {/* Bottom row: reactions + checked-in indicator */}
         <div className="flex flex-wrap items-center gap-2 mt-2">
           {onToggleReaction && (
             <EmojiReactions
@@ -388,6 +369,21 @@ export function EventCard({
             />
           )}
           <CommentSection eventId={event.id} commentCount={commentCount} />
+          {checkedInFriends && checkedInFriends.length > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                trackFriendsCheckedInOpen(event.name);
+                setShowCheckedInModal(true);
+              }}
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded-md hover:bg-[var(--theme-bg-tertiary)]/50 transition-colors cursor-pointer"
+            >
+              <MapPin className="w-3 h-3 text-green-400 shrink-0" />
+              <span className="text-[10px] text-green-400">
+                {checkedInFriends.length} here
+              </span>
+            </button>
+          )}
         </div>
       </div>
 
