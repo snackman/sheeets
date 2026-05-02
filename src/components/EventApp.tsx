@@ -19,6 +19,7 @@ import { useAdminConfig } from '@/hooks/useAdminConfig';
 import { useConferenceTabs } from '@/hooks/useConferenceTabs';
 import { useABTest } from '@/hooks/useABTest';
 import { useEventCheckIn } from '@/hooks/useEventCheckIn';
+import { useRsvp } from '@/hooks/useRsvp';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeId, DEFAULT_THEME, THEME_OPTIONS } from '@/lib/themes';
 import type { ABTest, ETHDenverEvent } from '@/lib/types';
@@ -34,6 +35,7 @@ import { SubmitEventModal } from './SubmitEventModal';
 import { FriendsPanel } from './FriendsPanel';
 import { SponsorsTicker } from './SponsorsTicker';
 import { CheckInFAB } from './CheckInFAB';
+import { RsvpOverlay } from './RsvpOverlay';
 import { OnboardingWizard } from './OnboardingWizard';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { trackAuthPrompt } from '@/lib/analytics';
@@ -166,6 +168,26 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
     result: checkInResult,
     clearResult: clearCheckInResult,
   } = useEventCheckIn();
+
+  const {
+    getRsvpStatus,
+    openRsvp,
+    closeRsvp,
+    markConfirmed,
+    activeRsvp,
+  } = useRsvp();
+
+  const handleRsvp = useCallback(
+    (eventId: string, eventName: string, lumaUrl: string) => {
+      if (!authUser) {
+        trackAuthPrompt('rsvp');
+        setShowSignIn(true);
+        return;
+      }
+      openRsvp(eventId, eventName, lumaUrl);
+    },
+    [authUser, openRsvp]
+  );
 
   const liveEventIds = useMemo(() => {
     const now = getConferenceNow(filters.conference);
@@ -566,6 +588,8 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
             checkInLoading={checkInLoading}
             liveEventIds={liveEventIds}
             userLocation={userLocation}
+            getRsvpStatus={getRsvpStatus}
+            onRsvp={handleRsvp}
           />
         </main>
       )}
@@ -597,6 +621,15 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         onOpenAuth={() => { setShowOnboarding(false); setShowSignIn(true); }}
         conferenceTabs={conferenceTabs}
       />
+      {activeRsvp && (
+        <RsvpOverlay
+          eventId={activeRsvp.eventId}
+          eventName={activeRsvp.eventName}
+          lumaUrl={activeRsvp.lumaUrl}
+          onConfirm={markConfirmed}
+          onClose={closeRsvp}
+        />
+      )}
     </div>
   );
 }

@@ -166,6 +166,10 @@ export const trackOnboardingComplete = (conference: string, tagCount: number) =>
 export const trackOnboardingSkip = (step: string) =>
   track('onboarding_skip', { step });
 
+// RSVP
+export const trackRsvp = (eventId: string, eventName: string) =>
+  track('rsvp', { event_id: eventId, event_name: eventName });
+
 // Ad tracking
 export const trackAdClick = (placement: string, url: string) =>
   track('ad_click', { placement, url });

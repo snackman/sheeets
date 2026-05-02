@@ -43,6 +43,8 @@ interface ListViewProps {
   checkInLoading?: boolean;
   liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
   userLocation?: { lat: number; lng: number } | null;
+  getRsvpStatus?: (eventId: string) => 'idle' | 'confirmed';
+  onRsvp?: (eventId: string, eventName: string, lumaUrl: string) => void;
 }
 
 interface DateGroup {
@@ -142,6 +144,8 @@ export function ListView({
   checkInLoading,
   liveEventIds,
   userLocation,
+  getRsvpStatus,
+  onRsvp,
 }: ListViewProps) {
   const activeAds = useMemo(() => nativeAds?.filter(ad => ad.active !== false) || [], [nativeAds]);
 
@@ -413,6 +417,8 @@ export function ListView({
                     liveUrgency={liveEventIds?.get(item.event.id)}
                     userLocation={userLocation}
                     onOpenLightbox={() => setLightboxEventIndex(virtualRow.index)}
+                    rsvpStatus={getRsvpStatus?.(item.event.id)}
+                    onRsvp={onRsvp}
                   />
                 </div>
               )}

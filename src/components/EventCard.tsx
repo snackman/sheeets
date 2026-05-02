@@ -18,6 +18,8 @@ import { EmojiReactions } from './EmojiReactions';
 import UserAvatar from './UserAvatar';
 import { CommentSection } from './CommentSection';
 import { FriendAvatarStack } from './FriendAvatarStack';
+import { RsvpButton } from './RsvpButton';
+import { isLumaUrl } from '@/lib/luma';
 
 interface EventCardProps {
   event: ETHDenverEvent;
@@ -37,6 +39,8 @@ interface EventCardProps {
   liveUrgency?: 'green' | 'yellow' | 'red';
   userLocation?: { lat: number; lng: number } | null;
   onOpenLightbox?: (imageUrl: string, rsvpUrl?: string) => void;
+  rsvpStatus?: 'idle' | 'confirmed';
+  onRsvp?: (eventId: string, eventName: string, lumaUrl: string) => void;
 }
 
 function FriendsGoingModal({
@@ -136,6 +140,8 @@ export function EventCard({
   liveUrgency,
   userLocation,
   onOpenLightbox,
+  rsvpStatus,
+  onRsvp,
 }: EventCardProps) {
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [showCheckedInModal, setShowCheckedInModal] = useState(false);
@@ -370,8 +376,17 @@ export function EventCard({
         )}
 
         {/* Tags row */}
-        {event.tags.length > 0 && (
+        {(event.tags.length > 0 || (onRsvp && isLumaUrl(event.link))) && (
           <div className="flex flex-wrap items-center gap-1.5 mt-3">
+            {onRsvp && isLumaUrl(event.link) && (
+              <RsvpButton
+                status={rsvpStatus ?? 'idle'}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRsvp(event.id, event.name, event.link);
+                }}
+              />
+            )}
             {event.tags.map((tag) => (
               <TagBadge key={tag} tag={tag} />
             ))}
