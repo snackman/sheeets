@@ -56,7 +56,7 @@ export function SearchBar({ value, onChange, eventCount }: SearchBarProps) {
         type="text"
         value={localValue}
         onChange={(e) => handleChange(e.target.value)}
-        placeholder={eventCount != null ? `Search ${eventCount} events` : 'Search events'}
+        placeholder={eventCount != null ? `${eventCount} events` : 'Events'}
         className="w-full pl-10 pr-9 py-2 bg-[var(--theme-bg-input)] border border-[var(--theme-border-primary)] text-[var(--theme-text-primary)] placeholder-[var(--theme-text-muted)] rounded-lg text-sm focus:outline-none focus:border-[var(--theme-accent)] transition-colors"
       />
       {localValue && (
