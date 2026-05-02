@@ -176,7 +176,7 @@ export function ItineraryPanel({
             {itineraryEvents.length > 0 && (
               <>
                 <Link
-                  href="/itinerary"
+                  href={`/itinerary${selectedConference ? `?conf=${encodeURIComponent(selectedConference)}` : ''}`}
                   className="p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent-link)] active:text-[var(--theme-accent-link)] transition-colors"
                   aria-label="Open full page"
                   title="Open full page"
@@ -242,7 +242,7 @@ export function ItineraryPanel({
                 {/* Branding header (visible in PNG) */}
                 <div className="pt-3 pb-1 px-1 flex items-center gap-2">
                   <span className="text-base">📅</span>
-                  <span className="text-sm font-bold text-[var(--theme-text-primary)]">sheeets.xyz</span>
+                  <span className="text-sm font-bold text-[var(--theme-text-primary)]">plan.wtf</span>
                   <span className="text-xs text-[var(--theme-text-muted)]">— My Itinerary</span>
                 </div>
 
@@ -400,7 +400,7 @@ export function ItineraryPanel({
 
                 {/* Footer in PNG */}
                 <div className="pt-3 pb-2 text-center">
-                  <span className="text-[10px] text-[var(--theme-text-faint)]">sheeets.xyz — side event guide</span>
+                  <span className="text-[10px] text-[var(--theme-text-faint)]">plan.wtf — side event guide</span>
                 </div>
               </div>
 
