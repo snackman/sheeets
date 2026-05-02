@@ -39,6 +39,8 @@ interface TableViewProps {
   liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
   /** User's current location for distance display */
   userLocation?: { lat: number; lng: number } | null;
+  getRsvpStatus?: (eventId: string) => 'idle' | 'confirmed';
+  onRsvp?: (eventId: string, lumaUrl: string, eventName: string) => void;
 }
 
 /** Format a dateISO string like "2026-02-10" into "Mon Feb 10" */
@@ -132,6 +134,8 @@ export function TableView({
   onSignIn,
   liveEventIds,
   userLocation,
+  getRsvpStatus,
+  onRsvp,
 }: TableViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
@@ -413,6 +417,8 @@ export function TableView({
           onToggleReaction={onToggleReaction}
           commentCount={commentCounts?.get(selectedEvent.id)}
           onClose={() => setSelectedEvent(null)}
+          rsvpStatus={getRsvpStatus?.(selectedEvent.id)}
+          onRsvp={selectedEvent.link ? () => onRsvp?.(selectedEvent.id, selectedEvent.link!, selectedEvent.name) : undefined}
         />,
         document.body
       )}
@@ -440,6 +446,8 @@ function EventDetailModal({
   onToggleReaction,
   commentCount,
   onClose,
+  rsvpStatus,
+  onRsvp,
 }: {
   event: ETHDenverEvent;
   isInItinerary: boolean;
@@ -451,6 +459,8 @@ function EventDetailModal({
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
   commentCount?: number;
   onClose: () => void;
+  rsvpStatus?: 'idle' | 'confirmed';
+  onRsvp?: () => void;
 }) {
   return (
     <>
@@ -469,6 +479,8 @@ function EventDetailModal({
             reactions={reactions}
             onToggleReaction={onToggleReaction}
             commentCount={commentCount}
+            rsvpStatus={rsvpStatus}
+            onRsvp={onRsvp}
           />
         </div>
       </div>

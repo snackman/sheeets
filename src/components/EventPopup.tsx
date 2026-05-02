@@ -13,6 +13,7 @@ import { TagBadge } from './TagBadge';
 import { OGImage } from './OGImage';
 import { EmojiReactions } from './EmojiReactions';
 import { CommentSection } from './CommentSection';
+import { RsvpButton } from './RsvpButton';
 
 interface EventPopupProps {
   event: ETHDenverEvent;
@@ -32,6 +33,8 @@ interface EventPopupProps {
   onCheckIn?: (eventId: string) => void;
   checkInLoading?: boolean;
   liveUrgency?: 'green' | 'yellow' | 'red';
+  rsvpStatus?: 'idle' | 'confirmed';
+  onRsvp?: () => void;
 }
 
 interface MultiEventPopupProps {
@@ -94,6 +97,8 @@ function SingleEventContent({
   onCheckIn,
   checkInLoading,
   liveUrgency,
+  rsvpStatus,
+  onRsvp,
 }: {
   event: ETHDenverEvent;
   isInItinerary?: boolean;
@@ -109,6 +114,8 @@ function SingleEventContent({
   onCheckIn?: (eventId: string) => void;
   checkInLoading?: boolean;
   liveUrgency?: 'green' | 'yellow' | 'red';
+  rsvpStatus?: 'idle' | 'confirmed';
+  onRsvp?: () => void;
 }) {
   const timeDisplay = event.isAllDay
     ? 'All Day'
@@ -187,14 +194,15 @@ function SingleEventContent({
           </AddressLink>
         )}
 
-        {/* Tags row (icons only) */}
-        {event.tags.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1 mt-2">
-            {event.tags.map((tag) => (
-              <TagBadge key={tag} tag={tag} iconOnly />
-            ))}
-          </div>
-        )}
+        {/* Tags + RSVP row (icons only) */}
+        <div className="flex flex-wrap items-center gap-1 mt-2">
+          {event.tags.map((tag) => (
+            <TagBadge key={tag} tag={tag} iconOnly />
+          ))}
+          {onRsvp && event.link && (
+            <RsvpButton eventLink={event.link} status={rsvpStatus ?? 'idle'} onClick={onRsvp} />
+          )}
+        </div>
 
         {/* Friends going */}
         {friendsGoing && <FriendsRow friends={friendsGoing} />}
@@ -261,6 +269,8 @@ export function EventPopup({
   onCheckIn,
   checkInLoading,
   liveUrgency,
+  rsvpStatus,
+  onRsvp,
 }: EventPopupProps) {
   return (
     <Popup
@@ -288,6 +298,8 @@ export function EventPopup({
         onCheckIn={onCheckIn}
         checkInLoading={checkInLoading}
         liveUrgency={liveUrgency}
+        rsvpStatus={rsvpStatus}
+        onRsvp={onRsvp}
       />
     </Popup>
   );

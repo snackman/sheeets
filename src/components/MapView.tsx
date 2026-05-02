@@ -44,6 +44,8 @@ interface MapViewProps {
   onCheckIn?: (eventId: string) => void;
   checkInLoading?: boolean;
   liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
+  getRsvpStatus?: (eventId: string) => 'idle' | 'confirmed';
+  onRsvp?: (eventId: string, lumaUrl: string, eventName: string) => void;
 }
 
 /**
@@ -79,6 +81,8 @@ export function MapView({
   onCheckIn,
   checkInLoading,
   liveEventIds,
+  getRsvpStatus,
+  onRsvp,
 }: MapViewProps) {
   const mapCenter = getTabConfig(conference ?? '', conferenceTabs).center;
   const { user } = useAuth();
@@ -571,6 +575,8 @@ export function MapView({
           onCheckIn={onCheckIn}
           checkInLoading={checkInLoading}
           liveUrgency={liveEventIds?.get(popupEvent.id)}
+          rsvpStatus={getRsvpStatus?.(popupEvent.id)}
+          onRsvp={popupEvent.link ? () => onRsvp?.(popupEvent.id, popupEvent.link!, popupEvent.name) : undefined}
         />
       )}
 
