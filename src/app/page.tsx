@@ -239,11 +239,12 @@ export default async function Home() {
                     <span
                       className="inline-block text-xs font-medium px-2 py-0.5 rounded-full mb-2"
                       style={{
-                        backgroundColor: daysLabel === 'Happening now'
-                          ? 'var(--theme-accent)'
-                          : 'var(--theme-bg-primary)',
+                        backgroundColor: 'transparent',
+                        border: daysLabel === 'Happening now'
+                          ? '1px solid var(--theme-accent)'
+                          : '1px solid var(--theme-text-secondary)',
                         color: daysLabel === 'Happening now'
-                          ? 'var(--theme-bg-primary)'
+                          ? 'var(--theme-accent)'
                           : 'var(--theme-text-secondary)',
                       }}
                     >
