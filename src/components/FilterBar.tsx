@@ -21,6 +21,7 @@ interface FilterBarProps {
   onSetDateTimeRange: (start: string, end: string) => void;
   onToggleVibe: (vibe: string) => void;
   onToggleNowMode: () => void;
+  onToggleTagMatchAll: () => void;
   onClearFilters: () => void;
   activeFilterCount: number;
   availableConferences: string[];
@@ -47,6 +48,7 @@ export function FilterBar({
   onSetDateTimeRange,
   onToggleVibe,
   onToggleNowMode,
+  onToggleTagMatchAll,
   onClearFilters,
   activeFilterCount,
   availableConferences,
@@ -324,7 +326,7 @@ export function FilterBar({
               );
             })()}
 
-            {/* Tag groups */}
+            {/* Tag match mode toggle + Tag groups */}
             {(() => {
               // Union all available tags from both types and vibes
               const allAvailable = new Set([...availableTypes, ...availableVibes]);
@@ -376,6 +378,34 @@ export function FilterBar({
 
               return (
                 <>
+                  {/* Any/All toggle — only show when tags are selected */}
+                  {filters.vibes.length > 1 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[var(--theme-text-secondary)]">Match</span>
+                      <button
+                        onClick={onToggleTagMatchAll}
+                        className={clsx(
+                          'px-2 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer',
+                          !filters.tagMatchAll
+                            ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+                            : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)]'
+                        )}
+                      >
+                        Any
+                      </button>
+                      <button
+                        onClick={onToggleTagMatchAll}
+                        className={clsx(
+                          'px-2 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer',
+                          filters.tagMatchAll
+                            ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+                            : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)]'
+                        )}
+                      >
+                        All
+                      </button>
+                    </div>
+                  )}
                   {groupRows}
                   {otherTags.length > 0 && (
                     <div>

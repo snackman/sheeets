@@ -10,6 +10,7 @@ function makeFilters(overrides: Partial<FilterState> = {}): FilterState {
     startDateTime: '',
     endDateTime: '',
     vibes: [],
+    tagMatchAll: false,
     selectedFriends: [],
     itineraryOnly: false,
     searchQuery: '',

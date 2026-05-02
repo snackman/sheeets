@@ -133,7 +133,7 @@ export function applyFilters(
       }
     }
 
-    // Tag filter (event must have ALL selected tags) — skip when computing base for tag counts
+    // Tag filter — skip when computing base for tag counts
     // Expand event tags with aliases (e.g. "Dinner" also counts as "Food")
     if (!options?.skipVibes && filters.vibes.length > 0) {
       const expandedTags = new Set(event.tags);
@@ -141,7 +141,10 @@ export function applyFilters(
         const alias = TAG_ALIASES[t];
         if (alias) expandedTags.add(alias);
       }
-      if (!filters.vibes.every(t => expandedTags.has(t))) {
+      const match = filters.tagMatchAll
+        ? filters.vibes.every(t => expandedTags.has(t))   // AND: event has all selected tags
+        : filters.vibes.some(t => expandedTags.has(t));   // OR: event has any selected tag
+      if (!match) {
         return false;
       }
     }
