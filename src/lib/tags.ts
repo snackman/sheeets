@@ -91,3 +91,9 @@ export const TAG_GROUPS: TagGroup[] = [
 ];
 
 export const GROUPED_TAGS = new Set(TAG_GROUPS.flatMap(g => g.tags));
+
+/** Tags that should be treated as equivalent when filtering.
+ *  Key = alias tag on events, Value = canonical tag shown in filter UI */
+export const TAG_ALIASES: Record<string, string> = {
+  'Dinner': 'Food',
+};

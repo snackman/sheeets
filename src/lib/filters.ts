@@ -1,6 +1,7 @@
 import type { ETHDenverEvent, FilterState } from './types';
 import { getTabConfig } from './conferences';
 import { parseTimeToMinutes } from './time-parse';
+import { TAG_ALIASES } from './tags';
 
 // Re-export so existing consumers of `parseTimeToMinutes` from filters.ts still work
 export { parseTimeToMinutes } from './time-parse';
@@ -133,8 +134,16 @@ export function applyFilters(
     }
 
     // Tag filter (event must have ALL selected tags) — skip when computing base for tag counts
-    if (!options?.skipVibes && filters.vibes.length > 0 && !filters.vibes.every(t => event.tags.includes(t))) {
-      return false;
+    // Expand event tags with aliases (e.g. "Dinner" also counts as "Food")
+    if (!options?.skipVibes && filters.vibes.length > 0) {
+      const expandedTags = new Set(event.tags);
+      for (const t of event.tags) {
+        const alias = TAG_ALIASES[t];
+        if (alias) expandedTags.add(alias);
+      }
+      if (!filters.vibes.every(t => expandedTags.has(t))) {
+        return false;
+      }
     }
 
     // Itinerary
@@ -172,6 +181,11 @@ export function computeTagCounts(events: ETHDenverEvent[]): Map<string, number> 
   for (const event of events) {
     for (const tag of event.tags) {
       counts.set(tag, (counts.get(tag) ?? 0) + 1);
+      // Also count aliases (e.g. "Dinner" events count toward "Food")
+      const alias = TAG_ALIASES[tag];
+      if (alias && !event.tags.includes(alias)) {
+        counts.set(alias, (counts.get(alias) ?? 0) + 1);
+      }
     }
   }
   return counts;
