@@ -50,10 +50,10 @@ export function NotifyForm({ conferenceSlug, conferenceName }: NotifyFormProps) 
     <>
       <button
         onClick={() => setOpen(true)}
-        className="mt-3 px-4 py-1.5 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 cursor-pointer"
+        className="mt-3 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer hover:bg-[var(--theme-bg-tertiary)] hover:text-[var(--theme-text-primary)]"
         style={{
-          backgroundColor: 'var(--theme-accent)',
-          color: 'var(--theme-bg-primary)',
+          color: 'var(--theme-text-secondary)',
+          border: '1px solid var(--theme-border-primary)',
         }}
       >
         Notify Me
