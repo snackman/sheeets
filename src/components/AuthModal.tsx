@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, LogOut, User, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, Share2 } from 'lucide-react';
+import { X, Mail, LogOut, User, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, Share2, ArrowRight } from 'lucide-react';
 import { ShareCardModal } from './ShareCardModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAuthSuccess, trackSignOut, trackFriendCodeGenerate, trackFriendCodeCopy, trackModalDismiss } from '@/lib/analytics';
@@ -857,20 +857,26 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                         trackAdEvent({ ad_id: profileAd.id || 'profile-ad', ad_name: profileAd.title, placement: 'profile', event_type: 'click', url: profileAd.link });
                       }}
                     >
-                      <div className="flex gap-3 overflow-hidden rounded-xl bg-purple-500/5 border border-purple-500/30 hover:bg-purple-500/10 p-3 transition-colors">
-                        {profileAd.imageUrl && (
-                          <div className="w-[60px] h-[60px] flex-shrink-0 rounded-lg overflow-hidden bg-[var(--theme-bg-tertiary)]">
-                            <img src={profileAd.imageUrl} alt={profileAd.title} className="w-full h-full object-contain" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-xs font-semibold text-[var(--theme-text-primary)] truncate">{profileAd.title}</span>
-                            <span className="flex-shrink-0 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 rounded-full border border-purple-500/30">
-                              {profileAd.badge || 'Ad'}
+                      <div className="bg-[var(--theme-bg-card)] border border-[var(--theme-border-primary)] rounded-lg p-3 transition-colors hover:border-amber-500/30">
+                        <div className="flex gap-3">
+                          {profileAd.imageUrl && (
+                            <div className="w-[60px] h-[60px] flex-shrink-0 rounded-lg overflow-hidden bg-[var(--theme-bg-tertiary)]">
+                              <img src={profileAd.imageUrl} alt={profileAd.title} className="w-full h-full object-contain" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-semibold text-[var(--theme-text-primary)] truncate">{profileAd.title}</span>
+                              <span className="flex-shrink-0 text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20">
+                                Ad
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-[var(--theme-text-secondary)] line-clamp-2 mb-1.5">{profileAd.description}</p>
+                            <span className="inline-flex items-center gap-1 text-amber-400 text-[11px] font-medium">
+                              {profileAd.badge || 'Learn more'}
+                              <ArrowRight className="w-3 h-3" />
                             </span>
                           </div>
-                          <p className="text-[11px] text-[var(--theme-text-secondary)] line-clamp-2">{profileAd.description}</p>
                         </div>
                       </div>
                     </a>
