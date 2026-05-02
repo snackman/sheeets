@@ -31,6 +31,7 @@ function buildDefaultFilters(conference: string, tabs?: TabConfig[]): FilterStat
     startDateTime: range.startDateTime,
     endDateTime: range.endDateTime,
     vibes: [],
+    tagMatchAll: false,
     selectedFriends: [],
     itineraryOnly: false,
     searchQuery: '',
@@ -93,6 +94,10 @@ export function useFilters(initialConference?: string, conferenceTabs?: TabConfi
     setFilters((prev) => ({ ...prev, nowMode: !prev.nowMode }));
   }, []);
 
+  const toggleTagMatchAll = useCallback(() => {
+    setFilters((prev) => ({ ...prev, tagMatchAll: !prev.tagMatchAll }));
+  }, []);
+
   const clearFilters = useCallback(() => setFilters(buildDefaultFilters(filters.conference, conferenceTabs)), [filters.conference, conferenceTabs]);
 
   const activeFilterCount = useMemo(() => {
@@ -115,6 +120,7 @@ export function useFilters(initialConference?: string, conferenceTabs?: TabConfi
     toggleFriend,
     toggleBool,
     toggleNowMode,
+    toggleTagMatchAll,
     clearFilters,
     activeFilterCount,
   };

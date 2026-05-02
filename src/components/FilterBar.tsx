@@ -5,7 +5,7 @@ import clsx from 'clsx';
 import { X, ListFilter, Clock, Users, MapPin, Plus, Link2, Check, Loader2, ChevronDown } from 'lucide-react';
 import { CalendarIcon } from './icons/CalendarIcon';
 import type { FilterState } from '@/lib/types';
-import { VIBE_COLORS, getTabConfig } from '@/lib/constants';
+import { VIBE_COLORS, getTabConfig, TAG_GROUPS, GROUPED_TAGS } from '@/lib/constants';
 import type { TabConfig } from '@/lib/conferences';
 import { TAG_ICONS } from './TagBadge';
 import { SearchBar } from './SearchBar';
@@ -21,6 +21,7 @@ interface FilterBarProps {
   onSetDateTimeRange: (start: string, end: string) => void;
   onToggleVibe: (vibe: string) => void;
   onToggleNowMode: () => void;
+  onToggleTagMatchAll: () => void;
   onClearFilters: () => void;
   activeFilterCount: number;
   availableConferences: string[];
@@ -47,6 +48,7 @@ export function FilterBar({
   onSetDateTimeRange,
   onToggleVibe,
   onToggleNowMode,
+  onToggleTagMatchAll,
   onClearFilters,
   activeFilterCount,
   availableConferences,
@@ -289,12 +291,12 @@ export function FilterBar({
               </div>
             )}
 
-            {/* Start + Type row */}
+            {/* Date pickers row */}
             {(() => {
               const tabDates = getTabConfig(filters.conference, conferenceTabs).dates;
               return (
-                <div className="flex gap-3 items-end">
-                  <div className={clsx('w-40 shrink-0', filters.nowMode && 'opacity-30 pointer-events-none')}>
+                <div className={clsx('flex gap-3 items-end', filters.nowMode && 'opacity-30 pointer-events-none')}>
+                  <div className="w-40 shrink-0">
                     <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-2">Start</div>
                     <DateTimePicker
                       value={filters.startDateTime}
@@ -307,48 +309,7 @@ export function FilterBar({
                       }}
                     />
                   </div>
-                  {(availableTypes.length > 0) && (
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-1">Type</div>
-                      <div className="overflow-x-auto flex gap-2 pb-1">
-                        {availableTypes.filter((vibe) => (tagCounts.get(vibe) ?? 0) > 0).map((vibe) => {
-                          const isActive = filters.vibes.includes(vibe);
-                          const vibeColor = VIBE_COLORS[vibe] || VIBE_COLORS['default'];
-                          const Icon = TAG_ICONS[vibe];
-                          const count = tagCounts.get(vibe) ?? 0;
-                          return (
-                            <button
-                              key={vibe}
-                              onClick={() => { trackTagToggle(vibe, !filters.vibes.includes(vibe)); onToggleVibe(vibe); }}
-                              className={clsx(
-                                'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
-                                isActive
-                                  ? 'text-white'
-                                  : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-border-primary)] active:bg-[var(--theme-border-primary)]'
-                              )}
-                              style={isActive ? { backgroundColor: vibeColor } : undefined}
-                            >
-                              {Icon && <Icon className="w-3.5 h-3.5" />}
-                              {vibe}
-                              <span className={clsx('text-xs', isActive ? 'text-white/70' : 'text-[var(--theme-text-muted)]')}>
-                                ({count})
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
-            {/* End + Tags row */}
-            {(() => {
-              const tabDates = getTabConfig(filters.conference, conferenceTabs).dates;
-              return (
-                <div className="flex gap-3 items-end">
-                  <div className={clsx('w-40 shrink-0', filters.nowMode && 'opacity-30 pointer-events-none')}>
+                  <div className="w-40 shrink-0">
                     <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-2">End</div>
                     <DateTimePicker
                       value={filters.endDateTime}
@@ -361,11 +322,96 @@ export function FilterBar({
                       }}
                     />
                   </div>
-                  {availableVibes.length > 0 && (
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-1">Tags</div>
-                      <div className="overflow-x-auto flex gap-2 pb-1">
-                        {availableVibes.filter((vibe) => (tagCounts.get(vibe) ?? 0) > 0).map((vibe) => {
+                </div>
+              );
+            })()}
+
+            {/* Tag match mode toggle + Tag groups */}
+            {(() => {
+              // Union all available tags from both types and vibes
+              const allAvailable = new Set([...availableTypes, ...availableVibes]);
+
+              // Render each TAG_GROUP that has at least one available tag with count > 0
+              const groupRows = TAG_GROUPS.map((group) => {
+                const groupTags = group.tags.filter(
+                  (tag) => allAvailable.has(tag) && (tagCounts.get(tag) ?? 0) > 0
+                );
+                if (groupTags.length === 0) return null;
+                return (
+                  <div key={group.label}>
+                    <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-1">{group.label}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {groupTags.map((vibe) => {
+                        const isActive = filters.vibes.includes(vibe);
+                        const vibeColor = VIBE_COLORS[vibe] || VIBE_COLORS['default'];
+                        const Icon = TAG_ICONS[vibe];
+                        const count = tagCounts.get(vibe) ?? 0;
+                        return (
+                          <button
+                            key={vibe}
+                            onClick={() => { trackTagToggle(vibe, !filters.vibes.includes(vibe)); onToggleVibe(vibe); }}
+                            className={clsx(
+                              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
+                              isActive
+                                ? 'border'
+                                : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-border-primary)] active:bg-[var(--theme-border-primary)] border border-transparent'
+                            )}
+                            style={isActive ? { borderColor: vibeColor, color: vibeColor } : undefined}
+                          >
+                            {Icon && <Icon className="w-3.5 h-3.5" />}
+                            {vibe}
+                            <span className={clsx('text-xs', isActive ? 'opacity-70' : 'text-[var(--theme-text-muted)]')}>
+                              ({count})
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              });
+
+              // "Other" catch-all for tags not in any TAG_GROUP
+              const otherTags = [...allAvailable].filter(
+                (tag) => !GROUPED_TAGS.has(tag) && (tagCounts.get(tag) ?? 0) > 0
+              );
+
+              return (
+                <>
+                  {/* Any/All toggle — only show when tags are selected */}
+                  {filters.vibes.length > 1 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[var(--theme-text-secondary)]">Match</span>
+                      <button
+                        onClick={onToggleTagMatchAll}
+                        className={clsx(
+                          'px-2 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer',
+                          !filters.tagMatchAll
+                            ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+                            : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)]'
+                        )}
+                      >
+                        Any
+                      </button>
+                      <button
+                        onClick={onToggleTagMatchAll}
+                        className={clsx(
+                          'px-2 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer',
+                          filters.tagMatchAll
+                            ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+                            : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)]'
+                        )}
+                      >
+                        All
+                      </button>
+                    </div>
+                  )}
+                  {groupRows}
+                  {otherTags.length > 0 && (
+                    <div>
+                      <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-1">Other</div>
+                      <div className="flex flex-wrap gap-2">
+                        {otherTags.map((vibe) => {
                           const isActive = filters.vibes.includes(vibe);
                           const vibeColor = VIBE_COLORS[vibe] || VIBE_COLORS['default'];
                           const Icon = TAG_ICONS[vibe];
@@ -375,16 +421,16 @@ export function FilterBar({
                               key={vibe}
                               onClick={() => { trackTagToggle(vibe, !filters.vibes.includes(vibe)); onToggleVibe(vibe); }}
                               className={clsx(
-                                'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
+                                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                                 isActive
-                                  ? 'text-white'
-                                  : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-border-primary)] active:bg-[var(--theme-border-primary)]'
+                                  ? 'border'
+                                  : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-border-primary)] active:bg-[var(--theme-border-primary)] border border-transparent'
                               )}
-                              style={isActive ? { backgroundColor: vibeColor } : undefined}
+                              style={isActive ? { borderColor: vibeColor, color: vibeColor } : undefined}
                             >
                               {Icon && <Icon className="w-3.5 h-3.5" />}
                               {vibe}
-                              <span className={clsx('text-xs', isActive ? 'text-white/70' : 'text-[var(--theme-text-muted)]')}>
+                              <span className={clsx('text-xs', isActive ? 'opacity-70' : 'text-[var(--theme-text-muted)]')}>
                                 ({count})
                               </span>
                             </button>
@@ -393,7 +439,7 @@ export function FilterBar({
                       </div>
                     </div>
                   )}
-                </div>
+                </>
               );
             })()}
 

@@ -57,6 +57,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
     toggleFriend,
     toggleBool,
     toggleNowMode,
+    toggleTagMatchAll,
     clearFilters,
     activeFilterCount,
   } = useFilters(initialConference, conferenceTabs);
@@ -466,6 +467,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           onSetDateTimeRange={setDateTimeRange}
           onToggleVibe={toggleVibe}
           onToggleNowMode={toggleNowMode}
+          onToggleTagMatchAll={toggleTagMatchAll}
           onClearFilters={clearFilters}
           activeFilterCount={activeFilterCount}
           availableConferences={availableConferences}

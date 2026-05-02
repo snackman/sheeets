@@ -27,6 +27,7 @@ export const VIBE_COLORS: Record<string, string> = {
   // Blue group -- builders & business
   'Devs': 'var(--tag-blue)',
   'VCs': 'var(--tag-blue)',
+  'Founders': 'var(--tag-blue)',
   'Jobs': 'var(--tag-blue)',
   // Yellow group -- crypto & topics
   'DePIN': 'var(--tag-yellow)',
@@ -75,3 +76,24 @@ export const TYPE_TAGS = [
   'Screening',
   'Vibe',
 ];
+
+/** Intent-based tag groups for the filter bar UI */
+export interface TagGroup {
+  label: string;
+  tags: string[];
+}
+
+export const TAG_GROUPS: TagGroup[] = [
+  { label: 'Topics', tags: ['BTC', 'ETH', 'SOL', 'AI', 'DeFi', 'DAOs', 'NFTs', 'DePIN', 'RWA', 'Memecoins', 'Gaming'] },
+  { label: 'Vibe / Setting', tags: ['Party', 'Networking', 'Brunch', 'Conference', 'Panel/Talk', 'Hackathon', 'Workshop', 'Wellness', 'Art', 'Performance'] },
+  { label: 'Audience', tags: ['Devs', 'VCs', 'Founders', 'Jobs'] },
+  { label: 'Perks', tags: ['Food', 'Drinks', '$$'] },
+];
+
+export const GROUPED_TAGS = new Set(TAG_GROUPS.flatMap(g => g.tags));
+
+/** Tags that should be treated as equivalent when filtering.
+ *  Key = alias tag on events, Value = canonical tag shown in filter UI */
+export const TAG_ALIASES: Record<string, string> = {
+  'Dinner': 'Food',
+};

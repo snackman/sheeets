@@ -41,6 +41,7 @@ export interface FilterState {
   startDateTime: string;  // ISO local: "2026-02-16T14:00"
   endDateTime: string;    // ISO local: "2026-02-21T23:59"
   vibes: string[];
+  tagMatchAll: boolean;  // true = AND (all tags), false = OR (any tag)
   selectedFriends: string[];
   itineraryOnly: boolean;
   searchQuery: string;
