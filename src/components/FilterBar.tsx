@@ -338,7 +338,7 @@ export function FilterBar({
                 return (
                   <div key={group.label}>
                     <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-1">{group.label}</div>
-                    <div className="overflow-x-auto flex gap-2 pb-1">
+                    <div className="flex flex-wrap gap-2">
                       {groupTags.map((vibe) => {
                         const isActive = filters.vibes.includes(vibe);
                         const vibeColor = VIBE_COLORS[vibe] || VIBE_COLORS['default'];
@@ -349,7 +349,7 @@ export function FilterBar({
                             key={vibe}
                             onClick={() => { trackTagToggle(vibe, !filters.vibes.includes(vibe)); onToggleVibe(vibe); }}
                             className={clsx(
-                              'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
+                              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                               isActive
                                 ? 'border'
                                 : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-border-primary)] active:bg-[var(--theme-border-primary)] border border-transparent'
@@ -380,7 +380,7 @@ export function FilterBar({
                   {otherTags.length > 0 && (
                     <div>
                       <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-1">Other</div>
-                      <div className="overflow-x-auto flex gap-2 pb-1">
+                      <div className="flex flex-wrap gap-2">
                         {otherTags.map((vibe) => {
                           const isActive = filters.vibes.includes(vibe);
                           const vibeColor = VIBE_COLORS[vibe] || VIBE_COLORS['default'];
@@ -391,7 +391,7 @@ export function FilterBar({
                               key={vibe}
                               onClick={() => { trackTagToggle(vibe, !filters.vibes.includes(vibe)); onToggleVibe(vibe); }}
                               className={clsx(
-                                'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
+                                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                                 isActive
                                   ? 'border'
                                   : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-border-primary)] active:bg-[var(--theme-border-primary)] border border-transparent'
