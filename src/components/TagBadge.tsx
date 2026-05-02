@@ -41,6 +41,7 @@ import {
   Sparkle,
   Laugh,
   Pizza,
+  Rocket,
   type LucideIcon,
 } from 'lucide-react';
 import { VIBE_COLORS } from '@/lib/constants';
@@ -99,6 +100,7 @@ export const TAG_ICONS: Record<string, IconComponent> = {
   'Wellness': Heart,
   'Brunch': Coffee,
   'Jobs': Briefcase,
+  'Founders': Rocket,
   'Memecoins': Smile,
   'Party': PartyPopper,
   'Workshop': GraduationCap,

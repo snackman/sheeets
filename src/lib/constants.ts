@@ -26,7 +26,8 @@ export {
 
 export type { TabConfig } from './conferences';
 
-export { VIBE_COLORS, TYPE_TAGS } from './tags';
+export { VIBE_COLORS, TYPE_TAGS, TAG_GROUPS, GROUPED_TAGS } from './tags';
+export type { TagGroup } from './tags';
 
 export { STORAGE_KEYS } from './storage-keys';
 
