@@ -8,6 +8,7 @@ import { sortByStartTime } from '@/lib/time-parse';
 import { EventCard } from './EventCard';
 import { FeaturedSection } from './FeaturedSection';
 import NativeAdCard from './NativeAdCard';
+import { imageCache, FlyerLightbox } from './OGImage';
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -195,6 +196,43 @@ export function ListView({
     }
   }, [virtualizer, containerRef]);
 
+  /* ---- flyer lightbox navigation ---- */
+  const [lightboxEventIndex, setLightboxEventIndex] = useState<number | null>(null);
+
+  // Build ordered list of event indices (skip ads and headers)
+  const eventIndices = useMemo(
+    () => flatItems.reduce<number[]>((acc, item, i) => { if (item.kind === 'event') acc.push(i); return acc; }, []),
+    [flatItems]
+  );
+
+  const lightboxEvent = lightboxEventIndex !== null ? flatItems[lightboxEventIndex] : null;
+  const lightboxImageUrl = lightboxEvent?.kind === 'event' && lightboxEvent.event.link
+    ? imageCache.get(lightboxEvent.event.link) ?? null
+    : null;
+  const lightboxRsvpUrl = lightboxEvent?.kind === 'event' ? lightboxEvent.event.link : undefined;
+
+  const lightboxPosInEvents = lightboxEventIndex !== null ? eventIndices.indexOf(lightboxEventIndex) : -1;
+  const canPrev = lightboxPosInEvents > 0;
+  const canNext = lightboxPosInEvents >= 0 && lightboxPosInEvents < eventIndices.length - 1;
+
+  const handleLightboxPrev = useCallback(() => {
+    if (!canPrev) return;
+    const prevIdx = eventIndices[lightboxPosInEvents - 1];
+    const prevItem = flatItems[prevIdx];
+    if (prevItem.kind === 'event' && prevItem.event.link && imageCache.get(prevItem.event.link)) {
+      setLightboxEventIndex(prevIdx);
+    }
+  }, [canPrev, eventIndices, lightboxPosInEvents, flatItems]);
+
+  const handleLightboxNext = useCallback(() => {
+    if (!canNext) return;
+    const nextIdx = eventIndices[lightboxPosInEvents + 1];
+    const nextItem = flatItems[nextIdx];
+    if (nextItem.kind === 'event' && nextItem.event.link && imageCache.get(nextItem.event.link)) {
+      setLightboxEventIndex(nextIdx);
+    }
+  }, [canNext, eventIndices, lightboxPosInEvents, flatItems]);
+
   /* ---- sticky date header overlay ---- */
   const [stickyLabel, setStickyLabel] = useState<string | null>(null);
   const [stickyCount, setStickyCount] = useState<number>(0);
@@ -374,6 +412,7 @@ export function ListView({
                     checkInLoading={checkInLoading}
                     liveUrgency={liveEventIds?.get(item.event.id)}
                     userLocation={userLocation}
+                    onOpenLightbox={() => setLightboxEventIndex(virtualRow.index)}
                   />
                 </div>
               )}
@@ -381,6 +420,17 @@ export function ListView({
           );
         })}
       </div>
+
+      {/* Flyer lightbox with prev/next navigation */}
+      {lightboxEventIndex !== null && lightboxImageUrl && (
+        <FlyerLightbox
+          imageUrl={lightboxImageUrl}
+          rsvpUrl={lightboxRsvpUrl}
+          onClose={() => setLightboxEventIndex(null)}
+          onPrev={canPrev ? handleLightboxPrev : undefined}
+          onNext={canNext ? handleLightboxNext : undefined}
+        />
+      )}
     </div>
   );
 }

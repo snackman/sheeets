@@ -36,6 +36,7 @@ interface EventCardProps {
   checkInLoading?: boolean;
   liveUrgency?: 'green' | 'yellow' | 'red';
   userLocation?: { lat: number; lng: number } | null;
+  onOpenLightbox?: (imageUrl: string, rsvpUrl?: string) => void;
 }
 
 function FriendsGoingModal({
@@ -134,6 +135,7 @@ export function EventCard({
   checkInLoading,
   liveUrgency,
   userLocation,
+  onOpenLightbox,
 }: EventCardProps) {
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [showCheckedInModal, setShowCheckedInModal] = useState(false);
@@ -219,7 +221,7 @@ export function EventCard({
       style={event.isFeatured ? { borderColor: 'var(--theme-popup-featured-border)' } : hasFriends ? { borderLeftColor: 'var(--friend-blue)' } : undefined}
     >
       {/* Left: cover image */}
-      {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} />}
+      {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} onOpenLightbox={onOpenLightbox} />}
 
       {/* Right: event details */}
       <div className="flex-1 min-w-0">

@@ -2,17 +2,19 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface OGImageProps {
   url: string;
   eventId?: string;
   rsvpUrl?: string;
+  /** If provided, clicking the thumbnail calls this instead of opening the built-in lightbox */
+  onOpenLightbox?: (imageUrl: string, rsvpUrl?: string) => void;
 }
 
-const imageCache = new Map<string, string | null>();
+export const imageCache = new Map<string, string | null>();
 
-export function OGImage({ url, eventId, rsvpUrl }: OGImageProps) {
+export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox }: OGImageProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(
     imageCache.get(url) ?? null
   );
@@ -55,6 +57,7 @@ export function OGImage({ url, eventId, rsvpUrl }: OGImageProps) {
     return () => observer.disconnect();
   }, [url, eventId]);
 
+  // Built-in lightbox keyboard/scroll handling (only used when no external lightbox)
   useEffect(() => {
     if (!lightboxOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -80,7 +83,12 @@ export function OGImage({ url, eventId, rsvpUrl }: OGImageProps) {
         className="shrink-0 w-[88px] sm:w-[106px] rounded-lg overflow-hidden bg-stone-800/30 self-center cursor-pointer"
         onClick={(e) => {
           e.stopPropagation();
-          if (imageUrl) setLightboxOpen(true);
+          if (!imageUrl) return;
+          if (onOpenLightbox) {
+            onOpenLightbox(imageUrl, rsvpUrl);
+          } else {
+            setLightboxOpen(true);
+          }
         }}
         role="button"
         tabIndex={0}
@@ -100,7 +108,8 @@ export function OGImage({ url, eventId, rsvpUrl }: OGImageProps) {
         )}
       </div>
 
-      {lightboxOpen && imageUrl && createPortal(
+      {/* Built-in lightbox (used when no external lightbox handler) */}
+      {lightboxOpen && imageUrl && !onOpenLightbox && createPortal(
         <div
           className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90"
           onClick={() => setLightboxOpen(false)}
@@ -133,5 +142,85 @@ export function OGImage({ url, eventId, rsvpUrl }: OGImageProps) {
         document.body
       )}
     </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Standalone Lightbox — used by ListView for prev/next navigation    */
+/* ------------------------------------------------------------------ */
+
+interface FlyerLightboxProps {
+  imageUrl: string;
+  rsvpUrl?: string;
+  onClose: () => void;
+  onPrev?: () => void;
+  onNext?: () => void;
+}
+
+export function FlyerLightbox({ imageUrl, rsvpUrl, onClose, onPrev, onNext }: FlyerLightboxProps) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if ((e.key === 'ArrowLeft' || e.key === 'ArrowUp') && onPrev) { e.preventDefault(); onPrev(); }
+      if ((e.key === 'ArrowRight' || e.key === 'ArrowDown') && onNext) { e.preventDefault(); onNext(); }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, onPrev, onNext]);
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90"
+      onClick={onClose}
+    >
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer z-10"
+        aria-label="Close lightbox"
+      >
+        <X className="w-6 h-6" />
+      </button>
+      {onPrev && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onPrev(); }}
+          className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer z-10"
+          aria-label="Previous flyer"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+      )}
+      {onNext && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onNext(); }}
+          className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer z-10"
+          aria-label="Next flyer"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
+      )}
+      <div className="flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
+        <img
+          src={imageUrl}
+          alt=""
+          className="max-w-[60vw] max-h-[60vh] object-contain rounded-lg"
+        />
+        {rsvpUrl && (
+          <a
+            href={rsvpUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            RSVP / Event Page &rarr;
+          </a>
+        )}
+      </div>
+    </div>,
+    document.body
   );
 }
