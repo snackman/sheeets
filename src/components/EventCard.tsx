@@ -37,6 +37,8 @@ interface EventCardProps {
   liveUrgency?: 'green' | 'yellow' | 'red';
   userLocation?: { lat: number; lng: number } | null;
   onOpenLightbox?: (imageUrl: string, rsvpUrl?: string) => void;
+  /** Compact mode for map popups — smaller text, no impression tracking */
+  compact?: boolean;
 }
 
 function FriendsGoingModal({
@@ -136,6 +138,7 @@ export function EventCard({
   liveUrgency,
   userLocation,
   onOpenLightbox,
+  compact,
 }: EventCardProps) {
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [showCheckedInModal, setShowCheckedInModal] = useState(false);
@@ -147,7 +150,7 @@ export function EventCard({
 
   // Track featured event impressions via IntersectionObserver
   useEffect(() => {
-    if (!event.isFeatured) return;
+    if (!event.isFeatured || compact) return;
     const el = cardRef.current;
     if (!el || featuredImpressionTracked.current) return;
 
@@ -174,6 +177,7 @@ export function EventCard({
 
   // Track event impressions via IntersectionObserver (all events in list view)
   useEffect(() => {
+    if (compact) return;
     const el = cardRef.current;
     if (!el || eventImpressionTracked.current) return;
 
@@ -213,7 +217,7 @@ export function EventCard({
     : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
 
   return (
-    <div ref={cardRef} className={`rounded-lg p-4 transition-colors group flex gap-4 overflow-hidden ${
+    <div ref={cardRef} className={`rounded-lg ${compact ? 'p-3' : 'p-4'} transition-colors group flex gap-${compact ? '3' : '4'} overflow-hidden ${
       event.isFeatured
         ? 'bg-[var(--theme-bg-card)] border-2 hover:bg-[var(--theme-bg-card-hover)]'
         : `bg-[var(--theme-bg-card)] border border-[var(--theme-border-primary)] hover:bg-[var(--theme-bg-card-hover)] hover:border-[var(--theme-border-primary)] active:bg-[var(--theme-bg-card-hover)]${hasFriends ? ' border-l-[3px]' : ''}`
@@ -228,7 +232,7 @@ export function EventCard({
         {/* Top row: Name + Avatars + Star */}
         <div className="flex items-start gap-2">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-[var(--theme-text-primary)] text-sm sm:text-base leading-tight">
+            <h3 className={`font-semibold text-[var(--theme-text-primary)] ${compact ? 'text-sm' : 'text-sm sm:text-base'} leading-tight`}>
               {event.isFeatured && (
                 <span className="inline-block text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded mr-1.5 align-middle" style={{ color: 'var(--theme-popup-featured-border)', background: 'var(--theme-accent-muted)' }}>Featured</span>
               )}
@@ -373,7 +377,7 @@ export function EventCard({
         {event.tags.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5 mt-3">
             {event.tags.map((tag) => (
-              <TagBadge key={tag} tag={tag} />
+              <TagBadge key={tag} tag={tag} iconOnly={compact} />
             ))}
           </div>
         )}
@@ -390,6 +394,7 @@ export function EventCard({
               eventId={event.id}
               reactions={reactions}
               onToggle={onToggleReaction}
+              compact={compact}
             />
           )}
           <CommentSection eventId={event.id} commentCount={commentCount} />
