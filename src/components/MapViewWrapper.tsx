@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { memo, useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { ChevronUp, ChevronDown, MapPinOff } from 'lucide-react';
 import type { ETHDenverEvent, POI, POICategory, ReactionEmoji, FriendLocation, FriendInfo } from '@/lib/types';
@@ -48,7 +48,7 @@ interface MapViewWrapperProps {
   onRsvp?: (eventId: string, lumaUrl: string, eventName: string) => void;
 }
 
-export function MapViewWrapper({
+export const MapViewWrapper = memo(function MapViewWrapper({
   events,
   onEventSelect,
   itinerary,
@@ -152,4 +152,4 @@ export function MapViewWrapper({
       )}
     </div>
   );
-}
+});

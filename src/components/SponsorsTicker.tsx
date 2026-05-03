@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { SponsorEntry } from '@/lib/types';
 import { trackAdClick, trackAdImpression } from '@/lib/analytics';
 import { trackAdEvent, slugifySponsor } from '@/lib/ad-tracking';
@@ -24,7 +24,7 @@ interface SponsorsTickerProps {
   onSponsorClick?: (url: string) => void;
 }
 
-export function SponsorsTicker({ sponsors, conference, onImpression, onSponsorClick }: SponsorsTickerProps) {
+export const SponsorsTicker = memo(function SponsorsTicker({ sponsors, conference, onImpression, onSponsorClick }: SponsorsTickerProps) {
   const sponsorList = sponsors && sponsors.length > 0 ? sponsors : defaultSponsors;
 
   const tickerRef = useRef<HTMLDivElement>(null);
@@ -100,4 +100,4 @@ export function SponsorsTicker({ sponsors, conference, onImpression, onSponsorCl
       </div>
     </div>
   );
-}
+});

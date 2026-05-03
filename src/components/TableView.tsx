@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
+import { memo, useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, Download, ExternalLink, Plus, Check, X, Users } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
@@ -115,7 +115,7 @@ function FriendsGoingModal({ eventName, friends, onClose }: { eventName: string;
 
 const COLUMN_COUNT = 7; // star, friends, time, organizer, event, location, tags
 
-export function TableView({
+export const TableView = memo(function TableView({
   events,
   totalCount,
   itinerary,
@@ -432,7 +432,7 @@ export function TableView({
       )}
     </div>
   );
-}
+});
 
 /** Modal overlay showing full EventCard for a selected table row */
 function EventDetailModal({

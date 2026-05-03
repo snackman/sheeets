@@ -189,7 +189,7 @@ export function OnboardingWizard({
       <div className="fixed inset-0 z-[100] bg-black/50" onClick={handleClose} />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" onClick={handleClose}>
         <div
           className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}

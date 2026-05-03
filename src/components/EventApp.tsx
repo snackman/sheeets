@@ -6,11 +6,9 @@ import { useFilters } from '@/hooks/useFilters';
 import { useItinerary } from '@/hooks/useItinerary';
 import { usePOIs } from '@/hooks/usePOIs';
 import { useFriends } from '@/hooks/useFriends';
-import { useFriendsItineraries } from '@/hooks/useFriendsItineraries';
-import { useCheckIns } from '@/hooks/useCheckIns';
+import { useFriendsDependentData } from '@/hooks/useFriendsDependentData';
 import { useEventReactions } from '@/hooks/useEventReactions';
 import { useEventCommentCounts } from '@/hooks/useEventCommentCounts';
-import { useFriendLocations } from '@/hooks/useFriendLocations';
 import { useViewMode } from '@/hooks/useViewMode';
 import { useAuthGatedActions } from '@/hooks/useAuthGatedActions';
 import { useConferenceData } from '@/hooks/useConferenceData';
@@ -96,11 +94,9 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
   const { pois, addPOI, removePOI, updatePOI, ownerNames } = usePOIs();
 
   const { friends, removeFriend, refreshFriends } = useFriends();
-  const { friendItineraries } = useFriendsItineraries(friends);
-  const { checkInCounts, checkInUsersByEvent } = useCheckIns(friends);
+  const { friendItineraries, checkInCounts, checkInUsersByEvent, friendLocations } = useFriendsDependentData(friends);
   const { reactionsByEvent, toggleReaction } = useEventReactions();
   const commentCounts = useEventCommentCounts();
-  const friendLocations = useFriendLocations(friends);
 
   const {
     showAuthForStar,
@@ -379,6 +375,22 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
     confirmRsvp();
   }, [activeRsvp, confirmRsvp]);
 
+  // Stable callback refs for child prop stability
+  const handleOpenFriends = useCallback(() => setShowFriends(true), []);
+  const handleOpenSubmitEvent = useCallback(() => setShowSubmitEvent(true), []);
+  const handleOpenSignIn = useCallback(() => setShowSignIn(true), []);
+  const handleSearchChange = useCallback((q: string) => setFilter('searchQuery', q), [setFilter]);
+  const handleCloseAuth = useCallback(() => { dismissAuth(); setShowSignIn(false); }, [dismissAuth]);
+  const handleCloseSubmitEvent = useCallback(() => setShowSubmitEvent(false), []);
+  const handleCloseFriends = useCallback(() => setShowFriends(false), []);
+  const handleOnboardingAuth = useCallback(() => { setShowOnboarding(false); setShowSignIn(true); }, []);
+
+  // Memoized derived value
+  const filteredItineraryCount = useMemo(
+    () => filteredEvents.filter(e => itinerary.has(e.id)).length,
+    [filteredEvents, itinerary]
+  );
+
   // Onboarding wizard for first-time users
   const [showOnboarding, setShowOnboarding] = useState(false);
   useEffect(() => {
@@ -424,7 +436,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           onViewChange={setViewMode}
           events={events}
           itinerary={itinerary}
-          onOpenFriends={() => setShowFriends(true)}
+          onOpenFriends={handleOpenFriends}
           refreshFriends={refreshFriends}
         />
         <Loading />
@@ -440,7 +452,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           onViewChange={setViewMode}
           events={events}
           itinerary={itinerary}
-          onOpenFriends={() => setShowFriends(true)}
+          onOpenFriends={handleOpenFriends}
           refreshFriends={refreshFriends}
         />
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-4">
@@ -464,8 +476,8 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         onViewChange={setViewMode}
         events={events}
         itinerary={itinerary}
-        onOpenFriends={() => setShowFriends(true)}
-        onSubmitEvent={() => setShowSubmitEvent(true)}
+        onOpenFriends={handleOpenFriends}
+        onSubmitEvent={handleOpenSubmitEvent}
         refreshFriends={refreshFriends}
         activeConference={filters.conference}
         hasNearbyLiveEvents={hasNearbyLiveEvents}
@@ -502,12 +514,12 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           selectedFriends={filters.selectedFriends}
           onToggleFriend={toggleFriend}
           searchQuery={filters.searchQuery}
-          onSearchChange={(query) => setFilter('searchQuery', query)}
+          onSearchChange={handleSearchChange}
           eventCount={filteredEvents.length}
-          onSubmitEvent={() => setShowSubmitEvent(true)}
-          onSignIn={() => setShowSignIn(true)}
+          onSubmitEvent={handleOpenSubmitEvent}
+          onSignIn={handleOpenSignIn}
           conferenceTabs={conferenceTabs}
-          itineraryCount={filteredEvents.filter(e => itinerary.has(e.id)).length}
+          itineraryCount={filteredItineraryCount}
           onItineraryToggle={handleItineraryFilterToggle}
           isItineraryActive={filters.itineraryOnly}
         />
@@ -535,7 +547,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
             onRemovePOI={removePOI}
             onUpdatePOI={updatePOI}
             ownerNames={ownerNames}
-            onSignIn={() => setShowSignIn(true)}
+            onSignIn={handleOpenSignIn}
             conferenceTabs={conferenceTabs}
             onCheckIn={checkInToEvent}
             checkInLoading={checkInLoading}
@@ -562,7 +574,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
             conference={filters.conference}
             featuredEvents={featuredEvents}
             isSignedIn={!!authUser}
-            onSignIn={() => setShowSignIn(true)}
+            onSignIn={handleOpenSignIn}
             liveEventIds={liveEventIds}
             userLocation={userLocation}
             getRsvpStatus={getRsvpStatus}
@@ -628,11 +640,11 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         />
       )}
 
-      <AuthModal isOpen={showAuthForStar || showSignIn} onClose={() => { dismissAuth(); setShowSignIn(false); }} />
-      <SubmitEventModal isOpen={showSubmitEvent} onClose={() => setShowSubmitEvent(false)} upsellCopy={config?.upsell_copy} initialConference={filters.conference} conferenceTabs={conferenceTabs} />
+      <AuthModal isOpen={showAuthForStar || showSignIn} onClose={handleCloseAuth} />
+      <SubmitEventModal isOpen={showSubmitEvent} onClose={handleCloseSubmitEvent} upsellCopy={config?.upsell_copy} initialConference={filters.conference} conferenceTabs={conferenceTabs} />
       <FriendsPanel
         isOpen={showFriends}
-        onClose={() => setShowFriends(false)}
+        onClose={handleCloseFriends}
         friends={friends}
         onRemoveFriend={removeFriend}
       />
@@ -643,7 +655,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         availableConferences={availableConferences}
         conferenceEventCounts={conferenceEventCounts}
         events={events}
-        onOpenAuth={() => { setShowOnboarding(false); setShowSignIn(true); }}
+        onOpenAuth={handleOnboardingAuth}
         conferenceTabs={conferenceTabs}
       />
       {activeRsvp && (
