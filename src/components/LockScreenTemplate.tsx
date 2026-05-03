@@ -42,7 +42,7 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
     // Protected zones (scaled) — keep content away from OS UI elements
     const topSafe = Math.round(300 * s);       // clock / Dynamic Island
     const bottomSafe = Math.round(200 * s);     // home indicator / flashlight+camera
-    const logoHeight = Math.round(44 * s);
+    const logoHeight = Math.round(88 * s);
     const logoGap = Math.round(20 * s);
 
     // Calculate available vertical space for profile + QR codes
@@ -101,173 +101,182 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
         {/* Top safe zone — clock / Dynamic Island */}
         <div style={{ height: `${topSafe}px`, flexShrink: 0 }} />
 
-        {/* Profile section */}
+        {/* Push content group toward center */}
+        <div style={{ flex: 1 }} />
+
+        {/* Content group: profile + QR codes + branding */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: `${Math.round(16 * s)}px`,
-            paddingLeft: `${Math.round(60 * s)}px`,
-            paddingRight: `${Math.round(60 * s)}px`,
+            gap: `${Math.round(40 * s)}px`,
           }}
         >
-          {/* Avatar + Name row */}
+          {/* Profile section */}
           <div
             style={{
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
-              gap: `${Math.round(24 * s)}px`,
+              gap: `${Math.round(16 * s)}px`,
+              paddingLeft: `${Math.round(60 * s)}px`,
+              paddingRight: `${Math.round(60 * s)}px`,
             }}
           >
-            {/* Avatar */}
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt=""
-                crossOrigin="anonymous"
-                style={{
-                  width: `${Math.round(140 * s)}px`,
-                  height: `${Math.round(140 * s)}px`,
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: `${Math.round(4 * s)}px solid #292524`,
-                  flexShrink: 0,
-                }}
-              />
-            ) : displayName ? (
-              <div
-                style={{
-                  width: `${Math.round(140 * s)}px`,
-                  height: `${Math.round(140 * s)}px`,
-                  borderRadius: '50%',
-                  backgroundColor: '#292524',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: `${Math.round(56 * s)}px`,
-                  fontWeight: 700,
-                  color: '#fbbf24',
-                  border: `${Math.round(4 * s)}px solid #292524`,
-                  flexShrink: 0,
-                }}
-              >
-                {displayName.charAt(0).toUpperCase()}
-              </div>
-            ) : null}
+            {/* Avatar + Name row */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: `${Math.round(24 * s)}px`,
+              }}
+            >
+              {/* Avatar */}
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt=""
+                  crossOrigin="anonymous"
+                  style={{
+                    width: `${Math.round(140 * s)}px`,
+                    height: `${Math.round(140 * s)}px`,
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    border: `${Math.round(4 * s)}px solid #292524`,
+                    flexShrink: 0,
+                  }}
+                />
+              ) : displayName ? (
+                <div
+                  style={{
+                    width: `${Math.round(140 * s)}px`,
+                    height: `${Math.round(140 * s)}px`,
+                    borderRadius: '50%',
+                    backgroundColor: '#292524',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: `${Math.round(56 * s)}px`,
+                    fontWeight: 700,
+                    color: '#fbbf24',
+                    border: `${Math.round(4 * s)}px solid #292524`,
+                    flexShrink: 0,
+                  }}
+                >
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+              ) : null}
 
-            {/* Name */}
-            {displayName && (
+              {/* Name */}
+              {displayName && (
+                <div
+                  style={{
+                    fontSize: `${Math.round(72 * s)}px`,
+                    fontWeight: 800,
+                    color: '#fafaf9',
+                    lineHeight: 1.2,
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  {displayName}
+                </div>
+              )}
+            </div>
+
+            {/* Company / Job Title */}
+            {(company || jobTitle) && (
               <div
                 style={{
-                  fontSize: `${Math.round(72 * s)}px`,
-                  fontWeight: 800,
-                  color: '#fafaf9',
-                  lineHeight: 1.2,
-                  letterSpacing: '-0.02em',
+                  fontSize: `${Math.round(36 * s)}px`,
+                  fontWeight: 500,
+                  color: '#a8a29e',
+                  lineHeight: 1.3,
                 }}
               >
-                {displayName}
+                {[company, jobTitle].filter(Boolean).join('  |  ')}
               </div>
             )}
           </div>
 
-          {/* Company / Job Title */}
-          {(company || jobTitle) && (
-            <div
+          {/* QR codes */}
+          <div
+            style={{
+              display: qrCount >= 4 ? 'grid' : 'flex',
+              ...(qrCount >= 4
+                ? {
+                    gridTemplateColumns: `repeat(2, ${qrSize}px)`,
+                    justifyContent: 'center',
+                    justifyItems: 'center',
+                    alignItems: 'start',
+                    gap: `${Math.round(30 * s)}px`,
+                    padding: `0 ${Math.round(40 * s)}px`,
+                  }
+                : {
+                    flexDirection: qrCount === 2 ? 'column' as const : 'row' as const,
+                    flexWrap: 'wrap' as const,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: qrCount === 1 ? '0px' : qrCount === 2 ? `${Math.round(30 * s)}px` : `${Math.round(40 * s)}px`,
+                    paddingLeft: qrCount === 3 ? '0px' : `${Math.round(24 * s)}px`,
+                    paddingRight: qrCount === 3 ? '0px' : `${Math.round(24 * s)}px`,
+                  }),
+            }}
+          >
+            {socialLinks.map((link) => (
+              <div
+                key={link.platform}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: `${Math.round(16 * s)}px`,
+                }}
+              >
+                <QRCodeSVG
+                  value={link.url}
+                  size={qrSize}
+                  level="M"
+                  fgColor="#fafaf9"
+                  bgColor="#0c0a09"
+                  imageSettings={PLATFORM_LOGOS[link.platform] ? {
+                    src: PLATFORM_LOGOS[link.platform],
+                    height: Math.round(qrSize * 0.22),
+                    width: Math.round(qrSize * 0.22),
+                    excavate: true,
+                  } : undefined}
+                />
+                <div
+                  style={{
+                    fontSize: `${Math.round(28 * s)}px`,
+                    fontWeight: 600,
+                    color: '#a8a29e',
+                    textAlign: 'center',
+                  }}
+                >
+                  {link.label}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Branding */}
+          {logoDataUrl && (
+            <img
+              src={logoDataUrl}
+              alt="plan.wtf"
               style={{
-                fontSize: `${Math.round(36 * s)}px`,
-                fontWeight: 500,
-                color: '#a8a29e',
-                lineHeight: 1.3,
+                height: `${logoHeight}px`,
+                objectFit: 'contain',
+                opacity: 0.4,
+                filter: 'brightness(0) invert(1)',
               }}
-            >
-              {[company, jobTitle].filter(Boolean).join('  |  ')}
-            </div>
+            />
           )}
         </div>
 
-        {/* Spacer */}
-        <div style={{ flex: 2, minHeight: `${Math.round(40 * s)}px` }} />
-
-        {/* QR codes */}
-        <div
-          style={{
-            display: qrCount >= 4 ? 'grid' : 'flex',
-            ...(qrCount >= 4
-              ? {
-                  gridTemplateColumns: `repeat(2, ${qrSize}px)`,
-                  justifyContent: 'center',
-                  justifyItems: 'center',
-                  alignItems: 'start',
-                  gap: `${Math.round(30 * s)}px`,
-                  padding: `0 ${Math.round(40 * s)}px`,
-                }
-              : {
-                  flexDirection: qrCount === 2 ? 'column' as const : 'row' as const,
-                  flexWrap: 'wrap' as const,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: qrCount === 1 ? '0px' : qrCount === 2 ? `${Math.round(30 * s)}px` : `${Math.round(40 * s)}px`,
-                  paddingLeft: qrCount === 3 ? '0px' : `${Math.round(24 * s)}px`,
-                  paddingRight: qrCount === 3 ? '0px' : `${Math.round(24 * s)}px`,
-                }),
-          }}
-        >
-          {socialLinks.map((link) => (
-            <div
-              key={link.platform}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: `${Math.round(16 * s)}px`,
-              }}
-            >
-              <QRCodeSVG
-                value={link.url}
-                size={qrSize}
-                level="M"
-                fgColor="#fafaf9"
-                bgColor="#0c0a09"
-                imageSettings={PLATFORM_LOGOS[link.platform] ? {
-                  src: PLATFORM_LOGOS[link.platform],
-                  height: Math.round(qrSize * 0.22),
-                  width: Math.round(qrSize * 0.22),
-                  excavate: true,
-                } : undefined}
-              />
-              <div
-                style={{
-                  fontSize: `${Math.round(28 * s)}px`,
-                  fontWeight: 600,
-                  color: '#a8a29e',
-                  textAlign: 'center',
-                }}
-              >
-                {link.label}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Spacer */}
-        <div style={{ flex: 1, minHeight: `${Math.round(24 * s)}px` }} />
-
-        {/* Branding */}
-        {logoDataUrl && (
-          <img
-            src={logoDataUrl}
-            alt="plan.wtf"
-            style={{
-              maxHeight: `${logoHeight}px`,
-              objectFit: 'contain',
-              opacity: 0.4,
-              filter: 'brightness(0) invert(1)',
-              flexShrink: 1,
-            }}
-          />
-        )}
+        {/* Push content group toward center */}
+        <div style={{ flex: 1 }} />
 
         {/* Bottom safe zone — home indicator / flashlight+camera */}
         <div style={{ height: `${bottomSafe}px`, flexShrink: 0 }} />
