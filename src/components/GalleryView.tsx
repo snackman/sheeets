@@ -223,7 +223,14 @@ function GalleryCard({
           <span className="text-white text-sm font-medium line-clamp-1">
             {event.name}
           </span>
-          <span className="text-white/70 text-xs">
+          <span className="text-white/70 text-xs flex items-center gap-1">
+            {liveUrgency && (
+              <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${
+                liveUrgency === 'red' ? 'bg-red-400' :
+                liveUrgency === 'yellow' ? 'bg-yellow-400' :
+                'bg-green-400'
+              }`} />
+            )}
             {timeDisplay}
           </span>
         </div>
