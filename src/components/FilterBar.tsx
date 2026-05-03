@@ -130,7 +130,7 @@ export function FilterBar({
 
   return (
     <div className="relative bg-[var(--theme-bg-filter)] border-b border-[var(--theme-border-secondary)] z-30">
-      <div className="px-2 sm:px-4 pt-2 pb-2.5 space-y-3">
+      <div className="px-2 sm:px-4 pt-3.5 pb-2 space-y-3">
         {/* Top row: Conference tabs + Filter toggle */}
         <div className="flex items-center gap-3 lg:justify-center">
           {/* Conference selector — dropdown on all screen sizes */}
