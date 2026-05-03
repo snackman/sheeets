@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { parseBody, SubmissionActionSchema } from '@/lib/api-validation';
-import { appendEventRow, getSheetTitle } from '@/lib/google-sheets';
+import { insertEventRowSorted, getSheetTitle } from '@/lib/google-sheets';
 import { FALLBACK_TABS } from '@/lib/conferences';
 import { getConferenceTabs } from '@/lib/get-conferences';
 import { normalizeAddress } from '@/lib/utils';
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const sheetName = await getSheetTitle(tab.gid);
-    const sheetRow = await appendEventRow(sheetName, {
+    const sheetRow = await insertEventRowSorted(sheetName, tab.gid, {
       date: eventFields.event_date,
       startTime: eventFields.start_time,
       endTime: eventFields.end_time,

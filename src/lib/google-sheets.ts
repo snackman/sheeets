@@ -216,6 +216,132 @@ export async function writeCell(sheetName: string, cell: string, value: string):
   }
 }
 
+/**
+ * Insert an event row into the main section of a sheet tab (before the "Add Events Here" area).
+ * Uses the Sheets batchUpdate API to insert a blank row at the end of the main section,
+ * then writes the event data. fetchEvents sorts by date/time client-side, so position
+ * within the main section doesn't need to be exact.
+ * Returns the 1-based row number where the event was inserted.
+ */
+export async function insertEventRowSorted(sheetName: string, gid: number, event: EventRow): Promise<number> {
+  const token = await getAccessToken();
+
+  // 1. Read columns A:B to find the main section boundaries
+  const range = encodeURIComponent(`'${sheetName}'!A1:E`);
+  const readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}`;
+  const readRes = await fetch(readUrl, { headers: { Authorization: `Bearer ${token}` } });
+  if (!readRes.ok) {
+    const text = await readRes.text();
+    throw new Error(`Failed to read sheet: ${readRes.status} ${text}`);
+  }
+  const readData = await readRes.json();
+  const rows: string[][] = readData.values || [];
+
+  // 2. Find the first header row (col B = "Start Time") — this is the main section header
+  let headerIdx = -1;
+  for (let i = 0; i < rows.length; i++) {
+    const colB = (rows[i]?.[1] || '').trim().toLowerCase();
+    if (colB === 'start time') {
+      headerIdx = i;
+      break;
+    }
+  }
+  if (headerIdx === -1) {
+    // Can't find main section header — fall back to appendEventRow
+    return appendEventRow(sheetName, event);
+  }
+
+  // 3. Find the end of the main events section:
+  //    first empty row or "Add Events Here" marker after the header
+  let mainSectionEnd = rows.length;
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const cellA = (rows[i]?.[0] || '').trim();
+    const cellB = (rows[i]?.[1] || '').trim();
+    const cellE = (rows[i]?.[4] || '').trim();
+
+    // "Add Events Here" marker — stop before it
+    if (cellA.includes('Add Events Here')) {
+      mainSectionEnd = i;
+      break;
+    }
+
+    // Empty row (no date, no start time, no name) — end of main section
+    if (!cellA && !cellB && !cellE) {
+      mainSectionEnd = i;
+      break;
+    }
+  }
+
+  // Insert at the end of the main section (0-based index)
+  const insertIdx = mainSectionEnd;
+  const insertRow = insertIdx + 1; // 1-based sheet row
+
+  // 4. Insert a blank row using batchUpdate API
+  const batchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`;
+  const insertRes = await fetch(batchUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      requests: [{
+        insertDimension: {
+          range: {
+            sheetId: gid,
+            dimension: 'ROWS',
+            startIndex: insertIdx,
+            endIndex: insertIdx + 1,
+          },
+          inheritFromBefore: true,
+        },
+      }],
+    }),
+  });
+
+  if (!insertRes.ok) {
+    const text = await insertRes.text();
+    throw new Error(`Failed to insert row: ${insertRes.status} ${text}`);
+  }
+
+  // 5. Write event data to the newly inserted row
+  const writeRange = encodeURIComponent(`'${sheetName}'!A${insertRow}:L${insertRow}`);
+  const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${writeRange}?valueInputOption=USER_ENTERED`;
+
+  const values = [
+    [
+      event.date,
+      event.startTime,
+      event.endTime,
+      event.organizer,
+      event.name,
+      event.address,
+      event.cost,
+      event.tags,
+      event.link,
+      event.food ? 'TRUE' : 'FALSE',
+      event.bar ? 'TRUE' : 'FALSE',
+      event.note,
+    ],
+  ];
+
+  const writeRes = await fetch(writeUrl, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ values }),
+  });
+
+  if (!writeRes.ok) {
+    const text = await writeRes.text();
+    throw new Error(`Failed to write event data: ${writeRes.status} ${text}`);
+  }
+
+  return insertRow;
+}
+
 export interface EventRow {
   date: string;
   startTime: string;
