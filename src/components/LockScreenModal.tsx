@@ -278,7 +278,7 @@ export function LockScreenModal({
                       className="w-3.5 h-3.5 rounded accent-[var(--theme-accent)]"
                     />
                     <span className="text-sm text-[var(--theme-text-secondary)]">
-                      {link.platform === 'friend' ? 'Friend link (plan.wtf)' : link.platform === 'x' ? `X (@${link.label.replace('@', '')})` : link.platform === 'telegram' ? `Telegram (${link.label})` : `LinkedIn`}
+                      {link.platform === 'friend' ? 'plan.wtf' : link.platform === 'x' ? `X (@${link.label.replace('@', '')})` : link.platform === 'telegram' ? `Telegram (${link.label})` : `LinkedIn`}
                     </span>
                   </label>
                 ))}
