@@ -276,3 +276,233 @@ export async function appendEventRow(sheetName: string, event: EventRow): Promis
 
   return row;
 }
+
+/**
+ * Insert an event row into the main section of a sheet tab (before the "Add Events Here" area).
+ * Uses the Sheets batchUpdate API to insert a blank row at the end of the main section,
+ * then writes the event data. fetchEvents sorts by date/time client-side, so position
+ * within the main section doesn't need to be exact.
+ * Returns the 1-based row number where the event was inserted.
+ */
+export async function insertEventRowSorted(sheetName: string, gid: number, event: EventRow): Promise<number> {
+  const token = await getAccessToken();
+
+  // 1. Read columns A:B to find the main section boundaries
+  const range = encodeURIComponent(`'${sheetName}'!A1:E`);
+  const readUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}`;
+  const readRes = await fetch(readUrl, { headers: { Authorization: `Bearer ${token}` } });
+  if (!readRes.ok) {
+    const text = await readRes.text();
+    throw new Error(`Failed to read sheet: ${readRes.status} ${text}`);
+  }
+  const readData = await readRes.json();
+  const rows: string[][] = readData.values || [];
+
+  // 2. Find the first header row (col B = "Start Time") — this is the main section header
+  let headerIdx = -1;
+  for (let i = 0; i < rows.length; i++) {
+    const colB = (rows[i]?.[1] || '').trim().toLowerCase();
+    if (colB === 'start time') {
+      headerIdx = i;
+      break;
+    }
+  }
+  if (headerIdx === -1) {
+    // Can't find main section header — fall back to appendEventRow
+    return appendEventRow(sheetName, event);
+  }
+
+  // 3. Find the end of the main events section:
+  //    first empty row or "Add Events Here" marker after the header
+  let mainSectionEnd = rows.length;
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const cellA = (rows[i]?.[0] || '').trim();
+    const cellB = (rows[i]?.[1] || '').trim();
+    const cellE = (rows[i]?.[4] || '').trim();
+
+    // "Add Events Here" marker — stop before it
+    if (cellA.includes('Add Events Here')) {
+      mainSectionEnd = i;
+      break;
+    }
+
+    // Empty row (no date, no start time, no name) — end of main section
+    if (!cellA && !cellB && !cellE) {
+      mainSectionEnd = i;
+      break;
+    }
+  }
+
+  // Insert at the end of the main section (0-based index)
+  const insertIdx = mainSectionEnd;
+  const insertRow = insertIdx + 1; // 1-based sheet row
+
+  // 4. Insert a blank row using batchUpdate API
+  const batchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`;
+  const insertRes = await fetch(batchUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      requests: [{
+        insertDimension: {
+          range: {
+            sheetId: gid,
+            dimension: 'ROWS',
+            startIndex: insertIdx,
+            endIndex: insertIdx + 1,
+          },
+          inheritFromBefore: true,
+        },
+      }],
+    }),
+  });
+
+  if (!insertRes.ok) {
+    const text = await insertRes.text();
+    throw new Error(`Failed to insert row: ${insertRes.status} ${text}`);
+  }
+
+  // 5. Write event data to the newly inserted row
+  const writeRange = encodeURIComponent(`'${sheetName}'!A${insertRow}:L${insertRow}`);
+  const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${writeRange}?valueInputOption=USER_ENTERED`;
+
+  const values = [
+    [
+      event.date,
+      event.startTime,
+      event.endTime,
+      event.organizer,
+      event.name,
+      event.address,
+      event.cost,
+      event.tags,
+      event.link,
+      event.food ? 'TRUE' : 'FALSE',
+      event.bar ? 'TRUE' : 'FALSE',
+      event.note,
+    ],
+  ];
+
+  const writeRes = await fetch(writeUrl, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ values }),
+  });
+
+  if (!writeRes.ok) {
+    const text = await writeRes.text();
+    throw new Error(`Failed to write event data: ${writeRes.status} ${text}`);
+  }
+
+  return insertRow;
+}
+
+/**
+ * Find a submitted event row in the review section (below "Add Events Here").
+ * Searches by event name (col E, 0-indexed 4) and date (col A, 0-indexed 0).
+ * Returns the 0-based row index, or null if not found.
+ */
+export async function findReviewRow(
+  sheetName: string,
+  eventName: string,
+  eventDate: string
+): Promise<number | null> {
+  const token = await getAccessToken();
+  const range = encodeURIComponent(`'${sheetName}'!A1:M`);
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}`;
+
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to read sheet: ${res.status} ${text}`);
+  }
+
+  const data = await res.json();
+  const rows: string[][] = data.values || [];
+
+  // Find the "Add Events Here" marker
+  let addEventsRow = -1;
+  for (let i = 0; i < rows.length; i++) {
+    const cellA = (rows[i]?.[0] || '').trim();
+    if (cellA.includes('Add Events Here')) {
+      addEventsRow = i;
+      break;
+    }
+  }
+
+  if (addEventsRow === -1) return null;
+
+  // Find the review header row (col B = "Start Time") after the marker
+  let headerRow = -1;
+  for (let i = addEventsRow + 1; i < rows.length; i++) {
+    const colB = (rows[i]?.[1] || '').trim().toLowerCase();
+    if (colB === 'start time') {
+      headerRow = i;
+      break;
+    }
+  }
+
+  if (headerRow === -1) return null;
+
+  // Scan review rows for matching name + date (case-insensitive)
+  const targetName = eventName.trim().toLowerCase();
+  const targetDate = eventDate.trim().toLowerCase();
+
+  for (let i = headerRow + 1; i < rows.length; i++) {
+    const row = rows[i] || [];
+    const cellDate = (row[0] || '').trim().toLowerCase();
+    const cellName = (row[4] || '').trim().toLowerCase();
+
+    // Skip empty rows
+    if (!cellDate && !cellName) continue;
+
+    if (cellName === targetName && cellDate === targetDate) {
+      return i; // 0-based row index
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Delete a single row from a sheet by 0-based row index.
+ * Uses the Sheets batchUpdate API with deleteDimension.
+ */
+export async function deleteSheetRow(gid: number, rowIndex: number): Promise<void> {
+  const token = await getAccessToken();
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      requests: [{
+        deleteDimension: {
+          range: {
+            sheetId: gid,
+            dimension: 'ROWS',
+            startIndex: rowIndex,
+            endIndex: rowIndex + 1,
+          },
+        },
+      }],
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to delete row: ${res.status} ${text}`);
+  }
+}
