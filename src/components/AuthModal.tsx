@@ -2,12 +2,14 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, LogOut, User, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, ArrowRight, Send, Building2, Briefcase, Linkedin } from 'lucide-react';
+import { X, Mail, LogOut, User, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, ArrowRight, Send, Building2, Briefcase, Linkedin, Smartphone } from 'lucide-react';
 import { ShareCardModal } from './ShareCardModal';
+import { LockScreenModal } from './LockScreenModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAuthSuccess, trackSignOut, trackFriendCodeGenerate, trackFriendCodeCopy, trackModalDismiss } from '@/lib/analytics';
 import { getDisplayName } from '@/lib/user-display';
 import UserAvatar from './UserAvatar';
+import { getSocialLinks } from '@/lib/social-urls';
 
 import { supabase } from '@/lib/supabase';
 import { useProfile } from '@/hooks/useProfile';
@@ -429,6 +431,13 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   );
   const shareConferenceName = activeConference || 'Itinerary';
   const badgeCount = externalCount ?? pendingIncomingCount;
+
+  // Lock screen card state
+  const [showLockScreen, setShowLockScreen] = useState(false);
+  const socialLinks = useMemo(
+    () => getSocialLinks(profile ?? {}),
+    [profile]
+  );
 
   // Sync form state when profile loads
   useEffect(() => {
@@ -887,8 +896,17 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                   )}
                 </div>
 
-                {/* Share Itinerary + Submit Event + Sign Out */}
+                {/* Lock Screen Card + Sign Out */}
                 <div className="border-t border-[var(--theme-border-primary)] pt-4 space-y-2">
+                  {socialLinks.length > 0 && (
+                    <button
+                      onClick={() => setShowLockScreen(true)}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--theme-bg-tertiary)] hover:bg-[var(--theme-bg-card-hover)] text-[var(--theme-text-primary)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                    >
+                      <Smartphone className="w-3.5 h-3.5" />
+                      Lock Screen Card
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       trackSignOut();
@@ -955,6 +973,15 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
         conferenceName={shareConferenceName}
         displayName={profile?.display_name ?? null}
         avatarUrl={profile?.avatar_url}
+      />
+      <LockScreenModal
+        isOpen={showLockScreen}
+        onClose={() => setShowLockScreen(false)}
+        displayName={profile?.display_name ?? null}
+        company={profile?.company ?? null}
+        jobTitle={profile?.job_title ?? null}
+        avatarUrl={profile?.avatar_url ?? null}
+        socialLinks={socialLinks}
       />
     </>
   );
