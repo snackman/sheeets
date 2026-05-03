@@ -299,6 +299,9 @@ export function EventCard({
                   onToggle={onItineraryToggle}
                 />
               )}
+              {onRsvp && event.link && (
+                <RsvpButton eventLink={event.link} status={rsvpStatus ?? 'idle'} onClick={onRsvp} />
+              )}
               {event.link && (
                 <button
                   onClick={handleCopyLink}
@@ -374,14 +377,11 @@ export function EventCard({
           </AddressLink>
         )}
 
-        {/* Tags + RSVP row */}
+        {/* Tags */}
         <div className="flex flex-wrap items-center gap-1.5 mt-3">
           {event.tags.map((tag) => (
             <TagBadge key={tag} tag={tag} />
           ))}
-          {onRsvp && event.link && (
-            <RsvpButton eventLink={event.link} status={rsvpStatus ?? 'idle'} onClick={onRsvp} />
-          )}
         </div>
 
         {/* Note */}
