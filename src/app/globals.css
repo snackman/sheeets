@@ -65,6 +65,10 @@
   --theme-header-accent-muted: var(--theme-accent-muted);
 
   --theme-bg-list: var(--theme-bg-primary);
+  --theme-bg-filter: var(--theme-bg-primary);
+  --theme-filter-text: var(--theme-text-secondary);
+  --theme-filter-control-bg: var(--theme-bg-secondary);
+  --theme-filter-control-border: var(--theme-border-primary);
   --theme-table-header-bg: var(--theme-bg-secondary);
   --theme-table-header-text: var(--theme-text-secondary);
 
@@ -248,6 +252,10 @@
   --theme-header-accent-muted: rgba(255, 255, 255, 0.15);
 
   --theme-bg-list: rgba(28, 69, 134, 0.06);
+  --theme-bg-filter: #48699D;
+  --theme-filter-text: rgba(255, 255, 255, 0.7);
+  --theme-filter-control-bg: rgba(255, 255, 255, 0.1);
+  --theme-filter-control-border: rgba(255, 255, 255, 0.2);
   --theme-table-header-bg: #1c4586;
   --theme-table-header-text: #ffffff;
 
