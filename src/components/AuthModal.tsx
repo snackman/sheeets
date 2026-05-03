@@ -588,7 +588,8 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
     <>
       <button
         onClick={() => setOpen(true)}
-        className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--theme-border-primary)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] transition-colors text-sm cursor-pointer"
+        className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--theme-header-control-border)] text-[var(--theme-header-text)] hover:text-[var(--theme-header-text-hover)] active:text-[var(--theme-header-text-hover)] transition-colors text-sm cursor-pointer"
+        style={{ backgroundColor: 'var(--theme-header-control-bg)' }}
         title="Profile"
       >
         <CircleUser className="w-4 h-4" />
