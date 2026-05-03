@@ -297,7 +297,7 @@ export function FilterBar({
               return (
                 <div className={clsx('flex gap-3 items-end', filters.nowMode && 'opacity-30 pointer-events-none')}>
                   <div className="w-40 shrink-0">
-                    <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-2">Start</div>
+                    <div className="text-xs uppercase tracking-wider text-[var(--theme-filter-text)] mb-2">Start</div>
                     <DateTimePicker
                       value={filters.startDateTime}
                       min={`${tabDates[0]}T00:00`}
@@ -310,7 +310,7 @@ export function FilterBar({
                     />
                   </div>
                   <div className="w-40 shrink-0">
-                    <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-2">End</div>
+                    <div className="text-xs uppercase tracking-wider text-[var(--theme-filter-text)] mb-2">End</div>
                     <DateTimePicker
                       value={filters.endDateTime}
                       min={filters.startDateTime}
@@ -339,7 +339,7 @@ export function FilterBar({
                 if (groupTags.length === 0) return null;
                 return (
                   <div key={group.label}>
-                    <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-1">{group.label}</div>
+                    <div className="text-xs uppercase tracking-wider text-[var(--theme-filter-text)] mb-1">{group.label}</div>
                     <div className="flex flex-wrap gap-2">
                       {groupTags.map((vibe) => {
                         const isActive = filters.vibes.includes(vibe);
@@ -354,7 +354,7 @@ export function FilterBar({
                               'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                               isActive
                                 ? 'border'
-                                : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-border-primary)] active:bg-[var(--theme-border-primary)] border border-transparent'
+                                : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:bg-[var(--theme-filter-control-border)] active:bg-[var(--theme-filter-control-border)] border border-[var(--theme-filter-control-border)]'
                             )}
                             style={isActive ? { borderColor: vibeColor, color: vibeColor } : undefined}
                           >
@@ -381,14 +381,14 @@ export function FilterBar({
                   {/* Any/All toggle — only show when tags are selected */}
                   {filters.vibes.length > 1 && (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-[var(--theme-text-secondary)]">Match</span>
+                      <span className="text-xs text-[var(--theme-filter-text)]">Match</span>
                       <button
                         onClick={onToggleTagMatchAll}
                         className={clsx(
                           'px-2 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer',
                           !filters.tagMatchAll
                             ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
-                            : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)]'
+                            : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)]'
                         )}
                       >
                         Any
@@ -399,7 +399,7 @@ export function FilterBar({
                           'px-2 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer',
                           filters.tagMatchAll
                             ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
-                            : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)]'
+                            : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)]'
                         )}
                       >
                         All
@@ -409,7 +409,7 @@ export function FilterBar({
                   {groupRows}
                   {otherTags.length > 0 && (
                     <div>
-                      <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-1">Other</div>
+                      <div className="text-xs uppercase tracking-wider text-[var(--theme-filter-text)] mb-1">Other</div>
                       <div className="flex flex-wrap gap-2">
                         {otherTags.map((vibe) => {
                           const isActive = filters.vibes.includes(vibe);
@@ -424,7 +424,7 @@ export function FilterBar({
                                 'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                                 isActive
                                   ? 'border'
-                                  : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-border-primary)] active:bg-[var(--theme-border-primary)] border border-transparent'
+                                  : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:bg-[var(--theme-filter-control-border)] active:bg-[var(--theme-filter-control-border)] border border-[var(--theme-filter-control-border)]'
                               )}
                               style={isActive ? { borderColor: vibeColor, color: vibeColor } : undefined}
                             >
@@ -445,7 +445,7 @@ export function FilterBar({
 
             {/* Friends filter */}
             <div>
-              <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-1">
+              <div className="text-xs uppercase tracking-wider text-[var(--theme-filter-text)] mb-1">
                 Friends
               </div>
               {friendsForFilter.length > 0 ? (
@@ -460,7 +460,7 @@ export function FilterBar({
                           'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                           isActive
                             ? 'text-white'
-                            : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-border-primary)] active:bg-[var(--theme-border-primary)]'
+                            : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:bg-[var(--theme-filter-control-border)] active:bg-[var(--theme-filter-control-border)]'
                         )}
                         style={isActive ? { backgroundColor: 'var(--friend-blue)' } : undefined}
                       >
@@ -481,11 +481,11 @@ export function FilterBar({
                 </div>
               ) : (
                 <div
-                  className={clsx('bg-[var(--theme-bg-tertiary)]/50 rounded-lg p-4 flex items-center gap-3', !user && 'cursor-pointer hover:bg-[var(--theme-bg-tertiary)]/70 transition-colors')}
+                  className={clsx('bg-[var(--theme-filter-control-bg)] rounded-lg p-4 flex items-center gap-3 border border-[var(--theme-filter-control-border)]', !user && 'cursor-pointer hover:bg-[var(--theme-filter-control-border)] transition-colors')}
                 >
-                  <Users className="w-5 h-5 text-[var(--theme-text-muted)] shrink-0" />
+                  <Users className="w-5 h-5 text-[var(--theme-filter-text)] shrink-0" />
                   <div className="flex-1 min-w-0" onClick={!user ? onSignIn : undefined}>
-                    <p className="text-[var(--theme-text-secondary)] text-sm">{user ? 'Add friends to see their plans' : 'Sign in to add friends'}</p>
+                    <p className="text-[var(--theme-filter-text)] text-sm">{user ? 'Add friends to see their plans' : 'Sign in to add friends'}</p>
                   </div>
                   {user && (
                     <button
