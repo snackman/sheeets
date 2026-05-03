@@ -99,12 +99,10 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
           style={{
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             gap: `${Math.round(16 * s)}px`,
             paddingLeft: `${Math.round(60 * s)}px`,
             paddingRight: `${Math.round(60 * s)}px`,
-            width: '100%',
-            boxSizing: 'border-box',
           }}
         >
           {/* Avatar + Name row */}
