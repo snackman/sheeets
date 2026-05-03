@@ -225,10 +225,9 @@ export function EventCard({
     }`}
       style={event.isFeatured ? { borderColor: 'var(--theme-popup-featured-border)' } : hasFriends ? { borderLeftColor: 'var(--friend-blue)' } : undefined}
     >
-      {/* Left column: cover image + action buttons */}
-      <div className="flex flex-col items-center shrink-0">
-        {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} onOpenLightbox={onOpenLightbox} />}
-        <div className="flex items-center gap-1.5 mt-1.5">
+      {/* Left column: action buttons + cover image */}
+      <div className="flex items-start shrink-0 gap-1">
+        <div className="flex flex-col items-center gap-1">
           {friendsGoing && friendsGoing.length > 0 && (
             <button
               onClick={(e) => {
@@ -269,6 +268,7 @@ export function EventCard({
             </button>
           )}
         </div>
+        {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} onOpenLightbox={onOpenLightbox} />}
       </div>
 
       {/* Right: event details */}
