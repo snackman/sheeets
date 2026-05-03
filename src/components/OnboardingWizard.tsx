@@ -112,7 +112,7 @@ export function OnboardingWizard({
     if (selectedTags.size === 0) return conferenceEvents.length;
     const tagsArr = Array.from(selectedTags);
     return conferenceEvents.filter((e) =>
-      tagsArr.every((t) => e.tags.includes(t))
+      tagsArr.some((t) => e.tags.includes(t))
     ).length;
   }, [conferenceEvents, selectedTags]);
 
