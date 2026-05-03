@@ -124,7 +124,9 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                 {group.events.map((event) => {
                   const flyerDataUrl = flyerImages?.get(event.id);
-                  const timeDisplay = event.isAllDay ? 'All Day' : event.startTime || '';
+                  const timeDisplay = event.isAllDay
+                    ? 'All Day'
+                    : `${event.startTime || ''}${event.endTime ? ` - ${event.endTime}` : ''}`;
 
                   return (
                     <div key={event.id} style={{ width: '486px' }}>
