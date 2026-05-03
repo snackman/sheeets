@@ -45,7 +45,7 @@ export function Header({
         <div className="px-2 sm:px-4 py-3 flex items-center justify-between gap-4">
           {/* Left: Branding */}
           <div className="flex items-center min-w-0">
-            <a href="/"><Image src="/logo.png" alt="plan.wtf" width={130} height={36} style={{ filter: 'var(--theme-logo-filter)' }} priority /></a>
+            <a href="/" style={{ marginTop: '-2px' }}><Image src="/logo.png" alt="plan.wtf" width={130} height={36} style={{ filter: 'var(--theme-logo-filter)' }} priority /></a>
           </div>
 
           {/* Right: Controls */}
