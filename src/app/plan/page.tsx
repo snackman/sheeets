@@ -333,7 +333,7 @@ function ItineraryContent() {
       {/* Content */}
       {itineraryEvents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-          <img src="/logo.png" alt="" className="h-10 w-auto opacity-30 mb-4" />
+          <img src="/logo.png" alt="" className="h-10 w-auto opacity-30 mb-4" style={{ filter: 'var(--theme-logo-filter)' }} />
           <p className="text-[var(--theme-text-secondary)] font-medium mb-2">No events in your plan yet</p>
           <p className="text-[var(--theme-text-muted)] text-sm max-w-xs mb-4">
             Add events from the main page to build your schedule!
@@ -371,7 +371,7 @@ function ItineraryContent() {
         <div className="max-w-2xl mx-auto px-4 pb-8">
           <div ref={captureRef} className="bg-[var(--theme-bg-primary)]">
             <div className="pt-3 pb-1 px-1 flex items-center gap-2">
-              <img src="/logo.png" alt="" className="h-4 w-auto" />
+              <img src="/logo.png" alt="" className="h-4 w-auto" style={{ filter: 'var(--theme-logo-filter)' }} />
               <span className="text-sm font-bold text-[var(--theme-text-primary)]">My Plan</span>
             </div>
 
