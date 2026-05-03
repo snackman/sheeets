@@ -360,7 +360,7 @@ export function FilterBar({
                           >
                             {Icon && <Icon className="w-3.5 h-3.5" />}
                             {vibe}
-                            <span className={clsx('text-xs', isActive ? 'opacity-70' : 'text-[var(--theme-text-muted)]')}>
+                            <span className={clsx('text-xs', isActive ? 'opacity-70' : 'opacity-60')}>
                               ({count})
                             </span>
                           </button>
@@ -430,7 +430,7 @@ export function FilterBar({
                             >
                               {Icon && <Icon className="w-3.5 h-3.5" />}
                               {vibe}
-                              <span className={clsx('text-xs', isActive ? 'opacity-70' : 'text-[var(--theme-text-muted)]')}>
+                              <span className={clsx('text-xs', isActive ? 'opacity-70' : 'opacity-60')}>
                                 ({count})
                               </span>
                             </button>
