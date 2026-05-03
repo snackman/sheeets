@@ -179,3 +179,9 @@ export const trackABClick = (testId: string, variantId: string, metadata?: strin
   track('ab_click', { test_id: testId, variant_id: variantId, ...(metadata ? { metadata } : {}) });
 export const trackABConversion = (testId: string, variantId: string, metadata?: string) =>
   track('ab_conversion', { test_id: testId, variant_id: variantId, ...(metadata ? { metadata } : {}) });
+
+// RSVP
+export const trackRsvpOpen = (eventId: string, eventName: string) =>
+  track('rsvp_open', { event_id: eventId, event_name: eventName });
+export const trackRsvpConfirm = (eventId: string, eventName: string) =>
+  track('rsvp_confirm', { event_id: eventId, event_name: eventName });

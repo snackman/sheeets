@@ -36,13 +36,16 @@ import { SponsorsTicker } from './SponsorsTicker';
 import { CheckInFAB } from './CheckInFAB';
 import { OnboardingWizard } from './OnboardingWizard';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
-import { trackAuthPrompt } from '@/lib/analytics';
+import { trackAuthPrompt, trackRsvpOpen, trackRsvpConfirm } from '@/lib/analytics';
 import { getTabConfig } from '@/lib/conferences';
 import { extractFeaturedEvents } from '@/lib/featured';
 import { passesNowFilter, getConferenceNow, applyFilters, computeTagCounts } from '@/lib/filters';
 import { parseTimeToMinutes } from '@/lib/time-parse';
 import { distanceMeters } from '@/lib/geo';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRsvp } from '@/hooks/useRsvp';
+import { useProfile } from '@/hooks/useProfile';
+import { RsvpOverlay } from './RsvpOverlay';
 
 export function EventApp({ initialConference, initialEvents }: { initialConference?: string; initialEvents?: ETHDenverEvent[] }) {
   const { config } = useAdminConfig();
@@ -166,6 +169,9 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
     result: checkInResult,
     clearResult: clearCheckInResult,
   } = useEventCheckIn();
+
+  const { getRsvpStatus, openRsvp, confirmRsvp, closeRsvp, activeRsvp } = useRsvp();
+  const { profile } = useProfile();
 
   const liveEventIds = useMemo(() => {
     const now = getConferenceNow(filters.conference);
@@ -355,6 +361,23 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
   const [showSubmitEvent, setShowSubmitEvent] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
 
+  const handleRsvp = useCallback((eventId: string, lumaUrl: string, eventName: string) => {
+    if (!authUser) {
+      trackAuthPrompt('rsvp');
+      setShowSignIn(true);
+      return;
+    }
+    trackRsvpOpen(eventId, eventName);
+    openRsvp(eventId, lumaUrl, eventName);
+  }, [authUser, openRsvp]);
+
+  const handleRsvpConfirm = useCallback(() => {
+    if (activeRsvp) {
+      trackRsvpConfirm(activeRsvp.eventId, activeRsvp.eventName);
+    }
+    confirmRsvp();
+  }, [activeRsvp, confirmRsvp]);
+
   // Onboarding wizard for first-time users
   const [showOnboarding, setShowOnboarding] = useState(false);
   useEffect(() => {
@@ -516,6 +539,8 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
             onCheckIn={checkInToEvent}
             checkInLoading={checkInLoading}
             liveEventIds={liveEventIds}
+            getRsvpStatus={getRsvpStatus}
+            onRsvp={handleRsvp}
           />
         </main>
       ) : viewMode === 'table' ? (
@@ -539,6 +564,8 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
             onSignIn={() => setShowSignIn(true)}
             liveEventIds={liveEventIds}
             userLocation={userLocation}
+            getRsvpStatus={getRsvpStatus}
+            onRsvp={handleRsvp}
           />
         </main>
       ) : (
@@ -566,6 +593,8 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
             checkInLoading={checkInLoading}
             liveEventIds={liveEventIds}
             userLocation={userLocation}
+            getRsvpStatus={getRsvpStatus}
+            onRsvp={handleRsvp}
           />
         </main>
       )}
@@ -597,6 +626,21 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         onOpenAuth={() => { setShowOnboarding(false); setShowSignIn(true); }}
         conferenceTabs={conferenceTabs}
       />
+      {activeRsvp && (
+        <RsvpOverlay
+          eventName={activeRsvp.eventName}
+          lumaUrl={activeRsvp.lumaUrl}
+          userName={profile?.rsvp_name ?? profile?.display_name}
+          userEmail={profile?.email}
+          userXHandle={profile?.x_handle}
+          userTelegram={profile?.telegram_handle}
+          userCompany={profile?.company}
+          userLinkedin={profile?.linkedin_url}
+          userJobTitle={profile?.job_title}
+          onConfirm={handleRsvpConfirm}
+          onClose={closeRsvp}
+        />
+      )}
     </div>
   );
 }

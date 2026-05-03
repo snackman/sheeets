@@ -18,6 +18,7 @@ import { EmojiReactions } from './EmojiReactions';
 import UserAvatar from './UserAvatar';
 import { CommentSection } from './CommentSection';
 import { FriendAvatarStack } from './FriendAvatarStack';
+import { RsvpButton } from './RsvpButton';
 
 interface EventCardProps {
   event: ETHDenverEvent;
@@ -37,6 +38,8 @@ interface EventCardProps {
   liveUrgency?: 'green' | 'yellow' | 'red';
   userLocation?: { lat: number; lng: number } | null;
   onOpenLightbox?: (imageUrl: string, rsvpUrl?: string) => void;
+  rsvpStatus?: 'idle' | 'confirmed';
+  onRsvp?: () => void;
 }
 
 function FriendsGoingModal({
@@ -136,6 +139,8 @@ export function EventCard({
   liveUrgency,
   userLocation,
   onOpenLightbox,
+  rsvpStatus,
+  onRsvp,
 }: EventCardProps) {
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [showCheckedInModal, setShowCheckedInModal] = useState(false);
@@ -286,13 +291,18 @@ export function EventCard({
                 <FriendAvatarStack friends={friendsGoing} maxShow={2} size="sm" />
               </button>
             )}
-            <div className="flex flex-col items-center gap-0.5">
+            <div className="flex flex-col items-center gap-1">
               {onItineraryToggle && (
                 <StarButton
                   eventId={event.id}
                   isStarred={isInItinerary}
                   onToggle={onItineraryToggle}
                 />
+              )}
+              {onRsvp && event.link && (
+                <div className="mt-px">
+                  <RsvpButton eventLink={event.link} status={rsvpStatus ?? 'idle'} onClick={onRsvp} />
+                </div>
               )}
               {event.link && (
                 <button
@@ -302,9 +312,9 @@ export function EventCard({
                   title="Copy link"
                 >
                   {copied ? (
-                    <Check className="w-3.5 h-3.5 text-green-400" />
+                    <Check className="w-4 h-4 text-green-400" />
                   ) : (
-                    <Link className="w-3.5 h-3.5" />
+                    <Link className="w-4 h-4" />
                   )}
                 </button>
               )}
@@ -369,14 +379,12 @@ export function EventCard({
           </AddressLink>
         )}
 
-        {/* Tags row */}
-        {event.tags.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 mt-3">
-            {event.tags.map((tag) => (
-              <TagBadge key={tag} tag={tag} />
-            ))}
-          </div>
-        )}
+        {/* Tags */}
+        <div className="flex flex-wrap items-center gap-1.5 mt-3">
+          {event.tags.map((tag) => (
+            <TagBadge key={tag} tag={tag} />
+          ))}
+        </div>
 
         {/* Note */}
         {event.note && (

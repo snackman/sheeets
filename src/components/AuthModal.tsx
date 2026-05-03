@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, LogOut, User, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, Share2, ArrowRight } from 'lucide-react';
+import { X, Mail, LogOut, User, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, ArrowRight, Send, Building2, Briefcase, Linkedin } from 'lucide-react';
 import { ShareCardModal } from './ShareCardModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAuthSuccess, trackSignOut, trackFriendCodeGenerate, trackFriendCodeCopy, trackModalDismiss } from '@/lib/analytics';
@@ -396,6 +396,10 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   const [displayName, setDisplayName] = useState('');
   const [xHandle, setXHandle] = useState('');
   const [rsvpName, setRsvpName] = useState('');
+  const [telegramHandle, setTelegramHandle] = useState('');
+  const [company, setCompany] = useState('');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [jobTitle, setJobTitle] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -432,6 +436,10 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
       setDisplayName(profile.display_name ?? '');
       setXHandle(profile.x_handle ?? '');
       setRsvpName(profile.rsvp_name ?? '');
+      setTelegramHandle(profile.telegram_handle ?? '');
+      setCompany(profile.company ?? '');
+      setLinkedinUrl(profile.linkedin_url ?? '');
+      setJobTitle(profile.job_title ?? '');
     }
   }, [profile]);
 
@@ -452,9 +460,17 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   // Auto-save profile on change (debounced)
   useEffect(() => {
     if (!profile) return;
-    const current = { displayName, xHandle, rsvpName };
-    const original = { displayName: profile.display_name ?? '', xHandle: profile.x_handle ?? '', rsvpName: profile.rsvp_name ?? '' };
-    if (current.displayName === original.displayName && current.xHandle === original.xHandle && current.rsvpName === original.rsvpName) return;
+    const current = { displayName, xHandle, rsvpName, telegramHandle, company, linkedinUrl, jobTitle };
+    const original = {
+      displayName: profile.display_name ?? '',
+      xHandle: profile.x_handle ?? '',
+      rsvpName: profile.rsvp_name ?? '',
+      telegramHandle: profile.telegram_handle ?? '',
+      company: profile.company ?? '',
+      linkedinUrl: profile.linkedin_url ?? '',
+      jobTitle: profile.job_title ?? '',
+    };
+    if (current.displayName === original.displayName && current.xHandle === original.xHandle && current.rsvpName === original.rsvpName && current.telegramHandle === original.telegramHandle && current.company === original.company && current.linkedinUrl === original.linkedinUrl && current.jobTitle === original.jobTitle) return;
 
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
     setSaveStatus('idle');
@@ -464,6 +480,10 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
         display_name: displayName.trim() || null,
         x_handle: xHandle.trim() || null,
         rsvp_name: rsvpName.trim() || null,
+        telegram_handle: telegramHandle.trim() || null,
+        company: company.trim() || null,
+        linkedin_url: linkedinUrl.trim() || null,
+        job_title: jobTitle.trim() || null,
       });
       setSaving(false);
       setSaveStatus('saved');
@@ -473,7 +493,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
     return () => {
       if (saveTimeout.current) clearTimeout(saveTimeout.current);
     };
-  }, [displayName, xHandle, rsvpName, profile, updateProfile]);
+  }, [displayName, xHandle, rsvpName, telegramHandle, company, linkedinUrl, jobTitle, profile, updateProfile]);
 
   async function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -621,8 +641,8 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
               <div className="max-h-[80vh] overflow-y-auto px-4 py-5 space-y-4">
                 {/* Profile Fields */}
                 <div className="space-y-3">
-                  {/* Avatar upload */}
-                  <div className="flex items-center gap-4">
+                  {/* Avatar + Name row */}
+                  <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={() => avatarInputRef.current?.click()}
@@ -630,7 +650,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                       className="relative group cursor-pointer shrink-0"
                     >
                       <UserAvatar
-                        size="lg"
+                        size="md"
                         avatarUrl={profile?.avatar_url}
                         xHandle={profile?.x_handle}
                         displayName={profile?.display_name}
@@ -638,9 +658,9 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                       />
                       <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         {avatarUploading ? (
-                          <Loader2 className="w-5 h-5 text-white animate-spin" />
+                          <Loader2 className="w-4 h-4 text-white animate-spin" />
                         ) : (
-                          <User className="w-5 h-5 text-white" />
+                          <User className="w-4 h-4 text-white" />
                         )}
                       </div>
                     </button>
@@ -652,33 +672,82 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                       onChange={handleAvatarSelect}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-[var(--theme-text-muted)]">
-                        {avatarUploading ? 'Uploading...' : 'Tap to change photo'}
-                      </p>
-                      {avatarError && (
-                        <p className="text-xs text-red-400 mt-0.5">{avatarError}</p>
-                      )}
+                      <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
+                        <User className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
+                        <input
+                          type="text"
+                          value={displayName}
+                          onChange={(e) => setDisplayName(e.target.value)}
+                          placeholder="Username"
+                          className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
+                        />
+                      </div>
                     </div>
                   </div>
-
-                  <div>
-                    <input
-                      type="text"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="Username"
-                      className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
-                    />
-                  </div>
+                  {avatarError && (
+                    <p className="text-xs text-red-400">{avatarError}</p>
+                  )}
 
                   <div>
                     <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
-                      <span className="text-[var(--theme-text-muted)] text-sm pl-3 select-none">@</span>
+                      <span className="text-[var(--theme-text-muted)] text-sm ml-3 shrink-0 select-none font-bold leading-none" style={{ fontFamily: 'serif' }}>{'\u{1D54F}'}</span>
                       <input
                         type="text"
                         value={xHandle}
                         onChange={(e) => setXHandle(e.target.value.replace(/^@/, ''))}
                         placeholder="X handle"
+                        className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
+                      <Send className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
+                      <input
+                        type="text"
+                        value={telegramHandle}
+                        onChange={(e) => setTelegramHandle(e.target.value.replace(/^@/, ''))}
+                        placeholder="Telegram"
+                        className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
+                      <Building2 className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
+                      <input
+                        type="text"
+                        value={company}
+                        onChange={(e) => setCompany(e.target.value)}
+                        placeholder="Organization"
+                        className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
+                      <Briefcase className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
+                      <input
+                        type="text"
+                        value={jobTitle}
+                        onChange={(e) => setJobTitle(e.target.value)}
+                        placeholder="Job Title"
+                        className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
+                      <Linkedin className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
+                      <input
+                        type="text"
+                        value={linkedinUrl}
+                        onChange={(e) => setLinkedinUrl(e.target.value)}
+                        placeholder="linkedin.com/in/yourname"
                         className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
                       />
                     </div>
@@ -820,15 +889,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
 
                 {/* Share Itinerary + Submit Event + Sign Out */}
                 <div className="border-t border-[var(--theme-border-primary)] pt-4 space-y-2">
-                  {itineraryEvents.length > 0 && (
-                    <button
-                      onClick={() => { setOpen(false); setShowShareCard(true); }}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
-                    >
-                      <Share2 className="w-4 h-4" />
-                      Share My Plan
-                    </button>
-                  )}
                   <button
                     onClick={() => {
                       trackSignOut();
