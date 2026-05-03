@@ -241,8 +241,8 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
                   bgColor="#0c0a09"
                   imageSettings={PLATFORM_LOGOS[link.platform] ? {
                     src: PLATFORM_LOGOS[link.platform],
-                    height: Math.round(qrSize * 0.22),
-                    width: Math.round(qrSize * 0.22),
+                    height: Math.round(qrSize * (link.platform === 'friend' ? 0.14 : 0.22)),
+                    width: Math.round(qrSize * (link.platform === 'friend' ? 0.14 : 0.22)),
                     excavate: true,
                   } : undefined}
                 />
