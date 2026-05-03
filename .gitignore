@@ -38,6 +38,7 @@ yarn-error.log*
 
 # secrets
 secrets.md
+notes/
 
 # one-off scripts
 scripts/migrate-itinerary-ids.ts

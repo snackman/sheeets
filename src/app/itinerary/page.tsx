@@ -21,6 +21,9 @@ import { passesNowFilter, getConferenceNow } from '@/lib/filters';
 import { useDragReorder } from '@/hooks/useDragReorder';
 import { useProfile } from '@/hooks/useProfile';
 import { ShareCardModal } from '@/components/ShareCardModal';
+import { GoogleCalendarButton } from '@/components/GoogleCalendarButton';
+import { getTabConfig } from '@/lib/conferences';
+import { useConferenceTabs } from '@/hooks/useConferenceTabs';
 
 const MapView = dynamic(
   () => import('@/components/MapView').then((mod) => ({ default: mod.MapView })),
@@ -68,6 +71,7 @@ export default function ItineraryPage() {
   const { user } = useAuth();
   const { profile } = useProfile();
   const { checkInToEvent, loading: checkInLoading, result: checkInResult, clearResult: clearCheckInResult } = useEventCheckIn();
+  const { tabs } = useConferenceTabs();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [viewMode, setViewMode] = useState<ItineraryViewMode>('list');
   const [shareStatus, setShareStatus] = useState<'idle' | 'sharing' | 'copied'>('idle');
@@ -98,6 +102,18 @@ export default function ItineraryPage() {
   );
 
   const conflicts = useMemo(() => detectConflicts(itineraryEvents), [itineraryEvents]);
+
+  // Timezone for the active conference (used for Google Calendar export)
+  const conferenceTimezone = useMemo(
+    () => getTabConfig(activeConference, tabs).timezone,
+    [activeConference, tabs]
+  );
+
+  // Events eligible for Google Calendar export (exclude hidden)
+  const exportableEvents = useMemo(
+    () => itineraryEvents.filter((e) => !hiddenEvents.has(e.id)),
+    [itineraryEvents, hiddenEvents]
+  );
 
   const dateGroups = useMemo(() => {
     const groupMap = new Map<string, ETHDenverEvent[]>();
@@ -270,6 +286,10 @@ export default function ItineraryPage() {
                 >
                   {shareStatus === 'sharing' ? 'Saving...' : shareStatus === 'copied' ? 'Copied!' : 'Share Link'}
                 </button>
+                <GoogleCalendarButton
+                  events={exportableEvents}
+                  timezone={conferenceTimezone}
+                />
               </>
             )}
           </div>

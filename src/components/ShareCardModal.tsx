@@ -32,6 +32,15 @@ export function ShareCardModal({
   const [showPastEvents, setShowPastEvents] = useState(false);
   const defaultTitle = displayName ? `${displayName}'s ${conferenceName} Plan` : `My ${conferenceName} Plan`;
   const [cardTitle, setCardTitle] = useState(defaultTitle);
+  const [hasUserEdited, setHasUserEdited] = useState(false);
+
+  // Update card title when displayName loads (profile is async)
+  useEffect(() => {
+    if (!hasUserEdited) {
+      setCardTitle(defaultTitle);
+    }
+  }, [defaultTitle, hasUserEdited]);
+
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copying' | 'copied'>('idle');
@@ -228,7 +237,7 @@ export function ShareCardModal({
               <input
                 type="text"
                 value={cardTitle}
-                onChange={(e) => setCardTitle(e.target.value)}
+                onChange={(e) => { setCardTitle(e.target.value); setHasUserEdited(true); }}
                 className="w-full px-3 py-2 bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm focus:outline-none focus:border-[var(--theme-accent)] transition-colors"
                 placeholder={defaultTitle}
               />
