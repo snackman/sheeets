@@ -188,7 +188,7 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
         </div>
 
         {/* Spacer */}
-        <div style={{ flex: 1, minHeight: `${Math.round(80 * s)}px` }} />
+        <div style={{ flex: 2, minHeight: `${Math.round(40 * s)}px` }} />
 
         {/* QR codes */}
         <div
@@ -252,7 +252,7 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
         </div>
 
         {/* Spacer */}
-        <div style={{ flex: 1, minHeight: `${Math.round(60 * s)}px` }} />
+        <div style={{ flex: 1, minHeight: `${Math.round(24 * s)}px` }} />
 
         {/* Branding */}
         {logoDataUrl && (
