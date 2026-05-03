@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { ThumbsUp } from 'lucide-react';
 import { REACTION_EMOJIS } from '@/lib/constants';
 import type { ReactionEmoji } from '@/lib/types';
 import { trackReactionToggle, trackReactionPickerOpen } from '@/lib/analytics';
@@ -66,7 +66,7 @@ export function EmojiReactions({
           }}
           className={`${pillSize} rounded-full border border-[var(--theme-border-primary)] bg-[var(--theme-bg-tertiary)]/50 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:border-[var(--theme-text-muted)] transition-colors cursor-pointer inline-flex items-center`}
         >
-          <Plus className={compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
+          <ThumbsUp className={compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
         </button>
 
         {showPicker && (
@@ -79,7 +79,7 @@ export function EmojiReactions({
               }}
             />
             <div className="absolute bottom-full left-0 mb-1 z-[41] bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl p-1.5 flex gap-1">
-              {(availableEmojis.length > 0 ? availableEmojis : REACTION_EMOJIS).map((emoji) => (
+              {REACTION_EMOJIS.map((emoji) => (
                 <button
                   key={emoji}
                   onClick={(e) => {

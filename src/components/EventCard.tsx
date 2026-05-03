@@ -228,19 +228,6 @@ export function EventCard({
       {/* Left column: action buttons + cover image */}
       <div className="flex items-center shrink-0 gap-1">
         <div className="flex flex-col items-center gap-1">
-          {friendsGoing && friendsGoing.length > 0 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                trackFriendsGoingOpen(event.name);
-                setShowFriendsModal(true);
-              }}
-              className="cursor-pointer hover:opacity-80 transition-opacity"
-              title={formatFriendsText(friendsGoing)}
-            >
-              <FriendAvatarStack friends={friendsGoing} maxShow={2} size="sm" />
-            </button>
-          )}
           {onItineraryToggle && (
             <StarButton
               eventId={event.id}
@@ -389,8 +376,21 @@ export function EventCard({
           <p className="text-[var(--theme-text-faint)] text-xs mt-1 italic truncate">{event.note}</p>
         )}
 
-        {/* Bottom row: reactions + checked-in indicator */}
+        {/* Bottom row: friends + reactions + checked-in indicator */}
         <div className="flex flex-wrap items-center gap-2 mt-2">
+          {friendsGoing && friendsGoing.length > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                trackFriendsGoingOpen(event.name);
+                setShowFriendsModal(true);
+              }}
+              className="cursor-pointer hover:opacity-80 transition-opacity"
+              title={formatFriendsText(friendsGoing)}
+            >
+              <FriendAvatarStack friends={friendsGoing} maxShow={2} size="sm" />
+            </button>
+          )}
           {onToggleReaction && (
             <EmojiReactions
               eventId={event.id}
