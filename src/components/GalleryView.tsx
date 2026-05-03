@@ -1,10 +1,12 @@
 'use client';
 
-import { useMemo, useEffect, useState, useCallback } from 'react';
-import { Star } from 'lucide-react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
 import { formatDateLabel } from '@/lib/utils';
 import { sortByStartTime } from '@/lib/time-parse';
+import { VIBE_COLORS } from '@/lib/constants';
+import { TAG_ICONS } from './TagBadge';
+import { StarButton } from './StarButton';
 import { imageCache, FlyerLightbox } from './OGImage';
 
 /* ------------------------------------------------------------------ */
@@ -35,98 +37,175 @@ interface DateGroup {
 }
 
 /* ------------------------------------------------------------------ */
-/* GalleryCard (inline sub-component)                                  */
+/* GalleryCard                                                         */
 /* ------------------------------------------------------------------ */
 
 function GalleryCard({
   event,
   isInItinerary,
   onItineraryToggle,
-  isLive,
+  friendsCount,
+  liveUrgency,
   onClick,
 }: {
   event: ETHDenverEvent;
-  isInItinerary?: boolean;
+  isInItinerary: boolean;
   onItineraryToggle?: (eventId: string) => void;
-  isLive?: boolean;
+  friendsCount?: number;
+  liveUrgency?: 'green' | 'yellow' | 'red';
   onClick: () => void;
 }) {
-  const cachedImage = event.link ? imageCache.get(event.link) : undefined;
-  const hasImage = cachedImage && cachedImage !== null;
-  const hasLink = !!event.link;
+  const [imageUrl, setImageUrl] = useState<string | null>(
+    event.link ? imageCache.get(event.link) ?? null : null
+  );
+  const [loaded, setLoaded] = useState(event.link ? imageCache.has(event.link) : true);
+  const [imgError, setImgError] = useState(false);
 
-  // Format time display
+  // Lazy-load OG image via IntersectionObserver (same pattern as OGImage component)
+  const cardRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (!node || !event.link || imageCache.has(event.link)) return;
+
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (!entry.isIntersecting) return;
+          observer.disconnect();
+
+          const params = new URLSearchParams({ url: event.link! });
+          if (event.id) params.set('eventId', event.id);
+
+          fetch(`/api/og?${params.toString()}`)
+            .then((res) => res.json())
+            .then((data) => {
+              imageCache.set(event.link!, data.imageUrl);
+              setImageUrl(data.imageUrl);
+              setLoaded(true);
+            })
+            .catch(() => {
+              imageCache.set(event.link!, null);
+              setLoaded(true);
+            });
+        },
+        { rootMargin: '200px' }
+      );
+
+      observer.observe(node);
+    },
+    [event.link, event.id]
+  );
+
   const timeDisplay = event.isAllDay
     ? 'All Day'
-    : event.startTime
-      ? `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`
-      : '';
+    : `${event.startTime}${event.endTime ? ` \u2013 ${event.endTime}` : ''}`;
+
+  const hasImage = loaded && imageUrl && !imgError;
+  const showPlaceholder = !event.link || (loaded && !imageUrl) || imgError;
+
+  // Tag icon + color for placeholder
+  const primaryTag = event.tags[0] || event.vibe;
+  const TagIcon = primaryTag ? TAG_ICONS[primaryTag] : null;
+  const tagColor = primaryTag ? VIBE_COLORS[primaryTag] || VIBE_COLORS['default'] : undefined;
+
+  // Live border classes
+  const liveBorderClass = liveUrgency
+    ? liveUrgency === 'red'
+      ? 'ring-2 ring-red-400/70 animate-pulse'
+      : liveUrgency === 'yellow'
+        ? 'ring-2 ring-yellow-400/60'
+        : 'ring-2 ring-green-400/60 animate-pulse'
+    : '';
 
   return (
     <div
-      className={`rounded-lg overflow-hidden border bg-[var(--theme-bg-card)] hover:bg-[var(--theme-bg-card-hover)] cursor-pointer transition-all ${
-        isLive ? 'border-green-500' : 'border-[var(--theme-border-primary)]'
-      }`}
+      ref={cardRef}
+      className={`relative aspect-[1200/630] rounded-lg overflow-hidden cursor-pointer group ${liveBorderClass}`}
       onClick={onClick}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+      aria-label={`View flyer for ${event.name}`}
     >
-      {/* Image area — full size, no cropping */}
-      <div className="relative overflow-hidden bg-[var(--theme-bg-tertiary)]">
-        {hasImage ? (
-          <img
-            src={cachedImage!}
-            alt=""
-            className="w-full h-auto block"
-            loading="lazy"
-          />
-        ) : hasLink ? (
-          /* Shimmer placeholder for events with a link but no cached image yet */
-          <div className="w-full aspect-[1200/630] animate-pulse bg-[var(--theme-bg-tertiary)]" />
-        ) : (
-          /* Styled placeholder for events with no link at all */
-          <div className="w-full aspect-[1200/630] flex items-center justify-center p-3">
-            <p className="text-xs text-[var(--theme-text-muted)] text-center line-clamp-3 font-medium">
-              {event.name}
-            </p>
-          </div>
-        )}
+      {/* Image or shimmer or placeholder */}
+      {!loaded && !showPlaceholder && (
+        <div className="absolute inset-0 animate-pulse bg-stone-800/50" />
+      )}
 
-        {/* Star / itinerary button overlaid top-right */}
-        {onItineraryToggle && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onItineraryToggle(event.id);
-            }}
-            className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/40 hover:bg-black/60 text-white transition-colors cursor-pointer z-10"
-            aria-label={isInItinerary ? 'Remove from itinerary' : 'Add to itinerary'}
-          >
-            <Star
-              className={`w-4 h-4 ${isInItinerary ? 'fill-yellow-400 text-yellow-400' : ''}`}
+      {hasImage && (
+        <img
+          src={imageUrl!}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+          onError={() => setImgError(true)}
+        />
+      )}
+
+      {showPlaceholder && (
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3"
+          style={{
+            backgroundColor: tagColor
+              ? `color-mix(in srgb, ${tagColor} 15%, var(--theme-bg-secondary))`
+              : 'var(--theme-bg-secondary)',
+          }}
+        >
+          {TagIcon && (
+            <TagIcon
+              className="w-8 h-8 opacity-60"
+              style={{ color: tagColor }}
             />
-          </button>
-        )}
-      </div>
+          )}
+          <span className="text-xs text-center text-[var(--theme-text-secondary)] line-clamp-2 font-medium">
+            {event.name}
+          </span>
+        </div>
+      )}
 
-      {/* Text area below image */}
-      <div className="p-2">
-        <p className="text-sm font-medium text-[var(--theme-text-primary)] line-clamp-2 leading-tight">
-          {event.name}
-        </p>
-        {timeDisplay && (
-          <p className="text-xs text-[var(--theme-text-muted)] mt-1">
+      {/* StarButton overlay — top-right */}
+      {onItineraryToggle && (
+        <div className="absolute top-1.5 right-1.5 z-10">
+          <StarButton
+            eventId={event.id}
+            isStarred={isInItinerary}
+            onToggle={onItineraryToggle}
+            size="sm"
+            friendsCount={friendsCount}
+          />
+        </div>
+      )}
+
+      {/* Live badge — bottom-left above gradient */}
+      {liveUrgency && (
+        <div className="absolute bottom-8 left-2 z-10">
+          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+            liveUrgency === 'red'
+              ? 'bg-red-500/80 text-white'
+              : liveUrgency === 'yellow'
+                ? 'bg-yellow-500/80 text-black'
+                : 'bg-green-500/80 text-white'
+          }`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+            {liveUrgency === 'red' ? 'Ending Soon' : liveUrgency === 'yellow' ? 'Live' : 'Live'}
+          </span>
+        </div>
+      )}
+
+      {/* Bottom overlay bar — gradient + name + time */}
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent pt-8 pb-1.5 px-2">
+        <div className="flex items-end justify-between gap-2">
+          <span className="text-white text-sm font-medium line-clamp-1 min-w-0">
+            {event.name}
+          </span>
+          <span className="text-white/80 text-xs whitespace-nowrap shrink-0">
             {timeDisplay}
-          </p>
-        )}
+          </span>
+        </div>
       </div>
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* GalleryView component                                               */
+/* GalleryView                                                         */
 /* ------------------------------------------------------------------ */
 
 export function GalleryView({
@@ -135,18 +214,10 @@ export function GalleryView({
   itinerary,
   onItineraryToggle,
   friendsCountByEvent,
-  friendsByEvent,
-  checkedInFriendsByEvent,
-  checkInCounts,
-  reactionsByEvent,
-  onToggleReaction,
-  commentCounts,
   scrollContainerRef,
   conference,
   liveEventIds,
 }: GalleryViewProps) {
-  const [loadTick, setLoadTick] = useState(0);
-
   /* ---- date-group the events ---- */
   const dateGroups: DateGroup[] = useMemo(() => {
     const groupMap = new Map<string, ETHDenverEvent[]>();
@@ -164,84 +235,60 @@ export function GalleryView({
       }));
   }, [events]);
 
-  /* ---- flat list of all events (for lightbox navigation) ---- */
+  /* ---- flyer lightbox navigation ---- */
+  const [lightboxEventIndex, setLightboxEventIndex] = useState<number | null>(null);
+  const [, setImageLoadTick] = useState(0);
+
+  // Flat list of all events for lightbox prev/next
   const allEvents = useMemo(
     () => dateGroups.flatMap((g) => g.events),
-    [dateGroups],
+    [dateGroups]
   );
 
-  /* ---- batch-fetch OG images for the first ~20 uncached events ---- */
+  const lightboxEvent = lightboxEventIndex !== null ? allEvents[lightboxEventIndex] : null;
+  const lightboxImageUrl = lightboxEvent?.link
+    ? imageCache.get(lightboxEvent.link) ?? null
+    : null;
+  const lightboxRsvpUrl = lightboxEvent?.link;
+
+  const canPrev = lightboxEventIndex !== null && lightboxEventIndex > 0;
+  const canNext = lightboxEventIndex !== null && lightboxEventIndex < allEvents.length - 1;
+
+  // Preload adjacent event OG images when lightbox is open
   useEffect(() => {
-    const uncached = allEvents
-      .filter((e) => e.link && !imageCache.has(e.link))
-      .slice(0, 20);
-    if (uncached.length === 0) return;
+    if (lightboxEventIndex === null) return;
+    const toPreload: number[] = [lightboxEventIndex];
+    for (let d = 1; d <= 2; d++) {
+      if (lightboxEventIndex + d < allEvents.length) toPreload.push(lightboxEventIndex + d);
+      if (lightboxEventIndex - d >= 0) toPreload.push(lightboxEventIndex - d);
+    }
+    for (const pos of toPreload) {
+      const ev = allEvents[pos];
+      if (ev.link && !imageCache.has(ev.link)) {
+        const params = new URLSearchParams({ url: ev.link });
+        if (ev.id) params.set('eventId', ev.id);
+        fetch(`/api/og?${params.toString()}`)
+          .then((res) => res.json())
+          .then((data) => {
+            imageCache.set(ev.link!, data.imageUrl);
+            setImageLoadTick((n) => n + 1);
+          })
+          .catch(() => {
+            imageCache.set(ev.link!, null);
+            setImageLoadTick((n) => n + 1);
+          });
+      }
+    }
+  }, [lightboxEventIndex, allEvents]);
 
-    fetch('/api/og', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        items: uncached.map((e) => ({ eventId: e.id, url: e.link })),
-      }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.results) {
-          // results is Record<string, string | null> keyed by eventId
-          for (const [eventId, imageUrl] of Object.entries(data.results)) {
-            const ev = allEvents.find((e) => e.id === eventId);
-            if (ev?.link) imageCache.set(ev.link, imageUrl as string | null);
-          }
-          setLoadTick((n) => n + 1);
-        }
-      })
-      .catch(() => {});
-  }, [allEvents]);
-
-  /* ---- flyer lightbox navigation ---- */
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-
-  const lightboxEvent = lightboxIndex !== null ? allEvents[lightboxIndex] : null;
-  const lightboxImageUrl =
-    lightboxEvent?.link ? imageCache.get(lightboxEvent.link) ?? null : null;
-  const lightboxRsvpUrl = lightboxEvent?.link || undefined;
-
-  const canPrev = lightboxIndex !== null && lightboxIndex > 0;
-  const canNext =
-    lightboxIndex !== null && lightboxIndex < allEvents.length - 1;
-
-  // Preload adjacent OG images when lightbox is open
-  useEffect(() => {
-    if (lightboxIndex === null) return;
-
-    const preloadNeighbor = (idx: number) => {
-      const ev = allEvents[idx];
-      if (!ev?.link || imageCache.has(ev.link)) return;
-      const params = new URLSearchParams({ url: ev.link });
-      if (ev.id) params.set('eventId', ev.id);
-      fetch(`/api/og?${params.toString()}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (ev.link) {
-            imageCache.set(ev.link, data.imageUrl ?? null);
-            setLoadTick((n) => n + 1);
-          }
-        })
-        .catch(() => {});
-    };
-
-    if (lightboxIndex > 0) preloadNeighbor(lightboxIndex - 1);
-    if (lightboxIndex < allEvents.length - 1) preloadNeighbor(lightboxIndex + 1);
-  }, [lightboxIndex, allEvents]);
-
-  const handlePrev = useCallback(() => {
+  const handleLightboxPrev = useCallback(() => {
     if (!canPrev) return;
-    setLightboxIndex((i) => (i !== null ? i - 1 : null));
+    setLightboxEventIndex((i) => i! - 1);
   }, [canPrev]);
 
-  const handleNext = useCallback(() => {
+  const handleLightboxNext = useCallback(() => {
     if (!canNext) return;
-    setLightboxIndex((i) => (i !== null ? i + 1 : null));
+    setLightboxEventIndex((i) => i! + 1);
   }, [canNext]);
 
   /* ---- empty state ---- */
@@ -254,19 +301,33 @@ export function GalleryView({
     );
   }
 
-  // Track a running offset so we can map cards to allEvents indices
-  let globalEventOffset = 0;
+  // Track a running global index across date groups for lightbox
+  let globalIndex = 0;
 
   return (
     <div className="max-w-6xl mx-auto px-2 sm:px-4 pb-8">
       {dateGroups.map((group, groupIdx) => {
-        const groupStartOffset = globalEventOffset;
-        globalEventOffset += group.events.length;
+        const startIndex = globalIndex;
+        const cards = group.events.map((event, eventIdx) => {
+          const idx = startIndex + eventIdx;
+          return (
+            <GalleryCard
+              key={event.id}
+              event={event}
+              isInItinerary={itinerary?.has(event.id) ?? false}
+              onItineraryToggle={onItineraryToggle}
+              friendsCount={friendsCountByEvent?.get(event.id)}
+              liveUrgency={liveEventIds?.get(event.id)}
+              onClick={() => setLightboxEventIndex(idx)}
+            />
+          );
+        });
+        globalIndex += group.events.length;
 
         return (
           <div key={group.dateISO}>
-            {/* Sticky date header */}
-            <div className="sticky top-0 z-20 bg-[var(--theme-bg-primary)] py-2 border-b border-[var(--theme-border-secondary)]">
+            {/* Date header */}
+            <div className={`sticky top-0 z-20 bg-[var(--theme-bg-primary)] py-2 border-b border-[var(--theme-border-secondary)] ${groupIdx > 0 ? 'mt-6' : ''}`}>
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-bold text-[var(--theme-text-primary)]">
                   {group.label}
@@ -278,33 +339,21 @@ export function GalleryView({
             </div>
 
             {/* Grid */}
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 md:gap-3 lg:grid-cols-4 lg:gap-3 mt-2 mb-4">
-              {group.events.map((event, eventIdx) => {
-                const flatIdx = groupStartOffset + eventIdx;
-                return (
-                  <GalleryCard
-                    key={event.id}
-                    event={event}
-                    isInItinerary={itinerary?.has(event.id)}
-                    onItineraryToggle={onItineraryToggle}
-                    isLive={liveEventIds?.has(event.id)}
-                    onClick={() => setLightboxIndex(flatIdx)}
-                  />
-                );
-              })}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-3">
+              {cards}
             </div>
           </div>
         );
       })}
 
       {/* Flyer lightbox with prev/next navigation */}
-      {lightboxIndex !== null && lightboxImageUrl && (
+      {lightboxEventIndex !== null && lightboxImageUrl && (
         <FlyerLightbox
           imageUrl={lightboxImageUrl}
           rsvpUrl={lightboxRsvpUrl}
-          onClose={() => setLightboxIndex(null)}
-          onPrev={canPrev ? handlePrev : undefined}
-          onNext={canNext ? handleNext : undefined}
+          onClose={() => setLightboxEventIndex(null)}
+          onPrev={canPrev ? handleLightboxPrev : undefined}
+          onNext={canNext ? handleLightboxNext : undefined}
         />
       )}
     </div>
