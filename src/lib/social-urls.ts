@@ -1,5 +1,5 @@
 export interface SocialLink {
-  platform: 'x' | 'telegram' | 'linkedin';
+  platform: 'x' | 'telegram' | 'linkedin' | 'friend';
   label: string;
   url: string;
 }

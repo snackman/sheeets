@@ -434,10 +434,24 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
 
   // Lock screen card state
   const [showLockScreen, setShowLockScreen] = useState(false);
+  const [friendCode, setFriendCode] = useState<string | null>(null);
   const socialLinks = useMemo(
     () => getSocialLinks(profile ?? {}),
     [profile]
   );
+
+  // Pre-fetch friend code for lock screen card
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('friend_codes')
+      .select('code')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.code) setFriendCode(data.code);
+      });
+  }, [user]);
 
   // Sync form state when profile loads
   useEffect(() => {
@@ -771,7 +785,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                 </div>
 
                 {/* Lock Screen Card */}
-                {socialLinks.length > 0 && (
+                {(socialLinks.length > 0 || friendCode) && (
                   <button
                     onClick={() => setShowLockScreen(true)}
                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--theme-bg-tertiary)] hover:bg-[var(--theme-bg-card-hover)] text-[var(--theme-text-primary)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
@@ -984,6 +998,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
         jobTitle={profile?.job_title ?? null}
         avatarUrl={profile?.avatar_url ?? null}
         socialLinks={socialLinks}
+        friendCode={friendCode}
       />
     </>
   );

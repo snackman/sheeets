@@ -26,6 +26,7 @@ interface LockScreenModalProps {
   jobTitle: string | null;
   avatarUrl: string | null;
   socialLinks: SocialLink[];
+  friendCode: string | null;
 }
 
 export function LockScreenModal({
@@ -36,6 +37,7 @@ export function LockScreenModal({
   jobTitle,
   avatarUrl,
   socialLinks,
+  friendCode,
 }: LockScreenModalProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -56,6 +58,31 @@ export function LockScreenModal({
   const [customH, setCustomH] = useState('');
   const [useCustom, setUseCustom] = useState(false);
   const [pickerDone, setPickerDone] = useState(false);
+
+  // Build full list of available QR items (social links + friend link)
+  const allLinks: SocialLink[] = useMemo(() => {
+    const links = [...socialLinks];
+    if (friendCode) {
+      links.push({
+        platform: 'friend',
+        label: 'plan.wtf',
+        url: `${typeof window !== 'undefined' ? window.location.origin : ''}?fc=${friendCode}`,
+      });
+    }
+    return links;
+  }, [socialLinks, friendCode]);
+
+  // QR selection state — which platforms are toggled on
+  const [enabledQrs, setEnabledQrs] = useState<Set<string>>(new Set());
+
+  // Reset enabled set when allLinks changes
+  useEffect(() => {
+    setEnabledQrs(new Set(allLinks.map(l => l.platform)));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allLinks.length]);
+
+  // Filtered links based on selection
+  const filteredLinks = useMemo(() => allLinks.filter(l => enabledQrs.has(l.platform)), [allLinks, enabledQrs]);
 
   // Resolve final screen dimensions
   const screenDims = useMemo(() => {
@@ -124,7 +151,7 @@ export function LockScreenModal({
       generatePreview();
     }, 200);
     return () => clearTimeout(timer);
-  }, [isOpen, isDesktop, pickerDone, generatePreview]);
+  }, [isOpen, isDesktop, pickerDone, generatePreview, enabledQrs]);
 
   // Track open event
   useEffect(() => {
@@ -230,6 +257,33 @@ export function LockScreenModal({
             <p className="text-xs text-[var(--theme-text-secondary)]">
               Set this as your lock screen to make it easy for people to scan your contact info.
             </p>
+
+            {/* QR code selection */}
+            {allLinks.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-[var(--theme-text-primary)]">QR codes to include</p>
+                {allLinks.map((link) => (
+                  <label key={link.platform} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={enabledQrs.has(link.platform)}
+                      onChange={() => {
+                        setEnabledQrs(prev => {
+                          const next = new Set(prev);
+                          if (next.has(link.platform)) next.delete(link.platform);
+                          else next.add(link.platform);
+                          return next;
+                        });
+                      }}
+                      className="w-3.5 h-3.5 rounded accent-[var(--theme-accent)]"
+                    />
+                    <span className="text-sm text-[var(--theme-text-secondary)]">
+                      {link.platform === 'friend' ? 'Friend link (plan.wtf)' : link.platform === 'x' ? `X (@${link.label.replace('@', '')})` : link.platform === 'telegram' ? `Telegram (${link.label})` : `LinkedIn`}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
 
             {/* Phone picker (desktop only) */}
             {isDesktop && !pickerDone && (
@@ -371,7 +425,7 @@ export function LockScreenModal({
         company={company}
         jobTitle={jobTitle}
         avatarUrl={avatarUrl}
-        socialLinks={socialLinks}
+        socialLinks={filteredLinks}
         screenWidth={screenDims.width}
         screenHeight={screenDims.height}
         logoDataUrl={logoDataUrl ?? undefined}
