@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Popup } from 'react-map-gl/mapbox';
 import { X, Calendar, MapPin, MapPinCheck, Loader2 } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
@@ -251,7 +252,7 @@ function SingleEventContent({
   );
 }
 
-export function EventPopup({
+export const EventPopup = memo(function EventPopup({
   event,
   latitude,
   longitude,
@@ -303,7 +304,7 @@ export function EventPopup({
       />
     </Popup>
   );
-}
+});
 
 export function MultiEventPopup({
   events,

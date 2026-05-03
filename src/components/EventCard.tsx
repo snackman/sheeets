@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { MapPin, Calendar, X, Link, Check, MapPinCheck, Loader2 } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
@@ -122,7 +122,7 @@ function FriendsGoingModal({
   );
 }
 
-export function EventCard({
+export const EventCard = memo(function EventCard({
   event,
   isInItinerary = false,
   onItineraryToggle,
@@ -441,4 +441,4 @@ export function EventCard({
       )}
     </div>
   );
-}
+});

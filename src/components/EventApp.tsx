@@ -380,6 +380,10 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
   const handleOpenSubmitEvent = useCallback(() => setShowSubmitEvent(true), []);
   const handleOpenSignIn = useCallback(() => setShowSignIn(true), []);
   const handleSearchChange = useCallback((q: string) => setFilter('searchQuery', q), [setFilter]);
+  const handleCloseAuth = useCallback(() => { dismissAuth(); setShowSignIn(false); }, [dismissAuth]);
+  const handleCloseSubmitEvent = useCallback(() => setShowSubmitEvent(false), []);
+  const handleCloseFriends = useCallback(() => setShowFriends(false), []);
+  const handleOnboardingAuth = useCallback(() => { setShowOnboarding(false); setShowSignIn(true); }, []);
 
   // Memoized derived value
   const filteredItineraryCount = useMemo(
@@ -636,11 +640,11 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         />
       )}
 
-      <AuthModal isOpen={showAuthForStar || showSignIn} onClose={() => { dismissAuth(); setShowSignIn(false); }} />
-      <SubmitEventModal isOpen={showSubmitEvent} onClose={() => setShowSubmitEvent(false)} upsellCopy={config?.upsell_copy} initialConference={filters.conference} conferenceTabs={conferenceTabs} />
+      <AuthModal isOpen={showAuthForStar || showSignIn} onClose={handleCloseAuth} />
+      <SubmitEventModal isOpen={showSubmitEvent} onClose={handleCloseSubmitEvent} upsellCopy={config?.upsell_copy} initialConference={filters.conference} conferenceTabs={conferenceTabs} />
       <FriendsPanel
         isOpen={showFriends}
-        onClose={() => setShowFriends(false)}
+        onClose={handleCloseFriends}
         friends={friends}
         onRemoveFriend={removeFriend}
       />
@@ -651,7 +655,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         availableConferences={availableConferences}
         conferenceEventCounts={conferenceEventCounts}
         events={events}
-        onOpenAuth={() => { setShowOnboarding(false); setShowSignIn(true); }}
+        onOpenAuth={handleOnboardingAuth}
         conferenceTabs={conferenceTabs}
       />
       {activeRsvp && (
