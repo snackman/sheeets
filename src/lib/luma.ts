@@ -1,6 +1,7 @@
 export function isLumaUrl(url: string): boolean {
   try {
-    return new URL(url).hostname.includes('lu.ma');
+    const h = new URL(url).hostname;
+    return h === 'lu.ma' || h === 'luma.com' || h === 'www.luma.com';
   } catch {
     return false;
   }
@@ -9,7 +10,8 @@ export function isLumaUrl(url: string): boolean {
 export function getLumaSlug(url: string): string | null {
   try {
     const u = new URL(url);
-    if (!u.hostname.includes('lu.ma')) return null;
+    const h = u.hostname;
+    if (h !== 'lu.ma' && h !== 'luma.com' && h !== 'www.luma.com') return null;
     const parts = u.pathname.split('/').filter(Boolean);
     return parts[0] || null;
   } catch {
