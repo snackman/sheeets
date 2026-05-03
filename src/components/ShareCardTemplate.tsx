@@ -131,10 +131,10 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
                   return (
                     <div key={event.id} style={{ width: '486px' }}>
                       {/* Text info above the image */}
-                      <div style={{ marginBottom: '4px', padding: '0 2px' }}>
+                      <div style={{ marginBottom: '6px', padding: '0 2px' }}>
                         <div
                           style={{
-                            fontSize: '16px', fontWeight: 600, color: '#fafaf9',
+                            fontSize: '22px', fontWeight: 700, color: '#fafaf9',
                             lineHeight: 1.3, overflow: 'hidden',
                             textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                           }}
@@ -142,7 +142,7 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
                           {event.name}
                         </div>
                         {timeDisplay && (
-                          <div style={{ fontSize: '15px', fontWeight: 500, color: '#d6d3d1', marginTop: '1px' }}>
+                          <div style={{ fontSize: '19px', fontWeight: 500, color: '#d6d3d1', marginTop: '2px' }}>
                             {timeDisplay}
                           </div>
                         )}
