@@ -39,7 +39,6 @@ interface FilterBarProps {
   conferenceTabs?: TabConfig[];
   itineraryCount: number;
   onItineraryToggle: () => void;
-  isItineraryActive: boolean;
 }
 
 export function FilterBar({
@@ -66,7 +65,6 @@ export function FilterBar({
   conferenceTabs,
   itineraryCount,
   onItineraryToggle,
-  isItineraryActive,
 }: FilterBarProps) {
   const [expanded, setExpanded] = useState(false);
   const [confOpen, setConfOpen] = useState(false);
@@ -240,26 +238,15 @@ export function FilterBar({
             )}
           </button>
 
-          {/* Itinerary toggle */}
+          {/* My Plan button */}
           <button
             onClick={onItineraryToggle}
-            aria-label={`Itinerary: ${itineraryCount} events`}
-            className={clsx(
-              'shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
-              isItineraryActive
-                ? 'text-[var(--theme-accent)] border border-[var(--theme-accent)]'
-                : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)]'
-            )}
-            style={isItineraryActive ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
+            aria-label={`My Plan: ${itineraryCount} events`}
+            className="shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)]"
           >
             <CalendarIcon className="w-5 h-5" />
             {itineraryCount > 0 && (
-              <span className={clsx(
-                'text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1',
-                isItineraryActive
-                  ? 'bg-[var(--theme-accent-text)] text-[var(--theme-accent)] border border-[var(--theme-accent)]'
-                  : 'bg-[var(--theme-text-secondary)] text-[var(--theme-bg-primary)]'
-              )}>
+              <span className="text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1 bg-[var(--theme-text-secondary)] text-[var(--theme-bg-primary)]">
                 {itineraryCount}
               </span>
             )}

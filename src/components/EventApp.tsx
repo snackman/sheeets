@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useEvents } from '@/hooks/useEvents';
 import { useFilters } from '@/hooks/useFilters';
 import { useItinerary } from '@/hooks/useItinerary';
@@ -239,14 +240,15 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
     checkInToNearbyEvents(events, itinerary, filters.conference);
   }, [checkInToNearbyEvents, events, itinerary, filters.conference]);
 
+  const router = useRouter();
   const handleItineraryFilterToggle = useCallback(() => {
     if (!authUser) {
       trackAuthPrompt('itinerary_button');
       setShowSignIn(true);
       return;
     }
-    toggleBool('itineraryOnly');
-  }, [authUser, toggleBool]);
+    router.push(`/plan${filters.conference ? `?conf=${encodeURIComponent(filters.conference)}` : ''}`);
+  }, [authUser, router, filters.conference]);
 
   // Theme: read from admin config per-conference and apply
   const { setTheme } = useTheme();
@@ -485,7 +487,6 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           conferenceTabs={conferenceTabs}
           itineraryCount={filteredEvents.filter(e => itinerary.has(e.id)).length}
           onItineraryToggle={handleItineraryFilterToggle}
-          isItineraryActive={filters.itineraryOnly}
         />
       </div>
 

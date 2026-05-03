@@ -166,7 +166,7 @@ export function ItineraryPanel({
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-secondary)]">
           <h2 className="text-lg font-bold text-[var(--theme-text-primary)]">
-            My Itinerary{' '}
+            My Plan{' '}
             <span className="text-sm font-normal text-[var(--theme-text-secondary)]">
               ({itineraryEvents.length} event
               {itineraryEvents.length !== 1 ? 's' : ''})
@@ -176,7 +176,7 @@ export function ItineraryPanel({
             {itineraryEvents.length > 0 && (
               <>
                 <Link
-                  href={`/itinerary${selectedConference ? `?conf=${encodeURIComponent(selectedConference)}` : ''}`}
+                  href={`/plan${selectedConference ? `?conf=${encodeURIComponent(selectedConference)}` : ''}`}
                   className="p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent-link)] active:text-[var(--theme-accent-link)] transition-colors"
                   aria-label="Open full page"
                   title="Open full page"
@@ -229,7 +229,7 @@ export function ItineraryPanel({
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <CalendarX className="w-12 h-12 text-[var(--theme-text-faint)] mb-4" />
               <p className="text-[var(--theme-text-secondary)] font-medium mb-2">
-                No events in your itinerary yet
+                No events in your plan yet
               </p>
               <p className="text-[var(--theme-text-muted)] text-sm max-w-xs">
                 Tap + on any event to add it to your plan!
@@ -243,7 +243,7 @@ export function ItineraryPanel({
                 <div className="pt-3 pb-1 px-1 flex items-center gap-2">
                   <span className="text-base">📅</span>
                   <span className="text-sm font-bold text-[var(--theme-text-primary)]">plan.wtf</span>
-                  <span className="text-xs text-[var(--theme-text-muted)]">— My Itinerary</span>
+                  <span className="text-xs text-[var(--theme-text-muted)]">— My Plan</span>
                 </div>
 
                 {/* Conflict warning */}
@@ -432,7 +432,7 @@ export function ItineraryPanel({
                     className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[var(--theme-bg-secondary)] hover:bg-[var(--theme-bg-tertiary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-secondary)] active:text-[var(--theme-text-secondary)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
-                    Clear Itinerary
+                    Clear Plan
                   </button>
                 )}
               </div>
@@ -445,7 +445,7 @@ export function ItineraryPanel({
         isOpen={showShareCard}
         onClose={() => setShowShareCard(false)}
         events={itineraryEvents}
-        conferenceName={selectedConference || 'Itinerary'}
+        conferenceName={selectedConference || 'My Plan'}
         displayName={profile?.display_name ?? null}
         avatarUrl={profile?.avatar_url}
         hiddenEventIds={hiddenEvents}
