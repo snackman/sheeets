@@ -364,6 +364,7 @@ function ItineraryContent() {
             onItineraryToggle={toggleItinerary}
             conference={activeConference}
             userLocation={userLocation}
+            friendsByEvent={friendsByEvent}
           />
         </main>
       ) : (
