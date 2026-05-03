@@ -26,6 +26,7 @@ import { resolveItemVariants, getVisitorId } from '@/lib/ab-testing';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
+import { GalleryView } from './GalleryView';
 import { TableView } from './TableView';
 import { MapViewWrapper } from './MapViewWrapper';
 import { Loading } from './Loading';
@@ -480,7 +481,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
 
       {/* Filter bar -- collapses on scroll down in table/list views */}
       <div className={
-        viewMode === 'table' || viewMode === 'list'
+        viewMode === 'table' || viewMode === 'list' || viewMode === 'gallery'
           ? `shrink-0 transition-all duration-200 ${contentScrolled ? 'lg:overflow-visible lg:max-h-none overflow-hidden max-h-0' : ''}`
           : 'shrink-0'
       }>
@@ -566,6 +567,25 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
             userLocation={userLocation}
             getRsvpStatus={getRsvpStatus}
             onRsvp={handleRsvp}
+          />
+        </main>
+      ) : viewMode === 'gallery' ? (
+        <main ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto">
+          <GalleryView
+            events={filteredEvents}
+            totalCount={conferenceEventCount}
+            itinerary={itinerary}
+            onItineraryToggle={handleItineraryToggle}
+            friendsCountByEvent={friendsCountByEvent}
+            friendsByEvent={friendsByEvent}
+            checkedInFriendsByEvent={checkedInFriendsByEvent}
+            checkInCounts={checkInCounts}
+            reactionsByEvent={reactionsByEvent}
+            onToggleReaction={handleToggleReaction}
+            commentCounts={commentCounts}
+            scrollContainerRef={listMainRef}
+            conference={filters.conference}
+            liveEventIds={liveEventIds}
           />
         </main>
       ) : (

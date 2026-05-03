@@ -17,7 +17,7 @@ export function useViewMode() {
   // Restore from localStorage after mount (avoids hydration mismatch)
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
-    if (saved === 'map' || saved === 'list' || saved === 'table') {
+    if (saved === 'map' || saved === 'list' || saved === 'table' || saved === 'gallery') {
       setViewModeState(saved);
     } else {
       setViewModeState(window.innerWidth >= 768 ? 'table' : 'list');

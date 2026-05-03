@@ -52,7 +52,7 @@ export interface UserState {
   itinerary: string[];
 }
 
-export type ViewMode = 'map' | 'list' | 'table';
+export type ViewMode = 'map' | 'list' | 'table' | 'gallery';
 
 export interface UserProfile {
   user_id: string;
