@@ -41,11 +41,11 @@ export function Header({
 
   return (
     <>
-      <header className="sticky top-0 shrink-0 z-50 backdrop-blur-sm border-b border-[var(--theme-border-secondary)]" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-bg-primary) 95%, transparent)' }}>
+      <header className="sticky top-0 shrink-0 z-50 backdrop-blur-sm border-b border-[var(--theme-header-border)]" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-header-bg) 95%, transparent)' }}>
         <div className="px-2 sm:px-4 py-3 flex items-center justify-between gap-4">
           {/* Left: Branding */}
           <div className="flex items-center min-w-0">
-            <a href="/" style={{ marginTop: '-4px' }}><Image src="/logo.png" alt="plan.wtf" width={130} height={36} style={{ filter: 'var(--theme-logo-filter)' }} priority /></a>
+            <a href="/" style={{ marginTop: '-4px' }}><Image src="/logo.png" alt="plan.wtf" width={130} height={36} style={{ filter: 'var(--theme-header-logo-filter)' }} priority /></a>
           </div>
 
           {/* Right: Controls */}
@@ -76,7 +76,8 @@ export function Header({
               ) : (
                 <button
                   onClick={() => { trackAuthPrompt('sign_in_button'); setShowAuth(true); }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--theme-border-primary)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] transition-colors text-sm cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--theme-header-control-border)] text-[var(--theme-header-text)] hover:text-[var(--theme-header-text-hover)] active:text-[var(--theme-header-text-hover)] transition-colors text-sm cursor-pointer"
+                  style={{ backgroundColor: 'var(--theme-header-control-bg)' }}
                 >
                   <User className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Sign in</span>

@@ -1,6 +1,6 @@
 import type { ETHDenverEvent } from './types';
 
-function parseTime(t: string): { hour: number; minute: number } | null {
+export function parseTime(t: string): { hour: number; minute: number } | null {
   if (!t) return null;
   const normalized = t.toLowerCase().trim();
   if (normalized === 'all day' || normalized === 'tbd') return null;

@@ -53,6 +53,25 @@
 
   --theme-logo-filter: invert(1);
 
+  --theme-header-bg: var(--theme-bg-primary);
+  --theme-header-border: var(--theme-border-secondary);
+  --theme-header-logo-filter: var(--theme-logo-filter);
+  --theme-header-text: var(--theme-text-secondary);
+  --theme-header-text-hover: var(--theme-text-primary);
+  --theme-header-control-bg: var(--theme-bg-secondary);
+  --theme-header-control-bg-hover: var(--theme-bg-tertiary);
+  --theme-header-control-border: var(--theme-border-primary);
+  --theme-header-accent: var(--theme-accent);
+  --theme-header-accent-muted: var(--theme-accent-muted);
+
+  --theme-bg-list: var(--theme-bg-primary);
+  --theme-bg-filter: var(--theme-bg-primary);
+  --theme-filter-text: var(--theme-text-secondary);
+  --theme-filter-control-bg: var(--theme-bg-secondary);
+  --theme-filter-control-border: var(--theme-border-primary);
+  --theme-table-header-bg: var(--theme-bg-secondary);
+  --theme-table-header-text: var(--theme-text-secondary);
+
   --theme-scrollbar-track: #0c0a09;
   --theme-scrollbar-thumb: #292524;
   --theme-scrollbar-thumb-hover: #44403c;
@@ -220,6 +239,25 @@
   --theme-now-bg: #22c55e;
 
   --theme-logo-filter: brightness(0) saturate(100%) invert(22%) sepia(60%) saturate(1200%) hue-rotate(198deg) brightness(95%) contrast(95%);
+
+  --theme-header-bg: #1c4586;
+  --theme-header-border: #153a73;
+  --theme-header-logo-filter: brightness(0) invert(1);
+  --theme-header-text: rgba(255, 255, 255, 0.7);
+  --theme-header-text-hover: #ffffff;
+  --theme-header-control-bg: rgba(255, 255, 255, 0.1);
+  --theme-header-control-bg-hover: rgba(255, 255, 255, 0.2);
+  --theme-header-control-border: rgba(255, 255, 255, 0.2);
+  --theme-header-accent: #ffffff;
+  --theme-header-accent-muted: rgba(255, 255, 255, 0.15);
+
+  --theme-bg-list: rgba(28, 69, 134, 0.06);
+  --theme-bg-filter: #48699D;
+  --theme-filter-text: rgba(255, 255, 255, 0.7);
+  --theme-filter-control-bg: rgba(255, 255, 255, 0.1);
+  --theme-filter-control-border: rgba(255, 255, 255, 0.2);
+  --theme-table-header-bg: #1c4586;
+  --theme-table-header-text: #ffffff;
 
   --theme-scrollbar-track: #fafafa;
   --theme-scrollbar-thumb: #d4d4d4;

@@ -39,6 +39,8 @@ interface TableViewProps {
   liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
   /** User's current location for distance display */
   userLocation?: { lat: number; lng: number } | null;
+  getRsvpStatus?: (eventId: string) => 'idle' | 'confirmed';
+  onRsvp?: (eventId: string, lumaUrl: string, eventName: string) => void;
 }
 
 /** Format a dateISO string like "2026-02-10" into "Mon Feb 10" */
@@ -132,6 +134,8 @@ export function TableView({
   onSignIn,
   liveEventIds,
   userLocation,
+  getRsvpStatus,
+  onRsvp,
 }: TableViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
@@ -328,7 +332,7 @@ export function TableView({
             <col style={{ width: `calc((100% - 36px - 44px - 100px - ${tagsColWidth}px) * 0.28)` }} />             {/* where */}
             <col style={{ width: tagsColWidth }} />                                                                {/* tags */}
           </colgroup>
-          <thead className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] bg-[var(--theme-bg-secondary)] border-b border-[var(--theme-border-primary)] sticky top-0 z-20">
+          <thead className="text-xs uppercase tracking-wider text-[var(--theme-table-header-text)] bg-[var(--theme-table-header-bg)] border-b border-[var(--theme-border-primary)] sticky top-0 z-20">
             <tr>
               <th className="py-2.5"><div className="flex justify-center"><CalendarIcon className="w-5 h-5" /></div></th>
               <th className="px-1 py-2.5 text-center" title={!isSignedIn ? 'Sign in to add friends and see who\'s going' : 'Friends going'}><Users className="w-3.5 h-3.5 mx-auto" /></th>
@@ -336,7 +340,7 @@ export function TableView({
                 {currentDateLabel === 'Time' ? (
                   'WHEN'
                 ) : (
-                  <span className="text-[var(--theme-accent)] font-semibold" style={{ opacity: 0.8 }}>
+                  <span className="text-[var(--theme-table-header-text)] font-semibold" style={{ opacity: 0.8 }}>
                     {currentDateLabel.toUpperCase()}
                   </span>
                 )}
@@ -413,6 +417,8 @@ export function TableView({
           onToggleReaction={onToggleReaction}
           commentCount={commentCounts?.get(selectedEvent.id)}
           onClose={() => setSelectedEvent(null)}
+          rsvpStatus={getRsvpStatus?.(selectedEvent.id)}
+          onRsvp={selectedEvent.link ? () => onRsvp?.(selectedEvent.id, selectedEvent.link!, selectedEvent.name) : undefined}
         />,
         document.body
       )}
@@ -440,6 +446,8 @@ function EventDetailModal({
   onToggleReaction,
   commentCount,
   onClose,
+  rsvpStatus,
+  onRsvp,
 }: {
   event: ETHDenverEvent;
   isInItinerary: boolean;
@@ -451,6 +459,8 @@ function EventDetailModal({
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
   commentCount?: number;
   onClose: () => void;
+  rsvpStatus?: 'idle' | 'confirmed';
+  onRsvp?: () => void;
 }) {
   return (
     <>
@@ -469,6 +479,8 @@ function EventDetailModal({
             reactions={reactions}
             onToggleReaction={onToggleReaction}
             commentCount={commentCount}
+            rsvpStatus={rsvpStatus}
+            onRsvp={onRsvp}
           />
         </div>
       </div>

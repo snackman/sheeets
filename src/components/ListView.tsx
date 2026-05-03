@@ -43,6 +43,8 @@ interface ListViewProps {
   checkInLoading?: boolean;
   liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
   userLocation?: { lat: number; lng: number } | null;
+  getRsvpStatus?: (eventId: string) => 'idle' | 'confirmed';
+  onRsvp?: (eventId: string, lumaUrl: string, eventName: string) => void;
 }
 
 interface DateGroup {
@@ -142,6 +144,8 @@ export function ListView({
   checkInLoading,
   liveEventIds,
   userLocation,
+  getRsvpStatus,
+  onRsvp,
 }: ListViewProps) {
   const activeAds = useMemo(() => nativeAds?.filter(ad => ad.active !== false) || [], [nativeAds]);
 
@@ -182,7 +186,7 @@ export function ListView({
       if (item.kind === 'ad') return 120;
       return 180; // event card estimate
     },
-    overscan: 5,
+    overscan: 4,
     measureElement: (el) => {
       // Include the item's actual height (padding is part of the element)
       return el.getBoundingClientRect().height;
@@ -198,6 +202,8 @@ export function ListView({
 
   /* ---- flyer lightbox navigation ---- */
   const [lightboxEventIndex, setLightboxEventIndex] = useState<number | null>(null);
+  // Counter to force re-render when an OG image finishes loading into the cache
+  const [, setImageLoadTick] = useState(0);
 
   // Build ordered list of event indices (skip ads and headers)
   const eventIndices = useMemo(
@@ -215,23 +221,44 @@ export function ListView({
   const canPrev = lightboxPosInEvents > 0;
   const canNext = lightboxPosInEvents >= 0 && lightboxPosInEvents < eventIndices.length - 1;
 
+  // Preload current + adjacent event OG images when lightbox is open
+  useEffect(() => {
+    if (lightboxPosInEvents < 0) return;
+    const toPreload: number[] = [lightboxPosInEvents];
+    for (let d = 1; d <= 2; d++) {
+      if (lightboxPosInEvents + d < eventIndices.length) toPreload.push(lightboxPosInEvents + d);
+      if (lightboxPosInEvents - d >= 0) toPreload.push(lightboxPosInEvents - d);
+    }
+    for (const pos of toPreload) {
+      const idx = eventIndices[pos];
+      const item = flatItems[idx];
+      if (item.kind === 'event' && item.event.link && !imageCache.has(item.event.link)) {
+        const params = new URLSearchParams({ url: item.event.link });
+        if (item.event.id) params.set('eventId', item.event.id);
+        fetch(`/api/og?${params.toString()}`)
+          .then(res => res.json())
+          .then(data => {
+            imageCache.set(item.event.link!, data.imageUrl);
+            // Trigger re-render so the lightbox picks up the newly cached image
+            setImageLoadTick(n => n + 1);
+          })
+          .catch(() => {
+            imageCache.set(item.event.link!, null);
+            setImageLoadTick(n => n + 1);
+          });
+      }
+    }
+  }, [lightboxPosInEvents, eventIndices, flatItems]);
+
   const handleLightboxPrev = useCallback(() => {
     if (!canPrev) return;
-    const prevIdx = eventIndices[lightboxPosInEvents - 1];
-    const prevItem = flatItems[prevIdx];
-    if (prevItem.kind === 'event' && prevItem.event.link && imageCache.get(prevItem.event.link)) {
-      setLightboxEventIndex(prevIdx);
-    }
-  }, [canPrev, eventIndices, lightboxPosInEvents, flatItems]);
+    setLightboxEventIndex(eventIndices[lightboxPosInEvents - 1]);
+  }, [canPrev, eventIndices, lightboxPosInEvents]);
 
   const handleLightboxNext = useCallback(() => {
     if (!canNext) return;
-    const nextIdx = eventIndices[lightboxPosInEvents + 1];
-    const nextItem = flatItems[nextIdx];
-    if (nextItem.kind === 'event' && nextItem.event.link && imageCache.get(nextItem.event.link)) {
-      setLightboxEventIndex(nextIdx);
-    }
-  }, [canNext, eventIndices, lightboxPosInEvents, flatItems]);
+    setLightboxEventIndex(eventIndices[lightboxPosInEvents + 1]);
+  }, [canNext, eventIndices, lightboxPosInEvents]);
 
   /* ---- sticky date header overlay ---- */
   const [stickyLabel, setStickyLabel] = useState<string | null>(null);
@@ -337,7 +364,7 @@ export function ListView({
     <div className="max-w-3xl mx-auto px-2 sm:px-4 pb-8 relative">
       {/* Overlay sticky date header */}
       {stickyLabel && (
-        <div className="sticky top-0 z-20 bg-[var(--theme-bg-primary)] py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-[var(--theme-border-secondary)]">
+        <div className="sticky top-0 z-20 bg-[var(--theme-bg-list)] py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-[var(--theme-border-secondary)]">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-[var(--theme-text-primary)]">
               {stickyLabel}
@@ -413,6 +440,8 @@ export function ListView({
                     liveUrgency={liveEventIds?.get(item.event.id)}
                     userLocation={userLocation}
                     onOpenLightbox={() => setLightboxEventIndex(virtualRow.index)}
+                    rsvpStatus={getRsvpStatus?.(item.event.id)}
+                    onRsvp={item.event.link ? () => onRsvp?.(item.event.id, item.event.link!, item.event.name) : undefined}
                   />
                 </div>
               )}

@@ -129,7 +129,7 @@ export function FilterBar({
   }
 
   return (
-    <div className="relative bg-[var(--theme-bg-primary)] border-b border-[var(--theme-border-secondary)] z-30">
+    <div className="relative bg-[var(--theme-bg-filter)] border-b border-[var(--theme-border-secondary)] z-30">
       <div className="px-2 sm:px-4 py-3 space-y-3">
         {/* Top row: Conference tabs + Filter toggle */}
         <div className="flex items-center gap-3 lg:justify-center">
@@ -143,7 +143,7 @@ export function FilterBar({
                   'flex items-center gap-1.5 px-3 py-2 rounded-lg font-semibold cursor-pointer transition-colors border',
                   confOpen
                     ? 'text-[var(--theme-accent)] border-[var(--theme-accent)]'
-                    : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border-[var(--theme-border-primary)]',
+                    : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border-[var(--theme-filter-control-border)]',
                   (filters.conference || 'All').length > 12 ? 'text-xs' : 'text-sm'
                 )}
                 style={confOpen ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
@@ -188,7 +188,7 @@ export function FilterBar({
             {onSubmitEvent && (
               <button
                 onClick={onSubmitEvent}
-                className="shrink-0 h-9 flex items-center justify-center rounded-lg bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)] transition-colors cursor-pointer px-2 xl:px-3 gap-1.5"
+                className="shrink-0 h-9 flex items-center justify-center rounded-lg bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)] transition-colors cursor-pointer px-2 xl:px-3 gap-1.5"
                 aria-label="Submit event"
               >
                 <Plus className="w-4 h-4" />
@@ -208,7 +208,7 @@ export function FilterBar({
               'shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer',
               filters.nowMode
                 ? 'text-[var(--theme-accent)] border border-[var(--theme-accent)]'
-                : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)]'
+                : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)]'
             )}
             style={filters.nowMode ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
           >
@@ -223,7 +223,7 @@ export function FilterBar({
               'shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
               expanded
                 ? 'text-[var(--theme-accent)] border border-[var(--theme-accent)]'
-                : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)]'
+                : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)]'
             )}
             style={expanded ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
           >
@@ -248,7 +248,7 @@ export function FilterBar({
               'shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
               isItineraryActive
                 ? 'text-[var(--theme-accent)] border border-[var(--theme-accent)]'
-                : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)]'
+                : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)]'
             )}
             style={isItineraryActive ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
           >
@@ -272,7 +272,7 @@ export function FilterBar({
           {onSubmitEvent && (
             <button
               onClick={onSubmitEvent}
-              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)] transition-colors cursor-pointer"
+              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)] transition-colors cursor-pointer"
               aria-label="Submit event"
             >
               <Plus className="w-4 h-4" />
