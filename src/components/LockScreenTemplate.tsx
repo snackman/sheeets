@@ -27,7 +27,7 @@ const PLATFORM_LOGOS: Record<string, string> = {
 const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
   function LockScreenTemplate({ displayName, company, jobTitle, avatarUrl, socialLinks }, ref) {
     const qrCount = socialLinks.length;
-    const qrSize = qrCount === 1 ? 1050 : qrCount === 2 ? 520 : 340;
+    const qrSize = qrCount === 1 ? 1050 : qrCount === 2 ? 680 : 560;
 
     return (
       <div
@@ -133,11 +133,13 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
         <div
           style={{
             display: 'flex',
+            flexDirection: qrCount === 2 ? 'column' : 'row',
+            flexWrap: 'wrap',
             justifyContent: 'center',
-            alignItems: 'flex-start',
-            gap: qrCount === 1 ? '0px' : '24px',
-            paddingLeft: '24px',
-            paddingRight: '24px',
+            alignItems: 'center',
+            gap: qrCount === 1 ? '0px' : qrCount === 2 ? '30px' : '40px',
+            paddingLeft: qrCount === 3 ? '0px' : '24px',
+            paddingRight: qrCount === 3 ? '0px' : '24px',
           }}
         >
           {socialLinks.map((link) => (
