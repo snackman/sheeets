@@ -107,7 +107,6 @@ export function useFilters(initialConference?: string, conferenceTabs?: TabConfi
     if (filters.startDateTime !== currentDefaults.startDateTime || filters.endDateTime !== currentDefaults.endDateTime) count++;
     count += filters.vibes.length;
     if (filters.selectedFriends.length > 0) count++;
-    if (filters.searchQuery) count++;
     return count;
   }, [filters, conferenceTabs]);
 
