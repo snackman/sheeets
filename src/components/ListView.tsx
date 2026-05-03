@@ -451,7 +451,7 @@ export function ListView({
       </div>
 
       {/* Flyer lightbox with prev/next navigation */}
-      {lightboxEventIndex !== null && (
+      {lightboxEventIndex !== null && lightboxImageUrl && (
         <FlyerLightbox
           imageUrl={lightboxImageUrl}
           rsvpUrl={lightboxRsvpUrl}
