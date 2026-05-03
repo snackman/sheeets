@@ -189,6 +189,7 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
             height: '60px',
             objectFit: 'contain',
             opacity: 0.4,
+            filter: 'brightness(0) invert(1)',
           }}
         />
 
