@@ -44,7 +44,8 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
     const logoGap = Math.round(20 * s);
 
     // Calculate available vertical space for profile + QR codes
-    const profileEstimate = Math.round(240 * s) + Math.round(72 * s) + Math.round(36 * s) + Math.round(24 * s) * 3;
+    // Avatar+name row (~140px) + company line (~36px) + gaps
+    const profileEstimate = Math.round(140 * s) + Math.round(36 * s) + Math.round(16 * s) * 2;
     const fixedHeight = topSafe + profileEstimate + bottomSafe + logoHeight + logoGap + Math.round(80 * s) + Math.round(60 * s);
     const availableForQr = h - fixedHeight;
 
@@ -98,61 +99,73 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
           style={{
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center',
-            gap: `${Math.round(24 * s)}px`,
+            alignItems: 'flex-start',
+            gap: `${Math.round(16 * s)}px`,
             paddingLeft: `${Math.round(60 * s)}px`,
             paddingRight: `${Math.round(60 * s)}px`,
+            width: '100%',
+            boxSizing: 'border-box',
           }}
         >
-          {/* Avatar */}
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt=""
-              crossOrigin="anonymous"
-              style={{
-                width: `${Math.round(240 * s)}px`,
-                height: `${Math.round(240 * s)}px`,
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: `${Math.round(4 * s)}px solid #292524`,
-              }}
-            />
-          ) : displayName ? (
-            <div
-              style={{
-                width: `${Math.round(240 * s)}px`,
-                height: `${Math.round(240 * s)}px`,
-                borderRadius: '50%',
-                backgroundColor: '#292524',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: `${Math.round(96 * s)}px`,
-                fontWeight: 700,
-                color: '#fbbf24',
-                border: `${Math.round(4 * s)}px solid #292524`,
-              }}
-            >
-              {displayName.charAt(0).toUpperCase()}
-            </div>
-          ) : null}
+          {/* Avatar + Name row */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: `${Math.round(24 * s)}px`,
+            }}
+          >
+            {/* Avatar */}
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt=""
+                crossOrigin="anonymous"
+                style={{
+                  width: `${Math.round(140 * s)}px`,
+                  height: `${Math.round(140 * s)}px`,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  border: `${Math.round(4 * s)}px solid #292524`,
+                  flexShrink: 0,
+                }}
+              />
+            ) : displayName ? (
+              <div
+                style={{
+                  width: `${Math.round(140 * s)}px`,
+                  height: `${Math.round(140 * s)}px`,
+                  borderRadius: '50%',
+                  backgroundColor: '#292524',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: `${Math.round(56 * s)}px`,
+                  fontWeight: 700,
+                  color: '#fbbf24',
+                  border: `${Math.round(4 * s)}px solid #292524`,
+                  flexShrink: 0,
+                }}
+              >
+                {displayName.charAt(0).toUpperCase()}
+              </div>
+            ) : null}
 
-          {/* Name */}
-          {displayName && (
-            <div
-              style={{
-                fontSize: `${Math.round(72 * s)}px`,
-                fontWeight: 800,
-                color: '#fafaf9',
-                lineHeight: 1.2,
-                letterSpacing: '-0.02em',
-                textAlign: 'center',
-              }}
-            >
-              {displayName}
-            </div>
-          )}
+            {/* Name */}
+            {displayName && (
+              <div
+                style={{
+                  fontSize: `${Math.round(72 * s)}px`,
+                  fontWeight: 800,
+                  color: '#fafaf9',
+                  lineHeight: 1.2,
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                {displayName}
+              </div>
+            )}
+          </div>
 
           {/* Company / Job Title */}
           {(company || jobTitle) && (
@@ -162,7 +175,6 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
                 fontWeight: 500,
                 color: '#a8a29e',
                 lineHeight: 1.3,
-                textAlign: 'center',
               }}
             >
               {[company, jobTitle].filter(Boolean).join('  |  ')}
