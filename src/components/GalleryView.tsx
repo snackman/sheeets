@@ -106,19 +106,10 @@ function GalleryCard({
   const TagIcon = primaryTag ? TAG_ICONS[primaryTag] : null;
   const tagColor = primaryTag ? VIBE_COLORS[primaryTag] || VIBE_COLORS['default'] : undefined;
 
-  // Live border classes
-  const liveBorderClass = liveUrgency
-    ? liveUrgency === 'red'
-      ? 'ring-2 ring-red-400/70 animate-pulse'
-      : liveUrgency === 'yellow'
-        ? 'ring-2 ring-yellow-400/60'
-        : 'ring-2 ring-green-400/60 animate-pulse'
-    : '';
-
   return (
     <div
       ref={cardRef}
-      className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer group ${liveBorderClass}`}
+      className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
       onClick={onClick}
       role="button"
       tabIndex={0}
