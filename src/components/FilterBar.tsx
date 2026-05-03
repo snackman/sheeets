@@ -353,7 +353,7 @@ export function FilterBar({
                             className={clsx(
                               'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                               isActive
-                                ? 'border'
+                                ? 'bg-[var(--theme-filter-active-bg)] border'
                                 : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:bg-[var(--theme-filter-control-border)] active:bg-[var(--theme-filter-control-border)] border border-[var(--theme-filter-control-border)]'
                             )}
                             style={isActive ? { borderColor: vibeColor, color: vibeColor } : undefined}
@@ -423,7 +423,7 @@ export function FilterBar({
                               className={clsx(
                                 'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                                 isActive
-                                  ? 'border'
+                                  ? 'bg-[var(--theme-filter-active-bg)] border'
                                   : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:bg-[var(--theme-filter-control-border)] active:bg-[var(--theme-filter-control-border)] border border-[var(--theme-filter-control-border)]'
                               )}
                               style={isActive ? { borderColor: vibeColor, color: vibeColor } : undefined}
