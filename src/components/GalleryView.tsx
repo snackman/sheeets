@@ -118,7 +118,7 @@ function GalleryCard({
   return (
     <div
       ref={cardRef}
-      className={`relative aspect-[1200/630] rounded-lg overflow-hidden cursor-pointer group ${liveBorderClass}`}
+      className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer group ${liveBorderClass}`}
       onClick={onClick}
       role="button"
       tabIndex={0}
