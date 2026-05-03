@@ -14,6 +14,7 @@ import { CalendarIcon } from './icons/CalendarIcon';
 import { FriendAvatarStack } from './FriendAvatarStack';
 import UserAvatar from './UserAvatar';
 import { distanceMeters } from '@/lib/geo';
+import { imageCache, FlyerLightbox } from './OGImage';
 
 interface TableViewProps {
   events: ETHDenverEvent[];
@@ -146,6 +147,72 @@ export const TableView = memo(function TableView({
   const [friendsModalEvent, setFriendsModalEvent] = useState<{ name: string; friends: FriendInfo[] } | null>(null);
 
   const groups = useMemo(() => groupByDate(events), [events]);
+
+  /* ---- flyer lightbox navigation ---- */
+  const [lightboxEventIndex, setLightboxEventIndex] = useState<number | null>(null);
+  const [, setImageLoadTick] = useState(0);
+
+  const allEvents = useMemo(() => groups.flatMap((g) => g.events), [groups]);
+
+  const lightboxEvent = lightboxEventIndex !== null ? allEvents[lightboxEventIndex] : null;
+  const lightboxImageUrl = lightboxEvent?.link
+    ? imageCache.get(lightboxEvent.link) ?? null
+    : null;
+  const lightboxRsvpUrl = lightboxEvent?.link;
+
+  const hasImage = useCallback((idx: number) => {
+    const ev = allEvents[idx];
+    return !!(ev?.link && imageCache.get(ev.link));
+  }, [allEvents]);
+
+  const canPrev = lightboxEventIndex !== null && allEvents.slice(0, lightboxEventIndex).some((ev) => ev.link && imageCache.get(ev.link));
+  const canNext = lightboxEventIndex !== null && allEvents.slice(lightboxEventIndex + 1).some((ev) => ev.link && imageCache.get(ev.link));
+
+  useEffect(() => {
+    if (lightboxEventIndex === null) return;
+    const toPreload: number[] = [lightboxEventIndex];
+    for (let d = 1; d <= 2; d++) {
+      if (lightboxEventIndex + d < allEvents.length) toPreload.push(lightboxEventIndex + d);
+      if (lightboxEventIndex - d >= 0) toPreload.push(lightboxEventIndex - d);
+    }
+    for (const pos of toPreload) {
+      const ev = allEvents[pos];
+      if (ev.link && !imageCache.has(ev.link)) {
+        const params = new URLSearchParams({ url: ev.link });
+        if (ev.id) params.set('eventId', ev.id);
+        fetch(`/api/og?${params.toString()}`)
+          .then((res) => res.json())
+          .then((data) => {
+            imageCache.set(ev.link!, data.imageUrl);
+            setImageLoadTick((n) => n + 1);
+          })
+          .catch(() => {
+            imageCache.set(ev.link!, null);
+            setImageLoadTick((n) => n + 1);
+          });
+      }
+    }
+  }, [lightboxEventIndex, allEvents]);
+
+  const handleLightboxPrev = useCallback(() => {
+    if (!canPrev) return;
+    setLightboxEventIndex((i) => {
+      for (let j = i! - 1; j >= 0; j--) {
+        if (hasImage(j)) return j;
+      }
+      return i;
+    });
+  }, [canPrev, hasImage]);
+
+  const handleLightboxNext = useCallback(() => {
+    if (!canNext) return;
+    setLightboxEventIndex((i) => {
+      for (let j = i! + 1; j < allEvents.length; j++) {
+        if (hasImage(j)) return j;
+      }
+      return i;
+    });
+  }, [canNext, hasImage, allEvents.length]);
 
   // Compute dynamic tags column width based on max tag count across visible events
   const tagsColWidth = useMemo(() => {
@@ -419,8 +486,28 @@ export const TableView = memo(function TableView({
           onClose={() => setSelectedEvent(null)}
           rsvpStatus={getRsvpStatus?.(selectedEvent.id)}
           onRsvp={selectedEvent.link ? () => onRsvp?.(selectedEvent.id, selectedEvent.link!, selectedEvent.name) : undefined}
+          onOpenLightbox={() => {
+            const idx = allEvents.findIndex((e) => e.id === selectedEvent.id);
+            if (idx >= 0) {
+              setSelectedEvent(null);
+              setLightboxEventIndex(idx);
+            }
+          }}
         />,
         document.body
+      )}
+      {lightboxEventIndex !== null && lightboxImageUrl && lightboxEvent && (
+        <FlyerLightbox
+          imageUrl={lightboxImageUrl}
+          rsvpUrl={lightboxRsvpUrl}
+          onClose={() => setLightboxEventIndex(null)}
+          onPrev={canPrev ? handleLightboxPrev : undefined}
+          onNext={canNext ? handleLightboxNext : undefined}
+          eventId={lightboxEvent.id}
+          isInItinerary={itinerary?.has(lightboxEvent.id)}
+          onItineraryToggle={onItineraryToggle}
+          friendsGoing={friendsByEvent?.get(lightboxEvent.id)}
+        />
       )}
       {friendsModalEvent && createPortal(
         <FriendsGoingModal
@@ -448,6 +535,7 @@ function EventDetailModal({
   onClose,
   rsvpStatus,
   onRsvp,
+  onOpenLightbox,
 }: {
   event: ETHDenverEvent;
   isInItinerary: boolean;
@@ -461,6 +549,7 @@ function EventDetailModal({
   onClose: () => void;
   rsvpStatus?: 'idle' | 'confirmed';
   onRsvp?: () => void;
+  onOpenLightbox?: () => void;
 }) {
   return (
     <>
@@ -481,6 +570,7 @@ function EventDetailModal({
             commentCount={commentCount}
             rsvpStatus={rsvpStatus}
             onRsvp={onRsvp}
+            onOpenLightbox={onOpenLightbox ? () => onOpenLightbox() : undefined}
           />
         </div>
       </div>
