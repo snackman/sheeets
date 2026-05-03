@@ -12,6 +12,7 @@ interface LockScreenTemplateProps {
   socialLinks: SocialLink[];
   screenWidth?: number;
   screenHeight?: number;
+  logoDataUrl?: string;
 }
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -31,14 +32,46 @@ const BASE_W = 1170;
 const BASE_H = 2532;
 
 const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
-  function LockScreenTemplate({ displayName, company, jobTitle, avatarUrl, socialLinks, screenWidth, screenHeight }, ref) {
+  function LockScreenTemplate({ displayName, company, jobTitle, avatarUrl, socialLinks, screenWidth, screenHeight, logoDataUrl }, ref) {
     const w = screenWidth || BASE_W;
     const h = screenHeight || BASE_H;
     const s = w / BASE_W; // scale factor based on width
 
+    // Protected zones (scaled) — keep content away from OS UI elements
+    const topSafe = Math.round(300 * s);       // clock / Dynamic Island
+    const bottomSafe = Math.round(200 * s);     // home indicator / flashlight+camera
+    const logoHeight = Math.round(60 * s);
+    const logoGap = Math.round(20 * s);
+
+    // Calculate available vertical space for profile + QR codes
+    const profileEstimate = Math.round(240 * s) + Math.round(72 * s) + Math.round(36 * s) + Math.round(24 * s) * 3;
+    const fixedHeight = topSafe + profileEstimate + bottomSafe + logoHeight + logoGap + Math.round(80 * s) + Math.round(60 * s);
+    const availableForQr = h - fixedHeight;
+
     const qrCount = socialLinks.length;
+    // Base QR sizes, then clamp to available vertical space
     const baseQr = qrCount === 1 ? 1050 : qrCount === 2 ? 680 : 560;
-    const qrSize = Math.round(baseQr * s);
+    let qrSize = Math.round(baseQr * s);
+
+    // For stacked layouts, ensure QR codes fit vertically
+    if (qrCount === 2) {
+      const needed = qrSize * 2 + Math.round(30 * s) + Math.round(16 * s) * 2 + Math.round(28 * s) * 2;
+      if (needed > availableForQr) {
+        qrSize = Math.round((availableForQr - Math.round(30 * s) - Math.round(16 * s) * 2 - Math.round(28 * s) * 2) / 2);
+      }
+    } else if (qrCount === 3) {
+      // 2 rows: need 2 QR heights + gaps + labels
+      const needed = qrSize * 2 + Math.round(40 * s) + Math.round(16 * s) * 2 + Math.round(28 * s) * 2;
+      if (needed > availableForQr) {
+        qrSize = Math.round((availableForQr - Math.round(40 * s) - Math.round(16 * s) * 2 - Math.round(28 * s) * 2) / 2);
+      }
+    } else if (qrCount === 1) {
+      const needed = qrSize + Math.round(16 * s) + Math.round(28 * s);
+      if (needed > availableForQr) {
+        qrSize = availableForQr - Math.round(16 * s) - Math.round(28 * s);
+      }
+    }
+    qrSize = Math.max(qrSize, Math.round(100 * s)); // floor
 
     return (
       <div
@@ -57,8 +90,8 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
           boxSizing: 'border-box',
         }}
       >
-        {/* Top safe zone for clock */}
-        <div style={{ height: `${Math.round(300 * s)}px`, flexShrink: 0 }} />
+        {/* Top safe zone — clock / Dynamic Island */}
+        <div style={{ height: `${topSafe}px`, flexShrink: 0 }} />
 
         {/* Profile section */}
         <div
@@ -194,20 +227,21 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
         <div style={{ flex: 1, minHeight: `${Math.round(60 * s)}px` }} />
 
         {/* Branding */}
-        <img
-          src="/logo.png"
-          alt="plan.wtf"
-          crossOrigin="anonymous"
-          style={{
-            height: `${Math.round(60 * s)}px`,
-            objectFit: 'contain',
-            opacity: 0.4,
-            filter: 'brightness(0) invert(1)',
-          }}
-        />
+        {logoDataUrl && (
+          <img
+            src={logoDataUrl}
+            alt="plan.wtf"
+            style={{
+              height: `${logoHeight}px`,
+              objectFit: 'contain',
+              opacity: 0.4,
+              filter: 'brightness(0) invert(1)',
+            }}
+          />
+        )}
 
-        {/* Bottom safe zone */}
-        <div style={{ height: `${Math.round(200 * s)}px`, flexShrink: 0 }} />
+        {/* Bottom safe zone — home indicator / flashlight+camera */}
+        <div style={{ height: `${bottomSafe}px`, flexShrink: 0 }} />
       </div>
     );
   }

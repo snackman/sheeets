@@ -40,6 +40,7 @@ export function LockScreenModal({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copying' | 'copied'>('idle');
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const trackedRef = useRef(false);
 
@@ -73,6 +74,24 @@ export function LockScreenModal({
     const preset = PHONE_PRESETS[selectedPreset];
     return { width: preset.w, height: preset.h };
   }, [isDesktop, selectedPreset, useCustom, customW, customH]);
+
+  // Preload logo as data URL so html-to-image can embed it
+  useEffect(() => {
+    if (!isOpen) return;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        setLogoDataUrl(canvas.toDataURL('image/png'));
+      }
+    };
+    img.src = '/logo.png';
+  }, [isOpen]);
 
   // Generate preview image
   const generatePreview = useCallback(async () => {
@@ -124,6 +143,7 @@ export function LockScreenModal({
       setPreviewUrl(null);
       setCopyStatus('idle');
       setPickerDone(false);
+      setLogoDataUrl(null);
     }
   }, [isOpen]);
 
@@ -354,6 +374,7 @@ export function LockScreenModal({
         socialLinks={socialLinks}
         screenWidth={screenDims.width}
         screenHeight={screenDims.height}
+        logoDataUrl={logoDataUrl ?? undefined}
       />
     </>,
     document.body
