@@ -21,6 +21,7 @@ interface HeaderProps {
   hasNearbyLiveEvents?: boolean;
   onBulkCheckIn?: () => void;
   checkInLoading?: boolean;
+  children?: React.ReactNode;
 }
 
 export function Header({
@@ -35,6 +36,7 @@ export function Header({
   hasNearbyLiveEvents,
   onBulkCheckIn,
   checkInLoading,
+  children,
 }: HeaderProps) {
   const { user, loading } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
@@ -68,6 +70,8 @@ export function Header({
                 )}
               </button>
             )}
+
+            {children}
 
             {/* Auth / Profile — far right */}
             {!loading && (

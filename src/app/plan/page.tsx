@@ -5,27 +5,30 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { EventCard } from '@/components/EventCard';
-import { ArrowLeft, Trash2, Share2, Map as MapIcon, List, Table, GripVertical, Eye, EyeOff, ChevronDown, MapPin, User } from 'lucide-react';
-import clsx from 'clsx';
+import { Trash2, Share2, GripVertical, Eye, EyeOff } from 'lucide-react';
 import { useEvents } from '@/hooks/useEvents';
 import { useItinerary } from '@/hooks/useItinerary';
 
 
 import { formatDateLabel } from '@/lib/utils';
-import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryReorder } from '@/lib/analytics';
+import { trackItineraryClear, trackItineraryReorder } from '@/lib/analytics';
 import type { ETHDenverEvent } from '@/lib/types';
 import { Loading } from '@/components/Loading';
 import { useEventCheckIn } from '@/hooks/useEventCheckIn';
-import { passesNowFilter, getConferenceNow } from '@/lib/filters';
 import { useDragReorder } from '@/hooks/useDragReorder';
 import { useProfile } from '@/hooks/useProfile';
-import { useAuth } from '@/contexts/AuthContext';
-import { AuthModal, UserMenu } from '@/components/AuthModal';
-import { trackAuthPrompt } from '@/lib/analytics';
+import { Header } from '@/components/Header';
+import { FilterBar } from '@/components/FilterBar';
+import { SponsorsTicker } from '@/components/SponsorsTicker';
 import { ShareCardModal } from '@/components/ShareCardModal';
 import { useConferenceTabs } from '@/hooks/useConferenceTabs';
+import { useFilters } from '@/hooks/useFilters';
+import { useAdminConfig } from '@/hooks/useAdminConfig';
+import { useConferenceData } from '@/hooks/useConferenceData';
 import { GoogleCalendarButton } from '@/components/GoogleCalendarButton';
 import { getTabConfig } from '@/lib/conferences';
+import { passesNowFilter, applyFilters, computeTagCounts, getConferenceNow } from '@/lib/filters';
+import { resolveItemVariants, getVisitorId } from '@/lib/ab-testing';
 import { TableView } from '@/components/TableView';
 import { useFriends } from '@/hooks/useFriends';
 import { useFriendsItineraries } from '@/hooks/useFriendsItineraries';
@@ -70,8 +73,7 @@ function ItineraryContent() {
   const { itinerary, toggle: toggleItinerary, clear: clearItinerary, reorder: reorderItinerary, hiddenEvents, toggleHidden } = useItinerary();
 
   const { profile } = useProfile();
-  const { user, loading: authLoading } = useAuth();
-  const [showAuth, setShowAuth] = useState(false);
+  const { config } = useAdminConfig();
   const { friends } = useFriends();
   const { friendItineraries } = useFriendsItineraries(friends);
 
@@ -107,8 +109,6 @@ function ItineraryContent() {
     setViewModeRestored(true);
   }, []);
   const [showShareCard, setShowShareCard] = useState(false);
-  const [confOpen, setConfOpen] = useState(false);
-  const confBtnRef = useRef<HTMLButtonElement | null>(null);
   const captureRef = useRef<HTMLDivElement>(null);
 
   // User location for distance display
@@ -139,20 +139,61 @@ function ItineraryContent() {
   );
   const searchParams = useSearchParams();
   const confParam = searchParams.get('conf') || '';
-  const [activeConference, setActiveConference] = useState(confParam);
 
-  // Auto-select conference: respect URL param, then fall back to first conference
+  // Filters
+  const {
+    filters,
+    setFilter,
+    setConference,
+    setDateTimeRange,
+    toggleVibe,
+    toggleNowMode,
+    toggleTagMatchAll,
+    toggleFriend,
+    clearFilters,
+    activeFilterCount,
+  } = useFilters(confParam || undefined, conferenceTabs);
+
+  const activeConference = filters.conference;
+
+  // Auto-select conference from URL param or first itinerary conference
   useEffect(() => {
     if (confParam && conferences.includes(confParam)) {
-      setActiveConference(confParam);
+      setConference(confParam);
     } else if (conferences.length > 0 && !activeConference) {
-      setActiveConference(conferences[0]);
+      setConference(conferences[0]);
     }
   }, [conferences, confParam]);
 
-  const itineraryEvents = useMemo(
-    () => allItineraryEvents.filter((e) => !activeConference || e.conference === activeConference),
-    [allItineraryEvents, activeConference]
+  const {
+    availableConferences,
+    availableTypes,
+    availableVibes,
+    friendsForFilter,
+    selectedFriendEventIds,
+  } = useConferenceData({
+    events: allItineraryEvents,
+    filters,
+    itinerary,
+    friends,
+    friendItineraries,
+    checkInUsersByEvent: new Map(),
+    setFilter,
+  });
+
+  // Apply filters to itinerary events
+  const itineraryEvents = useMemo(() => {
+    const confFiltered = allItineraryEvents.filter((e) => !activeConference || e.conference === activeConference);
+    return applyFilters(confFiltered, filters, itinerary, filters.nowMode ? getConferenceNow(filters.conference).getTime() : undefined, selectedFriendEventIds);
+  }, [allItineraryEvents, activeConference, filters, itinerary, selectedFriendEventIds]);
+
+  const tagCounts = useMemo(() => computeTagCounts(itineraryEvents), [itineraryEvents]);
+
+  // Sponsors
+  const visitorId = useMemo(() => typeof window !== 'undefined' ? getVisitorId() : '', []);
+  const resolvedSponsors = useMemo(
+    () => resolveItemVariants(config?.sponsors || [], visitorId),
+    [config?.sponsors, visitorId]
   );
 
   const dateGroups = useMemo(() => {
@@ -225,133 +266,60 @@ function ItineraryContent() {
 
   return (
     <div className={viewMode === 'map' || viewMode === 'table' ? 'h-screen flex flex-col bg-[var(--theme-bg-primary)]' : 'min-h-screen bg-[var(--theme-bg-primary)]'}>
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-[var(--theme-bg-primary)]/95 backdrop-blur-sm border-b border-[var(--theme-border-secondary)]">
-        {/* Row 1: Logo + view toggle + profile */}
-        <div className="px-4 pt-3 pb-1 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Link
-              href={activeConference ? `/${getTabConfig(activeConference, conferenceTabs).slug}` : '/'}
-              className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors"
-              aria-label="Back to events"
+      <Header
+        viewMode={viewMode}
+        onViewChange={setViewMode}
+        events={events}
+        itinerary={itinerary}
+        onOpenFriends={() => {}}
+        activeConference={activeConference}
+      >
+        {itineraryEvents.length > 0 && (
+          <>
+            <button
+              onClick={() => setShowShareCard(true)}
+              className="p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] transition-colors cursor-pointer"
+              aria-label="Share my plan"
+              title="Share my plan as PNG"
             >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <Link href="/">
-              <img src="/logo.png" alt="plan.wtf" className="h-6 w-auto" style={{ filter: 'var(--theme-logo-filter)' }} />
-            </Link>
-          </div>
-          <div className="flex items-center gap-1">
-            {itineraryEvents.length > 0 && (
-              <div className="flex rounded-lg border border-[var(--theme-border-primary)] overflow-hidden mr-1">
-                {([
-                  { mode: 'map' as const, icon: MapIcon, label: 'Map' },
-                  { mode: 'list' as const, icon: List, label: 'List' },
-                  { mode: 'table' as const, icon: Table, label: 'Table' },
-                ]).map(({ mode, icon: Icon, label }) => (
-                  <button
-                    key={mode}
-                    onClick={() => setViewMode(mode)}
-                    className={clsx(
-                      'flex items-center gap-1 px-2 py-1 text-xs font-medium transition-colors cursor-pointer',
-                      viewMode === mode
-                        ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
-                        : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]'
-                    )}
-                    aria-label={`${label} view`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">{label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            {!authLoading && (
-              user ? (
-                <UserMenu events={events} itinerary={itinerary} onOpenFriends={() => {}} activeConference={activeConference} />
-              ) : (
-                <button
-                  onClick={() => { trackAuthPrompt('sign_in_button'); setShowAuth(true); }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--theme-border-primary)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] transition-colors text-sm cursor-pointer"
-                >
-                  <User className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Sign in</span>
-                </button>
-              )
-            )}
-          </div>
-        </div>
-        {/* Row 2: Conference selector + share/calendar */}
-        <div className="px-4 pb-2 pt-1 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {conferences.length > 0 && (
-              <div className="shrink-0 relative">
-                <button
-                  ref={(el) => { confBtnRef.current = el; }}
-                  onClick={() => setConfOpen(!confOpen)}
-                  className={clsx(
-                    'flex items-center gap-1.5 px-3 py-2 rounded-lg font-semibold cursor-pointer transition-colors border',
-                    confOpen
-                      ? 'text-[var(--theme-accent)] border-[var(--theme-accent)]'
-                      : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] border-[var(--theme-border-primary)]',
-                    (activeConference || 'All').length > 12 ? 'text-xs' : 'text-sm'
-                  )}
-                  style={confOpen ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
-                >
-                  <MapPin className="w-3.5 h-3.5 shrink-0" />
-                  <span className="whitespace-nowrap">{activeConference ? activeConference.replace(/ 2026$/, '') : 'All'}</span>
-                  <ChevronDown className="w-3.5 h-3.5 shrink-0" />
-                </button>
-                {confOpen && (
-                  <>
-                    <div className="fixed inset-0 z-[60]" onClick={() => setConfOpen(false)} />
-                    <div
-                      className="fixed z-[70] bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl overflow-hidden min-w-[180px]"
-                      style={{
-                        top: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().bottom + 4 : 0,
-                        left: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().left : 16,
-                      }}
-                    >
-                      {conferences.map((conf) => (
-                        <button
-                          key={conf}
-                          onClick={() => { trackItineraryConferenceTab(conf); setActiveConference(conf); setConfOpen(false); }}
-                          className={clsx(
-                            'w-full text-left px-4 py-3 text-sm font-semibold transition-colors cursor-pointer',
-                            activeConference === conf
-                              ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
-                              : 'text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]'
-                          )}
-                        >
-                          {conf}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-          {itineraryEvents.length > 0 && (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setShowShareCard(true)}
-                className="p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] transition-colors cursor-pointer"
-                aria-label="Share my plan"
-                title="Share my plan as PNG"
-              >
-                <Share2 className="w-4 h-4" />
-              </button>
-              <GoogleCalendarButton
-                events={exportableEvents}
-                timezone={conferenceTimezone}
-              />
-            </div>
-          )}
-        </div>
-      </header>
+              <Share2 className="w-4 h-4" />
+            </button>
+            <GoogleCalendarButton
+              events={exportableEvents}
+              timezone={conferenceTimezone}
+            />
+          </>
+        )}
+      </Header>
 
-      <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />
+      <SponsorsTicker
+        sponsors={resolvedSponsors}
+        conference={activeConference}
+      />
+
+      <FilterBar
+        filters={filters}
+        onSetConference={setConference}
+        onSetDateTimeRange={setDateTimeRange}
+        onToggleVibe={toggleVibe}
+        onToggleNowMode={toggleNowMode}
+        onToggleTagMatchAll={toggleTagMatchAll}
+        onClearFilters={clearFilters}
+        activeFilterCount={activeFilterCount}
+        availableConferences={availableConferences}
+        availableTypes={availableTypes}
+        availableVibes={availableVibes}
+        tagCounts={tagCounts}
+        friendsForFilter={friendsForFilter}
+        selectedFriends={filters.selectedFriends}
+        onToggleFriend={toggleFriend}
+        searchQuery={filters.searchQuery}
+        onSearchChange={(query) => setFilter('searchQuery', query)}
+        eventCount={itineraryEvents.length}
+        conferenceTabs={conferenceTabs}
+        itineraryCount={itineraryEvents.length}
+        onItineraryToggle={() => {}}
+      />
 
       {/* Check-in result toast */}
       {checkInResult && (
