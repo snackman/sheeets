@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { EventCard } from '@/components/EventCard';
-import { ArrowLeft, Trash2, Share2, Map as MapIcon, List, Table, GripVertical, Eye, EyeOff, ChevronDown, MapPin } from 'lucide-react';
+import { ArrowLeft, Trash2, Share2, Map as MapIcon, List, Table, GripVertical, Eye, EyeOff, ChevronDown, MapPin, User } from 'lucide-react';
 import clsx from 'clsx';
 import { useEvents } from '@/hooks/useEvents';
 import { useItinerary } from '@/hooks/useItinerary';
@@ -19,6 +19,9 @@ import { useEventCheckIn } from '@/hooks/useEventCheckIn';
 import { passesNowFilter, getConferenceNow } from '@/lib/filters';
 import { useDragReorder } from '@/hooks/useDragReorder';
 import { useProfile } from '@/hooks/useProfile';
+import { useAuth } from '@/contexts/AuthContext';
+import { AuthModal, UserMenu } from '@/components/AuthModal';
+import { trackAuthPrompt } from '@/lib/analytics';
 import { ShareCardModal } from '@/components/ShareCardModal';
 import { useConferenceTabs } from '@/hooks/useConferenceTabs';
 import { GoogleCalendarButton } from '@/components/GoogleCalendarButton';
@@ -67,6 +70,8 @@ function ItineraryContent() {
   const { itinerary, toggle: toggleItinerary, clear: clearItinerary, reorder: reorderItinerary, hiddenEvents, toggleHidden } = useItinerary();
 
   const { profile } = useProfile();
+  const { user, loading: authLoading } = useAuth();
+  const [showAuth, setShowAuth] = useState(false);
   const { friends } = useFriends();
   const { friendItineraries } = useFriendsItineraries(friends);
 
@@ -222,16 +227,63 @@ function ItineraryContent() {
     <div className={viewMode === 'map' || viewMode === 'table' ? 'h-screen flex flex-col bg-[var(--theme-bg-primary)]' : 'min-h-screen bg-[var(--theme-bg-primary)]'}>
       {/* Header */}
       <header className="sticky top-0 z-50 bg-[var(--theme-bg-primary)]/95 backdrop-blur-sm border-b border-[var(--theme-border-secondary)]">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+        {/* Row 1: Logo + view toggle + profile */}
+        <div className="px-4 pt-3 pb-1 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Link
               href={activeConference ? `/${getTabConfig(activeConference, conferenceTabs).slug}` : '/'}
-              className="p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors"
+              className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors"
               aria-label="Back to events"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            {/* Conference dropdown */}
+            <Link href="/">
+              <img src="/logo.png" alt="plan.wtf" className="h-6 w-auto" style={{ filter: 'var(--theme-logo-filter)' }} />
+            </Link>
+          </div>
+          <div className="flex items-center gap-1">
+            {itineraryEvents.length > 0 && (
+              <div className="flex rounded-lg border border-[var(--theme-border-primary)] overflow-hidden mr-1">
+                {([
+                  { mode: 'map' as const, icon: MapIcon, label: 'Map' },
+                  { mode: 'list' as const, icon: List, label: 'List' },
+                  { mode: 'table' as const, icon: Table, label: 'Table' },
+                ]).map(({ mode, icon: Icon, label }) => (
+                  <button
+                    key={mode}
+                    onClick={() => setViewMode(mode)}
+                    className={clsx(
+                      'flex items-center gap-1 px-2 py-1 text-xs font-medium transition-colors cursor-pointer',
+                      viewMode === mode
+                        ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+                        : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]'
+                    )}
+                    aria-label={`${label} view`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">{label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {!authLoading && (
+              user ? (
+                <UserMenu events={events} itinerary={itinerary} onOpenFriends={() => {}} activeConference={activeConference} />
+              ) : (
+                <button
+                  onClick={() => { trackAuthPrompt('sign_in_button'); setShowAuth(true); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--theme-border-primary)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] transition-colors text-sm cursor-pointer"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Sign in</span>
+                </button>
+              )
+            )}
+          </div>
+        </div>
+        {/* Row 2: Conference selector + share/calendar */}
+        <div className="px-4 pb-2 pt-1 flex items-center justify-between">
+          <div className="flex items-center gap-2">
             {conferences.length > 0 && (
               <div className="shrink-0 relative">
                 <button
@@ -280,50 +332,26 @@ function ItineraryContent() {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-1">
-            {itineraryEvents.length > 0 && (
-              <>
-                {/* View toggle */}
-                <div className="flex rounded-lg border border-[var(--theme-border-primary)] overflow-hidden mr-1">
-                  {([
-                    { mode: 'map' as const, icon: MapIcon, label: 'Map' },
-                    { mode: 'list' as const, icon: List, label: 'List' },
-                    { mode: 'table' as const, icon: Table, label: 'Table' },
-                  ]).map(({ mode, icon: Icon, label }) => (
-                    <button
-                      key={mode}
-                      onClick={() => setViewMode(mode)}
-                      className={clsx(
-                        'flex items-center gap-1 px-2 py-1 text-xs font-medium transition-colors cursor-pointer',
-                        viewMode === mode
-                          ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
-                          : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]'
-                      )}
-                      aria-label={`${label} view`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">{label}</span>
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  onClick={() => setShowShareCard(true)}
-                  className="p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] transition-colors cursor-pointer"
-                  aria-label="Share my plan"
-                  title="Share my plan as PNG"
-                >
-                  <Share2 className="w-4 h-4" />
-                </button>
-                <GoogleCalendarButton
-                  events={exportableEvents}
-                  timezone={conferenceTimezone}
-                />
-              </>
-            )}
-          </div>
+          {itineraryEvents.length > 0 && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setShowShareCard(true)}
+                className="p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] transition-colors cursor-pointer"
+                aria-label="Share my plan"
+                title="Share my plan as PNG"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+              <GoogleCalendarButton
+                events={exportableEvents}
+                timezone={conferenceTimezone}
+              />
+            </div>
+          )}
         </div>
       </header>
+
+      <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />
 
       {/* Check-in result toast */}
       {checkInResult && (
