@@ -525,7 +525,7 @@ export function FilterBar({
               <div className="flex items-center">
                 <button
                   onClick={() => { trackClearFilters(); onClearFilters(); }}
-                  className="flex items-center gap-1.5 text-[var(--theme-accent)] hover:opacity-80 active:opacity-80 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 text-[var(--theme-filter-active)] hover:opacity-80 active:opacity-80 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                   Clear all
