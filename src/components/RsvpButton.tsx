@@ -1,5 +1,6 @@
 'use client';
 
+import { MailCheck, MailOpen } from 'lucide-react';
 import { isLumaUrl } from '@/lib/luma';
 
 interface RsvpButtonProps {
@@ -13,8 +14,12 @@ export function RsvpButton({ eventLink, status, onClick }: RsvpButtonProps) {
 
   if (status === 'confirmed') {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 text-[10px] font-semibold">
-        ✓ RSVP'd
+      <span
+        className="p-1 text-green-400"
+        title="RSVP'd"
+        aria-label="RSVP'd"
+      >
+        <MailCheck className="w-4 h-4" />
       </span>
     );
   }
@@ -22,9 +27,11 @@ export function RsvpButton({ eventLink, status, onClick }: RsvpButtonProps) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); e.preventDefault(); onClick(); }}
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-orange-400/50 text-orange-400 text-[10px] font-semibold hover:bg-orange-400/10 transition-colors cursor-pointer"
+      className="p-1 text-[var(--theme-text-muted)] hover:text-orange-400 transition-colors cursor-pointer"
+      title="RSVP"
+      aria-label="RSVP"
     >
-      RSVP
+      <MailOpen className="w-4 h-4" />
     </button>
   );
 }
