@@ -72,21 +72,21 @@ function GalleryCard({
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
     >
-      {/* Image area with fixed aspect ratio */}
-      <div className="relative aspect-[1200/630] overflow-hidden bg-[var(--theme-bg-tertiary)]">
+      {/* Image area — full size, no cropping */}
+      <div className="relative overflow-hidden bg-[var(--theme-bg-tertiary)]">
         {hasImage ? (
           <img
             src={cachedImage!}
             alt=""
-            className="w-full h-full object-cover"
+            className="w-full h-auto block"
             loading="lazy"
           />
         ) : hasLink ? (
           /* Shimmer placeholder for events with a link but no cached image yet */
-          <div className="w-full h-full animate-pulse bg-[var(--theme-bg-tertiary)]" />
+          <div className="w-full aspect-[1200/630] animate-pulse bg-[var(--theme-bg-tertiary)]" />
         ) : (
           /* Styled placeholder for events with no link at all */
-          <div className="w-full h-full flex items-center justify-center p-3">
+          <div className="w-full aspect-[1200/630] flex items-center justify-center p-3">
             <p className="text-xs text-[var(--theme-text-muted)] text-center line-clamp-3 font-medium">
               {event.name}
             </p>
