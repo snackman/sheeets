@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, LogOut, User, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, Share2, ArrowRight } from 'lucide-react';
+import { X, Mail, LogOut, User, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, ArrowRight } from 'lucide-react';
 import { ShareCardModal } from './ShareCardModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAuthSuccess, trackSignOut, trackFriendCodeGenerate, trackFriendCodeCopy, trackModalDismiss } from '@/lib/analytics';
@@ -640,8 +640,8 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
               <div className="max-h-[80vh] overflow-y-auto px-4 py-5 space-y-4">
                 {/* Profile Fields */}
                 <div className="space-y-3">
-                  {/* Avatar upload */}
-                  <div className="flex items-center gap-4">
+                  {/* Avatar + Name row */}
+                  <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={() => avatarInputRef.current?.click()}
@@ -649,7 +649,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                       className="relative group cursor-pointer shrink-0"
                     >
                       <UserAvatar
-                        size="lg"
+                        size="md"
                         avatarUrl={profile?.avatar_url}
                         xHandle={profile?.x_handle}
                         displayName={profile?.display_name}
@@ -657,9 +657,9 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                       />
                       <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         {avatarUploading ? (
-                          <Loader2 className="w-5 h-5 text-white animate-spin" />
+                          <Loader2 className="w-4 h-4 text-white animate-spin" />
                         ) : (
-                          <User className="w-5 h-5 text-white" />
+                          <User className="w-4 h-4 text-white" />
                         )}
                       </div>
                     </button>
@@ -671,24 +671,18 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                       onChange={handleAvatarSelect}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-[var(--theme-text-muted)]">
-                        {avatarUploading ? 'Uploading...' : 'Tap to change photo'}
-                      </p>
-                      {avatarError && (
-                        <p className="text-xs text-red-400 mt-0.5">{avatarError}</p>
-                      )}
+                      <input
+                        type="text"
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        placeholder="Username"
+                        className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
+                      />
                     </div>
                   </div>
-
-                  <div>
-                    <input
-                      type="text"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="Username"
-                      className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
-                    />
-                  </div>
+                  {avatarError && (
+                    <p className="text-xs text-red-400">{avatarError}</p>
+                  )}
 
                   <div>
                     <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
@@ -882,15 +876,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
 
                 {/* Share Itinerary + Submit Event + Sign Out */}
                 <div className="border-t border-[var(--theme-border-primary)] pt-4 space-y-2">
-                  {itineraryEvents.length > 0 && (
-                    <button
-                      onClick={() => { setOpen(false); setShowShareCard(true); }}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
-                    >
-                      <Share2 className="w-4 h-4" />
-                      Share My Plan
-                    </button>
-                  )}
                   <button
                     onClick={() => {
                       trackSignOut();
