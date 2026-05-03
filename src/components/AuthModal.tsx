@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, LogOut, User, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, ArrowRight } from 'lucide-react';
+import { X, Mail, LogOut, User, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, ArrowRight, Send, Building2, Briefcase, Linkedin } from 'lucide-react';
 import { ShareCardModal } from './ShareCardModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAuthSuccess, trackSignOut, trackFriendCodeGenerate, trackFriendCodeCopy, trackModalDismiss } from '@/lib/analytics';
@@ -671,13 +671,16 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                       onChange={handleAvatarSelect}
                     />
                     <div className="flex-1 min-w-0">
-                      <input
-                        type="text"
-                        value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
-                        placeholder="Username"
-                        className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
-                      />
+                      <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
+                        <User className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
+                        <input
+                          type="text"
+                          value={displayName}
+                          onChange={(e) => setDisplayName(e.target.value)}
+                          placeholder="Username"
+                          className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
+                        />
+                      </div>
                     </div>
                   </div>
                   {avatarError && (
@@ -686,7 +689,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
 
                   <div>
                     <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
-                      <span className="text-[var(--theme-text-muted)] text-sm pl-3 select-none">@</span>
+                      <span className="text-[var(--theme-text-muted)] text-sm ml-3 shrink-0 select-none font-bold leading-none" style={{ fontFamily: 'serif' }}>{'\u{1D54F}'}</span>
                       <input
                         type="text"
                         value={xHandle}
@@ -699,7 +702,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
 
                   <div>
                     <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
-                      <span className="text-[var(--theme-text-muted)] text-sm pl-3 select-none">@</span>
+                      <Send className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
                       <input
                         type="text"
                         value={telegramHandle}
@@ -711,33 +714,42 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                   </div>
 
                   <div>
-                    <input
-                      type="text"
-                      value={company}
-                      onChange={(e) => setCompany(e.target.value)}
-                      placeholder="Organization"
-                      className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
-                    />
+                    <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
+                      <Building2 className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
+                      <input
+                        type="text"
+                        value={company}
+                        onChange={(e) => setCompany(e.target.value)}
+                        placeholder="Organization"
+                        className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
+                      />
+                    </div>
                   </div>
 
                   <div>
-                    <input
-                      type="text"
-                      value={jobTitle}
-                      onChange={(e) => setJobTitle(e.target.value)}
-                      placeholder="e.g. Software Engineer"
-                      className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
-                    />
+                    <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
+                      <Briefcase className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
+                      <input
+                        type="text"
+                        value={jobTitle}
+                        onChange={(e) => setJobTitle(e.target.value)}
+                        placeholder="Job Title"
+                        className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
+                      />
+                    </div>
                   </div>
 
                   <div>
-                    <input
-                      type="text"
-                      value={linkedinUrl}
-                      onChange={(e) => setLinkedinUrl(e.target.value)}
-                      placeholder="linkedin.com/in/yourname"
-                      className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
-                    />
+                    <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
+                      <Linkedin className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
+                      <input
+                        type="text"
+                        value={linkedinUrl}
+                        onChange={(e) => setLinkedinUrl(e.target.value)}
+                        placeholder="linkedin.com/in/yourname"
+                        className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
+                      />
+                    </div>
                   </div>
 
                   {saveStatus === 'saved' && (
