@@ -270,14 +270,20 @@ export function ListView({
 
     const scrollTop = scrollEl.scrollTop;
 
-    // Don't show sticky overlay when not scrolled — the first in-flow header is still visible
-    if (scrollTop <= 10) {
+    // Don't show sticky overlay when first in-flow date header is still visible
+    const virtualItems = virtualizer.getVirtualItems();
+    if (flatItems[0]?.kind === 'date-header') {
+      const firstVItem = virtualItems.find(v => v.index === 0);
+      if (firstVItem && scrollTop < firstVItem.start + firstVItem.size) {
+        setStickyLabel(null);
+        setStickyCount(0);
+        return;
+      }
+    } else if (scrollTop <= 10) {
       setStickyLabel(null);
       setStickyCount(0);
       return;
     }
-
-    const virtualItems = virtualizer.getVirtualItems();
 
     // Offset for the wrapper's padding-top (32px = py-4 on the outer container)
     const wrapperOffsetTop = 0;
