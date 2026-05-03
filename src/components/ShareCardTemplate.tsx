@@ -121,15 +121,15 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
                 {group.label}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                 {group.events.map((event) => {
                   const flyerDataUrl = flyerImages?.get(event.id);
                   const timeDisplay = event.isAllDay ? 'All Day' : event.startTime || '';
 
                   return (
-                    <div key={event.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div key={event.id} style={{ width: '237px' }}>
                       {/* Text info above the image */}
-                      <div style={{ padding: '0 2px' }}>
+                      <div style={{ marginBottom: '4px', padding: '0 2px' }}>
                         <div
                           style={{
                             fontSize: '13px', fontWeight: 600, color: '#fafaf9',
@@ -151,14 +151,14 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
                           src={flyerDataUrl}
                           alt=""
                           style={{
-                            width: '100%', aspectRatio: '1/1', objectFit: 'cover',
+                            width: '237px', height: '237px', objectFit: 'cover',
                             borderRadius: '8px', display: 'block',
                           }}
                         />
                       ) : (
                         <div
                           style={{
-                            width: '100%', aspectRatio: '1/1', backgroundColor: '#1c1917',
+                            width: '237px', height: '237px', backgroundColor: '#1c1917',
                             borderRadius: '8px',
                           }}
                         />
