@@ -70,6 +70,18 @@ function ItineraryContent() {
   const confBtnRef = useRef<HTMLButtonElement | null>(null);
   const captureRef = useRef<HTMLDivElement>(null);
 
+  // User location for distance display
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {},
+      { maximumAge: 30000, enableHighAccuracy: false }
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
+
   // Get conferences that have itinerary events — iterate Set to preserve insertion/reorder order
   const allItineraryEvents = useMemo(() => {
     const eventMap = new Map(events.map(e => [e.id, e]));
@@ -309,6 +321,7 @@ function ItineraryContent() {
             itinerary={itinerary}
             onItineraryToggle={toggleItinerary}
             conference={activeConference}
+            userLocation={userLocation}
           />
         </main>
       ) : (
@@ -385,6 +398,7 @@ function ItineraryContent() {
                               checkInLoading={checkInLoading}
                               liveUrgency={passesNowFilter(event, getConferenceNow(activeConference)) ? 'green' : undefined}
                               conference={activeConference}
+                              userLocation={userLocation}
                             />
                           </div>
                         </div>
