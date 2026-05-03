@@ -164,7 +164,7 @@ export function LockScreenModal({
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0">
             <p className="text-xs text-[var(--theme-text-secondary)]">
-              Set this as your phone lock screen so people can scan your QR codes at conferences.
+              Set this as your lock screen to make it easy for people to scan your contact info.
             </p>
 
             {/* Preview area */}
