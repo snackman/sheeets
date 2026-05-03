@@ -23,6 +23,9 @@ import { useProfile } from '@/hooks/useProfile';
 import { ShareCardModal } from '@/components/ShareCardModal';
 import { useConferenceTabs } from '@/hooks/useConferenceTabs';
 import { TableView } from '@/components/TableView';
+import { useFriends } from '@/hooks/useFriends';
+import { useFriendsItineraries } from '@/hooks/useFriendsItineraries';
+import type { FriendInfo } from '@/lib/types';
 
 const MapView = dynamic(
   () => import('@/components/MapView').then((mod) => ({ default: mod.MapView })),
@@ -62,6 +65,25 @@ function ItineraryContent() {
   const { itinerary, toggle: toggleItinerary, clear: clearItinerary, reorder: reorderItinerary, hiddenEvents, toggleHidden } = useItinerary();
 
   const { profile } = useProfile();
+  const { friends } = useFriends();
+  const { friendItineraries } = useFriendsItineraries(friends);
+
+  const friendsByEvent = useMemo(() => {
+    const map = new Map<string, FriendInfo[]>();
+    for (const fi of friendItineraries) {
+      for (const eid of fi.eventIds) {
+        if (!map.has(eid)) map.set(eid, []);
+        map.get(eid)!.push({
+          userId: fi.userId,
+          displayName: fi.displayName,
+          avatarUrl: fi.avatarUrl,
+          xHandle: fi.xHandle,
+        });
+      }
+    }
+    return map;
+  }, [friendItineraries]);
+
   const { checkInToEvent, loading: checkInLoading, result: checkInResult, clearResult: clearCheckInResult } = useEventCheckIn();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [viewMode, setViewMode] = useState<ItineraryViewMode>('list');
@@ -399,6 +421,7 @@ function ItineraryContent() {
                               liveUrgency={passesNowFilter(event, getConferenceNow(activeConference)) ? 'green' : undefined}
                               conference={activeConference}
                               userLocation={userLocation}
+                              friendsGoing={friendsByEvent.get(event.id)}
                             />
                           </div>
                         </div>
