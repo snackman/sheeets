@@ -52,7 +52,7 @@ export interface UserState {
   itinerary: string[];
 }
 
-export type ViewMode = 'map' | 'list' | 'table';
+export type ViewMode = 'map' | 'list' | 'table' | 'gallery';
 
 export interface UserProfile {
   user_id: string;
@@ -61,6 +61,10 @@ export interface UserProfile {
   x_handle: string | null;
   rsvp_name: string | null;
   avatar_url: string | null;
+  telegram_handle: string | null;
+  company: string | null;
+  linkedin_url: string | null;
+  job_title: string | null;
 }
 
 export interface Friend {
