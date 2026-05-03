@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Copy, Check, User, Mail, Send, Building2, Briefcase, Linkedin } from 'lucide-react';
+import { X, Copy, Check, User, Mail, Send, Building2, Briefcase, Linkedin, ExternalLink } from 'lucide-react';
 
 interface RsvpOverlayProps {
   eventName: string;
@@ -133,9 +133,15 @@ export function RsvpOverlay({
               <h2 className="text-sm font-bold text-[var(--theme-text-primary)] truncate">
                 RSVP
               </h2>
-              <p className="text-xs text-[var(--theme-text-secondary)] truncate">
-                {eventName}
-              </p>
+              <a
+                href={lumaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-[var(--theme-text-secondary)] hover:underline truncate max-w-full"
+              >
+                <span className="truncate">{eventName}</span>
+                <ExternalLink className="w-3 h-3 shrink-0" />
+              </a>
             </div>
             <button
               onClick={onClose}
