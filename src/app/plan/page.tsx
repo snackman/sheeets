@@ -88,7 +88,11 @@ function ItineraryContent() {
 
   const { checkInToEvent, loading: checkInLoading, result: checkInResult, clearResult: clearCheckInResult } = useEventCheckIn();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [viewMode, setViewMode] = useState<ItineraryViewMode>('list');
+  const [viewMode, setViewModeState] = useState<ItineraryViewMode>('list');
+  const setViewMode = useCallback((mode: ItineraryViewMode) => {
+    setViewModeState(mode);
+    localStorage.setItem(STORAGE_KEYS.VIEW_MODE, mode);
+  }, []);
   const [viewModeRestored, setViewModeRestored] = useState(false);
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
