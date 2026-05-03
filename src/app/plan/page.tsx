@@ -273,24 +273,7 @@ function ItineraryContent() {
         itinerary={itinerary}
         onOpenFriends={() => {}}
         activeConference={activeConference}
-      >
-        {itineraryEvents.length > 0 && (
-          <>
-            <button
-              onClick={() => setShowShareCard(true)}
-              className="p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] transition-colors cursor-pointer"
-              aria-label="Share my plan"
-              title="Share my plan as PNG"
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
-            <GoogleCalendarButton
-              events={exportableEvents}
-              timezone={conferenceTimezone}
-            />
-          </>
-        )}
-      </Header>
+      />
 
       <SponsorsTicker
         sponsors={resolvedSponsors}
@@ -319,6 +302,24 @@ function ItineraryContent() {
         conferenceTabs={conferenceTabs}
         itineraryCount={itineraryEvents.length}
         onItineraryToggle={() => {}}
+        trailingButtons={
+          itineraryEvents.length > 0 ? (
+            <div className="flex items-center gap-0.5">
+              <button
+                onClick={() => setShowShareCard(true)}
+                className="shrink-0 p-2 rounded-lg text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] transition-colors cursor-pointer"
+                aria-label="Share my plan"
+                title="Share my plan as PNG"
+              >
+                <Share2 className="w-5 h-5" />
+              </button>
+              <GoogleCalendarButton
+                events={exportableEvents}
+                timezone={conferenceTimezone}
+              />
+            </div>
+          ) : undefined
+        }
       />
 
       {/* Check-in result toast */}
