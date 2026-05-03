@@ -27,7 +27,7 @@ const PLATFORM_LOGOS: Record<string, string> = {
 const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
   function LockScreenTemplate({ displayName, company, jobTitle, avatarUrl, socialLinks }, ref) {
     const qrCount = socialLinks.length;
-    const qrSize = qrCount === 1 ? 900 : qrCount === 2 ? 500 : 310;
+    const qrSize = qrCount === 1 ? 1050 : qrCount === 2 ? 520 : 340;
 
     return (
       <div
@@ -135,9 +135,9 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'flex-start',
-            gap: qrCount === 1 ? '0px' : '32px',
-            paddingLeft: '40px',
-            paddingRight: '40px',
+            gap: qrCount === 1 ? '0px' : '24px',
+            paddingLeft: '24px',
+            paddingRight: '24px',
           }}
         >
           {socialLinks.map((link) => (
@@ -150,43 +150,24 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
                 gap: '16px',
               }}
             >
-              <div
-                style={{
-                  backgroundColor: '#0c0a09',
-                  padding: '16px',
-                  borderRadius: '16px',
-                  border: '2px solid #292524',
-                }}
-              >
-                <QRCodeSVG
-                  value={link.url}
-                  size={qrSize}
-                  level="M"
-                  fgColor="#fafaf9"
-                  bgColor="#0c0a09"
-                  imageSettings={PLATFORM_LOGOS[link.platform] ? {
-                    src: PLATFORM_LOGOS[link.platform],
-                    height: Math.round(qrSize * 0.22),
-                    width: Math.round(qrSize * 0.22),
-                    excavate: true,
-                  } : undefined}
-                />
-              </div>
+              <QRCodeSVG
+                value={link.url}
+                size={qrSize}
+                level="M"
+                fgColor="#fafaf9"
+                bgColor="#0c0a09"
+                imageSettings={PLATFORM_LOGOS[link.platform] ? {
+                  src: PLATFORM_LOGOS[link.platform],
+                  height: Math.round(qrSize * 0.22),
+                  width: Math.round(qrSize * 0.22),
+                  excavate: true,
+                } : undefined}
+              />
               <div
                 style={{
                   fontSize: '28px',
                   fontWeight: 600,
                   color: '#a8a29e',
-                  textAlign: 'center',
-                }}
-              >
-                {PLATFORM_LABELS[link.platform] || link.platform}
-              </div>
-              <div
-                style={{
-                  fontSize: '24px',
-                  fontWeight: 400,
-                  color: '#78716c',
                   textAlign: 'center',
                 }}
               >
