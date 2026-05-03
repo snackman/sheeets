@@ -440,17 +440,43 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
     [profile]
   );
 
-  // Pre-fetch friend code for lock screen card
+  // Ensure friend code exists (create if needed) for lock screen card
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from('friend_codes')
-      .select('code')
-      .eq('user_id', user.id)
-      .single()
-      .then(({ data }) => {
-        if (data?.code) setFriendCode(data.code);
-      });
+    (async () => {
+      const { data: existing } = await supabase
+        .from('friend_codes')
+        .select('code')
+        .eq('user_id', user.id)
+        .single();
+
+      if (existing?.code) {
+        setFriendCode(existing.code);
+        return;
+      }
+
+      // Generate a new code (8 char alphanumeric)
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      const arr = new Uint8Array(8);
+      crypto.getRandomValues(arr);
+      const code = Array.from(arr, (b) => chars[b % chars.length]).join('');
+
+      const { error } = await supabase
+        .from('friend_codes')
+        .insert({ user_id: user.id, code });
+
+      if (error) {
+        // Race condition — try fetching again
+        const { data: retry } = await supabase
+          .from('friend_codes')
+          .select('code')
+          .eq('user_id', user.id)
+          .single();
+        if (retry?.code) setFriendCode(retry.code);
+      } else {
+        setFriendCode(code);
+      }
+    })();
   }, [user]);
 
   // Sync form state when profile loads
