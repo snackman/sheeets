@@ -127,12 +127,12 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
                   const timeDisplay = event.isAllDay ? 'All Day' : event.startTime || '';
 
                   return (
-                    <div key={event.id} style={{ width: '237px' }}>
+                    <div key={event.id} style={{ width: '486px' }}>
                       {/* Text info above the image */}
                       <div style={{ marginBottom: '4px', padding: '0 2px' }}>
                         <div
                           style={{
-                            fontSize: '13px', fontWeight: 600, color: '#fafaf9',
+                            fontSize: '16px', fontWeight: 600, color: '#fafaf9',
                             lineHeight: 1.3, overflow: 'hidden',
                             textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                           }}
@@ -140,7 +140,7 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
                           {event.name}
                         </div>
                         {timeDisplay && (
-                          <div style={{ fontSize: '11px', color: '#78716c', marginTop: '1px' }}>
+                          <div style={{ fontSize: '13px', color: '#78716c', marginTop: '1px' }}>
                             {timeDisplay}
                           </div>
                         )}
@@ -151,14 +151,14 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
                           src={flyerDataUrl}
                           alt=""
                           style={{
-                            width: '237px', height: '237px', objectFit: 'cover',
+                            width: '486px', height: '486px', objectFit: 'cover',
                             borderRadius: '8px', display: 'block',
                           }}
                         />
                       ) : (
                         <div
                           style={{
-                            width: '237px', height: '237px', backgroundColor: '#1c1917',
+                            width: '486px', height: '486px', backgroundColor: '#1c1917',
                             borderRadius: '8px',
                           }}
                         />
