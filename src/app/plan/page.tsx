@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { EventCard } from '@/components/EventCard';
-import { ArrowLeft, Trash2, CalendarX, Share2, Map as MapIcon, List, Table, GripVertical, Eye, EyeOff, ChevronDown, MapPin } from 'lucide-react';
+import { ArrowLeft, Trash2, Share2, Map as MapIcon, List, Table, GripVertical, Eye, EyeOff, ChevronDown, MapPin } from 'lucide-react';
 import clsx from 'clsx';
 import { useEvents } from '@/hooks/useEvents';
 import { useItinerary } from '@/hooks/useItinerary';
@@ -217,7 +217,7 @@ function ItineraryContent() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-[var(--theme-bg-primary)]/95 backdrop-blur-sm border-b border-[var(--theme-border-secondary)]">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Link
               href={activeConference ? `/${getTabConfig(activeConference, conferenceTabs).slug}` : '/'}
               className="p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors"
@@ -225,55 +225,55 @@ function ItineraryContent() {
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
-          </div>
-          {/* Conference dropdown */}
-          {conferences.length > 0 && (
-            <div className="shrink-0 relative">
-              <button
-                ref={(el) => { confBtnRef.current = el; }}
-                onClick={() => setConfOpen(!confOpen)}
-                className={clsx(
-                  'flex items-center gap-1.5 px-3 py-2 rounded-lg font-semibold cursor-pointer transition-colors border',
-                  confOpen
-                    ? 'text-[var(--theme-accent)] border-[var(--theme-accent)]'
-                    : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] border-[var(--theme-border-primary)]',
-                  (activeConference || 'All').length > 12 ? 'text-xs' : 'text-sm'
+            {/* Conference dropdown */}
+            {conferences.length > 0 && (
+              <div className="shrink-0 relative">
+                <button
+                  ref={(el) => { confBtnRef.current = el; }}
+                  onClick={() => setConfOpen(!confOpen)}
+                  className={clsx(
+                    'flex items-center gap-1.5 px-3 py-2 rounded-lg font-semibold cursor-pointer transition-colors border',
+                    confOpen
+                      ? 'text-[var(--theme-accent)] border-[var(--theme-accent)]'
+                      : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] border-[var(--theme-border-primary)]',
+                    (activeConference || 'All').length > 12 ? 'text-xs' : 'text-sm'
+                  )}
+                  style={confOpen ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
+                >
+                  <MapPin className="w-3.5 h-3.5 shrink-0" />
+                  <span className="whitespace-nowrap">{activeConference ? activeConference.replace(/ 2026$/, '') : 'All'}</span>
+                  <ChevronDown className="w-3.5 h-3.5 shrink-0" />
+                </button>
+                {confOpen && (
+                  <>
+                    <div className="fixed inset-0 z-[60]" onClick={() => setConfOpen(false)} />
+                    <div
+                      className="fixed z-[70] bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl overflow-hidden min-w-[180px]"
+                      style={{
+                        top: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().bottom + 4 : 0,
+                        left: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().left : 16,
+                      }}
+                    >
+                      {conferences.map((conf) => (
+                        <button
+                          key={conf}
+                          onClick={() => { trackItineraryConferenceTab(conf); setActiveConference(conf); setConfOpen(false); }}
+                          className={clsx(
+                            'w-full text-left px-4 py-3 text-sm font-semibold transition-colors cursor-pointer',
+                            activeConference === conf
+                              ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+                              : 'text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]'
+                          )}
+                        >
+                          {conf}
+                        </button>
+                      ))}
+                    </div>
+                  </>
                 )}
-                style={confOpen ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
-              >
-                <MapPin className="w-3.5 h-3.5 shrink-0" />
-                <span className="whitespace-nowrap">{activeConference ? activeConference.replace(/ 2026$/, '') : 'All'}</span>
-                <ChevronDown className="w-3.5 h-3.5 shrink-0" />
-              </button>
-              {confOpen && (
-                <>
-                  <div className="fixed inset-0 z-[60]" onClick={() => setConfOpen(false)} />
-                  <div
-                    className="fixed z-[70] bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl overflow-hidden min-w-[180px]"
-                    style={{
-                      top: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().bottom + 4 : 0,
-                      left: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().left : 16,
-                    }}
-                  >
-                    {conferences.map((conf) => (
-                      <button
-                        key={conf}
-                        onClick={() => { trackItineraryConferenceTab(conf); setActiveConference(conf); setConfOpen(false); }}
-                        className={clsx(
-                          'w-full text-left px-4 py-3 text-sm font-semibold transition-colors cursor-pointer',
-                          activeConference === conf
-                            ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
-                            : 'text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]'
-                        )}
-                      >
-                        {conf}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-1">
             {itineraryEvents.length > 0 && (
               <>
@@ -327,7 +327,7 @@ function ItineraryContent() {
       {/* Content */}
       {itineraryEvents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-          <CalendarX className="w-12 h-12 text-[var(--theme-text-faint)] mb-4" />
+          <img src="/logo.png" alt="" className="h-10 w-auto opacity-30 mb-4" />
           <p className="text-[var(--theme-text-secondary)] font-medium mb-2">No events in your plan yet</p>
           <p className="text-[var(--theme-text-muted)] text-sm max-w-xs mb-4">
             Add events from the main page to build your schedule!
@@ -364,9 +364,8 @@ function ItineraryContent() {
         <div className="max-w-2xl mx-auto px-4 pb-8">
           <div ref={captureRef} className="bg-[var(--theme-bg-primary)]">
             <div className="pt-3 pb-1 px-1 flex items-center gap-2">
-              <span className="text-base">📅</span>
-              <span className="text-sm font-bold text-[var(--theme-text-primary)]">plan.wtf</span>
-              <span className="text-xs text-[var(--theme-text-muted)]">— My Plan</span>
+              <img src="/logo.png" alt="" className="h-4 w-auto" />
+              <span className="text-sm font-bold text-[var(--theme-text-primary)]">My Plan</span>
             </div>
 
             {dateGroups.map((group) => (
