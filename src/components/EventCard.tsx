@@ -300,7 +300,9 @@ export function EventCard({
                 />
               )}
               {onRsvp && event.link && (
-                <RsvpButton eventLink={event.link} status={rsvpStatus ?? 'idle'} onClick={onRsvp} />
+                <div className="mt-px">
+                  <RsvpButton eventLink={event.link} status={rsvpStatus ?? 'idle'} onClick={onRsvp} />
+                </div>
               )}
               {event.link && (
                 <button
