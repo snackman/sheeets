@@ -64,7 +64,7 @@ export function EmojiReactions({
             if (!showPicker) trackReactionPickerOpen();
             setShowPicker(!showPicker);
           }}
-          className={`${pillSize} rounded-full border border-[var(--theme-border-primary)] bg-[var(--theme-bg-tertiary)]/50 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:border-[var(--theme-text-muted)] transition-colors cursor-pointer inline-flex items-center`}
+          className={`${pillSize} rounded-full text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer inline-flex items-center`}
         >
           <ThumbsUp className={compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
         </button>
