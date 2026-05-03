@@ -277,11 +277,39 @@ export async function appendEventRow(sheetName: string, event: EventRow): Promis
   return row;
 }
 
+const MONTH_MAP: Record<string, number> = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+};
+
+/** Parse a sheet date like "May 5", "Tue, May 5" → sortable number (month*100+day). */
+function parseSheetDate(raw: string): number | null {
+  const match = raw.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+(\d{1,2})\b/i);
+  if (!match) return null;
+  const month = MONTH_MAP[match[1].toLowerCase().slice(0, 3)];
+  const day = parseInt(match[2], 10);
+  if (month === undefined || isNaN(day)) return null;
+  return month * 100 + day;
+}
+
+/** Parse a sheet time like "12:00p", "6:00 PM", "9:30 AM" → minutes since midnight. */
+function parseSheetTime(raw: string): number | null {
+  const match = raw.match(/(\d{1,2}):(\d{2})\s*(am|pm|a|p)?/i);
+  if (!match) return null;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const ampm = match[3]?.toLowerCase();
+  if (ampm) {
+    if (ampm.startsWith('p') && hours !== 12) hours += 12;
+    if (ampm.startsWith('a') && hours === 12) hours = 0;
+  }
+  return hours * 60 + minutes;
+}
+
 /**
  * Insert an event row into the main section of a sheet tab (before the "Add Events Here" area).
- * Uses the Sheets batchUpdate API to insert a blank row at the end of the main section,
- * then writes the event data. fetchEvents sorts by date/time client-side, so position
- * within the main section doesn't need to be exact.
+ * Uses the Sheets batchUpdate API to insert a blank row, then writes the event data.
+ * Inserts at the chronologically correct position by date/time.
  * Returns the 1-based row number where the event was inserted.
  */
 export async function insertEventRowSorted(sheetName: string, gid: number, event: EventRow): Promise<number> {
@@ -333,8 +361,29 @@ export async function insertEventRowSorted(sheetName: string, gid: number, event
     }
   }
 
-  // Insert at the end of the main section (0-based index)
-  const insertIdx = mainSectionEnd;
+  // Find chronologically correct insertion point
+  const newDate = parseSheetDate(event.date);
+  const newTime = parseSheetTime(event.startTime);
+
+  let insertIdx = mainSectionEnd; // default: end of section
+  if (newDate !== null) {
+    for (let i = headerIdx + 1; i < mainSectionEnd; i++) {
+      const rowDate = parseSheetDate((rows[i]?.[0] || '').trim());
+      if (rowDate === null) continue;
+
+      if (rowDate > newDate) {
+        insertIdx = i;
+        break;
+      }
+      if (rowDate === newDate) {
+        const rowTime = parseSheetTime((rows[i]?.[1] || '').trim());
+        if (rowTime !== null && newTime !== null && rowTime > newTime) {
+          insertIdx = i;
+          break;
+        }
+      }
+    }
+  }
   const insertRow = insertIdx + 1; // 1-based sheet row
 
   // 4. Insert a blank row using batchUpdate API
