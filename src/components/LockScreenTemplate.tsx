@@ -53,7 +53,7 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
 
     const qrCount = socialLinks.length;
     // Base QR sizes, then clamp to available vertical space
-    const baseQr = qrCount === 1 ? 1050 : qrCount === 2 ? 680 : 560;
+    const baseQr = qrCount === 1 ? 1050 : qrCount === 2 ? 680 : qrCount >= 4 ? 460 : 560;
     let qrSize = Math.round(baseQr * s);
 
     // For stacked layouts, ensure QR codes fit vertically
@@ -62,11 +62,16 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
       if (needed > availableForQr) {
         qrSize = Math.round((availableForQr - Math.round(30 * s) - Math.round(16 * s) * 2 - Math.round(28 * s) * 2) / 2);
       }
-    } else if (qrCount === 3) {
+    } else if (qrCount >= 3) {
       // 2 rows: need 2 QR heights + gaps + labels
       const needed = qrSize * 2 + Math.round(40 * s) + Math.round(16 * s) * 2 + Math.round(28 * s) * 2;
       if (needed > availableForQr) {
         qrSize = Math.round((availableForQr - Math.round(40 * s) - Math.round(16 * s) * 2 - Math.round(28 * s) * 2) / 2);
+      }
+      // For 4 codes in 2x2 grid, also clamp to half the width minus gap
+      if (qrCount >= 4) {
+        const maxByWidth = Math.round((w - Math.round(40 * s) * 3) / 2); // 2 cols with padding+gap
+        qrSize = Math.min(qrSize, maxByWidth);
       }
     } else if (qrCount === 1) {
       const needed = qrSize + Math.round(16 * s) + Math.round(28 * s);
@@ -188,14 +193,25 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
         {/* QR codes */}
         <div
           style={{
-            display: 'flex',
-            flexDirection: qrCount === 2 ? 'column' : 'row',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: qrCount === 1 ? '0px' : qrCount === 2 ? `${Math.round(30 * s)}px` : `${Math.round(40 * s)}px`,
-            paddingLeft: qrCount === 3 ? '0px' : `${Math.round(24 * s)}px`,
-            paddingRight: qrCount === 3 ? '0px' : `${Math.round(24 * s)}px`,
+            display: qrCount >= 4 ? 'grid' : 'flex',
+            ...(qrCount >= 4
+              ? {
+                  gridTemplateColumns: `repeat(2, ${qrSize}px)`,
+                  justifyContent: 'center',
+                  justifyItems: 'center',
+                  alignItems: 'start',
+                  gap: `${Math.round(30 * s)}px`,
+                  padding: `0 ${Math.round(40 * s)}px`,
+                }
+              : {
+                  flexDirection: qrCount === 2 ? 'column' as const : 'row' as const,
+                  flexWrap: 'wrap' as const,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: qrCount === 1 ? '0px' : qrCount === 2 ? `${Math.round(30 * s)}px` : `${Math.round(40 * s)}px`,
+                  paddingLeft: qrCount === 3 ? '0px' : `${Math.round(24 * s)}px`,
+                  paddingRight: qrCount === 3 ? '0px' : `${Math.round(24 * s)}px`,
+                }),
           }}
         >
           {socialLinks.map((link) => (
