@@ -25,6 +25,7 @@ import { TableView } from '@/components/TableView';
 import { useFriends } from '@/hooks/useFriends';
 import { useFriendsItineraries } from '@/hooks/useFriendsItineraries';
 import type { FriendInfo } from '@/lib/types';
+import { STORAGE_KEYS } from '@/lib/storage-keys';
 
 const MapView = dynamic(
   () => import('@/components/MapView').then((mod) => ({ default: mod.MapView })),
@@ -86,6 +87,12 @@ function ItineraryContent() {
   const { checkInToEvent, loading: checkInLoading, result: checkInResult, clearResult: clearCheckInResult } = useEventCheckIn();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [viewMode, setViewMode] = useState<ItineraryViewMode>('list');
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
+    if (saved === 'list' || saved === 'map' || saved === 'table') {
+      setViewMode(saved);
+    }
+  }, []);
   const [showShareCard, setShowShareCard] = useState(false);
   const [confOpen, setConfOpen] = useState(false);
   const confBtnRef = useRef<HTMLButtonElement | null>(null);
