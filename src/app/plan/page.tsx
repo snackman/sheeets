@@ -88,13 +88,12 @@ function ItineraryContent() {
 
   const { checkInToEvent, loading: checkInLoading, result: checkInResult, clearResult: clearCheckInResult } = useEventCheckIn();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [viewMode, setViewMode] = useState<ItineraryViewMode>('list');
-  useEffect(() => {
+  const [viewMode, setViewMode] = useState<ItineraryViewMode>(() => {
+    if (typeof window === 'undefined') return 'list';
     const saved = localStorage.getItem(STORAGE_KEYS.VIEW_MODE);
-    if (saved === 'list' || saved === 'map' || saved === 'table') {
-      setViewMode(saved);
-    }
-  }, []);
+    if (saved === 'list' || saved === 'map' || saved === 'table') return saved;
+    return 'list';
+  });
   const [showShareCard, setShowShareCard] = useState(false);
   const [confOpen, setConfOpen] = useState(false);
   const confBtnRef = useRef<HTMLButtonElement | null>(null);
