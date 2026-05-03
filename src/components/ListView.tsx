@@ -270,8 +270,16 @@ export function ListView({
 
     const scrollTop = scrollEl.scrollTop;
 
-    // Don't show sticky overlay when not scrolled — the first in-flow header is still visible
-    if (scrollTop <= 10) {
+    // Don't show sticky overlay when first in-flow date header is still visible
+    const virtualItems = virtualizer.getVirtualItems();
+    if (flatItems[0]?.kind === 'date-header') {
+      const firstVItem = virtualItems.find(v => v.index === 0);
+      if (firstVItem && scrollTop < firstVItem.start + firstVItem.size) {
+        setStickyLabel(null);
+        setStickyCount(0);
+        return;
+      }
+    } else if (scrollTop <= 10) {
       setStickyLabel(null);
       setStickyCount(0);
       return;
@@ -282,8 +290,6 @@ export function ListView({
 
     // Find the last date-header that has scrolled past the top
     let lastHeader: { label: string; eventCount: number } | null = null;
-
-    const virtualItems = virtualizer.getVirtualItems();
     for (const vItem of virtualItems) {
       const item = flatItems[vItem.index];
       if (item.kind === 'date-header') {

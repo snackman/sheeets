@@ -140,7 +140,7 @@ export function FilterBar({
                 ref={(el) => { confBtnRef.current = el; }}
                 onClick={() => setConfOpen(!confOpen)}
                 className={clsx(
-                  'flex items-center gap-1.5 px-3 py-2 rounded-lg font-semibold cursor-pointer transition-colors border',
+                  'flex items-center gap-1.5 px-3 h-9 rounded-lg font-semibold cursor-pointer transition-colors border',
                   confOpen
                     ? 'text-[var(--theme-accent)] border-[var(--theme-accent)]'
                     : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border-[var(--theme-filter-control-border)]',
@@ -205,7 +205,7 @@ export function FilterBar({
             onClick={() => { trackNowMode(!filters.nowMode); onToggleNowMode(); }}
             aria-label="Now"
             className={clsx(
-              'shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer',
+              'shrink-0 flex items-center gap-1 px-2.5 h-9 rounded-lg text-sm font-semibold transition-colors cursor-pointer',
               filters.nowMode
                 ? 'text-[var(--theme-accent)] border border-[var(--theme-accent)]'
                 : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)]'
@@ -220,7 +220,7 @@ export function FilterBar({
             onClick={() => setExpanded(!expanded)}
             aria-label="Filters"
             className={clsx(
-              'shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
+              'shrink-0 flex items-center gap-1 px-2.5 h-9 rounded-lg text-sm font-medium transition-colors cursor-pointer',
               expanded
                 ? 'text-[var(--theme-accent)] border border-[var(--theme-accent)]'
                 : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)]'
@@ -245,7 +245,7 @@ export function FilterBar({
             onClick={onItineraryToggle}
             aria-label={`Itinerary: ${itineraryCount} events`}
             className={clsx(
-              'shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
+              'shrink-0 flex items-center gap-1 px-2.5 h-9 rounded-lg text-sm font-medium transition-colors cursor-pointer',
               isItineraryActive
                 ? 'text-[var(--theme-accent)] border border-[var(--theme-accent)]'
                 : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)]'
