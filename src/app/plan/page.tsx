@@ -286,9 +286,9 @@ function ItineraryContent() {
                 {/* View toggle */}
                 <div className="flex rounded-lg border border-[var(--theme-border-primary)] overflow-hidden mr-1">
                   {([
+                    { mode: 'map' as const, icon: MapIcon, label: 'Map' },
                     { mode: 'list' as const, icon: List, label: 'List' },
                     { mode: 'table' as const, icon: Table, label: 'Table' },
-                    { mode: 'map' as const, icon: MapIcon, label: 'Map' },
                   ]).map(({ mode, icon: Icon, label }) => (
                     <button
                       key={mode}
