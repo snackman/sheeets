@@ -140,7 +140,7 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
                           {event.name}
                         </div>
                         {timeDisplay && (
-                          <div style={{ fontSize: '13px', color: '#78716c', marginTop: '1px' }}>
+                          <div style={{ fontSize: '15px', fontWeight: 500, color: '#d6d3d1', marginTop: '1px' }}>
                             {timeDisplay}
                           </div>
                         )}
