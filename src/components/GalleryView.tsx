@@ -45,6 +45,7 @@ function GalleryCard({
   isInItinerary,
   onItineraryToggle,
   friendsCount,
+  friendsGoing,
   liveUrgency,
   onClick,
 }: {
@@ -52,6 +53,7 @@ function GalleryCard({
   isInItinerary: boolean;
   onItineraryToggle?: (eventId: string) => void;
   friendsCount?: number;
+  friendsGoing?: FriendInfo[];
   liveUrgency?: 'green' | 'yellow' | 'red';
   onClick: () => void;
 }) {
@@ -160,9 +162,38 @@ function GalleryCard({
         </div>
       )}
 
-      {/* StarButton overlay — top-right */}
+      {/* StarButton + friend avatars overlay — top-right */}
       {onItineraryToggle && (
-        <div className="absolute top-1.5 right-1.5 z-10">
+        <div className="absolute top-1.5 right-1.5 z-10 flex items-center gap-1">
+          {friendsGoing && friendsGoing.length > 0 && (
+            <div className="flex items-center">
+              {friendsGoing.slice(0, 3).map((friend, i) => (
+                <div
+                  key={friend.userId}
+                  className={`w-5 h-5 rounded-full border border-white/50 shrink-0 overflow-hidden ${i > 0 ? '-ml-1.5' : ''}`}
+                  style={{ zIndex: 3 - i }}
+                  title={friend.displayName}
+                >
+                  {friend.avatarUrl ? (
+                    <img
+                      src={friend.avatarUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div
+                      className="w-full h-full flex items-center justify-center text-[8px] font-bold text-white"
+                      style={{
+                        backgroundColor: `hsl(${Math.abs(friend.userId.split('').reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0)) % 360}, 60%, 45%)`,
+                      }}
+                    >
+                      {(friend.displayName || '?')[0].toUpperCase()}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
           <StarButton
             eventId={event.id}
             isStarred={isInItinerary}
@@ -191,11 +222,11 @@ function GalleryCard({
 
       {/* Bottom overlay bar — gradient + name + time */}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent pt-8 pb-1.5 px-2">
-        <div className="flex items-end justify-between gap-2">
-          <span className="text-white text-sm font-medium line-clamp-1 min-w-0">
+        <div className="flex flex-col">
+          <span className="text-white text-sm font-medium line-clamp-1">
             {event.name}
           </span>
-          <span className="text-white/80 text-xs whitespace-nowrap shrink-0">
+          <span className="text-white/70 text-xs">
             {timeDisplay}
           </span>
         </div>
@@ -214,6 +245,7 @@ export function GalleryView({
   itinerary,
   onItineraryToggle,
   friendsCountByEvent,
+  friendsByEvent,
   scrollContainerRef,
   conference,
   liveEventIds,
@@ -317,6 +349,7 @@ export function GalleryView({
               isInItinerary={itinerary?.has(event.id) ?? false}
               onItineraryToggle={onItineraryToggle}
               friendsCount={friendsCountByEvent?.get(event.id)}
+              friendsGoing={friendsByEvent?.get(event.id)}
               liveUrgency={liveEventIds?.get(event.id)}
               onClick={() => setLightboxEventIndex(idx)}
             />
