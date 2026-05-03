@@ -291,7 +291,7 @@ export function EventCard({
                 <FriendAvatarStack friends={friendsGoing} maxShow={2} size="sm" />
               </button>
             )}
-            <div className="flex flex-col items-center gap-0.5">
+            <div className="flex flex-col items-center gap-1">
               {onItineraryToggle && (
                 <StarButton
                   eventId={event.id}
