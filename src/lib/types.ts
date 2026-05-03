@@ -103,7 +103,7 @@ export interface UserSearchResult {
   request_status: 'pending_outgoing' | 'pending_incoming' | null;
 }
 
-export type ReactionEmoji = '🔥' | '❤️' | '💯' | '👍' | '🎉' | '👀';
+export type ReactionEmoji = typeof import('./reactions').REACTION_EMOJIS[number];
 
 export interface EventReaction {
   id: string;
