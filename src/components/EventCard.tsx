@@ -226,7 +226,7 @@ export function EventCard({
       style={event.isFeatured ? { borderColor: 'var(--theme-popup-featured-border)' } : hasFriends ? { borderLeftColor: 'var(--friend-blue)' } : undefined}
     >
       {/* Left column: action buttons + cover image */}
-      <div className="flex items-start shrink-0 gap-1">
+      <div className="flex items-center shrink-0 gap-1">
         <div className="flex flex-col items-center gap-1">
           {friendsGoing && friendsGoing.length > 0 && (
             <button
