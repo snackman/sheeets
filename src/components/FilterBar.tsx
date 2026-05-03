@@ -142,11 +142,11 @@ export function FilterBar({
                 className={clsx(
                   'flex items-center gap-1.5 px-3 h-9 rounded-lg font-semibold cursor-pointer transition-colors border',
                   confOpen
-                    ? 'text-[var(--theme-accent)] border-[var(--theme-accent)]'
+                    ? 'text-[var(--theme-filter-active)] border-[var(--theme-filter-active)]'
                     : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border-[var(--theme-filter-control-border)]',
                   (filters.conference || 'All').length > 12 ? 'text-xs' : 'text-sm'
                 )}
-                style={confOpen ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
+                style={confOpen ? { backgroundColor: 'var(--theme-filter-active-bg)' } : undefined}
               >
                 <MapPin className="w-3.5 h-3.5 shrink-0" />
                 <span className="whitespace-nowrap">{filters.conference || 'All'}</span>
@@ -207,10 +207,10 @@ export function FilterBar({
             className={clsx(
               'shrink-0 flex items-center gap-1 px-2.5 h-9 rounded-lg text-sm font-semibold transition-colors cursor-pointer',
               filters.nowMode
-                ? 'text-[var(--theme-accent)] border border-[var(--theme-accent)]'
+                ? 'text-[var(--theme-filter-active)] border border-[var(--theme-filter-active)]'
                 : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)]'
             )}
-            style={filters.nowMode ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
+            style={filters.nowMode ? { backgroundColor: 'var(--theme-filter-active-bg)' } : undefined}
           >
             <Clock className="w-4 h-4" />
           </button>
@@ -222,17 +222,17 @@ export function FilterBar({
             className={clsx(
               'shrink-0 flex items-center gap-1 px-2.5 h-9 rounded-lg text-sm font-medium transition-colors cursor-pointer',
               expanded
-                ? 'text-[var(--theme-accent)] border border-[var(--theme-accent)]'
+                ? 'text-[var(--theme-filter-active)] border border-[var(--theme-filter-active)]'
                 : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)]'
             )}
-            style={expanded ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
+            style={expanded ? { backgroundColor: 'var(--theme-filter-active-bg)' } : undefined}
           >
             <ListFilter className="w-4 h-4" />
             {activeFilterCount > 0 && (
               <span className={clsx(
                 'text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1',
                 expanded
-                  ? 'bg-[var(--theme-accent-text)] text-[var(--theme-accent)] border border-[var(--theme-accent)]'
+                  ? 'bg-[var(--theme-filter-active)] text-[var(--theme-bg-filter)] border border-[var(--theme-filter-active)]'
                   : 'bg-[var(--theme-text-secondary)] text-[var(--theme-bg-primary)]'
               )}>
                 {activeFilterCount}
@@ -247,17 +247,17 @@ export function FilterBar({
             className={clsx(
               'shrink-0 flex items-center gap-1 px-2.5 h-9 rounded-lg text-sm font-medium transition-colors cursor-pointer',
               isItineraryActive
-                ? 'text-[var(--theme-accent)] border border-[var(--theme-accent)]'
+                ? 'text-[var(--theme-filter-active)] border border-[var(--theme-filter-active)]'
                 : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)]'
             )}
-            style={isItineraryActive ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
+            style={isItineraryActive ? { backgroundColor: 'var(--theme-filter-active-bg)' } : undefined}
           >
             <CalendarIcon className="w-5 h-5" />
             {itineraryCount > 0 && (
               <span className={clsx(
                 'text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1',
                 isItineraryActive
-                  ? 'bg-[var(--theme-accent-text)] text-[var(--theme-accent)] border border-[var(--theme-accent)]'
+                  ? 'bg-[var(--theme-filter-active)] text-[var(--theme-bg-filter)] border border-[var(--theme-filter-active)]'
                   : 'bg-[var(--theme-text-secondary)] text-[var(--theme-bg-primary)]'
               )}>
                 {itineraryCount}
