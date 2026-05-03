@@ -377,7 +377,7 @@ export function EventCard({
         )}
 
         {/* Bottom row: friends + reactions + checked-in indicator */}
-        <div className="flex flex-wrap items-center gap-2 mt-2">
+        <div className="flex items-center gap-2 mt-2">
           {friendsGoing && friendsGoing.length > 0 && (
             <button
               onClick={(e) => {
@@ -385,7 +385,7 @@ export function EventCard({
                 trackFriendsGoingOpen(event.name);
                 setShowFriendsModal(true);
               }}
-              className="cursor-pointer hover:opacity-80 transition-opacity"
+              className="cursor-pointer hover:opacity-80 transition-opacity shrink-0"
               title={formatFriendsText(friendsGoing)}
             >
               <FriendAvatarStack friends={friendsGoing} maxShow={2} size="sm" />
