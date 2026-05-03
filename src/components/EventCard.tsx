@@ -302,9 +302,9 @@ export function EventCard({
                   title="Copy link"
                 >
                   {copied ? (
-                    <Check className="w-3.5 h-3.5 text-green-400" />
+                    <Check className="w-4 h-4 text-green-400" />
                   ) : (
-                    <Link className="w-3.5 h-3.5" />
+                    <Link className="w-4 h-4" />
                   )}
                 </button>
               )}
