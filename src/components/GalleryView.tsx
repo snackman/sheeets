@@ -262,8 +262,13 @@ export function GalleryView({
     : null;
   const lightboxRsvpUrl = lightboxEvent?.link;
 
-  const canPrev = lightboxEventIndex !== null && lightboxEventIndex > 0;
-  const canNext = lightboxEventIndex !== null && lightboxEventIndex < allEvents.length - 1;
+  const hasImage = useCallback((idx: number) => {
+    const ev = allEvents[idx];
+    return !!(ev?.link && imageCache.get(ev.link));
+  }, [allEvents]);
+
+  const canPrev = lightboxEventIndex !== null && allEvents.slice(0, lightboxEventIndex).some((ev) => ev.link && imageCache.get(ev.link));
+  const canNext = lightboxEventIndex !== null && allEvents.slice(lightboxEventIndex + 1).some((ev) => ev.link && imageCache.get(ev.link));
 
   // Preload adjacent event OG images when lightbox is open
   useEffect(() => {
@@ -294,13 +299,23 @@ export function GalleryView({
 
   const handleLightboxPrev = useCallback(() => {
     if (!canPrev) return;
-    setLightboxEventIndex((i) => i! - 1);
-  }, [canPrev]);
+    setLightboxEventIndex((i) => {
+      for (let j = i! - 1; j >= 0; j--) {
+        if (hasImage(j)) return j;
+      }
+      return i;
+    });
+  }, [canPrev, hasImage]);
 
   const handleLightboxNext = useCallback(() => {
     if (!canNext) return;
-    setLightboxEventIndex((i) => i! + 1);
-  }, [canNext]);
+    setLightboxEventIndex((i) => {
+      for (let j = i! + 1; j < allEvents.length; j++) {
+        if (hasImage(j)) return j;
+      }
+      return i;
+    });
+  }, [canNext, hasImage, allEvents.length]);
 
   /* ---- empty state ---- */
   if (events.length === 0) {

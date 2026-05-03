@@ -218,8 +218,21 @@ export function ListView({
   const lightboxRsvpUrl = lightboxEvent?.kind === 'event' ? lightboxEvent.event.link : undefined;
 
   const lightboxPosInEvents = lightboxEventIndex !== null ? eventIndices.indexOf(lightboxEventIndex) : -1;
-  const canPrev = lightboxPosInEvents > 0;
-  const canNext = lightboxPosInEvents >= 0 && lightboxPosInEvents < eventIndices.length - 1;
+
+  const hasImageAtPos = useCallback((pos: number) => {
+    const idx = eventIndices[pos];
+    const item = flatItems[idx];
+    return item?.kind === 'event' && !!(item.event.link && imageCache.get(item.event.link));
+  }, [eventIndices, flatItems]);
+
+  const canPrev = lightboxPosInEvents > 0 && eventIndices.slice(0, lightboxPosInEvents).some((idx) => {
+    const item = flatItems[idx];
+    return item?.kind === 'event' && !!(item.event.link && imageCache.get(item.event.link));
+  });
+  const canNext = lightboxPosInEvents >= 0 && lightboxPosInEvents < eventIndices.length - 1 && eventIndices.slice(lightboxPosInEvents + 1).some((idx) => {
+    const item = flatItems[idx];
+    return item?.kind === 'event' && !!(item.event.link && imageCache.get(item.event.link));
+  });
 
   // Preload current + adjacent event OG images when lightbox is open
   useEffect(() => {
@@ -239,7 +252,6 @@ export function ListView({
           .then(res => res.json())
           .then(data => {
             imageCache.set(item.event.link!, data.imageUrl);
-            // Trigger re-render so the lightbox picks up the newly cached image
             setImageLoadTick(n => n + 1);
           })
           .catch(() => {
@@ -252,13 +264,17 @@ export function ListView({
 
   const handleLightboxPrev = useCallback(() => {
     if (!canPrev) return;
-    setLightboxEventIndex(eventIndices[lightboxPosInEvents - 1]);
-  }, [canPrev, eventIndices, lightboxPosInEvents]);
+    for (let p = lightboxPosInEvents - 1; p >= 0; p--) {
+      if (hasImageAtPos(p)) { setLightboxEventIndex(eventIndices[p]); return; }
+    }
+  }, [canPrev, eventIndices, lightboxPosInEvents, hasImageAtPos]);
 
   const handleLightboxNext = useCallback(() => {
     if (!canNext) return;
-    setLightboxEventIndex(eventIndices[lightboxPosInEvents + 1]);
-  }, [canNext, eventIndices, lightboxPosInEvents]);
+    for (let p = lightboxPosInEvents + 1; p < eventIndices.length; p++) {
+      if (hasImageAtPos(p)) { setLightboxEventIndex(eventIndices[p]); return; }
+    }
+  }, [canNext, eventIndices, lightboxPosInEvents, hasImageAtPos]);
 
   /* ---- sticky date header overlay ---- */
   const [stickyLabel, setStickyLabel] = useState<string | null>(null);
