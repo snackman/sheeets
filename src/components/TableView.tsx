@@ -340,7 +340,7 @@ export function TableView({
                 {currentDateLabel === 'Time' ? (
                   'WHEN'
                 ) : (
-                  <span className="text-[var(--theme-accent)] font-semibold" style={{ opacity: 0.8 }}>
+                  <span className="text-[var(--theme-table-header-text)] font-semibold" style={{ opacity: 0.8 }}>
                     {currentDateLabel.toUpperCase()}
                   </span>
                 )}
