@@ -1,6 +1,6 @@
 'use client';
 
-import { Map, List, Table } from 'lucide-react';
+import { Map, List, Table, LayoutGrid } from 'lucide-react';
 import { ViewMode } from '@/lib/types';
 import { trackViewChange } from '@/lib/analytics';
 import clsx from 'clsx';
@@ -14,6 +14,7 @@ const views: { mode: ViewMode; icon: typeof Map; label: string }[] = [
   { mode: 'map', icon: Map, label: 'Map' },
   { mode: 'list', icon: List, label: 'List' },
   { mode: 'table', icon: Table, label: 'Table' },
+  { mode: 'gallery', icon: LayoutGrid, label: 'Gallery' },
 ];
 
 export function ViewToggle({ viewMode, onViewChange }: ViewToggleProps) {
