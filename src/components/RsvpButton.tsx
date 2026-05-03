@@ -14,13 +14,13 @@ export function RsvpButton({ eventLink, status, onClick }: RsvpButtonProps) {
 
   if (status === 'confirmed') {
     return (
-      <span
+      <div
         className="p-1 text-green-400"
         title="RSVP'd"
         aria-label="RSVP'd"
       >
         <MailCheck className="w-4 h-4" />
-      </span>
+      </div>
     );
   }
 
