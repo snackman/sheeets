@@ -40,7 +40,7 @@ export function CommentSection({ eventId, commentCount = 0 }: CommentSectionProp
         }}
         className="flex items-center gap-1.5 text-xs text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
       >
-        <MessageCircle className="w-3.5 h-3.5" />
+        <MessageCircle className="w-5 h-5" />
         {commentCount > 0 && <span>{commentCount}</span>}
       </button>
     );

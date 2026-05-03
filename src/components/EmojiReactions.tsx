@@ -66,7 +66,7 @@ export function EmojiReactions({
           }}
           className={`${pillSize} rounded-full text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer inline-flex items-center`}
         >
-          <ThumbsUp className={compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
+          <ThumbsUp className={compact ? 'w-3.5 h-3.5' : 'w-5 h-5'} />
         </button>
 
         {showPicker && (
