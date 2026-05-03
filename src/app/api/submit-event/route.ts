@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
 
     const sheetName = await getSheetTitle(tab.gid);
 
+    // Write to sheet review section (primary — must succeed)
     const row = await appendEventRow(sheetName, {
       date: event.date.trim(),
       startTime: event.startTime.trim(),
@@ -45,6 +46,35 @@ export async function POST(request: NextRequest) {
       bar: event.bar,
       note: event.note.trim(),
     });
+
+    // Track in Supabase (non-fatal — wrapped in try/catch)
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      await supabase.from('event_submissions').insert({
+        conference,
+        status: 'pending',
+        event_name: event.name.trim(),
+        event_date: event.date.trim(),
+        start_time: event.startTime.trim(),
+        end_time: event.endTime.trim(),
+        organizer: event.organizer.trim(),
+        address: event.address.trim(),
+        cost: event.cost.trim(),
+        tags: event.tags.trim(),
+        link: event.link.trim(),
+        has_food: event.food,
+        has_bar: event.bar,
+        note: event.note.trim(),
+        coords_lat: coords?.lat ?? null,
+        coords_lng: coords?.lng ?? null,
+        sheet_row: row,
+      });
+    } catch (trackErr) {
+      console.error('Failed to track submission in Supabase:', trackErr);
+    }
 
     // Upsert geocoded address to Supabase for instant map pin display
     if (coords && event.address.trim()) {
@@ -61,12 +91,11 @@ export async function POST(request: NextRequest) {
           conference,
         });
       } catch (geoErr) {
-        // Non-fatal: log but don't fail the submission
         console.error('Failed to save geocoded address:', geoErr);
       }
     }
 
-    return NextResponse.json({ success: true, row });
+    return NextResponse.json({ success: true, row, pending: true });
   } catch (err) {
     console.error('Submit event error:', err);
     const message = err instanceof Error ? err.message : 'Unknown error';
