@@ -367,11 +367,6 @@ function ItineraryContent() {
       ) : (
         <div className="max-w-2xl mx-auto px-4 pb-8">
           <div ref={captureRef} className="bg-[var(--theme-bg-primary)]">
-            <div className="pt-3 pb-1 px-1 flex items-center gap-2">
-              <img src="/logo.png" alt="" className="h-4 w-auto" style={{ filter: 'var(--theme-logo-filter)' }} />
-              <span className="text-sm font-bold text-[var(--theme-text-primary)]">My Plan</span>
-            </div>
-
             {dateGroups.map((group) => (
               <section key={group.dateISO} className="mt-4">
                 <div className="flex items-center gap-2 mb-2">
