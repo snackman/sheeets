@@ -9,11 +9,11 @@ import { ArrowLeft, AlertTriangle, Trash2, CalendarX, Share2, Map as MapIcon, Li
 import clsx from 'clsx';
 import { useEvents } from '@/hooks/useEvents';
 import { useItinerary } from '@/hooks/useItinerary';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+
+
 import { formatDateLabel } from '@/lib/utils';
 import { detectConflicts } from '@/lib/time-parse';
-import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryShareLink, trackItineraryReorder } from '@/lib/analytics';
+import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryReorder } from '@/lib/analytics';
 import type { ETHDenverEvent } from '@/lib/types';
 import { Loading } from '@/components/Loading';
 import { useEventCheckIn } from '@/hooks/useEventCheckIn';
@@ -38,14 +38,6 @@ const MapView = dynamic(
 
 type ItineraryViewMode = 'list' | 'map' | 'table';
 
-function generateShortCode(): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let code = '';
-  for (let i = 0; i < 8; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return code;
-}
 
 function CheckInToast({ result, onDismiss }: { result: { ok: boolean; message: string }; onDismiss: () => void }) {
   useEffect(() => {
@@ -68,12 +60,11 @@ function ItineraryContent() {
   const { events, loading } = useEvents();
   const { tabs: conferenceTabs } = useConferenceTabs();
   const { itinerary, toggle: toggleItinerary, clear: clearItinerary, reorder: reorderItinerary, hiddenEvents, toggleHidden } = useItinerary();
-  const { user } = useAuth();
+
   const { profile } = useProfile();
   const { checkInToEvent, loading: checkInLoading, result: checkInResult, clearResult: clearCheckInResult } = useEventCheckIn();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [viewMode, setViewMode] = useState<ItineraryViewMode>('list');
-  const [shareStatus, setShareStatus] = useState<'idle' | 'sharing' | 'copied'>('idle');
   const [showShareCard, setShowShareCard] = useState(false);
   const [confOpen, setConfOpen] = useState(false);
   const confBtnRef = useRef<HTMLButtonElement | null>(null);
@@ -162,33 +153,6 @@ function ItineraryContent() {
     setOrderedIds(flatEventIds);
   }, [flatEventIds, setOrderedIds]);
 
-  const handleShareLink = useCallback(async () => {
-    if (itineraryEvents.length === 0) return;
-    setShareStatus('sharing');
-    try {
-      const shortCode = generateShortCode();
-      const eventIds = itineraryEvents
-        .filter((e) => !hiddenEvents.has(e.id))
-        .map((e) => e.id);
-      const { error } = await supabase.from('shared_itineraries').insert({
-        short_code: shortCode,
-        event_ids: eventIds,
-        created_by: user?.id ?? null,
-      });
-      if (error) {
-        console.error('Failed to create share link:', error);
-        setShareStatus('idle');
-        return;
-      }
-      const shareUrl = `${window.location.origin}/plan/s/${shortCode}`;
-      await navigator.clipboard.writeText(shareUrl);
-      setShareStatus('copied');
-      setTimeout(() => setShareStatus('idle'), 2500);
-    } catch (err) {
-      console.error('Share failed:', err);
-      setShareStatus('idle');
-    }
-  }, [itineraryEvents, hiddenEvents, user]);
 
   if (loading) {
     return (
@@ -300,19 +264,6 @@ function ItineraryContent() {
                   title="Share my plan as PNG"
                 >
                   <Share2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => { trackItineraryShareLink(); handleShareLink(); }}
-                  disabled={shareStatus === 'sharing'}
-                  className={clsx(
-                    'px-2 py-1 text-xs font-medium rounded transition-colors cursor-pointer',
-                    shareStatus === 'copied'
-                      ? 'bg-emerald-500/20 text-emerald-400'
-                      : 'bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] hover:border-[var(--theme-border-primary)]'
-                  )}
-                  title="Share link"
-                >
-                  {shareStatus === 'sharing' ? 'Saving...' : shareStatus === 'copied' ? 'Copied!' : 'Share Link'}
                 </button>
               </>
             )}
