@@ -10,6 +10,8 @@ interface LockScreenTemplateProps {
   jobTitle: string | null;
   avatarUrl: string | null;
   socialLinks: SocialLink[];
+  screenWidth?: number;
+  screenHeight?: number;
 }
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -24,10 +26,19 @@ const PLATFORM_LOGOS: Record<string, string> = {
   linkedin: `data:image/svg+xml,${encodeURIComponent('<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="4" fill="#fafaf9"/><path d="M19.336 19.339h-3.065v-4.805c0-1.146-.023-2.62-1.596-2.62-1.597 0-1.842 1.247-1.842 2.536v4.889h-3.065V9.75h2.943v1.347h.042c.41-.776 1.412-1.596 2.907-1.596 3.107 0 3.68 2.044 3.68 4.703v5.135zM6.749 8.397c-.985 0-1.78-.8-1.78-1.782S5.764 4.833 6.749 4.833c.983 0 1.78.8 1.78 1.782s-.797 1.782-1.78 1.782zm1.537 10.942H5.212V9.75h3.074v9.589z" fill="#0c0a09"/></svg>')}`,
 };
 
+// Base design dimensions (iPhone 14/15)
+const BASE_W = 1170;
+const BASE_H = 2532;
+
 const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
-  function LockScreenTemplate({ displayName, company, jobTitle, avatarUrl, socialLinks }, ref) {
+  function LockScreenTemplate({ displayName, company, jobTitle, avatarUrl, socialLinks, screenWidth, screenHeight }, ref) {
+    const w = screenWidth || BASE_W;
+    const h = screenHeight || BASE_H;
+    const s = w / BASE_W; // scale factor based on width
+
     const qrCount = socialLinks.length;
-    const qrSize = qrCount === 1 ? 1050 : qrCount === 2 ? 680 : 560;
+    const baseQr = qrCount === 1 ? 1050 : qrCount === 2 ? 680 : 560;
+    const qrSize = Math.round(baseQr * s);
 
     return (
       <div
@@ -36,8 +47,8 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
           position: 'fixed',
           left: '-9999px',
           top: 0,
-          width: '1170px',
-          height: '2532px',
+          width: `${w}px`,
+          height: `${h}px`,
           backgroundColor: '#0c0a09',
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           display: 'flex',
@@ -47,7 +58,7 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
         }}
       >
         {/* Top safe zone for clock */}
-        <div style={{ height: '300px', flexShrink: 0 }} />
+        <div style={{ height: `${Math.round(300 * s)}px`, flexShrink: 0 }} />
 
         {/* Profile section */}
         <div
@@ -55,9 +66,9 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: '24px',
-            paddingLeft: '60px',
-            paddingRight: '60px',
+            gap: `${Math.round(24 * s)}px`,
+            paddingLeft: `${Math.round(60 * s)}px`,
+            paddingRight: `${Math.round(60 * s)}px`,
           }}
         >
           {/* Avatar */}
@@ -67,27 +78,27 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
               alt=""
               crossOrigin="anonymous"
               style={{
-                width: '240px',
-                height: '240px',
+                width: `${Math.round(240 * s)}px`,
+                height: `${Math.round(240 * s)}px`,
                 borderRadius: '50%',
                 objectFit: 'cover',
-                border: '4px solid #292524',
+                border: `${Math.round(4 * s)}px solid #292524`,
               }}
             />
           ) : displayName ? (
             <div
               style={{
-                width: '240px',
-                height: '240px',
+                width: `${Math.round(240 * s)}px`,
+                height: `${Math.round(240 * s)}px`,
                 borderRadius: '50%',
                 backgroundColor: '#292524',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '96px',
+                fontSize: `${Math.round(96 * s)}px`,
                 fontWeight: 700,
                 color: '#fbbf24',
-                border: '4px solid #292524',
+                border: `${Math.round(4 * s)}px solid #292524`,
               }}
             >
               {displayName.charAt(0).toUpperCase()}
@@ -98,7 +109,7 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
           {displayName && (
             <div
               style={{
-                fontSize: '72px',
+                fontSize: `${Math.round(72 * s)}px`,
                 fontWeight: 800,
                 color: '#fafaf9',
                 lineHeight: 1.2,
@@ -114,7 +125,7 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
           {(company || jobTitle) && (
             <div
               style={{
-                fontSize: '36px',
+                fontSize: `${Math.round(36 * s)}px`,
                 fontWeight: 500,
                 color: '#a8a29e',
                 lineHeight: 1.3,
@@ -127,7 +138,7 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
         </div>
 
         {/* Spacer */}
-        <div style={{ flex: 1, minHeight: '80px' }} />
+        <div style={{ flex: 1, minHeight: `${Math.round(80 * s)}px` }} />
 
         {/* QR codes */}
         <div
@@ -137,9 +148,9 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
             flexWrap: 'wrap',
             justifyContent: 'center',
             alignItems: 'center',
-            gap: qrCount === 1 ? '0px' : qrCount === 2 ? '30px' : '40px',
-            paddingLeft: qrCount === 3 ? '0px' : '24px',
-            paddingRight: qrCount === 3 ? '0px' : '24px',
+            gap: qrCount === 1 ? '0px' : qrCount === 2 ? `${Math.round(30 * s)}px` : `${Math.round(40 * s)}px`,
+            paddingLeft: qrCount === 3 ? '0px' : `${Math.round(24 * s)}px`,
+            paddingRight: qrCount === 3 ? '0px' : `${Math.round(24 * s)}px`,
           }}
         >
           {socialLinks.map((link) => (
@@ -149,7 +160,7 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '16px',
+                gap: `${Math.round(16 * s)}px`,
               }}
             >
               <QRCodeSVG
@@ -167,7 +178,7 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
               />
               <div
                 style={{
-                  fontSize: '28px',
+                  fontSize: `${Math.round(28 * s)}px`,
                   fontWeight: 600,
                   color: '#a8a29e',
                   textAlign: 'center',
@@ -180,7 +191,7 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
         </div>
 
         {/* Spacer */}
-        <div style={{ flex: 1, minHeight: '60px' }} />
+        <div style={{ flex: 1, minHeight: `${Math.round(60 * s)}px` }} />
 
         {/* Branding */}
         <img
@@ -188,7 +199,7 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
           alt="plan.wtf"
           crossOrigin="anonymous"
           style={{
-            height: '60px',
+            height: `${Math.round(60 * s)}px`,
             objectFit: 'contain',
             opacity: 0.4,
             filter: 'brightness(0) invert(1)',
@@ -196,7 +207,7 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
         />
 
         {/* Bottom safe zone */}
-        <div style={{ height: '200px', flexShrink: 0 }} />
+        <div style={{ height: `${Math.round(200 * s)}px`, flexShrink: 0 }} />
       </div>
     );
   }

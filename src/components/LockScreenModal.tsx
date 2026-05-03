@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Download, Copy, Check, Loader2 } from 'lucide-react';
 import { trackLockScreenOpen, trackLockScreenCopy, trackLockScreenDownload } from '@/lib/analytics';
@@ -31,6 +31,16 @@ export function LockScreenModal({
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copying' | 'copied'>('idle');
   const cardRef = useRef<HTMLDivElement>(null);
   const trackedRef = useRef(false);
+
+  // Detect the device's native screen resolution
+  const screenDims = useMemo(() => {
+    if (typeof window === 'undefined') return { width: 1170, height: 2532 };
+    const dpr = window.devicePixelRatio || 1;
+    return {
+      width: Math.round(window.screen.width * dpr),
+      height: Math.round(window.screen.height * dpr),
+    };
+  }, []);
 
   // Generate preview image
   const generatePreview = useCallback(async () => {
@@ -242,6 +252,8 @@ export function LockScreenModal({
         jobTitle={jobTitle}
         avatarUrl={avatarUrl}
         socialLinks={socialLinks}
+        screenWidth={screenDims.width}
+        screenHeight={screenDims.height}
       />
     </>,
     document.body
