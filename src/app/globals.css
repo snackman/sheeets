@@ -91,6 +91,11 @@
   --tag-purple: #A855F7;
   --tag-default: #6B7280;
   --friend-blue: #3B82F6;
+
+  --theme-modal-header-bg: transparent;
+  --theme-modal-header-text: var(--theme-text-primary);
+  --theme-modal-header-close: var(--theme-text-secondary);
+  --theme-modal-bg: var(--theme-bg-secondary);
 }
 
 /* --- Paper theme — warm parchment/cream aesthetic --- */
@@ -280,6 +285,11 @@
   --tag-purple: #7C3AED;
   --tag-default: #4B5563;
   --friend-blue: #2563EB;
+
+  --theme-modal-header-bg: #1c4586;
+  --theme-modal-header-text: #ffffff;
+  --theme-modal-header-close: rgba(255, 255, 255, 0.7);
+  --theme-modal-bg: rgba(28, 69, 134, 0.06);
 }
 
 /* Light-blue: alternating table rows */

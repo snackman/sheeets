@@ -634,14 +634,14 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
             setOpen(false);
             setSearchQuery('');
           }}>
-            <div className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-[var(--theme-modal-bg)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
               {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)]">
-                <h2 className="text-base font-bold text-[var(--theme-text-primary)] truncate">{user.email}</h2>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)] rounded-t-xl" style={{ backgroundColor: 'var(--theme-modal-header-bg)' }}>
+                <h2 className="text-base font-bold truncate" style={{ color: 'var(--theme-modal-header-text)' }}>{user.email}</h2>
                 <button onClick={() => {
                   setOpen(false);
                   setSearchQuery('');
-                }} className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer">
+                }} className="p-1 hover:opacity-80 transition-colors cursor-pointer" style={{ color: 'var(--theme-modal-header-close)' }}>
                   <X className="w-4 h-4" />
                 </button>
               </div>
