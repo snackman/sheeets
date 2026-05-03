@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useEffect, useRef, useState, useCallback } from 'react';
+import { memo, useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { ETHDenverEvent, ReactionEmoji, NativeAd, FriendInfo } from '@/lib/types';
 import { formatDateLabel } from '@/lib/utils';
@@ -120,7 +120,7 @@ function buildFlatList(
 /* ------------------------------------------------------------------ */
 
 
-export function ListView({
+export const ListView = memo(function ListView({
   events,
   totalCount,
   itinerary,
@@ -459,7 +459,7 @@ export function ListView({
       {/* Flyer lightbox with prev/next navigation */}
       {lightboxEventIndex !== null && lightboxImageUrl && lightboxEvent?.kind === 'event' && (
         <FlyerLightbox
-          imageUrl={lightboxImageUrl}
+          imageUrl={lightboxImageUrl!}
           rsvpUrl={lightboxRsvpUrl}
           onClose={() => setLightboxEventIndex(null)}
           onPrev={canPrev ? handleLightboxPrev : undefined}
@@ -472,4 +472,4 @@ export function ListView({
       )}
     </div>
   );
-}
+});

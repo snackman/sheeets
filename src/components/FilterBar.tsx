@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { memo, useState, useRef } from 'react';
 import clsx from 'clsx';
 import { X, ListFilter, Clock, Users, MapPin, Plus, Link2, Check, Loader2, ChevronDown } from 'lucide-react';
 import { CalendarIcon } from './icons/CalendarIcon';
@@ -42,7 +42,7 @@ interface FilterBarProps {
   isItineraryActive: boolean;
 }
 
-export function FilterBar({
+export const FilterBar = memo(function FilterBar({
   filters,
   onSetConference,
   onSetDateTimeRange,
@@ -537,4 +537,4 @@ export function FilterBar({
       </div>
     </div>
   );
-}
+});

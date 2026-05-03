@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import Image from 'next/image';
 import { User, MapPin, Loader2 } from 'lucide-react';
 import { trackAuthPrompt } from '@/lib/analytics';
@@ -23,7 +23,7 @@ interface HeaderProps {
   checkInLoading?: boolean;
 }
 
-export function Header({
+export const Header = memo(function Header({
   viewMode,
   onViewChange,
   events,
@@ -91,4 +91,4 @@ export function Header({
       <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />
     </>
   );
-}
+});

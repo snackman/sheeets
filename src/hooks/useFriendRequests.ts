@@ -10,6 +10,7 @@ import {
   trackFriendRequestAccepted,
   trackFriendRequestRejected,
 } from '@/lib/analytics';
+import { fetchProfiles } from '@/lib/profile-cache';
 
 interface UseFriendRequestsOptions {
   refreshFriends: () => Promise<void>;
@@ -50,13 +51,9 @@ export function useFriendRequests({ refreshFriends }: UseFriendRequestsOptions) 
 
     let profileMap = new Map<string, { display_name: string | null; email: string | null; x_handle: string | null; avatar_url: string | null }>();
     if (userIds.size > 0) {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, display_name, email, x_handle, avatar_url')
-        .in('user_id', [...userIds]);
-
+      const cached = await fetchProfiles(supabase, [...userIds]);
       profileMap = new Map(
-        (profiles ?? []).map((p) => [p.user_id, { display_name: p.display_name, email: p.email, x_handle: p.x_handle, avatar_url: p.avatar_url }])
+        [...cached.entries()].map(([id, p]) => [id, { display_name: p.display_name, email: p.email, x_handle: p.x_handle, avatar_url: p.avatar_url }])
       );
     }
 
