@@ -2,10 +2,21 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Download, Copy, Check, Loader2 } from 'lucide-react';
+import { X, Download, Copy, Check, Loader2, ChevronDown } from 'lucide-react';
 import { trackLockScreenOpen, trackLockScreenCopy, trackLockScreenDownload } from '@/lib/analytics';
 import type { SocialLink } from '@/lib/social-urls';
 import LockScreenTemplate from './LockScreenTemplate';
+
+const PHONE_PRESETS = [
+  { label: 'iPhone 16 Pro Max', w: 1320, h: 2868 },
+  { label: 'iPhone 16 Pro', w: 1206, h: 2622 },
+  { label: 'iPhone 16 / 15 / 14', w: 1170, h: 2532 },
+  { label: 'iPhone SE', w: 750, h: 1334 },
+  { label: 'Samsung Galaxy S24 Ultra', w: 1440, h: 3120 },
+  { label: 'Samsung Galaxy S24', w: 1080, h: 2340 },
+  { label: 'Google Pixel 9 Pro', w: 1280, h: 2856 },
+  { label: 'Google Pixel 9', w: 1080, h: 2424 },
+] as const;
 
 interface LockScreenModalProps {
   isOpen: boolean;
@@ -32,15 +43,36 @@ export function LockScreenModal({
   const cardRef = useRef<HTMLDivElement>(null);
   const trackedRef = useRef(false);
 
-  // Detect the device's native screen resolution
-  const screenDims = useMemo(() => {
-    if (typeof window === 'undefined') return { width: 1170, height: 2532 };
-    const dpr = window.devicePixelRatio || 1;
-    return {
-      width: Math.round(window.screen.width * dpr),
-      height: Math.round(window.screen.height * dpr),
-    };
+  // Desktop detection: non-touch primary pointer or wide screen
+  const isDesktop = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(pointer: fine)').matches && window.screen.width > 1024;
   }, []);
+
+  // Phone picker state (only used on desktop)
+  const [selectedPreset, setSelectedPreset] = useState(2); // default: iPhone 16/15/14
+  const [customW, setCustomW] = useState('');
+  const [customH, setCustomH] = useState('');
+  const [useCustom, setUseCustom] = useState(false);
+  const [pickerDone, setPickerDone] = useState(false);
+
+  // Resolve final screen dimensions
+  const screenDims = useMemo(() => {
+    if (!isDesktop) {
+      // Mobile: auto-detect
+      const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+      const sw = typeof window !== 'undefined' ? window.screen.width : 1170;
+      const sh = typeof window !== 'undefined' ? window.screen.height : 2532;
+      return { width: Math.round(sw * dpr), height: Math.round(sh * dpr) };
+    }
+    if (useCustom) {
+      const w = parseInt(customW, 10);
+      const h = parseInt(customH, 10);
+      if (w > 0 && h > 0) return { width: w, height: h };
+    }
+    const preset = PHONE_PRESETS[selectedPreset];
+    return { width: preset.w, height: preset.h };
+  }, [isDesktop, selectedPreset, useCustom, customW, customH]);
 
   // Generate preview image
   const generatePreview = useCallback(async () => {
@@ -64,15 +96,16 @@ export function LockScreenModal({
     }
   }, []);
 
-  // Generate preview when modal opens
+  // Generate preview when modal opens (mobile) or after picker done (desktop)
   useEffect(() => {
     if (!isOpen) return;
+    if (isDesktop && !pickerDone) return;
     // Small delay to allow template to mount
     const timer = setTimeout(() => {
       generatePreview();
     }, 200);
     return () => clearTimeout(timer);
-  }, [isOpen, generatePreview]);
+  }, [isOpen, isDesktop, pickerDone, generatePreview]);
 
   // Track open event
   useEffect(() => {
@@ -90,6 +123,7 @@ export function LockScreenModal({
     if (!isOpen) {
       setPreviewUrl(null);
       setCopyStatus('idle');
+      setPickerDone(false);
     }
   }, [isOpen]);
 
@@ -177,35 +211,101 @@ export function LockScreenModal({
               Set this as your lock screen to make it easy for people to scan your contact info.
             </p>
 
+            {/* Phone picker (desktop only) */}
+            {isDesktop && !pickerDone && (
+              <div className="space-y-3">
+                <p className="text-xs font-medium text-[var(--theme-text-primary)]">Select your phone model</p>
+                <div className="grid grid-cols-1 gap-1.5">
+                  {PHONE_PRESETS.map((preset, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { setSelectedPreset(i); setUseCustom(false); }}
+                      className={`text-left px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
+                        !useCustom && selectedPreset === i
+                          ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+                          : 'bg-[var(--theme-bg-primary)] text-[var(--theme-text-secondary)] hover:bg-[var(--theme-bg-tertiary)]'
+                      }`}
+                    >
+                      <span className="font-medium">{preset.label}</span>
+                      <span className="ml-2 opacity-60">{preset.w}&times;{preset.h}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Custom size toggle */}
+                <button
+                  onClick={() => setUseCustom(!useCustom)}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer flex items-center justify-between ${
+                    useCustom
+                      ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+                      : 'bg-[var(--theme-bg-primary)] text-[var(--theme-text-secondary)] hover:bg-[var(--theme-bg-tertiary)]'
+                  }`}
+                >
+                  <span className="font-medium">Custom size</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${useCustom ? 'rotate-180' : ''}`} />
+                </button>
+
+                {useCustom && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={customW}
+                      onChange={(e) => setCustomW(e.target.value)}
+                      placeholder="Width"
+                      className="flex-1 bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg px-3 py-2 text-sm text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)] placeholder:text-[var(--theme-text-muted)]"
+                    />
+                    <span className="text-[var(--theme-text-muted)] text-sm">&times;</span>
+                    <input
+                      type="number"
+                      value={customH}
+                      onChange={(e) => setCustomH(e.target.value)}
+                      placeholder="Height"
+                      className="flex-1 bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg px-3 py-2 text-sm text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)] placeholder:text-[var(--theme-text-muted)]"
+                    />
+                  </div>
+                )}
+
+                <button
+                  onClick={() => setPickerDone(true)}
+                  disabled={useCustom && (!parseInt(customW, 10) || !parseInt(customH, 10))}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)] rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Generate Card
+                </button>
+              </div>
+            )}
+
             {/* Preview area */}
-            <div className="rounded-lg border border-[var(--theme-border-primary)] bg-[var(--theme-bg-primary)] overflow-hidden">
-              {generating && !previewUrl ? (
-                <div className="flex items-center justify-center py-16">
-                  <Loader2 className="w-6 h-6 text-[var(--theme-text-secondary)] animate-spin" />
-                </div>
-              ) : previewUrl ? (
-                <div className="relative">
-                  {generating && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-[var(--theme-bg-primary)]/60 z-10">
-                      <Loader2 className="w-5 h-5 text-[var(--theme-text-secondary)] animate-spin" />
-                    </div>
-                  )}
-                  <img
-                    src={previewUrl}
-                    alt="Lock screen card preview"
-                    className="w-full h-auto block"
-                  />
-                </div>
-              ) : (
-                <div className="flex items-center justify-center py-16 text-[var(--theme-text-muted)] text-sm">
-                  Generating preview...
-                </div>
-              )}
-            </div>
+            {(!isDesktop || pickerDone) && (
+              <div className="rounded-lg border border-[var(--theme-border-primary)] bg-[var(--theme-bg-primary)] overflow-hidden">
+                {generating && !previewUrl ? (
+                  <div className="flex items-center justify-center py-16">
+                    <Loader2 className="w-6 h-6 text-[var(--theme-text-secondary)] animate-spin" />
+                  </div>
+                ) : previewUrl ? (
+                  <div className="relative">
+                    {generating && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-[var(--theme-bg-primary)]/60 z-10">
+                        <Loader2 className="w-5 h-5 text-[var(--theme-text-secondary)] animate-spin" />
+                      </div>
+                    )}
+                    <img
+                      src={previewUrl}
+                      alt="Lock screen card preview"
+                      className="w-full h-auto block"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center py-16 text-[var(--theme-text-muted)] text-sm">
+                    Generating preview...
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Footer buttons */}
-          <div className="px-4 py-3 border-t border-[var(--theme-border-primary)] flex items-center gap-2 shrink-0">
+          <div className={`px-4 py-3 border-t border-[var(--theme-border-primary)] flex items-center gap-2 shrink-0 ${isDesktop && !pickerDone ? 'hidden' : ''}`}>
             <button
               onClick={handleCopy}
               disabled={!previewUrl || copyStatus === 'copying'}
