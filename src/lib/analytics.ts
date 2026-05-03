@@ -186,6 +186,11 @@ export const trackABClick = (testId: string, variantId: string, metadata?: strin
 export const trackABConversion = (testId: string, variantId: string, metadata?: string) =>
   track('ab_conversion', { test_id: testId, variant_id: variantId, ...(metadata ? { metadata } : {}) });
 
+// Lock Screen Card
+export const trackLockScreenOpen = () => track('lock_screen_open');
+export const trackLockScreenDownload = () => track('lock_screen_download');
+export const trackLockScreenCopy = () => track('lock_screen_copy');
+
 // RSVP
 export const trackRsvpOpen = (eventId: string, eventName: string) =>
   track('rsvp_open', { event_id: eventId, event_name: eventName });
