@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { EventCard } from '@/components/EventCard';
-import { ArrowLeft, AlertTriangle, Trash2, CalendarX, Share2, Map as MapIcon, List, GripVertical, Eye, EyeOff, ChevronDown, MapPin } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Trash2, CalendarX, Share2, Map as MapIcon, List, Table, GripVertical, Eye, EyeOff, ChevronDown, MapPin } from 'lucide-react';
 import clsx from 'clsx';
 import { useEvents } from '@/hooks/useEvents';
 import { useItinerary } from '@/hooks/useItinerary';
@@ -21,6 +21,8 @@ import { passesNowFilter, getConferenceNow } from '@/lib/filters';
 import { useDragReorder } from '@/hooks/useDragReorder';
 import { useProfile } from '@/hooks/useProfile';
 import { ShareCardModal } from '@/components/ShareCardModal';
+import { useConferenceTabs } from '@/hooks/useConferenceTabs';
+import { TableView } from '@/components/TableView';
 
 const MapView = dynamic(
   () => import('@/components/MapView').then((mod) => ({ default: mod.MapView })),
@@ -34,7 +36,7 @@ const MapView = dynamic(
   }
 );
 
-type ItineraryViewMode = 'list' | 'map';
+type ItineraryViewMode = 'list' | 'map' | 'table';
 
 function generateShortCode(): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -64,6 +66,7 @@ function CheckInToast({ result, onDismiss }: { result: { ok: boolean; message: s
 
 function ItineraryContent() {
   const { events, loading } = useEvents();
+  const { tabs: conferenceTabs } = useConferenceTabs();
   const { itinerary, toggle: toggleItinerary, clear: clearItinerary, reorder: reorderItinerary, hiddenEvents, toggleHidden } = useItinerary();
   const { user } = useAuth();
   const { profile } = useProfile();
@@ -196,7 +199,7 @@ function ItineraryContent() {
   }
 
   return (
-    <div className={viewMode === 'map' ? 'h-screen flex flex-col bg-[var(--theme-bg-primary)]' : 'min-h-screen bg-[var(--theme-bg-primary)]'}>
+    <div className={viewMode === 'map' || viewMode === 'table' ? 'h-screen flex flex-col bg-[var(--theme-bg-primary)]' : 'min-h-screen bg-[var(--theme-bg-primary)]'}>
       {/* Header */}
       <header className="sticky top-0 z-50 bg-[var(--theme-bg-primary)]/95 backdrop-blur-sm border-b border-[var(--theme-border-secondary)]">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
@@ -270,6 +273,7 @@ function ItineraryContent() {
                 <div className="flex rounded-lg border border-[var(--theme-border-primary)] overflow-hidden mr-1">
                   {([
                     { mode: 'list' as const, icon: List, label: 'List' },
+                    { mode: 'table' as const, icon: Table, label: 'Table' },
                     { mode: 'map' as const, icon: MapIcon, label: 'Map' },
                   ]).map(({ mode, icon: Icon, label }) => (
                     <button
@@ -342,6 +346,18 @@ function ItineraryContent() {
             events={itineraryEvents}
             itinerary={itinerary}
             onItineraryToggle={toggleItinerary}
+            conference={activeConference}
+            conferenceTabs={conferenceTabs}
+          />
+        </main>
+      ) : viewMode === 'table' ? (
+        <main className="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+          <TableView
+            events={itineraryEvents}
+            totalCount={itineraryEvents.length}
+            itinerary={itinerary}
+            onItineraryToggle={toggleItinerary}
+            conference={activeConference}
           />
         </main>
       ) : (
