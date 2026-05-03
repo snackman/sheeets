@@ -64,6 +64,10 @@
   --theme-header-accent: var(--theme-accent);
   --theme-header-accent-muted: var(--theme-accent-muted);
 
+  --theme-bg-list: var(--theme-bg-primary);
+  --theme-table-header-bg: var(--theme-bg-secondary);
+  --theme-table-header-text: var(--theme-text-secondary);
+
   --theme-scrollbar-track: #0c0a09;
   --theme-scrollbar-thumb: #292524;
   --theme-scrollbar-thumb-hover: #44403c;
@@ -242,6 +246,10 @@
   --theme-header-control-border: rgba(255, 255, 255, 0.2);
   --theme-header-accent: #ffffff;
   --theme-header-accent-muted: rgba(255, 255, 255, 0.15);
+
+  --theme-bg-list: rgba(28, 69, 134, 0.06);
+  --theme-table-header-bg: #1c4586;
+  --theme-table-header-text: #ffffff;
 
   --theme-scrollbar-track: #fafafa;
   --theme-scrollbar-thumb: #d4d4d4;

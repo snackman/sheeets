@@ -141,8 +141,8 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
   });
 
   const featuredEvents = useMemo(
-    () => extractFeaturedEvents(filteredEvents),
-    [filteredEvents],
+    () => filters.itineraryOnly ? [] : extractFeaturedEvents(filteredEvents),
+    [filteredEvents, filters.itineraryOnly],
   );
 
   // Events filtered by everything EXCEPT vibes — used to compute tag counts
@@ -542,7 +542,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           />
         </main>
       ) : (
-        <main ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto">
+        <main ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto bg-[var(--theme-bg-list)]">
           <ListView
             events={filteredEvents}
             totalCount={conferenceEventCount}

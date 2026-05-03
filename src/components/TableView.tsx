@@ -328,7 +328,7 @@ export function TableView({
             <col style={{ width: `calc((100% - 36px - 44px - 100px - ${tagsColWidth}px) * 0.28)` }} />             {/* where */}
             <col style={{ width: tagsColWidth }} />                                                                {/* tags */}
           </colgroup>
-          <thead className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] bg-[var(--theme-bg-secondary)] border-b border-[var(--theme-border-primary)] sticky top-0 z-20">
+          <thead className="text-xs uppercase tracking-wider text-[var(--theme-table-header-text)] bg-[var(--theme-table-header-bg)] border-b border-[var(--theme-border-primary)] sticky top-0 z-20">
             <tr>
               <th className="py-2.5"><div className="flex justify-center"><CalendarIcon className="w-5 h-5" /></div></th>
               <th className="px-1 py-2.5 text-center" title={!isSignedIn ? 'Sign in to add friends and see who\'s going' : 'Friends going'}><Users className="w-3.5 h-3.5 mx-auto" /></th>
