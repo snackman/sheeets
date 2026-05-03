@@ -21,6 +21,7 @@ import { useDragReorder } from '@/hooks/useDragReorder';
 import { useProfile } from '@/hooks/useProfile';
 import { ShareCardModal } from '@/components/ShareCardModal';
 import { useConferenceTabs } from '@/hooks/useConferenceTabs';
+import { getTabConfig } from '@/lib/conferences';
 import { TableView } from '@/components/TableView';
 import { useFriends } from '@/hooks/useFriends';
 import { useFriendsItineraries } from '@/hooks/useFriendsItineraries';
@@ -207,18 +208,12 @@ function ItineraryContent() {
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
-              href="/"
+              href={activeConference ? `/${getTabConfig(activeConference, conferenceTabs).slug}` : '/'}
               className="p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors"
               aria-label="Back to events"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <h1 className="text-lg font-bold text-[var(--theme-text-primary)]">
-              My Plan{' '}
-              <span className="text-sm font-normal text-[var(--theme-text-secondary)]">
-                ({itineraryEvents.length} event{itineraryEvents.length !== 1 ? 's' : ''})
-              </span>
-            </h1>
           </div>
           {/* Conference dropdown */}
           {conferences.length > 0 && (
