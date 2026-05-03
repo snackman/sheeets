@@ -83,7 +83,7 @@ export function MapView({
   const mapCenter = getTabConfig(conference ?? '', conferenceTabs).center;
   const { user } = useAuth();
   const { theme } = useTheme();
-  const mapStyle = (theme === 'paper' || theme === 'light')
+  const mapStyle = (theme === 'paper' || theme === 'light' || theme === 'light-blue')
     ? 'mapbox://styles/mapbox/light-v11'
     : 'mapbox://styles/mapbox/dark-v11';
   const mapRef = useRef<MapRef>(null);
