@@ -353,12 +353,12 @@ export function GalleryView({
         return (
           <div key={group.dateISO}>
             {/* Date header */}
-            <div className={`sticky top-0 z-20 bg-[var(--theme-bg-primary)] py-2 border-b border-[var(--theme-border-secondary)] ${groupIdx > 0 ? 'mt-6' : ''}`}>
+            <div className={`sticky top-0 z-20 bg-[var(--theme-date-sep-bg)] py-2 border-b border-[var(--theme-date-sep-border)] ${groupIdx > 0 ? 'mt-6' : ''}`}>
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold text-[var(--theme-text-primary)]">
+                <h2 className="text-base font-bold text-[var(--theme-date-sep-text)]">
                   {group.label}
                 </h2>
-                <span className="text-xs text-[var(--theme-text-muted)] font-medium">
+                <span className="text-xs text-[var(--theme-date-sep-muted)] font-medium">
                   {group.events.length} event{group.events.length !== 1 ? 's' : ''}
                 </span>
               </div>

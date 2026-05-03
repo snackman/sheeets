@@ -386,12 +386,12 @@ export const ListView = memo(function ListView({
     <div className="max-w-3xl mx-auto px-2 sm:px-4 pb-8 relative">
       {/* Overlay sticky date header */}
       {stickyLabel && (
-        <div className="sticky top-0 z-20 bg-[var(--theme-bg-primary)] py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-[var(--theme-border-secondary)]">
+        <div className="sticky top-0 z-20 bg-[var(--theme-date-sep-bg)] py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-[var(--theme-date-sep-border)]">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-[var(--theme-text-primary)]">
+            <h2 className="text-base font-bold text-[var(--theme-date-sep-text)]">
               {stickyLabel}
             </h2>
-            <span className="text-xs text-[var(--theme-text-muted)] font-medium">
+            <span className="text-xs text-[var(--theme-date-sep-muted)] font-medium">
               {stickyCount} event{stickyCount !== 1 ? 's' : ''}
             </span>
           </div>
@@ -424,12 +424,12 @@ export const ListView = memo(function ListView({
             >
               {item.kind === 'date-header' ? (
                 /* In-flow date header (hidden behind sticky overlay once scrolled past) */
-                <div className={`py-2 border-b border-[var(--theme-border-secondary)] ${virtualRow.index === 0 ? '' : 'mt-4'}`}>
+                <div className={`py-2 border-b border-[var(--theme-date-sep-border)] bg-[var(--theme-date-sep-bg)] -mx-2 px-2 sm:-mx-4 sm:px-4 ${virtualRow.index === 0 ? '' : 'mt-4'}`}>
                   <div className="flex items-center justify-between">
-                    <h2 className="text-base font-bold text-[var(--theme-text-primary)]">
+                    <h2 className="text-base font-bold text-[var(--theme-date-sep-text)]">
                       {item.label}
                     </h2>
-                    <span className="text-xs text-[var(--theme-text-muted)] font-medium">
+                    <span className="text-xs text-[var(--theme-date-sep-muted)] font-medium">
                       {item.eventCount} event{item.eventCount !== 1 ? 's' : ''}
                     </span>
                   </div>

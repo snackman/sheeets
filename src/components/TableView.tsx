@@ -619,14 +619,13 @@ function DateGroup({
       {/* Date separator row */}
       <tr
         ref={(el) => setSeparatorRef(group.dateISO, el)}
-        className="bg-[var(--theme-bg-secondary)]/80"
+        className="bg-[var(--theme-date-sep-bg)]"
         data-date={group.dateISO}
       >
-        <td className="border-b border-[var(--theme-border-primary)]/70"></td>
+        <td className="border-b border-[var(--theme-date-sep-border)]"></td>
         <td
           colSpan={COLUMN_COUNT - 1}
-          className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider border-b border-[var(--theme-border-primary)]/70"
-          style={{ color: 'var(--theme-accent)', opacity: 0.8 }}
+          className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider border-b border-[var(--theme-date-sep-border)] text-[var(--theme-date-sep-text)]"
         >
           {group.label}
         </td>
