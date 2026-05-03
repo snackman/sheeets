@@ -42,7 +42,7 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
     // Protected zones (scaled) — keep content away from OS UI elements
     const topSafe = Math.round(300 * s);       // clock / Dynamic Island
     const bottomSafe = Math.round(200 * s);     // home indicator / flashlight+camera
-    const logoHeight = Math.round(60 * s);
+    const logoHeight = Math.round(44 * s);
     const logoGap = Math.round(20 * s);
 
     // Calculate available vertical space for profile + QR codes
@@ -260,10 +260,11 @@ const LockScreenTemplate = forwardRef<HTMLDivElement, LockScreenTemplateProps>(
             src={logoDataUrl}
             alt="plan.wtf"
             style={{
-              height: `${logoHeight}px`,
+              maxHeight: `${logoHeight}px`,
               objectFit: 'contain',
               opacity: 0.4,
               filter: 'brightness(0) invert(1)',
+              flexShrink: 1,
             }}
           />
         )}
