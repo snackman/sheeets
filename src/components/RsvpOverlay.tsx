@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Copy, Check } from 'lucide-react';
+import { X, Copy, Check, User, Mail, Send, Building2, Briefcase, Linkedin } from 'lucide-react';
 
 interface RsvpOverlayProps {
   eventName: string;
@@ -30,7 +30,7 @@ function getLumaSlug(url: string): string | null {
   }
 }
 
-function CopyField({ label, value }: { label: string; value: string }) {
+function CopyField({ icon, value }: { icon: React.ReactNode; value: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
@@ -44,27 +44,25 @@ function CopyField({ label, value }: { label: string; value: string }) {
   }, [value]);
 
   return (
-    <div className="flex items-center gap-2 min-w-0 flex-1">
-      <div className="min-w-0 flex-1">
-        <span className="block text-[9px] font-semibold uppercase tracking-wider text-[var(--theme-text-muted)]">
-          {label}
-        </span>
-        <span className="block text-xs text-[var(--theme-text-primary)] truncate">
-          {value}
-        </span>
-      </div>
-      <button
-        onClick={handleCopy}
-        className="shrink-0 p-1.5 rounded-md hover:bg-[var(--theme-bg-tertiary)] transition-colors cursor-pointer"
-        aria-label={`Copy ${label.toLowerCase()}`}
-      >
+    <button
+      onClick={handleCopy}
+      className="flex items-center gap-2 min-w-0 flex-1 rounded-md px-1.5 py-1 hover:bg-[var(--theme-bg-secondary)] transition-colors cursor-pointer text-left"
+      aria-label={`Copy ${value}`}
+    >
+      <span className="shrink-0 text-[var(--theme-text-muted)]">
+        {icon}
+      </span>
+      <span className="block text-xs text-[var(--theme-text-primary)] truncate min-w-0 flex-1">
+        {value}
+      </span>
+      <span className="shrink-0">
         {copied ? (
           <Check className="w-3.5 h-3.5 text-green-400" />
         ) : (
           <Copy className="w-3.5 h-3.5 text-[var(--theme-text-secondary)]" />
         )}
-      </button>
-    </div>
+      </span>
+    </button>
   );
 }
 
@@ -151,13 +149,13 @@ export function RsvpOverlay({
           {/* Sticky copy-fields bar */}
           {hasCopyFields && (
             <div className="grid grid-cols-2 gap-x-3 gap-y-1 px-4 py-2.5 border-b border-[var(--theme-border-primary)] bg-[var(--theme-bg-tertiary)] shrink-0">
-              {userName && <CopyField label="Name" value={userName} />}
-              {userEmail && <CopyField label="Email" value={userEmail} />}
-              {userXHandle && <CopyField label="X" value={`@${userXHandle}`} />}
-              {userTelegram && <CopyField label="Telegram" value={`@${userTelegram}`} />}
-              {userCompany && <CopyField label="Org" value={userCompany} />}
-              {userJobTitle && <CopyField label="Title" value={userJobTitle} />}
-              {userLinkedin && <CopyField label="LinkedIn" value={userLinkedin} />}
+              {userName && <CopyField icon={<User className="w-3.5 h-3.5" />} value={userName} />}
+              {userEmail && <CopyField icon={<Mail className="w-3.5 h-3.5" />} value={userEmail} />}
+              {userXHandle && <CopyField icon={<span className="text-xs font-bold leading-none" style={{ fontSize: '13px' }}>𝕏</span>} value={`@${userXHandle}`} />}
+              {userTelegram && <CopyField icon={<Send className="w-3.5 h-3.5" />} value={`@${userTelegram}`} />}
+              {userCompany && <CopyField icon={<Building2 className="w-3.5 h-3.5" />} value={userCompany} />}
+              {userJobTitle && <CopyField icon={<Briefcase className="w-3.5 h-3.5" />} value={userJobTitle} />}
+              {userLinkedin && <CopyField icon={<Linkedin className="w-3.5 h-3.5" />} value={userLinkedin} />}
             </div>
           )}
 
