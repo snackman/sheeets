@@ -5,14 +5,13 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { EventCard } from '@/components/EventCard';
-import { ArrowLeft, AlertTriangle, Trash2, CalendarX, Share2, Map as MapIcon, List, Table, GripVertical, Eye, EyeOff, ChevronDown, MapPin } from 'lucide-react';
+import { ArrowLeft, Trash2, CalendarX, Share2, Map as MapIcon, List, Table, GripVertical, Eye, EyeOff, ChevronDown, MapPin } from 'lucide-react';
 import clsx from 'clsx';
 import { useEvents } from '@/hooks/useEvents';
 import { useItinerary } from '@/hooks/useItinerary';
 
 
 import { formatDateLabel } from '@/lib/utils';
-import { detectConflicts } from '@/lib/time-parse';
 import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryReorder } from '@/lib/analytics';
 import type { ETHDenverEvent } from '@/lib/types';
 import { Loading } from '@/components/Loading';
@@ -135,8 +134,6 @@ function ItineraryContent() {
     () => allItineraryEvents.filter((e) => !activeConference || e.conference === activeConference),
     [allItineraryEvents, activeConference]
   );
-
-  const conflicts = useMemo(() => detectConflicts(itineraryEvents), [itineraryEvents]);
 
   const dateGroups = useMemo(() => {
     const groupMap = new Map<string, ETHDenverEvent[]>();
@@ -355,15 +352,6 @@ function ItineraryContent() {
               <span className="text-xs text-[var(--theme-text-muted)]">— My Plan</span>
             </div>
 
-            {conflicts.size > 0 && (
-              <div className="mt-2 mb-1 px-3 py-2 bg-[var(--theme-accent)]/10 border border-[var(--theme-accent)]/20 rounded-lg flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-[var(--theme-accent)] shrink-0" />
-                <p className="text-[var(--theme-accent)] text-xs">
-                  {conflicts.size} event{conflicts.size !== 1 ? 's' : ''} with schedule conflicts
-                </p>
-              </div>
-            )}
-
             {dateGroups.map((group) => (
               <section key={group.dateISO} className="mt-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -376,7 +364,6 @@ function ItineraryContent() {
 
                 <div className="space-y-2">
                   {group.events.map((event) => {
-                    const hasConflict = conflicts.has(event.id);
                     const dropIndicator = getDropIndicator(event.id);
                     const isBeingDragged = dragId === event.id;
 
@@ -390,15 +377,6 @@ function ItineraryContent() {
                         {/* Drop indicator - above */}
                         {dropIndicator.showAbove && (
                           <div className="absolute -top-1.5 left-0 right-0 h-0.5 bg-[var(--theme-accent)] rounded-full z-10" />
-                        )}
-
-                        {hasConflict && (
-                          <div className="flex items-center gap-1.5 mb-1 text-[var(--theme-accent)]">
-                            <AlertTriangle className="w-3 h-3" />
-                            <span className="text-[10px] font-medium uppercase tracking-wide">
-                              Schedule conflict
-                            </span>
-                          </div>
                         )}
 
                         <div className={`flex items-start gap-2 ${isBeingDragged ? 'opacity-40' : 'opacity-100'} transition-opacity`}>
