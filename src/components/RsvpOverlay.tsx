@@ -12,6 +12,8 @@ interface RsvpOverlayProps {
   userXHandle?: string | null;
   userTelegram?: string | null;
   userCompany?: string | null;
+  userLinkedin?: string | null;
+  userJobTitle?: string | null;
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -74,6 +76,8 @@ export function RsvpOverlay({
   userXHandle,
   userTelegram,
   userCompany,
+  userLinkedin,
+  userJobTitle,
   onConfirm,
   onClose,
 }: RsvpOverlayProps) {
@@ -98,7 +102,7 @@ export function RsvpOverlay({
 
   if (!slug) return null;
 
-  const hasCopyFields = userName || userEmail || userXHandle || userTelegram || userCompany;
+  const hasCopyFields = userName || userEmail || userXHandle || userTelegram || userCompany || userLinkedin || userJobTitle;
   const embedUrl = `https://lu.ma/embed/event/${slug}/simple`;
 
   return createPortal(
@@ -152,6 +156,8 @@ export function RsvpOverlay({
               {userXHandle && <CopyField label="X" value={`@${userXHandle}`} />}
               {userTelegram && <CopyField label="Telegram" value={`@${userTelegram}`} />}
               {userCompany && <CopyField label="Org" value={userCompany} />}
+              {userJobTitle && <CopyField label="Title" value={userJobTitle} />}
+              {userLinkedin && <CopyField label="LinkedIn" value={userLinkedin} />}
             </div>
           )}
 

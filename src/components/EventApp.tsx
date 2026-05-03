@@ -635,6 +635,8 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           userXHandle={profile?.x_handle}
           userTelegram={profile?.telegram_handle}
           userCompany={profile?.company}
+          userLinkedin={profile?.linkedin_url}
+          userJobTitle={profile?.job_title}
           onConfirm={handleRsvpConfirm}
           onClose={closeRsvp}
         />

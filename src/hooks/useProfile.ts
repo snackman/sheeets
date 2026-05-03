@@ -91,7 +91,7 @@ export function useProfile() {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('user_id, email, display_name, x_handle, rsvp_name, avatar_url, telegram_handle, company')
+          .select('user_id, email, display_name, x_handle, rsvp_name, avatar_url, telegram_handle, company, linkedin_url, job_title')
           .eq('user_id', user!.id)
           .maybeSingle();
 
@@ -114,6 +114,8 @@ export function useProfile() {
             avatar_url: null,
             telegram_handle: null,
             company: null,
+            linkedin_url: null,
+            job_title: null,
           };
 
           const { error: insertError } = await supabase
@@ -124,7 +126,7 @@ export function useProfile() {
             // Could be a race condition — try fetching again
             const { data: retryData } = await supabase
               .from('profiles')
-              .select('user_id, email, display_name, x_handle, rsvp_name, avatar_url, telegram_handle, company')
+              .select('user_id, email, display_name, x_handle, rsvp_name, avatar_url, telegram_handle, company, linkedin_url, job_title')
               .eq('user_id', user!.id)
               .maybeSingle();
 
@@ -148,7 +150,7 @@ export function useProfile() {
   }, [user, authLoading]);
 
   const updateProfile = useCallback(
-    async (fields: Partial<Pick<UserProfile, 'display_name' | 'x_handle' | 'rsvp_name' | 'telegram_handle' | 'company'>>) => {
+    async (fields: Partial<Pick<UserProfile, 'display_name' | 'x_handle' | 'rsvp_name' | 'telegram_handle' | 'company' | 'linkedin_url' | 'job_title'>>) => {
       if (!user) return;
 
       const { error } = await supabase

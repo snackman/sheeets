@@ -398,6 +398,8 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   const [rsvpName, setRsvpName] = useState('');
   const [telegramHandle, setTelegramHandle] = useState('');
   const [company, setCompany] = useState('');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [jobTitle, setJobTitle] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -436,6 +438,8 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
       setRsvpName(profile.rsvp_name ?? '');
       setTelegramHandle(profile.telegram_handle ?? '');
       setCompany(profile.company ?? '');
+      setLinkedinUrl(profile.linkedin_url ?? '');
+      setJobTitle(profile.job_title ?? '');
     }
   }, [profile]);
 
@@ -456,15 +460,17 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   // Auto-save profile on change (debounced)
   useEffect(() => {
     if (!profile) return;
-    const current = { displayName, xHandle, rsvpName, telegramHandle, company };
+    const current = { displayName, xHandle, rsvpName, telegramHandle, company, linkedinUrl, jobTitle };
     const original = {
       displayName: profile.display_name ?? '',
       xHandle: profile.x_handle ?? '',
       rsvpName: profile.rsvp_name ?? '',
       telegramHandle: profile.telegram_handle ?? '',
       company: profile.company ?? '',
+      linkedinUrl: profile.linkedin_url ?? '',
+      jobTitle: profile.job_title ?? '',
     };
-    if (current.displayName === original.displayName && current.xHandle === original.xHandle && current.rsvpName === original.rsvpName && current.telegramHandle === original.telegramHandle && current.company === original.company) return;
+    if (current.displayName === original.displayName && current.xHandle === original.xHandle && current.rsvpName === original.rsvpName && current.telegramHandle === original.telegramHandle && current.company === original.company && current.linkedinUrl === original.linkedinUrl && current.jobTitle === original.jobTitle) return;
 
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
     setSaveStatus('idle');
@@ -476,6 +482,8 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
         rsvp_name: rsvpName.trim() || null,
         telegram_handle: telegramHandle.trim() || null,
         company: company.trim() || null,
+        linkedin_url: linkedinUrl.trim() || null,
+        job_title: jobTitle.trim() || null,
       });
       setSaving(false);
       setSaveStatus('saved');
@@ -485,7 +493,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
     return () => {
       if (saveTimeout.current) clearTimeout(saveTimeout.current);
     };
-  }, [displayName, xHandle, rsvpName, telegramHandle, company, profile, updateProfile]);
+  }, [displayName, xHandle, rsvpName, telegramHandle, company, linkedinUrl, jobTitle, profile, updateProfile]);
 
   async function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -714,6 +722,26 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                       value={company}
                       onChange={(e) => setCompany(e.target.value)}
                       placeholder="Organization"
+                      className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
+                    />
+                  </div>
+
+                  <div>
+                    <input
+                      type="text"
+                      value={jobTitle}
+                      onChange={(e) => setJobTitle(e.target.value)}
+                      placeholder="e.g. Software Engineer"
+                      className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
+                    />
+                  </div>
+
+                  <div>
+                    <input
+                      type="text"
+                      value={linkedinUrl}
+                      onChange={(e) => setLinkedinUrl(e.target.value)}
+                      placeholder="linkedin.com/in/yourname"
                       className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
                     />
                   </div>
