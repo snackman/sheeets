@@ -44,7 +44,6 @@ function GalleryCard({
   event,
   isInItinerary,
   onItineraryToggle,
-  friendsCount,
   friendsGoing,
   liveUrgency,
   onClick,
@@ -52,7 +51,6 @@ function GalleryCard({
   event: ETHDenverEvent;
   isInItinerary: boolean;
   onItineraryToggle?: (eventId: string) => void;
-  friendsCount?: number;
   friendsGoing?: FriendInfo[];
   liveUrgency?: 'green' | 'yellow' | 'red';
   onClick: () => void;
@@ -199,7 +197,6 @@ function GalleryCard({
             isStarred={isInItinerary}
             onToggle={onItineraryToggle}
             size="sm"
-            friendsCount={friendsCount}
           />
         </div>
       )}
@@ -348,7 +345,6 @@ export function GalleryView({
               event={event}
               isInItinerary={itinerary?.has(event.id) ?? false}
               onItineraryToggle={onItineraryToggle}
-              friendsCount={friendsCountByEvent?.get(event.id)}
               friendsGoing={friendsByEvent?.get(event.id)}
               liveUrgency={liveEventIds?.get(event.id)}
               onClick={() => setLightboxEventIndex(idx)}
