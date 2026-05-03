@@ -713,7 +713,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                       type="text"
                       value={company}
                       onChange={(e) => setCompany(e.target.value)}
-                      placeholder="Company / Organization"
+                      placeholder="Organization"
                       className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
                     />
                   </div>

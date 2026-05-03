@@ -151,7 +151,7 @@ export function RsvpOverlay({
               {userEmail && <CopyField label="Email" value={userEmail} />}
               {userXHandle && <CopyField label="X" value={`@${userXHandle}`} />}
               {userTelegram && <CopyField label="Telegram" value={`@${userTelegram}`} />}
-              {userCompany && <CopyField label="Company" value={userCompany} />}
+              {userCompany && <CopyField label="Org" value={userCompany} />}
             </div>
           )}
 
