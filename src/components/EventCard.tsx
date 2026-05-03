@@ -40,6 +40,8 @@ interface EventCardProps {
   onOpenLightbox?: (imageUrl: string, rsvpUrl?: string) => void;
   rsvpStatus?: 'idle' | 'confirmed';
   onRsvp?: () => void;
+  /** Compact mode for map popups — smaller text, no impression tracking */
+  compact?: boolean;
 }
 
 function FriendsGoingModal({
@@ -141,6 +143,7 @@ export const EventCard = memo(function EventCard({
   onOpenLightbox,
   rsvpStatus,
   onRsvp,
+  compact,
 }: EventCardProps) {
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [showCheckedInModal, setShowCheckedInModal] = useState(false);
@@ -152,7 +155,7 @@ export const EventCard = memo(function EventCard({
 
   // Track featured event impressions via IntersectionObserver
   useEffect(() => {
-    if (!event.isFeatured) return;
+    if (!event.isFeatured || compact) return;
     const el = cardRef.current;
     if (!el || featuredImpressionTracked.current) return;
 
@@ -179,6 +182,7 @@ export const EventCard = memo(function EventCard({
 
   // Track event impressions via IntersectionObserver (all events in list view)
   useEffect(() => {
+    if (compact) return;
     const el = cardRef.current;
     if (!el || eventImpressionTracked.current) return;
 
@@ -218,7 +222,7 @@ export const EventCard = memo(function EventCard({
     : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
 
   return (
-    <div ref={cardRef} className={`rounded-lg p-4 transition-colors group flex gap-4 overflow-hidden ${
+    <div ref={cardRef} className={`rounded-lg ${compact ? 'p-3' : 'p-4'} transition-colors group flex gap-${compact ? '3' : '4'} overflow-hidden ${
       event.isFeatured
         ? 'bg-[var(--theme-bg-card)] border-2 hover:bg-[var(--theme-bg-card-hover)]'
         : `bg-[var(--theme-bg-card)] border border-[var(--theme-border-primary)] hover:bg-[var(--theme-bg-card-hover)] hover:border-[var(--theme-border-primary)] active:bg-[var(--theme-bg-card-hover)]${hasFriends ? ' border-l-[3px]' : ''}`
@@ -263,7 +267,7 @@ export const EventCard = memo(function EventCard({
         {/* Top row: Name */}
         <div>
           <div className="min-w-0">
-            <h3 className="font-semibold text-[var(--theme-text-primary)] text-sm sm:text-base leading-tight">
+            <h3 className={`font-semibold text-[var(--theme-text-primary)] ${compact ? 'text-sm' : 'text-sm sm:text-base'} leading-tight`}>
               {event.isFeatured && (
                 <span className="inline-block text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded mr-1.5 align-middle" style={{ color: 'var(--theme-popup-featured-border)', background: 'var(--theme-accent-muted)' }}>Featured</span>
               )}
@@ -367,7 +371,7 @@ export const EventCard = memo(function EventCard({
         {/* Tags */}
         <div className="flex flex-wrap items-center gap-1.5 mt-3">
           {event.tags.map((tag) => (
-            <TagBadge key={tag} tag={tag} />
+            <TagBadge key={tag} tag={tag} iconOnly={compact} />
           ))}
         </div>
 
@@ -396,6 +400,7 @@ export const EventCard = memo(function EventCard({
               eventId={event.id}
               reactions={reactions}
               onToggle={onToggleReaction}
+              compact={compact}
             />
           )}
           <CommentSection eventId={event.id} commentCount={commentCount} />

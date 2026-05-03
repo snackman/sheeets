@@ -2,19 +2,15 @@
 
 import { memo } from 'react';
 import { Popup } from 'react-map-gl/mapbox';
-import { X, Calendar, MapPin, MapPinCheck, Loader2 } from 'lucide-react';
+import { X, Calendar, MapPin } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
-import { trackEventClick } from '@/lib/analytics';
-import { trackEvent } from '@/lib/event-tracking';
 import { shortenAddress } from '@/lib/utils';
 import { StarButton } from './StarButton';
 import { FriendAvatarStack } from './FriendAvatarStack';
 import { AddressLink } from './AddressLink';
 import { TagBadge } from './TagBadge';
 import { OGImage } from './OGImage';
-import { EmojiReactions } from './EmojiReactions';
-import { CommentSection } from './CommentSection';
-import { RsvpButton } from './RsvpButton';
+import { EventCard } from './EventCard';
 
 interface EventPopupProps {
   event: ETHDenverEvent;
@@ -55,203 +51,6 @@ interface MultiEventPopupProps {
   commentCounts?: Map<string, number>;
 }
 
-function formatFriendsText(friends: FriendInfo[]): string {
-  const names = friends.map((f) => f.displayName.split(' ')[0]);
-  if (names.length === 1) return names[0];
-  if (names.length === 2) return `${names[0]} & ${names[1]}`;
-  return `${names[0]}, ${names[1]} +${names.length - 2} more`;
-}
-
-function FriendsRow({ friends }: { friends: FriendInfo[] }) {
-  if (!friends || friends.length === 0) return null;
-  return (
-    <div className="flex items-center gap-1.5 mt-1.5">
-      <FriendAvatarStack friends={friends} maxShow={3} size="sm" />
-    </div>
-  );
-}
-
-function CheckedInFriendsRow({ friends }: { friends: FriendInfo[] }) {
-  if (!friends || friends.length === 0) return null;
-  return (
-    <div className="flex items-center gap-1 mt-1">
-      <MapPin className="w-2.5 h-2.5 text-green-400 shrink-0" />
-      <span className="text-[10px] text-green-400/80 truncate">
-        {formatFriendsText(friends)} checked in
-      </span>
-    </div>
-  );
-}
-
-function SingleEventContent({
-  event,
-  isInItinerary = false,
-  onItineraryToggle,
-  friendsCount,
-  friendsGoing,
-  checkedInFriends,
-  checkInCount,
-  reactions,
-  onToggleReaction,
-  commentCount,
-  conference,
-  onCheckIn,
-  checkInLoading,
-  liveUrgency,
-  rsvpStatus,
-  onRsvp,
-}: {
-  event: ETHDenverEvent;
-  isInItinerary?: boolean;
-  onItineraryToggle?: (eventId: string) => void;
-  friendsCount?: number;
-  friendsGoing?: FriendInfo[];
-  checkedInFriends?: FriendInfo[];
-  checkInCount?: number;
-  reactions?: { emoji: ReactionEmoji; count: number; reacted: boolean }[];
-  onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
-  commentCount?: number;
-  conference?: string;
-  onCheckIn?: (eventId: string) => void;
-  checkInLoading?: boolean;
-  liveUrgency?: 'green' | 'yellow' | 'red';
-  rsvpStatus?: 'idle' | 'confirmed';
-  onRsvp?: () => void;
-}) {
-  const timeDisplay = event.isAllDay
-    ? 'All Day'
-    : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
-
-  return (
-    <div className="w-[300px] max-w-[calc(100vw-3rem)] flex gap-3">
-      {/* Left: cover image */}
-      {event.link && <OGImage key={event.id} url={event.link} eventId={event.id} rsvpUrl={event.link} isInItinerary={isInItinerary} onItineraryToggle={onItineraryToggle} friendsGoing={friendsGoing} />}
-
-      {/* Right: event details */}
-      <div className="flex-1 min-w-0">
-        {/* Top row: Name + Star */}
-        <div className="flex items-start gap-1">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm text-[var(--theme-text-primary)] leading-tight line-clamp-2">
-              {event.link ? (
-                <a
-                  href={event.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-[var(--theme-accent)] transition-colors"
-                  onClick={() => {
-                    trackEventClick(event.name, event.link!);
-                    trackEvent({
-                      event_id: event.id,
-                      event_name: event.name,
-                      event_type: 'click',
-                      conference,
-                      url: event.link!,
-                      source: 'map-popup',
-                    });
-                  }}
-                >
-                  {event.name}
-                </a>
-              ) : (
-                event.name
-              )}
-            </h3>
-            {event.organizer && (
-              <p className="text-xs text-[var(--theme-text-muted)] mt-0.5">{event.organizer}</p>
-)}
-          </div>
-          {onItineraryToggle && (
-            <StarButton
-              eventId={event.id}
-              isStarred={isInItinerary}
-              onToggle={onItineraryToggle}
-              size="sm"
-              friendsCount={friendsCount}
-            />
-          )}
-        </div>
-
-        {/* Date + Time */}
-        <div className="relative w-fit mt-1.5">
-          <p className="text-[var(--theme-text-secondary)] text-xs flex items-center gap-1">
-            <Calendar className="w-3 h-3 shrink-0" />
-            <span>{event.date} · {timeDisplay}</span>
-          </p>
-          {(checkInCount ?? 0) > 0 && (
-            <span className="absolute -top-0.5 -right-2.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-green-500 text-white text-[8px] font-bold px-0.5 pointer-events-none">
-              {checkInCount}
-            </span>
-          )}
-        </div>
-
-        {/* Address */}
-        {event.address && (
-          <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
-            eventId={event.id} eventName={event.name}
-            className="w-full text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-xs mt-1 flex items-center gap-1 overflow-hidden transition-colors">
-            <MapPin className="w-3 h-3 shrink-0" />
-            <span className="truncate">{shortenAddress(event.address)}</span>
-          </AddressLink>
-        )}
-
-        {/* Tags + RSVP row (icons only) */}
-        <div className="flex flex-wrap items-center gap-1 mt-2">
-          {event.tags.map((tag) => (
-            <TagBadge key={tag} tag={tag} iconOnly />
-          ))}
-          {onRsvp && event.link && (
-            <RsvpButton eventLink={event.link} status={rsvpStatus ?? 'idle'} onClick={onRsvp} />
-          )}
-        </div>
-
-        {/* Friends going */}
-        {friendsGoing && <FriendsRow friends={friendsGoing} />}
-
-        {/* Friends checked in (green) */}
-        {checkedInFriends && <CheckedInFriendsRow friends={checkedInFriends} />}
-
-        {/* Note */}
-        {event.note && (
-          <p className="text-[var(--theme-text-faint)] text-xs mt-1 italic line-clamp-2">{event.note}</p>
-        )}
-
-        {/* Emoji reactions + Comments inline */}
-        <div className="flex flex-wrap items-center gap-2 mt-1.5">
-          {onToggleReaction && (
-            <EmojiReactions
-              eventId={event.id}
-              reactions={reactions}
-              onToggle={onToggleReaction}
-              compact
-            />
-          )}
-          <CommentSection eventId={event.id} commentCount={commentCount} />
-        </div>
-
-        {/* Check In button (live events only) */}
-        {liveUrgency && onCheckIn && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onCheckIn(event.id);
-            }}
-            disabled={checkInLoading}
-            className="flex items-center gap-1 mt-1.5 px-2 py-1 rounded-md bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-[10px] font-medium transition-colors cursor-pointer w-fit"
-          >
-            {checkInLoading ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
-              <MapPinCheck className="w-3 h-3" />
-            )}
-            Check In
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export const EventPopup = memo(function EventPopup({
   event,
   latitude,
@@ -284,24 +83,27 @@ export const EventPopup = memo(function EventPopup({
       offset={16}
       className={`map-popup${event.isFeatured ? ' map-popup-featured' : ''}`}
     >
-      <SingleEventContent
-        event={event}
-        isInItinerary={isInItinerary}
-        onItineraryToggle={onItineraryToggle}
-        friendsCount={friendsCount}
-        friendsGoing={friendsGoing}
-        checkedInFriends={checkedInFriends}
-        checkInCount={checkInCount}
-        reactions={reactions}
-        onToggleReaction={onToggleReaction}
-        commentCount={commentCount}
-        conference={conference}
-        onCheckIn={onCheckIn}
-        checkInLoading={checkInLoading}
-        liveUrgency={liveUrgency}
-        rsvpStatus={rsvpStatus}
-        onRsvp={onRsvp}
-      />
+      <div className="w-[300px] max-w-[calc(100vw-3rem)]">
+        <EventCard
+          event={event}
+          isInItinerary={isInItinerary}
+          onItineraryToggle={onItineraryToggle}
+          friendsCount={friendsCount}
+          friendsGoing={friendsGoing}
+          checkedInFriends={checkedInFriends}
+          checkInCount={checkInCount}
+          reactions={reactions}
+          onToggleReaction={onToggleReaction}
+          commentCount={commentCount}
+          conference={conference}
+          onCheckIn={onCheckIn}
+          checkInLoading={checkInLoading}
+          liveUrgency={liveUrgency}
+          rsvpStatus={rsvpStatus}
+          onRsvp={onRsvp}
+          compact
+        />
+      </div>
     </Popup>
   );
 });
@@ -408,8 +210,6 @@ export function MultiEventPopup({
                       ))}
                     </div>
                   )}
-                  {eventFriends && <FriendsRow friends={eventFriends} />}
-                  {eventCheckedIn && <CheckedInFriendsRow friends={eventCheckedIn} />}
                 </div>
               </div>
             );
