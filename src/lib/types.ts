@@ -328,3 +328,31 @@ export interface SponsorDataSummary {
   by_confidence: { high: number; medium: number; low: number };
   by_method: Record<string, number>;
 }
+
+/* ------------------------------------------------------------------ */
+/* Event Submissions (admin approval queue)                            */
+/* ------------------------------------------------------------------ */
+
+export interface Submission {
+  id: string;
+  conference: string;
+  status: 'pending' | 'approved' | 'rejected';
+  event_name: string;
+  event_date: string;
+  start_time: string;
+  end_time: string;
+  organizer: string;
+  address: string;
+  cost: string;
+  tags: string;
+  link: string;
+  has_food: boolean;
+  has_bar: boolean;
+  note: string;
+  coords_lat: number | null;
+  coords_lng: number | null;
+  rejection_reason: string | null;
+  reviewed_at: string | null;
+  sheet_row: number | null;
+  created_at: string;
+}

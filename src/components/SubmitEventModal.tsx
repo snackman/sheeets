@@ -547,7 +547,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                 </div>
                 <p className="text-[var(--theme-text-primary)] font-medium">Event submitted!</p>
                 <p className="text-[var(--theme-text-secondary)] text-sm mt-1">
-                  It will appear on the schedule shortly.
+                  Your submission is pending review and will appear once approved.
                 </p>
 
                 {upsellCopy && (

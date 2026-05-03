@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { appendEventRow, getSheetTitle } from '@/lib/google-sheets';
 import { FALLBACK_TABS } from '@/lib/conferences';
 import { getConferenceTabs } from '@/lib/get-conferences';
 import { parseBody, SubmitEventSchema } from '@/lib/api-validation';
-import { normalizeAddress } from '@/lib/utils';
 import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
@@ -29,44 +27,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sheetName = await getSheetTitle(tab.gid);
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
-    const row = await appendEventRow(sheetName, {
-      date: event.date.trim(),
-      startTime: event.startTime.trim(),
-      endTime: event.endTime.trim(),
-      organizer: event.organizer.trim(),
-      name: event.name.trim(),
-      address: event.address.trim(),
-      cost: event.cost.trim(),
-      tags: event.tags.trim(),
-      link: event.link.trim(),
-      food: event.food,
-      bar: event.bar,
-      note: event.note.trim(),
-    });
+    const { error: insertError } = await supabase
+      .from('event_submissions')
+      .insert({
+        conference,
+        event_name: event.name.trim(),
+        event_date: event.date.trim(),
+        start_time: event.startTime.trim(),
+        end_time: event.endTime.trim(),
+        organizer: event.organizer.trim(),
+        address: event.address.trim(),
+        cost: event.cost.trim(),
+        tags: event.tags.trim(),
+        link: event.link.trim(),
+        has_food: event.food,
+        has_bar: event.bar,
+        note: event.note.trim(),
+        coords_lat: coords?.lat ?? null,
+        coords_lng: coords?.lng ?? null,
+      });
 
-    // Upsert geocoded address to Supabase for instant map pin display
-    if (coords && event.address.trim()) {
-      try {
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
-        await supabase.from('geocoded_addresses').upsert({
-          normalized_address: normalizeAddress(event.address.trim()),
-          lat: coords.lat,
-          lng: coords.lng,
-          matched_address: event.address.trim(),
-          conference,
-        });
-      } catch (geoErr) {
-        // Non-fatal: log but don't fail the submission
-        console.error('Failed to save geocoded address:', geoErr);
-      }
+    if (insertError) {
+      console.error('Failed to insert submission:', insertError);
+      return NextResponse.json(
+        { error: `Failed to submit event: ${insertError.message}` },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ success: true, row });
+    return NextResponse.json({ success: true, pending: true });
   } catch (err) {
     console.error('Submit event error:', err);
     const message = err instanceof Error ? err.message : 'Unknown error';
