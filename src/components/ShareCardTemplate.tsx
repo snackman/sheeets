@@ -127,36 +127,8 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
                   const timeDisplay = event.isAllDay ? 'All Day' : event.startTime || '';
 
                   return (
-                    <div key={event.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {flyerDataUrl ? (
-                        <img
-                          src={flyerDataUrl}
-                          alt=""
-                          style={{
-                            width: '100%', aspectRatio: '4/3', objectFit: 'cover',
-                            borderRadius: '8px', display: 'block',
-                          }}
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            width: '100%', aspectRatio: '4/3', backgroundColor: '#1c1917',
-                            borderRadius: '8px', display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', padding: '12px', boxSizing: 'border-box',
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: '14px', fontWeight: 600, color: '#a8a29e',
-                              textAlign: 'center', overflow: 'hidden',
-                              display: '-webkit-box', WebkitLineClamp: 3,
-                              WebkitBoxOrient: 'vertical', lineHeight: 1.3,
-                            }}
-                          >
-                            {event.name}
-                          </div>
-                        </div>
-                      )}
+                    <div key={event.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {/* Text info above the image */}
                       <div style={{ padding: '0 2px' }}>
                         <div
                           style={{
@@ -173,6 +145,24 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
                           </div>
                         )}
                       </div>
+                      {/* Image (square) or fallback */}
+                      {flyerDataUrl ? (
+                        <img
+                          src={flyerDataUrl}
+                          alt=""
+                          style={{
+                            width: '100%', aspectRatio: '1/1', objectFit: 'cover',
+                            borderRadius: '8px', display: 'block',
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: '100%', aspectRatio: '1/1', backgroundColor: '#1c1917',
+                            borderRadius: '8px',
+                          }}
+                        />
+                      )}
                     </div>
                   );
                 })}
