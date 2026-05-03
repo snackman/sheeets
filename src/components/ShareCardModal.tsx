@@ -7,6 +7,7 @@ import type { ETHDenverEvent } from '@/lib/types';
 import { formatDateLabel } from '@/lib/utils';
 import { sortByStartTime } from '@/lib/time-parse';
 import { trackShareCardOpen, trackShareCardCopy, trackShareCardDownload } from '@/lib/analytics';
+import { imageCache } from './OGImage';
 import ShareCardTemplate from './ShareCardTemplate';
 
 interface ShareCardModalProps {
@@ -35,6 +36,7 @@ export function ShareCardModal({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copying' | 'copied'>('idle');
+  const [flyerImages, setFlyerImages] = useState<Map<string, string>>(new Map());
   const cardRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trackedRef = useRef(false);
@@ -93,6 +95,62 @@ export function ShareCardModal({
     }
     setGenerating(true);
     try {
+      // --- Pre-fetch flyer images as data URLs ---
+      const imageMap = new Map<string, string>();
+      const ogUrls = new Map<string, string>();
+      const uncachedItems: { eventId: string; url: string }[] = [];
+
+      for (const event of selectedEvents) {
+        if (!event.link) continue;
+        const cached = imageCache.get(event.link);
+        if (cached) {
+          ogUrls.set(event.id, cached);
+        } else if (cached === undefined) {
+          uncachedItems.push({ eventId: event.id, url: event.link });
+        }
+      }
+
+      if (uncachedItems.length > 0) {
+        try {
+          const res = await fetch('/api/og', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: uncachedItems.slice(0, 20) }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const results = data.results as Record<string, string | null>;
+            for (const [eventId, imgUrl] of Object.entries(results)) {
+              if (imgUrl) ogUrls.set(eventId, imgUrl);
+              const item = uncachedItems.find(i => i.eventId === eventId);
+              if (item) imageCache.set(item.url, imgUrl ?? null);
+            }
+          }
+        } catch (err) {
+          console.error('Batch OG fetch failed:', err);
+        }
+      }
+
+      const proxyFetches = Array.from(ogUrls.entries()).map(async ([eventId, imgUrl]) => {
+        try {
+          const proxyRes = await fetch(`/api/image-proxy?url=${encodeURIComponent(imgUrl)}`);
+          if (!proxyRes.ok) return;
+          const blob = await proxyRes.blob();
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          imageMap.set(eventId, dataUrl);
+        } catch { /* skip failed images */ }
+      });
+
+      await Promise.all(proxyFetches);
+      setFlyerImages(imageMap);
+
+      await new Promise(r => setTimeout(r, 50));
+
       const { toPng } = await import('html-to-image');
       const dataUrl = await toPng(cardRef.current, {
         pixelRatio: 2,
@@ -105,7 +163,7 @@ export function ShareCardModal({
     } finally {
       setGenerating(false);
     }
-  }, [selectedEvents.length]);
+  }, [selectedEvents]);
 
   // Debounced preview regeneration when selection changes
   useEffect(() => {
@@ -373,6 +431,7 @@ export function ShareCardModal({
         conferenceName={cardTitle || conferenceName}
         displayName={displayName}
         avatarUrl={avatarUrl}
+        flyerImages={flyerImages}
       />
     </>,
     document.body
