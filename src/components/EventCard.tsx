@@ -229,10 +229,56 @@ export function EventCard({
       {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} onOpenLightbox={onOpenLightbox} />}
 
       {/* Right: event details */}
-      <div className="flex-1 min-w-0">
-        {/* Top row: Name + Avatars + Star */}
-        <div className="flex items-start gap-2">
-          <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 relative">
+        {/* Action buttons — absolutely positioned to avoid inflating card height */}
+        <div className="absolute top-0 right-0 flex items-start shrink-0 gap-1.5">
+          {/* Friend avatars — inline with star button */}
+          {friendsGoing && friendsGoing.length > 0 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                trackFriendsGoingOpen(event.name);
+                setShowFriendsModal(true);
+              }}
+              className="cursor-pointer hover:opacity-80 transition-opacity"
+              title={formatFriendsText(friendsGoing)}
+            >
+              <FriendAvatarStack friends={friendsGoing} maxShow={2} size="sm" />
+            </button>
+          )}
+          <div className="flex flex-col items-center gap-1">
+            {onItineraryToggle && (
+              <StarButton
+                eventId={event.id}
+                isStarred={isInItinerary}
+                onToggle={onItineraryToggle}
+              />
+            )}
+            {onRsvp && event.link && (
+              <div className="mt-px">
+                <RsvpButton eventLink={event.link} status={rsvpStatus ?? 'idle'} onClick={onRsvp} />
+              </div>
+            )}
+            {event.link && (
+              <button
+                onClick={handleCopyLink}
+                className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
+                aria-label="Copy event link"
+                title="Copy link"
+              >
+                {copied ? (
+                  <Check className="w-4 h-4 text-green-400" />
+                ) : (
+                  <Link className="w-4 h-4" />
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Top row: Name */}
+        <div className="pr-12">
+          <div className="min-w-0">
             <h3 className="font-semibold text-[var(--theme-text-primary)] text-sm sm:text-base leading-tight">
               {event.isFeatured && (
                 <span className="inline-block text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded mr-1.5 align-middle" style={{ color: 'var(--theme-popup-featured-border)', background: 'var(--theme-accent-muted)' }}>Featured</span>
@@ -274,51 +320,6 @@ export function EventCard({
             {event.organizer && (
               <p className="text-[var(--theme-text-muted)] text-xs mt-0.5">{event.organizer}</p>
             )}
-          </div>
-
-          <div className="flex items-start shrink-0 gap-1.5">
-            {/* Friend avatars — inline with star button */}
-            {friendsGoing && friendsGoing.length > 0 && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  trackFriendsGoingOpen(event.name);
-                  setShowFriendsModal(true);
-                }}
-                className="cursor-pointer hover:opacity-80 transition-opacity"
-                title={formatFriendsText(friendsGoing)}
-              >
-                <FriendAvatarStack friends={friendsGoing} maxShow={2} size="sm" />
-              </button>
-            )}
-            <div className="flex flex-col items-center gap-1">
-              {onItineraryToggle && (
-                <StarButton
-                  eventId={event.id}
-                  isStarred={isInItinerary}
-                  onToggle={onItineraryToggle}
-                />
-              )}
-              {onRsvp && event.link && (
-                <div className="mt-px">
-                  <RsvpButton eventLink={event.link} status={rsvpStatus ?? 'idle'} onClick={onRsvp} />
-                </div>
-              )}
-              {event.link && (
-                <button
-                  onClick={handleCopyLink}
-                  className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
-                  aria-label="Copy event link"
-                  title="Copy link"
-                >
-                  {copied ? (
-                    <Check className="w-4 h-4 text-green-400" />
-                  ) : (
-                    <Link className="w-4 h-4" />
-                  )}
-                </button>
-              )}
-            </div>
           </div>
         </div>
 
