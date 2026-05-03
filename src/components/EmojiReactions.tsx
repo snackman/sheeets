@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { ThumbsUp } from 'lucide-react';
 import { REACTION_EMOJIS } from '@/lib/constants';
 import type { ReactionEmoji } from '@/lib/types';
 import { trackReactionToggle, trackReactionPickerOpen } from '@/lib/analytics';
@@ -64,9 +64,9 @@ export function EmojiReactions({
             if (!showPicker) trackReactionPickerOpen();
             setShowPicker(!showPicker);
           }}
-          className={`${pillSize} rounded-full border border-[var(--theme-border-primary)] bg-[var(--theme-bg-tertiary)]/50 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:border-[var(--theme-text-muted)] transition-colors cursor-pointer inline-flex items-center`}
+          className="text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer inline-flex items-center"
         >
-          <Plus className={compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
+          <ThumbsUp className={compact ? 'w-3.5 h-3.5' : 'w-5 h-5 translate-y-[3px]'} />
         </button>
 
         {showPicker && (
@@ -78,8 +78,8 @@ export function EmojiReactions({
                 setShowPicker(false);
               }}
             />
-            <div className="absolute bottom-full left-0 mb-1 z-[41] bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl p-1.5 flex gap-1">
-              {(availableEmojis.length > 0 ? availableEmojis : REACTION_EMOJIS).map((emoji) => (
+            <div className="absolute bottom-full left-0 mb-1 z-[41] bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl p-1.5 grid grid-cols-4 gap-1 min-w-[160px]">
+              {REACTION_EMOJIS.map((emoji) => (
                 <button
                   key={emoji}
                   onClick={(e) => {
