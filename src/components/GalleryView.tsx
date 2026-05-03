@@ -201,22 +201,6 @@ function GalleryCard({
         </div>
       )}
 
-      {/* Live badge — bottom-left above gradient */}
-      {liveUrgency && (
-        <div className="absolute bottom-8 left-2 z-10">
-          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-            liveUrgency === 'red'
-              ? 'bg-red-500/80 text-white'
-              : liveUrgency === 'yellow'
-                ? 'bg-yellow-500/80 text-black'
-                : 'bg-green-500/80 text-white'
-          }`}>
-            <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
-            {liveUrgency === 'red' ? 'Ending Soon' : liveUrgency === 'yellow' ? 'Live' : 'Live'}
-          </span>
-        </div>
-      )}
-
       {/* Bottom overlay bar — gradient + name + time */}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent pt-8 pb-1.5 px-2">
         <div className="flex flex-col">
