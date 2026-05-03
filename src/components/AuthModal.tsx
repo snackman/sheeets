@@ -699,32 +699,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
 
                   <div>
                     <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
-                      <span className="text-[var(--theme-text-muted)] text-sm ml-3 shrink-0 select-none font-bold leading-none" style={{ fontFamily: 'serif' }}>{'\u{1D54F}'}</span>
-                      <input
-                        type="text"
-                        value={xHandle}
-                        onChange={(e) => setXHandle(e.target.value.replace(/^@/, ''))}
-                        placeholder="X handle"
-                        className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
-                      <Send className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
-                      <input
-                        type="text"
-                        value={telegramHandle}
-                        onChange={(e) => setTelegramHandle(e.target.value.replace(/^@/, ''))}
-                        placeholder="Telegram"
-                        className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
                       <Building2 className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
                       <input
                         type="text"
@@ -751,6 +725,32 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
 
                   <div>
                     <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
+                      <span className="text-[var(--theme-text-muted)] text-sm ml-3 shrink-0 select-none font-bold leading-none" style={{ fontFamily: 'serif' }}>{'\u{1D54F}'}</span>
+                      <input
+                        type="text"
+                        value={xHandle}
+                        onChange={(e) => setXHandle(e.target.value.replace(/^@/, ''))}
+                        placeholder="X handle"
+                        className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
+                      <Send className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
+                      <input
+                        type="text"
+                        value={telegramHandle}
+                        onChange={(e) => setTelegramHandle(e.target.value.replace(/^@/, ''))}
+                        placeholder="Telegram"
+                        className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
                       <Linkedin className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
                       <input
                         type="text"
@@ -769,6 +769,17 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                     </div>
                   )}
                 </div>
+
+                {/* Lock Screen Card */}
+                {socialLinks.length > 0 && (
+                  <button
+                    onClick={() => setShowLockScreen(true)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--theme-bg-tertiary)] hover:bg-[var(--theme-bg-card-hover)] text-[var(--theme-text-primary)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                  >
+                    <Smartphone className="w-3.5 h-3.5" />
+                    Lock Screen Card
+                  </button>
+                )}
 
                 {/* Friends */}
                 <div className="border-t border-[var(--theme-border-primary)] pt-4 space-y-3">
@@ -896,17 +907,8 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                   )}
                 </div>
 
-                {/* Lock Screen Card + Sign Out */}
+                {/* Sign Out */}
                 <div className="border-t border-[var(--theme-border-primary)] pt-4 space-y-2">
-                  {socialLinks.length > 0 && (
-                    <button
-                      onClick={() => setShowLockScreen(true)}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--theme-bg-tertiary)] hover:bg-[var(--theme-bg-card-hover)] text-[var(--theme-text-primary)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
-                    >
-                      <Smartphone className="w-3.5 h-3.5" />
-                      Lock Screen Card
-                    </button>
-                  )}
                   <button
                     onClick={() => {
                       trackSignOut();
