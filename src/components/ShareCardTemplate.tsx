@@ -10,12 +10,13 @@ interface ShareCardTemplateProps {
   conferenceName: string;
   displayName: string | null;
   avatarUrl?: string | null;
+  flyerImages?: Map<string, string>;
 }
 
 const MAX_EVENTS = 15;
 
 const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
-  function ShareCardTemplate({ events, conferenceName, displayName, avatarUrl }, ref) {
+  function ShareCardTemplate({ events, conferenceName, displayName, avatarUrl, flyerImages }, ref) {
     const dateGroups = useMemo(() => {
       const groupMap = new Map<string, ETHDenverEvent[]>();
       for (const event of events) {
@@ -32,7 +33,7 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
         }));
     }, [events]);
 
-    // Truncate to MAX_EVENTS using reduce to avoid mutable variables
+    // Truncate to MAX_EVENTS
     const { truncatedGroups, truncated, remainingCount } = useMemo(() => {
       const remaining = events.length > MAX_EVENTS ? events.length - MAX_EVENTS : 0;
 
@@ -142,7 +143,7 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
           }}
         />
 
-        {/* Events block */}
+        {/* Events block - gallery grid per day */}
         <div>
           {truncatedGroups.map((group) => (
             <div key={group.dateISO} style={{ marginBottom: '28px' }}>
@@ -162,65 +163,97 @@ const ShareCardTemplate = forwardRef<HTMLDivElement, ShareCardTemplateProps>(
                 {group.label}
               </div>
 
-              {/* Event rows */}
-              {group.events.map((event) => {
-                const timeDisplay = event.isAllDay
-                  ? 'All Day'
-                  : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
+              {/* Gallery grid: 4 columns */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: '12px',
+                }}
+              >
+                {group.events.map((event) => {
+                  const flyerDataUrl = flyerImages?.get(event.id);
+                  const timeDisplay = event.isAllDay
+                    ? 'All Day'
+                    : event.startTime || '';
 
-                return (
-                  <div
-                    key={event.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'baseline',
-                      padding: '10px 0',
-                      gap: '16px',
-                    }}
-                  >
-                    {/* Time */}
-                    <div
-                      style={{
-                        fontSize: '18px',
-                        color: '#a8a29e',
-                        minWidth: '140px',
-                        flexShrink: 0,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {timeDisplay}
-                    </div>
-
-                    {/* Event details */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontSize: '22px',
-                          fontWeight: 600,
-                          color: '#fafaf9',
-                          lineHeight: 1.3,
-                        }}
-                      >
-                        {event.name}
-                      </div>
-                      {event.address && (
+                  return (
+                    <div key={event.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {flyerDataUrl ? (
+                        <img
+                          src={flyerDataUrl}
+                          alt=""
+                          style={{
+                            width: '100%',
+                            aspectRatio: '4/3',
+                            objectFit: 'cover',
+                            borderRadius: '8px',
+                            display: 'block',
+                          }}
+                        />
+                      ) : (
+                        /* No-image fallback: dark card with event name */
                         <div
                           style={{
-                            fontSize: '16px',
-                            color: '#78716c',
-                            marginTop: '3px',
+                            width: '100%',
+                            aspectRatio: '4/3',
+                            backgroundColor: '#1c1917',
+                            borderRadius: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '12px',
+                            boxSizing: 'border-box',
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: '14px',
+                              fontWeight: 600,
+                              color: '#a8a29e',
+                              textAlign: 'center',
+                              overflow: 'hidden',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: 'vertical',
+                              lineHeight: 1.3,
+                            }}
+                          >
+                            {event.name}
+                          </div>
+                        </div>
+                      )}
+                      {/* Event name + time below */}
+                      <div style={{ padding: '0 2px' }}>
+                        <div
+                          style={{
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            color: '#fafaf9',
+                            lineHeight: 1.3,
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {event.address}
+                          {event.name}
                         </div>
-                      )}
+                        {timeDisplay && (
+                          <div
+                            style={{
+                              fontSize: '11px',
+                              color: '#78716c',
+                              marginTop: '1px',
+                            }}
+                          >
+                            {timeDisplay}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           ))}
 
