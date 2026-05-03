@@ -9,6 +9,9 @@ interface RsvpOverlayProps {
   lumaUrl: string;
   userName?: string | null;
   userEmail?: string | null;
+  userXHandle?: string | null;
+  userTelegram?: string | null;
+  userCompany?: string | null;
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -68,6 +71,9 @@ export function RsvpOverlay({
   lumaUrl,
   userName,
   userEmail,
+  userXHandle,
+  userTelegram,
+  userCompany,
   onConfirm,
   onClose,
 }: RsvpOverlayProps) {
@@ -92,7 +98,7 @@ export function RsvpOverlay({
 
   if (!slug) return null;
 
-  const hasCopyFields = userName || userEmail;
+  const hasCopyFields = userName || userEmail || userXHandle || userTelegram || userCompany;
   const embedUrl = `https://lu.ma/embed/event/${slug}/simple`;
 
   return createPortal(
@@ -140,9 +146,12 @@ export function RsvpOverlay({
 
           {/* Sticky copy-fields bar */}
           {hasCopyFields && (
-            <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[var(--theme-border-primary)] bg-[var(--theme-bg-tertiary)] shrink-0">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1 px-4 py-2.5 border-b border-[var(--theme-border-primary)] bg-[var(--theme-bg-tertiary)] shrink-0">
               {userName && <CopyField label="Name" value={userName} />}
               {userEmail && <CopyField label="Email" value={userEmail} />}
+              {userXHandle && <CopyField label="X" value={`@${userXHandle}`} />}
+              {userTelegram && <CopyField label="Telegram" value={`@${userTelegram}`} />}
+              {userCompany && <CopyField label="Company" value={userCompany} />}
             </div>
           )}
 

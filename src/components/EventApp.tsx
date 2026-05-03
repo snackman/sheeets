@@ -632,6 +632,9 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           lumaUrl={activeRsvp.lumaUrl}
           userName={profile?.rsvp_name ?? profile?.display_name}
           userEmail={profile?.email}
+          userXHandle={profile?.x_handle}
+          userTelegram={profile?.telegram_handle}
+          userCompany={profile?.company}
           onConfirm={handleRsvpConfirm}
           onClose={closeRsvp}
         />

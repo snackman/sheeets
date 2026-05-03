@@ -396,6 +396,8 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   const [displayName, setDisplayName] = useState('');
   const [xHandle, setXHandle] = useState('');
   const [rsvpName, setRsvpName] = useState('');
+  const [telegramHandle, setTelegramHandle] = useState('');
+  const [company, setCompany] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -432,6 +434,8 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
       setDisplayName(profile.display_name ?? '');
       setXHandle(profile.x_handle ?? '');
       setRsvpName(profile.rsvp_name ?? '');
+      setTelegramHandle(profile.telegram_handle ?? '');
+      setCompany(profile.company ?? '');
     }
   }, [profile]);
 
@@ -452,9 +456,15 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   // Auto-save profile on change (debounced)
   useEffect(() => {
     if (!profile) return;
-    const current = { displayName, xHandle, rsvpName };
-    const original = { displayName: profile.display_name ?? '', xHandle: profile.x_handle ?? '', rsvpName: profile.rsvp_name ?? '' };
-    if (current.displayName === original.displayName && current.xHandle === original.xHandle && current.rsvpName === original.rsvpName) return;
+    const current = { displayName, xHandle, rsvpName, telegramHandle, company };
+    const original = {
+      displayName: profile.display_name ?? '',
+      xHandle: profile.x_handle ?? '',
+      rsvpName: profile.rsvp_name ?? '',
+      telegramHandle: profile.telegram_handle ?? '',
+      company: profile.company ?? '',
+    };
+    if (current.displayName === original.displayName && current.xHandle === original.xHandle && current.rsvpName === original.rsvpName && current.telegramHandle === original.telegramHandle && current.company === original.company) return;
 
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
     setSaveStatus('idle');
@@ -464,6 +474,8 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
         display_name: displayName.trim() || null,
         x_handle: xHandle.trim() || null,
         rsvp_name: rsvpName.trim() || null,
+        telegram_handle: telegramHandle.trim() || null,
+        company: company.trim() || null,
       });
       setSaving(false);
       setSaveStatus('saved');
@@ -473,7 +485,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
     return () => {
       if (saveTimeout.current) clearTimeout(saveTimeout.current);
     };
-  }, [displayName, xHandle, rsvpName, profile, updateProfile]);
+  }, [displayName, xHandle, rsvpName, telegramHandle, company, profile, updateProfile]);
 
   async function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -681,6 +693,29 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                         className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
+                      <span className="text-[var(--theme-text-muted)] text-sm pl-3 select-none">@</span>
+                      <input
+                        type="text"
+                        value={telegramHandle}
+                        onChange={(e) => setTelegramHandle(e.target.value.replace(/^@/, ''))}
+                        placeholder="Telegram"
+                        className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <input
+                      type="text"
+                      value={company}
+                      onChange={(e) => setCompany(e.target.value)}
+                      placeholder="Company / Organization"
+                      className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
+                    />
                   </div>
 
                   {saveStatus === 'saved' && (
