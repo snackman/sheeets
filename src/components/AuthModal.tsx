@@ -434,10 +434,50 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
 
   // Lock screen card state
   const [showLockScreen, setShowLockScreen] = useState(false);
+  const [friendCode, setFriendCode] = useState<string | null>(null);
   const socialLinks = useMemo(
     () => getSocialLinks(profile ?? {}),
     [profile]
   );
+
+  // Ensure friend code exists (create if needed) for lock screen card
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data: existing } = await supabase
+        .from('friend_codes')
+        .select('code')
+        .eq('user_id', user.id)
+        .single();
+
+      if (existing?.code) {
+        setFriendCode(existing.code);
+        return;
+      }
+
+      // Generate a new code (8 char alphanumeric)
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      const arr = new Uint8Array(8);
+      crypto.getRandomValues(arr);
+      const code = Array.from(arr, (b) => chars[b % chars.length]).join('');
+
+      const { error } = await supabase
+        .from('friend_codes')
+        .insert({ user_id: user.id, code });
+
+      if (error) {
+        // Race condition — try fetching again
+        const { data: retry } = await supabase
+          .from('friend_codes')
+          .select('code')
+          .eq('user_id', user.id)
+          .single();
+        if (retry?.code) setFriendCode(retry.code);
+      } else {
+        setFriendCode(code);
+      }
+    })();
+  }, [user]);
 
   // Sync form state when profile loads
   useEffect(() => {
@@ -771,7 +811,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                 </div>
 
                 {/* Lock Screen Card */}
-                {socialLinks.length > 0 && (
+                {(socialLinks.length > 0 || friendCode) && (
                   <button
                     onClick={() => setShowLockScreen(true)}
                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--theme-bg-tertiary)] hover:bg-[var(--theme-bg-card-hover)] text-[var(--theme-text-primary)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
@@ -984,6 +1024,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
         jobTitle={profile?.job_title ?? null}
         avatarUrl={profile?.avatar_url ?? null}
         socialLinks={socialLinks}
+        friendCode={friendCode}
       />
     </>
   );
