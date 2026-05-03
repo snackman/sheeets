@@ -21,6 +21,7 @@ import { useDragReorder } from '@/hooks/useDragReorder';
 import { useProfile } from '@/hooks/useProfile';
 import { ShareCardModal } from '@/components/ShareCardModal';
 import { useConferenceTabs } from '@/hooks/useConferenceTabs';
+import { GoogleCalendarButton } from '@/components/GoogleCalendarButton';
 import { getTabConfig } from '@/lib/conferences';
 import { TableView } from '@/components/TableView';
 import { useFriends } from '@/hooks/useFriends';
@@ -158,6 +159,16 @@ function ItineraryContent() {
         events: groupEvents,
       }));
   }, [itineraryEvents]);
+
+  const conferenceTimezone = useMemo(
+    () => getTabConfig(activeConference, conferenceTabs).timezone,
+    [activeConference, conferenceTabs]
+  );
+
+  const exportableEvents = useMemo(
+    () => itineraryEvents.filter((e) => !hiddenEvents.has(e.id)),
+    [itineraryEvents, hiddenEvents]
+  );
 
   // Flat ordered list of all event IDs across date groups (for drag reorder)
   const flatEventIds = useMemo(
@@ -298,6 +309,10 @@ function ItineraryContent() {
                 >
                   <Share2 className="w-4 h-4" />
                 </button>
+                <GoogleCalendarButton
+                  events={exportableEvents}
+                  timezone={conferenceTimezone}
+                />
               </>
             )}
           </div>

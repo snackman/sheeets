@@ -172,6 +172,12 @@ export const trackAdClick = (placement: string, url: string) =>
 export const trackAdImpression = (placement: string) =>
   track('ad_impression', { placement });
 
+// Google Calendar Export
+export const trackGoogleCalendarExport = (inserted: number, failed: number) =>
+  track('google_calendar_export', { inserted, failed });
+export const trackGoogleCalendarError = (error: string) =>
+  track('google_calendar_error', { error });
+
 // A/B Testing (GA4 dual-tracking -- events also tracked in Supabase via /api/ab/track)
 export const trackABImpression = (testId: string, variantId: string) =>
   track('ab_impression', { test_id: testId, variant_id: variantId });
