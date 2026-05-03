@@ -228,7 +228,7 @@ export function EventCard({
       {/* Left column: cover image + action buttons */}
       <div className="flex flex-col items-center shrink-0">
         {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} onOpenLightbox={onOpenLightbox} />}
-        <div className="flex flex-col items-center gap-1 mt-1.5">
+        <div className="flex items-center gap-1.5 mt-1.5">
           {friendsGoing && friendsGoing.length > 0 && (
             <button
               onClick={(e) => {
