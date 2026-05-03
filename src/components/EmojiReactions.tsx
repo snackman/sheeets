@@ -66,7 +66,7 @@ export function EmojiReactions({
           }}
           className="text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer inline-flex items-center"
         >
-          <ThumbsUp className={compact ? 'w-3.5 h-3.5' : 'w-5 h-5 translate-y-[1px]'} />
+          <ThumbsUp className={compact ? 'w-3.5 h-3.5' : 'w-5 h-5 translate-y-[2px]'} />
         </button>
 
         {showPicker && (
