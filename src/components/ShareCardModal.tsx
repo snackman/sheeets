@@ -211,7 +211,7 @@ export function ShareCardModal({
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" onClick={onClose}>
         <div
           className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}

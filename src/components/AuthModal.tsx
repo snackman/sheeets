@@ -124,7 +124,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   return (
     <>
       <div className="fixed inset-0 z-[80] bg-black/50" onClick={handleClose} />
-      <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[90] flex items-center justify-center p-4" onClick={handleClose}>
         <div className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)]">
