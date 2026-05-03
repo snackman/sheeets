@@ -544,7 +544,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           />
         </main>
       ) : viewMode === 'table' ? (
-        <main className="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
+        <main className="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden bg-[var(--theme-bg-list)]">
           <TableView
             events={filteredEvents}
             totalCount={conferenceEventCount}
