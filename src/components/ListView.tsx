@@ -422,13 +422,17 @@ export function ListView({
       </div>
 
       {/* Flyer lightbox with prev/next navigation */}
-      {lightboxEventIndex !== null && lightboxImageUrl && (
+      {lightboxEventIndex !== null && lightboxImageUrl && lightboxEvent?.kind === 'event' && (
         <FlyerLightbox
           imageUrl={lightboxImageUrl}
           rsvpUrl={lightboxRsvpUrl}
           onClose={() => setLightboxEventIndex(null)}
           onPrev={canPrev ? handleLightboxPrev : undefined}
           onNext={canNext ? handleLightboxNext : undefined}
+          eventId={lightboxEvent.event.id}
+          isInItinerary={itinerary?.has(lightboxEvent.event.id)}
+          onItineraryToggle={onItineraryToggle}
+          friendsGoing={friendsByEvent?.get(lightboxEvent.event.id)}
         />
       )}
     </div>

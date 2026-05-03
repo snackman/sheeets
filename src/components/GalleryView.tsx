@@ -358,13 +358,17 @@ export function GalleryView({
       })}
 
       {/* Flyer lightbox with prev/next navigation */}
-      {lightboxEventIndex !== null && lightboxImageUrl && (
+      {lightboxEventIndex !== null && lightboxImageUrl && lightboxEvent && (
         <FlyerLightbox
           imageUrl={lightboxImageUrl}
           rsvpUrl={lightboxRsvpUrl}
           onClose={() => setLightboxEventIndex(null)}
           onPrev={canPrev ? handleLightboxPrev : undefined}
           onNext={canNext ? handleLightboxNext : undefined}
+          eventId={lightboxEvent.id}
+          isInItinerary={itinerary?.has(lightboxEvent.id)}
+          onItineraryToggle={onItineraryToggle}
+          friendsGoing={friendsByEvent?.get(lightboxEvent.id)}
         />
       )}
     </div>
