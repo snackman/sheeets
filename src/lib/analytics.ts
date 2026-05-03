@@ -186,12 +186,6 @@ export const trackABClick = (testId: string, variantId: string, metadata?: strin
 export const trackABConversion = (testId: string, variantId: string, metadata?: string) =>
   track('ab_conversion', { test_id: testId, variant_id: variantId, ...(metadata ? { metadata } : {}) });
 
-// Google Calendar
-export const trackGoogleCalendarExport = (inserted: number, failed: number) =>
-  track('google_calendar_export', { inserted, failed });
-export const trackGoogleCalendarError = (error: string) =>
-  track('google_calendar_error', { error });
-
 // RSVP
 export const trackRsvpOpen = (eventId: string, eventName: string) =>
   track('rsvp_open', { event_id: eventId, event_name: eventName });
