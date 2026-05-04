@@ -255,17 +255,26 @@ export function LockScreenModal({
       });
       if (!blob) return;
       trackLockScreenDownload();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
       const safeName = (displayName || 'card').toLowerCase().replace(/\s+/g, '-');
-      a.download = `lock-screen-${safeName}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const file = new File([blob], `lock-screen-${safeName}.png`, { type: 'image/png' });
+
+      // On mobile, use native share sheet so iOS saves to Camera Roll
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file] });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
     } catch (err) {
-      console.error('Download failed:', err);
+      // User cancelled share sheet — not an error
+      if (err instanceof Error && err.name === 'AbortError') return;
+      console.error('Save failed:', err);
     }
   }, [displayName]);
 
@@ -457,7 +466,7 @@ export function LockScreenModal({
               className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--theme-bg-tertiary)] hover:bg-[var(--theme-bg-card-hover)] text-[var(--theme-text-primary)] rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Download className="w-4 h-4" />
-              Download PNG
+              Save Image
             </button>
           </div>
         </div>
