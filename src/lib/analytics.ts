@@ -191,6 +191,10 @@ export const trackLockScreenOpen = () => track('lock_screen_open');
 export const trackLockScreenDownload = () => track('lock_screen_download');
 export const trackLockScreenCopy = () => track('lock_screen_copy');
 
+// Friend Code Redemption
+export const trackFriendCodeRedeemed = (code: string) =>
+  track('friend_code_redeemed', { code });
+
 // RSVP
 export const trackRsvpOpen = (eventId: string, eventName: string) =>
   track('rsvp_open', { event_id: eventId, event_name: eventName });

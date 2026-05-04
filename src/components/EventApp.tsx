@@ -17,6 +17,7 @@ import { useAdminConfig } from '@/hooks/useAdminConfig';
 import { useConferenceTabs } from '@/hooks/useConferenceTabs';
 import { useABTest } from '@/hooks/useABTest';
 import { useEventCheckIn } from '@/hooks/useEventCheckIn';
+import { useFriendCode } from '@/hooks/useFriendCode';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeId, DEFAULT_THEME, THEME_OPTIONS } from '@/lib/themes';
 import type { ABTest, ETHDenverEvent } from '@/lib/types';
@@ -358,6 +359,12 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
   const [showSubmitEvent, setShowSubmitEvent] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
 
+  // Friend code (?fc=) URL handler
+  const { toast: friendCodeToast } = useFriendCode({
+    openAuth: () => setShowSignIn(true),
+    refreshFriends,
+  });
+
   const handleRsvp = useCallback((eventId: string, lumaUrl: string, eventName: string) => {
     if (!authUser) {
       trackAuthPrompt('rsvp');
@@ -672,6 +679,15 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           onConfirm={handleRsvpConfirm}
           onClose={closeRsvp}
         />
+      )}
+      {friendCodeToast && (
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-opacity duration-300 ${
+          friendCodeToast.type === 'success'
+            ? 'bg-green-600 text-white'
+            : 'bg-red-600 text-white'
+        }`}>
+          {friendCodeToast.message}
+        </div>
       )}
     </div>
   );
