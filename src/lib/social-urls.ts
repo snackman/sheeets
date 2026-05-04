@@ -21,11 +21,12 @@ export function getSocialLinks(profile: {
   }
 
   if (profile.telegram_handle) {
-    const handle = profile.telegram_handle.replace(/^@/, '');
+    const raw = profile.telegram_handle.replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '');
+    const isGroup = raw.startsWith('+');
     links.push({
       platform: 'telegram',
-      label: `@${handle}`,
-      url: `https://t.me/${handle}`,
+      label: isGroup ? raw : `@${raw}`,
+      url: `https://t.me/${raw}`,
     });
   }
 
