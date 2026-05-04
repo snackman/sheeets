@@ -34,7 +34,7 @@ export function StarButton({
         containerSize,
         isStarred
           ? 'text-[var(--theme-accent)] border-[var(--theme-accent)] bg-[var(--theme-accent-muted)]'
-          : 'text-[var(--theme-text-secondary)] border-[var(--theme-border-primary)] hover:text-transparent hover:bg-white hover:border-[var(--theme-text-secondary)]',
+          : 'text-[var(--theme-text-secondary)] border-[var(--theme-border-primary)] hover:text-[var(--theme-text-primary)] hover:border-[var(--theme-text-secondary)]',
       )}
       aria-label={isStarred ? 'Remove from plan' : 'Add to plan'}
       title={
