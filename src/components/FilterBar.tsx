@@ -511,7 +511,7 @@ export const FilterBar = memo(function FilterBar({
                       ) : (
                         <>
                           <Link2 className="w-3.5 h-3.5" />
-                          Copy invite link
+                          Copy friend link
                         </>
                       )}
                     </button>
