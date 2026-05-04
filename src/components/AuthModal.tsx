@@ -1023,6 +1023,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
         company={profile?.company ?? null}
         jobTitle={profile?.job_title ?? null}
         avatarUrl={profile?.avatar_url ?? null}
+        xHandle={profile?.x_handle ?? null}
         socialLinks={socialLinks}
         friendCode={friendCode}
       />
