@@ -82,6 +82,12 @@
   --theme-filter-badge-border: var(--theme-text-secondary);
   --theme-table-header-bg: var(--theme-bg-secondary);
   --theme-table-header-text: var(--theme-text-secondary);
+  --theme-landing-card-bg: var(--theme-bg-card);
+  --theme-landing-card-text: var(--theme-text-primary);
+  --theme-landing-card-secondary: var(--theme-text-secondary);
+  --theme-landing-card-muted: var(--theme-text-muted);
+  --theme-landing-card-accent: var(--theme-accent);
+  --theme-landing-card-border: var(--theme-border-primary);
 
   --theme-scrollbar-track: #0c0a09;
   --theme-scrollbar-thumb: #292524;
@@ -307,6 +313,13 @@
   --theme-popup-border: #d4d4d4;
   --theme-popup-featured-border: rgba(28, 69, 134, 0.5);
   --theme-popup-shadow: rgba(0, 0, 0, 0.1);
+
+  --theme-landing-card-bg: #1c4586;
+  --theme-landing-card-text: #ffffff;
+  --theme-landing-card-secondary: rgba(255, 255, 255, 0.7);
+  --theme-landing-card-muted: rgba(255, 255, 255, 0.5);
+  --theme-landing-card-accent: #ffffff;
+  --theme-landing-card-border: rgba(255, 255, 255, 0.15);
 
   --tag-green: #34d399;
   --tag-blue: #93c5fd;
