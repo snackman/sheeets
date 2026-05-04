@@ -183,12 +183,14 @@ function GalleryCard({
               ))}
             </div>
           )}
-          <StarButton
-            eventId={event.id}
-            isStarred={isInItinerary}
-            onToggle={onItineraryToggle}
-            size="sm"
-          />
+          <div style={{ '--theme-text-secondary': '#ffffff', '--theme-border-primary': 'rgba(255,255,255,0.5)' } as React.CSSProperties}>
+            <StarButton
+              eventId={event.id}
+              isStarred={isInItinerary}
+              onToggle={onItineraryToggle}
+              size="sm"
+            />
+          </div>
         </div>
       )}
 
