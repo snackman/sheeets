@@ -328,7 +328,7 @@
 
   --theme-header-badge-bg: transparent;
   --theme-header-badge-text: #ffffff;
-  --theme-header-badge-border: transparent;
+  --theme-header-badge-border: #ffffff;
 }
 
 /* Light-blue: alternating table rows */
