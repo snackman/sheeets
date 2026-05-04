@@ -495,7 +495,7 @@ export const FilterBar = memo(function FilterBar({
                         'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer',
                         friendLinkCopied
                           ? 'bg-green-500/20 text-green-400'
-                          : 'bg-orange-500 hover:bg-orange-600 text-white'
+                          : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-filter-active)] border border-[var(--theme-filter-control-border)]'
                       )}
                     >
                       {friendLinkCopied ? (
