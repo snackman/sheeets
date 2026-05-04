@@ -19,169 +19,80 @@ const TOKEN_PATH = join(homedir(), '.claude', 'ga4-tokens.json');
 // Audiences API is only available in v1alpha
 const ADMIN_BASE = `https://analyticsadmin.googleapis.com/v1alpha/properties/${PROPERTY_ID}`;
 
+// ---------- Helpers ----------
+
+// GA4 audience filters require: andGroup -> [orGroup -> [dimensionOrMetricFilter]]
+function eventFilter(eventName) {
+  return {
+    orGroup: {
+      filterExpressions: [{
+        dimensionOrMetricFilter: {
+          fieldName: 'eventName',
+          stringFilter: { matchType: 'EXACT', value: eventName },
+        },
+      }],
+    },
+  };
+}
+
+function simpleClause(clauseType, ...eventNames) {
+  return {
+    clauseType,
+    simpleFilter: {
+      scope: 'AUDIENCE_FILTER_SCOPE_ACROSS_ALL_SESSIONS',
+      filterExpression: eventNames.length === 1
+        ? { andGroup: { filterExpressions: [eventFilter(eventNames[0])] } }
+        : {
+            // OR across multiple events
+            andGroup: {
+              filterExpressions: [{
+                orGroup: {
+                  filterExpressions: eventNames.map(name => ({
+                    dimensionOrMetricFilter: {
+                      fieldName: 'eventName',
+                      stringFilter: { matchType: 'EXACT', value: name },
+                    },
+                  })),
+                },
+              }],
+            },
+          },
+    },
+  };
+}
+
 // ---------- Audience definitions ----------
 
 const AUDIENCES = [
   {
     displayName: 'Power Users',
-    description: 'Users who added 3+ events to itinerary or checked in',
+    description: 'Users who added to itinerary or checked in',
     membershipDurationDays: 30,
-    filterClauses: [{
-      clauseType: 'INCLUDE',
-      simpleFilter: {
-        scope: 'AUDIENCE_FILTER_SCOPE_ACROSS_ALL_SESSIONS',
-        filterExpression: {
-          orGroup: {
-            filterExpressions: [
-              {
-                andGroup: {
-                  filterExpressions: [{
-                    dimensionOrMetricFilter: {
-                      fieldName: 'eventName',
-                      stringFilter: {
-                        matchType: 'EXACT',
-                        value: 'itinerary',
-                      },
-                    },
-                  }],
-                },
-              },
-              {
-                andGroup: {
-                  filterExpressions: [{
-                    dimensionOrMetricFilter: {
-                      fieldName: 'eventName',
-                      stringFilter: {
-                        matchType: 'EXACT',
-                        value: 'check_in',
-                      },
-                    },
-                  }],
-                },
-              },
-            ],
-          },
-        },
-      },
-    }],
-    eventTrigger: {
-      eventName: 'itinerary',
-      logCondition: 'LOG_CONDITION_UNSPECIFIED',
-    },
+    filterClauses: [simpleClause('INCLUDE', 'itinerary', 'check_in')],
   },
   {
     displayName: 'Onboarding Dropoffs',
     description: 'Users who started onboarding but did not complete it',
     membershipDurationDays: 30,
     filterClauses: [
-      {
-        clauseType: 'INCLUDE',
-        simpleFilter: {
-          scope: 'AUDIENCE_FILTER_SCOPE_ACROSS_ALL_SESSIONS',
-          filterExpression: {
-            andGroup: {
-              filterExpressions: [{
-                dimensionOrMetricFilter: {
-                  fieldName: 'eventName',
-                  stringFilter: {
-                    matchType: 'EXACT',
-                    value: 'onboarding_start',
-                  },
-                },
-              }],
-            },
-          },
-        },
-      },
-      {
-        clauseType: 'EXCLUDE',
-        simpleFilter: {
-          scope: 'AUDIENCE_FILTER_SCOPE_ACROSS_ALL_SESSIONS',
-          filterExpression: {
-            andGroup: {
-              filterExpressions: [{
-                dimensionOrMetricFilter: {
-                  fieldName: 'eventName',
-                  stringFilter: {
-                    matchType: 'EXACT',
-                    value: 'onboarding_complete',
-                  },
-                },
-              }],
-            },
-          },
-        },
-      },
+      simpleClause('INCLUDE', 'onboarding_start'),
+      simpleClause('EXCLUDE', 'onboarding_complete'),
     ],
   },
   {
     displayName: 'Engaged Unauthenticated',
-    description: 'Users who clicked 3+ events but never authenticated',
+    description: 'Users who clicked events but never authenticated',
     membershipDurationDays: 30,
     filterClauses: [
-      {
-        clauseType: 'INCLUDE',
-        simpleFilter: {
-          scope: 'AUDIENCE_FILTER_SCOPE_ACROSS_ALL_SESSIONS',
-          filterExpression: {
-            andGroup: {
-              filterExpressions: [{
-                dimensionOrMetricFilter: {
-                  fieldName: 'eventName',
-                  stringFilter: {
-                    matchType: 'EXACT',
-                    value: 'event_click',
-                  },
-                },
-              }],
-            },
-          },
-        },
-      },
-      {
-        clauseType: 'EXCLUDE',
-        simpleFilter: {
-          scope: 'AUDIENCE_FILTER_SCOPE_ACROSS_ALL_SESSIONS',
-          filterExpression: {
-            andGroup: {
-              filterExpressions: [{
-                dimensionOrMetricFilter: {
-                  fieldName: 'eventName',
-                  stringFilter: {
-                    matchType: 'EXACT',
-                    value: 'auth_success',
-                  },
-                },
-              }],
-            },
-          },
-        },
-      },
+      simpleClause('INCLUDE', 'event_click'),
+      simpleClause('EXCLUDE', 'auth_success'),
     ],
   },
   {
     displayName: 'Active Planners',
     description: 'Users who added to itinerary in last 7 days',
     membershipDurationDays: 7,
-    filterClauses: [{
-      clauseType: 'INCLUDE',
-      simpleFilter: {
-        scope: 'AUDIENCE_FILTER_SCOPE_ACROSS_ALL_SESSIONS',
-        filterExpression: {
-          andGroup: {
-            filterExpressions: [{
-              dimensionOrMetricFilter: {
-                fieldName: 'eventName',
-                stringFilter: {
-                  matchType: 'EXACT',
-                  value: 'itinerary',
-                },
-              },
-            }],
-          },
-        },
-      },
-    }],
+    filterClauses: [simpleClause('INCLUDE', 'itinerary')],
   },
 ];
 

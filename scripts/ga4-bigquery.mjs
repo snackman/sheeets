@@ -24,7 +24,8 @@ const TOKEN_PATH = join(homedir(), '.claude', 'ga4-tokens.json');
 const ADMIN_BASE = `https://analyticsadmin.googleapis.com/v1alpha/properties/${PROPERTY_ID}`;
 
 const BIGQUERY_LINK = {
-  project: 'planwtf',
+  project: 'projects/planwtf',
+  datasetLocation: 'us',
   dailyExportEnabled: true,
   streamingExportEnabled: false,
   freshDailyExportEnabled: true,
