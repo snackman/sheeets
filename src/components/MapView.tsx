@@ -88,7 +88,7 @@ export function MapView({
   const { user } = useAuth();
   const { theme } = useTheme();
   const mapStyle = (theme === 'paper' || theme === 'light' || theme === 'light-blue')
-    ? 'mapbox://styles/mapbox/light-v11'
+    ? 'mapbox://styles/mapbox/streets-v12'
     : 'mapbox://styles/mapbox/dark-v11';
   const mapRef = useRef<MapRef>(null);
   const hasFittedRef = useRef(false);
