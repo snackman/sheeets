@@ -11,6 +11,10 @@ const TAG_ALIASES: Record<string, string> = {
   'Fitness/Wellness': 'Wellness',
   'Devs/Builders': 'Devs',
   'VCs/Angels': 'VCs',
+  'Jobs/Hiring': 'Jobs',
+  'Brunch': 'Food',
+  'Dinner': 'Food',
+  'Bar/Pub': 'Drinks',
 };
 
 function parseTags(raw: string): string[] {

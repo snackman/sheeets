@@ -87,7 +87,7 @@ export interface TagGroup {
 export const TAG_GROUPS: TagGroup[] = [
   { label: 'Topics', tags: ['BTC', 'ETH', 'SOL', 'AI', 'DeFi', 'DAOs', 'NFTs', 'DePIN', 'RWA', 'Memecoins', 'Gaming'] },
   { label: 'Vibe', tags: ['Party', 'Networking', 'Conference', 'Panel/Talk', 'Hackathon', 'Workshop', 'Wellness', 'Art', 'Performance'] },
-  { label: 'Audience', tags: ['Devs', 'VCs', 'Founders', 'Jobs/Hiring'] },
+  { label: 'Audience', tags: ['Devs', 'VCs', 'Founders', 'Jobs'] },
   { label: 'Perks', tags: ['Food', 'Drinks'] },
 ];
 
@@ -98,4 +98,6 @@ export const GROUPED_TAGS = new Set(TAG_GROUPS.flatMap(g => g.tags));
 export const TAG_ALIASES: Record<string, string> = {
   'Dinner': 'Food',
   'Brunch': 'Food',
+  'Bar/Pub': 'Drinks',
+  'Jobs/Hiring': 'Jobs',
 };
