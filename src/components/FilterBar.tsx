@@ -233,7 +233,7 @@ export const FilterBar = memo(function FilterBar({
                 'text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1',
                 expanded
                   ? 'bg-[var(--theme-filter-active)] text-[var(--theme-bg-filter)] border border-[var(--theme-filter-active)]'
-                  : 'bg-[var(--theme-text-secondary)] text-[var(--theme-bg-primary)]'
+                  : 'bg-[var(--theme-filter-badge-bg)] text-[var(--theme-filter-badge-text)] border border-[var(--theme-filter-badge-border)]'
               )}>
                 {activeFilterCount}
               </span>
