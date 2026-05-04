@@ -43,6 +43,9 @@ notes/
 # one-off scripts
 scripts/migrate-itinerary-ids.ts
 
+# generated reports
+ga4-dashboard.html
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
