@@ -79,7 +79,7 @@ export default function NativeAdCard({ ad, conference, onImpression, onClick }: 
       className="block group"
       onClick={handleClick}
     >
-      <div className="bg-[var(--theme-ad-bg)] border border-[var(--theme-border-primary)] rounded-lg p-4 transition-colors hover:border-[var(--theme-accent)]">
+      <div className="bg-[var(--theme-bg-card)] border border-[var(--theme-border-primary)] rounded-lg p-4 transition-colors hover:border-[var(--theme-accent)]">
         <div className="flex gap-4">
           {ad.imageUrl && (
             <div className="w-[90px] h-[90px] flex-shrink-0 rounded-lg overflow-hidden bg-[var(--theme-bg-tertiary)]">
