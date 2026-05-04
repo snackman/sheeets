@@ -40,7 +40,6 @@ import {
   Projector,
   Sparkle,
   Laugh,
-  Pizza,
   Rocket,
   type LucideIcon,
 } from 'lucide-react';
@@ -122,7 +121,7 @@ export const TAG_ICONS: Record<string, IconComponent> = {
   'Film/TV': Clapperboard,
   'Screening': Projector,
   'Vibe': Sparkle,
-  'Food': Pizza,
+  'Food': UtensilsCrossed,
   'Drinks': Beer,
   'Comedy': Laugh,
 };

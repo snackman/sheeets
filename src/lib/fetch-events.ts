@@ -132,7 +132,7 @@ export async function fetchEvents(runtimeAddresses?: GeoAddressMap, tabs?: TabCo
       if (foodBool) syntheticTags.push('Food');
       if (barBool) syntheticTags.push('Drinks');
 
-      const tags = [...rawTags, ...syntheticTags];
+      const tags = [...new Set([...rawTags, ...syntheticTags])];
 
       const address = getCellValue(row.c[5]);
       const staticAddresses = geocodedData.addresses as GeoAddressMap;
