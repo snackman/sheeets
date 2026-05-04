@@ -82,6 +82,7 @@
   --theme-filter-badge-border: var(--theme-text-secondary);
   --theme-table-header-bg: var(--theme-bg-secondary);
   --theme-table-header-text: var(--theme-text-secondary);
+  --theme-ad-bg: var(--theme-bg-card);
 
   --theme-scrollbar-track: #0c0a09;
   --theme-scrollbar-thumb: #292524;
@@ -298,6 +299,7 @@
   --theme-filter-badge-border: #ffffff;
   --theme-table-header-bg: #1c4586;
   --theme-table-header-text: #ffffff;
+  --theme-ad-bg: rgba(28, 69, 134, 0.08);
 
   --theme-scrollbar-track: #fafafa;
   --theme-scrollbar-thumb: #d4d4d4;
