@@ -36,7 +36,7 @@ import { SponsorsTicker } from './SponsorsTicker';
 import { CheckInFAB } from './CheckInFAB';
 import { OnboardingWizard } from './OnboardingWizard';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
-import { trackAuthPrompt, trackRsvpOpen, trackRsvpConfirm } from '@/lib/analytics';
+import { trackAuthPrompt, trackRsvpOpen, trackRsvpConfirm, setConferenceProperty } from '@/lib/analytics';
 import { getTabConfig } from '@/lib/conferences';
 import { extractFeaturedEvents } from '@/lib/featured';
 import { passesNowFilter, getConferenceNow, applyFilters, computeTagCounts } from '@/lib/filters';
@@ -277,6 +277,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
       if (window.location.pathname !== newPath) {
         window.history.replaceState(null, '', newPath);
       }
+      setConferenceProperty(tab.slug);
     }
   }, [filters.conference, conferenceTabs]);
 
