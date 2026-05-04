@@ -1,6 +1,6 @@
 export type ThemeId = 'dark' | 'paper' | 'light' | 'light-blue' | 'sxsw' | 'sxsw2' | 'gdc' | 'ethcc';
 
-export const DEFAULT_THEME: ThemeId = 'dark';
+export const DEFAULT_THEME: ThemeId = 'light-blue';
 
 export const THEME_OPTIONS: { id: ThemeId; label: string }[] = [
   { id: 'dark', label: 'Dark' },

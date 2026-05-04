@@ -220,7 +220,7 @@ export const FilterBar = memo(function FilterBar({
             onClick={() => setExpanded(!expanded)}
             aria-label="Filters"
             className={clsx(
-              'shrink-0 flex items-center gap-1 px-2.5 h-9 rounded-lg text-sm font-medium transition-colors cursor-pointer',
+              'group shrink-0 flex items-center gap-1 px-2.5 h-9 rounded-lg text-sm font-medium transition-colors cursor-pointer',
               expanded
                 ? 'text-[var(--theme-filter-active)] border border-[var(--theme-filter-active)]'
                 : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)]'
@@ -230,10 +230,10 @@ export const FilterBar = memo(function FilterBar({
             <ListFilter className="w-4 h-4" />
             {activeFilterCount > 0 && (
               <span className={clsx(
-                'text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1',
+                'text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1 transition-colors',
                 expanded
                   ? 'bg-[var(--theme-filter-active)] text-[var(--theme-bg-filter)] border border-[var(--theme-filter-active)]'
-                  : 'bg-[var(--theme-filter-badge-bg)] text-[var(--theme-filter-badge-text)] border border-[var(--theme-filter-badge-border)]'
+                  : 'bg-[var(--theme-filter-badge-bg)] text-[var(--theme-filter-badge-text)] border border-[var(--theme-filter-badge-border)] group-hover:text-[var(--theme-text-primary)] group-hover:border-[var(--theme-text-primary)] group-hover:bg-transparent'
               )}>
                 {activeFilterCount}
               </span>
@@ -245,7 +245,7 @@ export const FilterBar = memo(function FilterBar({
             onClick={onItineraryToggle}
             aria-label={`Itinerary: ${itineraryCount} events`}
             className={clsx(
-              'shrink-0 flex items-center gap-1 px-2.5 h-9 rounded-lg text-sm font-medium transition-colors cursor-pointer',
+              'group shrink-0 flex items-center gap-1 px-2.5 h-9 rounded-lg text-sm font-medium transition-colors cursor-pointer',
               isItineraryActive
                 ? 'text-[var(--theme-filter-active)] border border-[var(--theme-filter-active)]'
                 : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)]'
@@ -255,10 +255,10 @@ export const FilterBar = memo(function FilterBar({
             <CalendarIcon className="w-5 h-5" />
             {itineraryCount > 0 && (
               <span className={clsx(
-                'text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1',
+                'text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1 transition-colors',
                 isItineraryActive
                   ? 'bg-[var(--theme-filter-active)] text-[var(--theme-bg-filter)] border border-[var(--theme-filter-active)]'
-                  : 'bg-[var(--theme-filter-badge-bg)] text-[var(--theme-filter-badge-text)] border border-[var(--theme-filter-badge-border)]'
+                  : 'bg-[var(--theme-filter-badge-bg)] text-[var(--theme-filter-badge-text)] border border-[var(--theme-filter-badge-border)] group-hover:text-[var(--theme-text-primary)] group-hover:border-[var(--theme-text-primary)] group-hover:bg-transparent'
               )}>
                 {itineraryCount}
               </span>
