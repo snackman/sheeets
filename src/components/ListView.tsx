@@ -386,7 +386,7 @@ export const ListView = memo(function ListView({
     <div className="max-w-3xl mx-auto px-2 sm:px-4 pb-8 relative">
       {/* Overlay sticky date header */}
       {stickyLabel && (
-        <div className="sticky top-0 z-20 bg-[var(--theme-date-sep-bg)] py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-[var(--theme-date-sep-border)]">
+        <div className="sticky top-0 z-20 bg-[var(--theme-date-sep-bg)] py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-[var(--theme-date-sep-border)] rounded-lg">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-[var(--theme-date-sep-text)]">
               {stickyLabel}
@@ -424,7 +424,7 @@ export const ListView = memo(function ListView({
             >
               {item.kind === 'date-header' ? (
                 /* In-flow date header (hidden behind sticky overlay once scrolled past) */
-                <div className={`py-2 border-b border-[var(--theme-date-sep-border)] bg-[var(--theme-date-sep-bg)] -mx-2 px-2 sm:-mx-4 sm:px-4 ${virtualRow.index === 0 ? '' : 'mt-4'}`}>
+                <div className={`py-2 border-b border-[var(--theme-date-sep-border)] bg-[var(--theme-date-sep-bg)] -mx-2 px-2 sm:-mx-4 sm:px-4 rounded-lg ${virtualRow.index === 0 ? '' : 'mt-4'}`}>
                   <div className="flex items-center justify-between">
                     <h2 className="text-base font-bold text-[var(--theme-date-sep-text)]">
                       {item.label}
