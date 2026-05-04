@@ -101,6 +101,11 @@
   --theme-date-sep-text: var(--theme-text-primary);
   --theme-date-sep-muted: var(--theme-text-muted);
   --theme-date-sep-border: var(--theme-border-secondary);
+
+  --theme-ticker-bg: var(--theme-bg-primary);
+  --theme-ticker-text: var(--theme-text-secondary);
+  --theme-ticker-link: var(--theme-text-primary);
+  --theme-ticker-border: var(--theme-border-secondary);
 }
 
 /* --- Paper theme — warm parchment/cream aesthetic --- */
@@ -300,6 +305,11 @@
   --theme-date-sep-text: #ffffff;
   --theme-date-sep-muted: rgba(255, 255, 255, 0.7);
   --theme-date-sep-border: rgba(255, 255, 255, 0.2);
+
+  --theme-ticker-bg: var(--theme-bg-list);
+  --theme-ticker-text: #1c4586;
+  --theme-ticker-link: #1c4586;
+  --theme-ticker-border: rgba(28, 69, 134, 0.15);
 }
 
 /* Light-blue: alternating table rows */

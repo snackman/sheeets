@@ -71,7 +71,7 @@ export const SponsorsTicker = memo(function SponsorsTicker({ sponsors, conferenc
             href={s.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="underline decoration-[var(--theme-text-muted)] underline-offset-2 hover:text-[var(--theme-text-primary)] hover:decoration-[var(--theme-text-secondary)] transition-colors"
+            className="underline decoration-[var(--theme-ticker-link)]/50 underline-offset-2 text-[var(--theme-ticker-link)] hover:opacity-80 transition-colors"
             onClick={() => {
               // GA4 tracking (existing)
               trackAdClick('sponsor-ticker', s.url);
@@ -94,8 +94,8 @@ export const SponsorsTicker = memo(function SponsorsTicker({ sponsors, conferenc
   );
 
   return (
-    <div ref={tickerRef} className="w-full overflow-hidden border-b py-1.5" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-bg-primary) 80%, transparent)', borderColor: 'color-mix(in srgb, var(--theme-border-secondary) 50%, transparent)' }}>
-      <div className="sponsors-scroll inline-flex whitespace-nowrap text-xs text-[var(--theme-text-secondary)]">
+    <div ref={tickerRef} className="w-full overflow-hidden border-b border-[var(--theme-ticker-border)] py-1.5 bg-[var(--theme-ticker-bg)]">
+      <div className="sponsors-scroll inline-flex whitespace-nowrap text-xs text-[var(--theme-ticker-text)]">
         {item}{item}{item}{item}{item}{item}{item}{item}
       </div>
     </div>
