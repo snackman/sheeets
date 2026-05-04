@@ -226,7 +226,7 @@ export function OnboardingWizard({
                   alt="sheeets"
                   width={160}
                   height={44}
-                  className="invert"
+                  style={{ filter: 'var(--theme-logo-filter)' }}
                   priority
                 />
                 <div className="space-y-2">
