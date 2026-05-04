@@ -41,6 +41,7 @@ interface LockScreenModalProps {
   company: string | null;
   jobTitle: string | null;
   avatarUrl: string | null;
+  xHandle: string | null;
   socialLinks: SocialLink[];
   friendCode: string | null;
 }
@@ -52,6 +53,7 @@ export function LockScreenModal({
   company,
   jobTitle,
   avatarUrl,
+  xHandle,
   socialLinks,
   friendCode,
 }: LockScreenModalProps) {
@@ -59,6 +61,7 @@ export function LockScreenModal({
   const [generating, setGenerating] = useState(false);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copying' | 'copied'>('idle');
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+  const [resolvedAvatarDataUrl, setResolvedAvatarDataUrl] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const trackedRef = useRef(false);
 
@@ -136,6 +139,30 @@ export function LockScreenModal({
     img.src = '/logo.png';
   }, [isOpen]);
 
+  // Preload avatar as data URL so html-to-image can embed it
+  useEffect(() => {
+    if (!isOpen) { setResolvedAvatarDataUrl(null); return; }
+
+    const src = avatarUrl || (xHandle ? `https://unavatar.io/x/${xHandle}` : null);
+    if (!src) return;
+    if (src.startsWith('data:')) { setResolvedAvatarDataUrl(src); return; }
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        setResolvedAvatarDataUrl(canvas.toDataURL('image/png'));
+      }
+    };
+    img.onerror = () => setResolvedAvatarDataUrl(null);
+    img.src = src;
+  }, [isOpen, avatarUrl, xHandle]);
+
   // Generate preview image
   const generatePreview = useCallback(async () => {
     if (!cardRef.current) {
@@ -167,7 +194,7 @@ export function LockScreenModal({
       generatePreview();
     }, 200);
     return () => clearTimeout(timer);
-  }, [isOpen, isDesktop, pickerDone, generatePreview, enabledQrs]);
+  }, [isOpen, isDesktop, pickerDone, generatePreview, enabledQrs, resolvedAvatarDataUrl]);
 
   // Track open event
   useEffect(() => {
@@ -187,6 +214,7 @@ export function LockScreenModal({
       setCopyStatus('idle');
       setPickerDone(false);
       setLogoDataUrl(null);
+      setResolvedAvatarDataUrl(null);
     }
   }, [isOpen]);
 
@@ -441,7 +469,7 @@ export function LockScreenModal({
         displayName={displayName}
         company={company}
         jobTitle={jobTitle}
-        avatarUrl={avatarUrl}
+        avatarUrl={resolvedAvatarDataUrl}
         socialLinks={filteredLinks}
         screenWidth={screenDims.width}
         screenHeight={screenDims.height}
