@@ -5,7 +5,7 @@
  *
  * Query GA4 data via the Data API and Admin API.
  *
- * Usage: node scripts/ga4-report.mjs [traffic|events|funnels|conversions|dimensions]
+ * Usage: node scripts/ga4-report.mjs [traffic|events|funnels|funnel-detail|conversions|dimensions]
  */
 
 import { readFileSync, writeFileSync } from 'fs';
@@ -237,12 +237,102 @@ async function reportDimensions(accessToken) {
   printTable(['Parameter', 'Display Name', 'Scope', 'Description'], rows);
 }
 
+async function reportFunnelDetail(accessToken) {
+  console.log('Funnel Analysis (last 30 days)\n');
+
+  // Onboarding funnel
+  const onboardingEvents = ['session_start', 'onboarding_start', 'onboarding_step', 'onboarding_complete'];
+  const onboardingReport = await runReport(accessToken, {
+    dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+    dimensions: [{ name: 'eventName' }],
+    metrics: [{ name: 'eventCount' }, { name: 'totalUsers' }],
+    dimensionFilter: {
+      filter: {
+        fieldName: 'eventName',
+        inListFilter: { values: onboardingEvents },
+      },
+    },
+  });
+
+  console.log('=== Onboarding Funnel ===');
+  const onboardingRows = extractRows(onboardingReport);
+  const orderMap1 = Object.fromEntries(onboardingEvents.map((e, i) => [e, i]));
+  onboardingRows.sort((a, b) => (orderMap1[a[0]] ?? 99) - (orderMap1[b[0]] ?? 99));
+
+  // Calculate drop-off rates
+  const onboardingWithRates = onboardingRows.map((row, i) => {
+    const prevUsers = i > 0 ? Number(onboardingRows[i - 1][2]) : Number(row[2]);
+    const currentUsers = Number(row[2]);
+    const rate = i === 0 ? '100%' : `${((currentUsers / prevUsers) * 100).toFixed(1)}%`;
+    const dropOff = i === 0 ? '-' : `${((1 - currentUsers / prevUsers) * 100).toFixed(1)}%`;
+    return [...row, rate, dropOff];
+  });
+  printTable(['Step', 'Count', 'Users', 'Conv Rate', 'Drop-off'], onboardingWithRates);
+
+  // Auth funnel
+  const authEvents = ['auth_prompt', 'auth_success'];
+  const authReport = await runReport(accessToken, {
+    dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+    dimensions: [{ name: 'eventName' }],
+    metrics: [{ name: 'eventCount' }, { name: 'totalUsers' }],
+    dimensionFilter: {
+      filter: {
+        fieldName: 'eventName',
+        inListFilter: { values: authEvents },
+      },
+    },
+  });
+
+  console.log('=== Auth Funnel ===');
+  const authRows = extractRows(authReport);
+  const orderMap2 = Object.fromEntries(authEvents.map((e, i) => [e, i]));
+  authRows.sort((a, b) => (orderMap2[a[0]] ?? 99) - (orderMap2[b[0]] ?? 99));
+
+  const authWithRates = authRows.map((row, i) => {
+    const prevUsers = i > 0 ? Number(authRows[i - 1][2]) : Number(row[2]);
+    const currentUsers = Number(row[2]);
+    const rate = i === 0 ? '100%' : `${((currentUsers / prevUsers) * 100).toFixed(1)}%`;
+    const dropOff = i === 0 ? '-' : `${((1 - currentUsers / prevUsers) * 100).toFixed(1)}%`;
+    return [...row, rate, dropOff];
+  });
+  printTable(['Step', 'Count', 'Users', 'Conv Rate', 'Drop-off'], authWithRates);
+
+  // Engagement funnel
+  const engagementEvents = ['session_start', 'event_click', 'itinerary', 'check_in'];
+  const engReport = await runReport(accessToken, {
+    dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+    dimensions: [{ name: 'eventName' }],
+    metrics: [{ name: 'eventCount' }, { name: 'totalUsers' }],
+    dimensionFilter: {
+      filter: {
+        fieldName: 'eventName',
+        inListFilter: { values: engagementEvents },
+      },
+    },
+  });
+
+  console.log('=== Engagement Funnel ===');
+  const engRows = extractRows(engReport);
+  const orderMap3 = Object.fromEntries(engagementEvents.map((e, i) => [e, i]));
+  engRows.sort((a, b) => (orderMap3[a[0]] ?? 99) - (orderMap3[b[0]] ?? 99));
+
+  const engWithRates = engRows.map((row, i) => {
+    const prevUsers = i > 0 ? Number(engRows[i - 1][2]) : Number(row[2]);
+    const currentUsers = Number(row[2]);
+    const rate = i === 0 ? '100%' : `${((currentUsers / prevUsers) * 100).toFixed(1)}%`;
+    const dropOff = i === 0 ? '-' : `${((1 - currentUsers / prevUsers) * 100).toFixed(1)}%`;
+    return [...row, rate, dropOff];
+  });
+  printTable(['Step', 'Count', 'Users', 'Conv Rate', 'Drop-off'], engWithRates);
+}
+
 // ---------- Main ----------
 
 const REPORTS = {
   traffic: reportTraffic,
   events: reportEvents,
   funnels: reportFunnels,
+  'funnel-detail': reportFunnelDetail,
   conversions: reportConversions,
   dimensions: reportDimensions,
 };
@@ -251,13 +341,14 @@ async function main() {
   const reportType = process.argv[2];
 
   if (!reportType || !REPORTS[reportType]) {
-    console.log('Usage: node scripts/ga4-report.mjs [traffic|events|funnels|conversions|dimensions]');
+    console.log('Usage: node scripts/ga4-report.mjs [traffic|events|funnels|funnel-detail|conversions|dimensions]');
     console.log('\nReport types:');
-    console.log('  traffic      Sessions by source/medium (last 30 days)');
-    console.log('  events       Event counts (last 30 days)');
-    console.log('  funnels      Key funnel metrics (onboarding, auth)');
-    console.log('  conversions  Key conversion events');
-    console.log('  dimensions   List registered custom dimensions');
+    console.log('  traffic        Sessions by source/medium (last 30 days)');
+    console.log('  events         Event counts (last 30 days)');
+    console.log('  funnels        Key funnel metrics (onboarding, auth)');
+    console.log('  funnel-detail  Detailed funnel analysis with conversion/drop-off rates');
+    console.log('  conversions    Key conversion events');
+    console.log('  dimensions     List registered custom dimensions');
     process.exit(1);
   }
 
