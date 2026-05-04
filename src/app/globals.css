@@ -63,6 +63,9 @@
   --theme-header-control-border: var(--theme-border-primary);
   --theme-header-accent: var(--theme-accent);
   --theme-header-accent-muted: var(--theme-accent-muted);
+  --theme-header-badge-bg: var(--theme-accent);
+  --theme-header-badge-text: var(--theme-accent-text);
+  --theme-header-badge-border: var(--theme-accent);
 
   --theme-bg-list: var(--theme-bg-primary);
   --theme-bg-filter: var(--theme-bg-primary);
@@ -310,11 +313,25 @@
   --theme-ticker-text: #1c4586;
   --theme-ticker-link: #1c4586;
   --theme-ticker-border: rgba(28, 69, 134, 0.15);
+
+  --theme-header-badge-bg: transparent;
+  --theme-header-badge-text: #ffffff;
+  --theme-header-badge-border: transparent;
 }
 
 /* Light-blue: alternating table rows */
 [data-theme="light-blue"] table tbody tr:nth-child(even):not([data-date]) {
   background-color: rgba(28, 69, 134, 0.05);
+}
+
+/* Light-blue: blue tint overlay on map tiles */
+[data-theme="light-blue"] .mapboxgl-canvas-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 69, 134, 0.12);
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* --- SXSW theme — neon lime on dark forest green --- */

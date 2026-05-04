@@ -663,7 +663,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
       >
         <CircleUser className="w-4 h-4" />
         {badgeCount > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full px-1 border border-[var(--theme-accent)] bg-[var(--theme-accent)] text-[var(--theme-accent-text)]">
+          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full px-1 border border-[var(--theme-header-badge-border)] bg-[var(--theme-header-badge-bg)] text-[var(--theme-header-badge-text)]">
             {badgeCount}
           </span>
         )}
