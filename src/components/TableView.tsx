@@ -401,21 +401,21 @@ export const TableView = memo(function TableView({
           </colgroup>
           <thead className="text-xs uppercase tracking-wider text-[var(--theme-table-header-text)] bg-[var(--theme-table-header-bg)] border-b border-[var(--theme-border-primary)] sticky top-0 z-20">
             <tr>
-              <th className="py-2.5"><div className="flex justify-center"><CalendarIcon className="w-5 h-5" /></div></th>
-              <th className="px-1 py-2.5 text-center" title={!isSignedIn ? 'Sign in to add friends and see who\'s going' : 'Friends going'}><Users className="w-3.5 h-3.5 mx-auto" /></th>
+              <th className={`py-2.5 ${currentDateLabel !== 'Time' ? 'opacity-60' : ''}`}><div className="flex justify-center"><CalendarIcon className="w-5 h-5" /></div></th>
+              <th className={`px-1 py-2.5 text-center ${currentDateLabel !== 'Time' ? 'opacity-60' : ''}`} title={!isSignedIn ? 'Sign in to add friends and see who\'s going' : 'Friends going'}><Users className="w-3.5 h-3.5 mx-auto" /></th>
               <th className="px-3 py-2.5 whitespace-nowrap">
                 {currentDateLabel === 'Time' ? (
                   'WHEN'
                 ) : (
-                  <span className="text-[var(--theme-table-header-text)] font-semibold" style={{ opacity: 0.8 }}>
+                  <span className="text-[var(--theme-table-header-text)] font-semibold">
                     {currentDateLabel.toUpperCase()}
                   </span>
                 )}
               </th>
-              <th className="px-3 py-2.5 hidden sm:table-cell">Organizer</th>
-              <th className="px-3 py-2.5">Event</th>
-              <th className="px-3 py-2.5">Where</th>
-              <th className="px-3 py-2.5">
+              <th className={`px-3 py-2.5 hidden sm:table-cell ${currentDateLabel !== 'Time' ? 'opacity-60' : ''}`}>Organizer</th>
+              <th className={`px-3 py-2.5 ${currentDateLabel !== 'Time' ? 'opacity-60' : ''}`}>Event</th>
+              <th className={`px-3 py-2.5 ${currentDateLabel !== 'Time' ? 'opacity-60' : ''}`}>Where</th>
+              <th className={`px-3 py-2.5 ${currentDateLabel !== 'Time' ? 'opacity-60' : ''}`}>
                 <div className="flex items-center justify-between">
                   <span>Tags</span>
                   <div className="flex items-center gap-1">
