@@ -324,15 +324,6 @@
   background-color: rgba(28, 69, 134, 0.05);
 }
 
-/* Light-blue: blue tint overlay on map tiles */
-[data-theme="light-blue"] .mapboxgl-canvas-container::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(28, 69, 134, 0.25);
-  pointer-events: none;
-  z-index: 1;
-}
 
 /* --- SXSW theme — neon lime on dark forest green --- */
 [data-theme="sxsw"] {
