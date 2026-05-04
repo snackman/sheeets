@@ -196,3 +196,31 @@ export const trackRsvpOpen = (eventId: string, eventName: string) =>
   track('rsvp_open', { event_id: eventId, event_name: eventName });
 export const trackRsvpConfirm = (eventId: string, eventName: string) =>
   track('rsvp_confirm', { event_id: eventId, event_name: eventName });
+
+// User properties
+export function setUserProperties(props: Record<string, string | boolean>) {
+  if (typeof window !== 'undefined' && window.gtag) {
+    window.gtag('set', 'user_properties', props);
+  }
+}
+
+export const setConferenceProperty = (conference: string) =>
+  setUserProperties({ conference_slug: conference });
+
+export const setAuthProperty = (isAuthenticated: boolean) =>
+  setUserProperties({ is_authenticated: String(isAuthenticated) });
+
+export const setItineraryProperty = (hasItinerary: boolean) =>
+  setUserProperties({ has_itinerary: String(hasItinerary) });
+
+// Outbound clicks
+export const trackOutboundClick = (eventName: string, url: string) =>
+  track('outbound_click', { event_name: eventName, url });
+
+// Itinerary view
+export const trackItineraryView = () =>
+  track('itinerary_view');
+
+// Error tracking
+export const trackError = (message: string, source?: string) =>
+  track('error', { message: message.slice(0, 100), ...(source ? { source } : {}) });

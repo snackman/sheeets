@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { MapPin, Calendar, X, Link, Check, MapPinCheck, Loader2 } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
-import { trackEventClick, trackCopyEventLink, trackFriendsGoingOpen, trackFriendsCheckedInOpen } from '@/lib/analytics';
+import { trackEventClick, trackCopyEventLink, trackFriendsGoingOpen, trackFriendsCheckedInOpen, trackOutboundClick } from '@/lib/analytics';
 import { trackAdEvent } from '@/lib/ad-tracking';
 import { trackEvent } from '@/lib/event-tracking';
 import { formatFriendsText } from '@/lib/user-display';
@@ -279,6 +279,7 @@ export const EventCard = memo(function EventCard({
                   className="hover:text-[var(--theme-accent)] active:text-[var(--theme-accent)] transition-colors"
                   onClick={() => {
                     trackEventClick(event.name, event.link!);
+                    trackOutboundClick(event.name, event.link!);
                     trackEvent({
                       event_id: event.id,
                       event_name: event.name,

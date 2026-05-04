@@ -13,7 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { VIBE_COLORS } from '@/lib/tags';
 import { formatDateLabel } from '@/lib/utils';
 import { sortByStartTime, detectConflicts } from '@/lib/time-parse';
-import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryShareLink, trackItineraryReorder } from '@/lib/analytics';
+import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryShareLink, trackItineraryReorder, trackItineraryView } from '@/lib/analytics';
 import type { ETHDenverEvent } from '@/lib/types';
 import { Loading } from '@/components/Loading';
 import { useEventCheckIn } from '@/hooks/useEventCheckIn';
@@ -77,6 +77,10 @@ export default function ItineraryPage() {
   const [shareStatus, setShareStatus] = useState<'idle' | 'sharing' | 'copied'>('idle');
   const [showShareCard, setShowShareCard] = useState(false);
   const captureRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    trackItineraryView();
+  }, []);
 
   // Get conferences that have itinerary events
   const allItineraryEvents = useMemo(
