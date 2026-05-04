@@ -412,14 +412,6 @@ export function MapView({
     setSelectedPOI(null);
   }, []);
 
-  const handleMultiEventSelect = useCallback(
-    (event: ETHDenverEvent) => {
-      setPopupEvents(null);
-      setPopupEvent(event);
-      onEventSelect?.(event);
-    },
-    [onEventSelect]
-  );
 
   const handlePOISelect = useCallback((poi: POI) => {
     setPopupEvent(null);
@@ -586,7 +578,6 @@ export function MapView({
           latitude={popupCoords.lat}
           longitude={popupCoords.lng}
           onClose={handlePopupClose}
-          onSelectEvent={handleMultiEventSelect}
           itinerary={itinerary}
           onItineraryToggle={onItineraryToggle}
           friendsCountByEvent={friendsCountByEvent}

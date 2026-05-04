@@ -2,14 +2,8 @@
 
 import { memo } from 'react';
 import { Popup } from 'react-map-gl/mapbox';
-import { X, Calendar, MapPin } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
-import { shortenAddress } from '@/lib/utils';
-import { StarButton } from './StarButton';
-import { FriendAvatarStack } from './FriendAvatarStack';
-import { AddressLink } from './AddressLink';
-import { TagBadge } from './TagBadge';
-import { OGImage } from './OGImage';
 import { EventCard } from './EventCard';
 
 interface EventPopupProps {
@@ -39,7 +33,6 @@ interface MultiEventPopupProps {
   latitude: number;
   longitude: number;
   onClose: () => void;
-  onSelectEvent?: (event: ETHDenverEvent) => void;
   itinerary?: Set<string>;
   onItineraryToggle?: (eventId: string) => void;
   friendsCountByEvent?: Map<string, number>;
@@ -113,13 +106,14 @@ export function MultiEventPopup({
   latitude,
   longitude,
   onClose,
-  onSelectEvent,
   itinerary,
   onItineraryToggle,
   friendsCountByEvent,
   friendsByEvent,
   checkedInFriendsByEvent,
   checkInCounts,
+  reactionsByEvent,
+  onToggleReaction,
   commentCounts,
 }: MultiEventPopupProps) {
   return (
@@ -147,73 +141,23 @@ export function MultiEventPopup({
           </button>
         </div>
         <div className="max-h-[260px] overflow-y-auto space-y-2 pr-1">
-          {events.map((event) => {
-            const timeDisplay = event.isAllDay
-              ? 'All Day'
-              : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
-            const isInItinerary = itinerary?.has(event.id) ?? false;
-            const eventFriends = friendsByEvent?.get(event.id);
-            const eventCheckedIn = checkedInFriendsByEvent?.get(event.id);
-            return (
-              <div
-                key={event.id}
-                className="flex gap-2.5 p-2.5 bg-[var(--theme-bg-tertiary)]/50 hover:bg-[var(--theme-bg-tertiary)]/70 active:bg-[var(--theme-bg-tertiary)]/70 rounded-lg transition-colors cursor-pointer"
-                onClick={() => onSelectEvent?.(event)}
-              >
-                {/* Cover image */}
-                {event.link && <OGImage key={event.id} url={event.link} eventId={event.id} rsvpUrl={event.link} isInItinerary={isInItinerary} onItineraryToggle={onItineraryToggle} friendsGoing={eventFriends} />}
-
-                {/* Details */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start gap-1">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-[var(--theme-text-primary)] leading-tight truncate">
-                        {event.name}
-                      </p>
-                      {event.organizer && (
-                        <p className="text-[10px] text-[var(--theme-text-muted)] mt-0.5 truncate">{event.organizer}</p>
-                      )}
-                    </div>
-                    {onItineraryToggle && (
-                      <StarButton
-                        eventId={event.id}
-                        isStarred={isInItinerary}
-                        onToggle={onItineraryToggle}
-                        size="sm"
-                        friendsCount={friendsCountByEvent?.get(event.id)}
-                      />
-                    )}
-                  </div>
-                  <div className="relative w-fit mt-1">
-                    <p className="text-[var(--theme-text-secondary)] text-[10px] flex items-center gap-1">
-                      <Calendar className="w-2.5 h-2.5 shrink-0" />
-                      <span>{event.date} · {timeDisplay}</span>
-                    </p>
-                    {(checkInCounts?.get(event.id) ?? 0) > 0 && (
-                      <span className="absolute -top-0.5 -right-2 min-w-[12px] h-[12px] flex items-center justify-center rounded-full bg-green-500 text-white text-[7px] font-bold px-0.5 pointer-events-none">
-                        {checkInCounts!.get(event.id)}
-                      </span>
-                    )}
-                  </div>
-                  {event.address && (
-                    <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
-                      eventId={event.id} eventName={event.name}
-                      className="w-full text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-[10px] mt-0.5 flex items-center gap-1 overflow-hidden transition-colors">
-                      <MapPin className="w-2.5 h-2.5 shrink-0" />
-                      <span className="truncate">{shortenAddress(event.address)}</span>
-                    </AddressLink>
-                  )}
-                  {event.tags.length > 0 && (
-                    <div className="flex items-center gap-1 mt-1">
-                      {event.tags.map((tag) => (
-                        <TagBadge key={tag} tag={tag} iconOnly />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {events.map((event) => (
+            <div key={event.id}>
+              <EventCard
+                event={event}
+                isInItinerary={itinerary?.has(event.id) ?? false}
+                onItineraryToggle={onItineraryToggle}
+                friendsCount={friendsCountByEvent?.get(event.id)}
+                friendsGoing={friendsByEvent?.get(event.id)}
+                checkedInFriends={checkedInFriendsByEvent?.get(event.id)}
+                checkInCount={checkInCounts?.get(event.id)}
+                reactions={reactionsByEvent?.get(event.id)}
+                onToggleReaction={onToggleReaction}
+                commentCount={commentCounts?.get(event.id)}
+                compact
+              />
+            </div>
+          ))}
         </div>
       </div>
     </Popup>
