@@ -817,7 +817,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--theme-bg-tertiary)] hover:bg-[var(--theme-bg-card-hover)] text-[var(--theme-text-primary)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
                   >
                     <Smartphone className="w-3.5 h-3.5" />
-                    Lock Screen Card
+                    Generate Lock Screen
                   </button>
                 )}
 

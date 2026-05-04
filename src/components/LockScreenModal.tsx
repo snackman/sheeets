@@ -8,7 +8,7 @@ import type { SocialLink } from '@/lib/social-urls';
 import LockScreenTemplate from './LockScreenTemplate';
 
 function PlatformIcon({ platform }: { platform: string }) {
-  const cls = "w-4 h-4 shrink-0";
+  const cls = "w-5 h-5 shrink-0";
   switch (platform) {
     case 'x':
       return <svg viewBox="0 0 24 24" className={cls} fill="currentColor"><path d="M17.176 4h2.645l-5.78 6.606 6.8 8.994h-4.676l-4.17-5.453-4.77 5.453H4.58l6.18-7.066L4.2 4h4.795l3.77 4.984zm-.928 14.016h1.466L8.005 5.506H6.44z" /></svg>;
@@ -287,7 +287,7 @@ export function LockScreenModal({
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)] shrink-0">
-            <h2 className="text-base font-bold text-[var(--theme-text-primary)]">Lock Screen Card</h2>
+            <h2 className="text-base font-bold text-[var(--theme-text-primary)]">Generate Lock Screen</h2>
             <button
               onClick={onClose}
               className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
