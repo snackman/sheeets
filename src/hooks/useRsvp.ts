@@ -48,5 +48,5 @@ export function useRsvp() {
 
   const closeRsvp = useCallback(() => setActiveRsvp(null), []);
 
-  return { getRsvpStatus, openRsvp, confirmRsvp, closeRsvp, activeRsvp };
+  return { getRsvpStatus, openRsvp, confirmRsvp, closeRsvp, activeRsvp, confirmedIds };
 }
