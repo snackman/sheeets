@@ -2,10 +2,11 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, LogOut, User, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, ArrowRight, Send, Building2, Briefcase, Linkedin, Smartphone } from 'lucide-react';
+import { X, Mail, LogOut, User, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, ArrowRight, Send, Building2, Briefcase, Linkedin, Smartphone, Moon, Sun } from 'lucide-react';
 import { ShareCardModal } from './ShareCardModal';
 import { LockScreenModal } from './LockScreenModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { trackAuthSuccess, trackSignOut, trackFriendCodeGenerate, trackFriendCodeCopy, trackModalDismiss } from '@/lib/analytics';
 import { getDisplayName } from '@/lib/user-display';
 import UserAvatar from './UserAvatar';
@@ -375,6 +376,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   const { profile, updateProfile, uploadAvatar } = useProfile();
   const { friendCount, refreshFriends: localRefreshFriends } = useFriends();
   const { config } = useAdminConfig();
+  const { theme, setTheme } = useTheme();
 
   const refreshFriends = useCallback(async () => {
     await localRefreshFriends();
@@ -947,18 +949,25 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                   )}
                 </div>
 
-                {/* Sign Out */}
-                <div className="border-t border-[var(--theme-border-primary)] pt-4 space-y-2">
+                {/* Sign Out + Dark Mode Toggle */}
+                <div className="border-t border-[var(--theme-border-primary)] pt-4 flex items-center gap-2">
                   <button
                     onClick={() => {
                       trackSignOut();
                       signOut();
                       setOpen(false);
                     }}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-[var(--theme-border-primary)] hover:border-red-500/50 hover:bg-red-500/10 text-[var(--theme-text-secondary)] hover:text-red-400 rounded-lg text-sm transition-colors cursor-pointer"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-[var(--theme-border-primary)] hover:border-red-500/50 hover:bg-red-500/10 text-[var(--theme-text-secondary)] hover:text-red-400 rounded-lg text-sm transition-colors cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     Sign out
+                  </button>
+                  <button
+                    onClick={() => setTheme(theme === 'dark' ? 'light-blue' : 'dark')}
+                    aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                    className="shrink-0 flex items-center justify-center w-10 h-10 border border-[var(--theme-border-primary)] hover:border-[var(--theme-text-primary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] rounded-lg transition-colors cursor-pointer"
+                  >
+                    {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                   </button>
                 </div>
 

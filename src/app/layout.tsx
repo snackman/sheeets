@@ -51,7 +51,7 @@ export default function RootLayout({
   const websiteJsonLd = buildWebSiteJsonLd();
 
   return (
-    <html lang="en">
+    <html lang="en" data-theme="light-blue">
       <head>
         <script
           type="application/ld+json"
