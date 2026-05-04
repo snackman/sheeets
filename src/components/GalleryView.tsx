@@ -183,7 +183,7 @@ function GalleryCard({
               ))}
             </div>
           )}
-          <div style={{ '--theme-text-secondary': '#ffffff', '--theme-border-primary': 'rgba(255,255,255,0.5)' } as React.CSSProperties}>
+          <div className="rounded-full bg-black/40 backdrop-blur-sm" style={{ '--theme-text-secondary': '#ffffff', '--theme-border-primary': 'rgba(255,255,255,0.6)', '--theme-accent': '#ffffff', '--theme-accent-muted': 'rgba(255,255,255,0.2)' } as React.CSSProperties}>
             <StarButton
               eventId={event.id}
               isStarred={isInItinerary}
