@@ -1,7 +1,10 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { ThemeId, DEFAULT_THEME, THEME_OPTIONS } from '@/lib/themes';
+
+const STORAGE_KEY = 'user-theme-override';
+const validIds = THEME_OPTIONS.map(t => t.id) as string[];
 
 interface ThemeContextValue {
   theme: ThemeId;
@@ -23,11 +26,23 @@ interface ThemeProviderProps {
   conference?: string;
 }
 
-export function ThemeProvider({ children, adminConfig, conference }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<ThemeId>(DEFAULT_THEME);
+function readStoredTheme(): ThemeId | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored && validIds.includes(stored)) return stored as ThemeId;
+  } catch {}
+  return null;
+}
 
-  // Read theme from admin config when conference changes
+export function ThemeProvider({ children, adminConfig, conference }: ThemeProviderProps) {
+  const [theme, setThemeState] = useState<ThemeId>(() => readStoredTheme() ?? DEFAULT_THEME);
+  const userOverride = useRef<boolean>(readStoredTheme() !== null);
+
+  // Read theme from admin config when conference changes,
+  // but only if user hasn't manually toggled
   useEffect(() => {
+    if (userOverride.current) return;
+
     if (!adminConfig || !conference) {
       setThemeState(DEFAULT_THEME);
       return;
@@ -36,7 +51,6 @@ export function ThemeProvider({ children, adminConfig, conference }: ThemeProvid
     const configKey = `theme:${conference}`;
     const configTheme = adminConfig[configKey] as string | undefined;
 
-    const validIds = THEME_OPTIONS.map(t => t.id) as string[];
     if (configTheme && validIds.includes(configTheme)) {
       setThemeState(configTheme as ThemeId);
     } else {
@@ -53,7 +67,11 @@ export function ThemeProvider({ children, adminConfig, conference }: ThemeProvid
   }, [theme]);
 
   const setTheme = useCallback((newTheme: ThemeId) => {
+    userOverride.current = true;
     setThemeState(newTheme);
+    try {
+      localStorage.setItem(STORAGE_KEY, newTheme);
+    } catch {}
   }, []);
 
   return (
