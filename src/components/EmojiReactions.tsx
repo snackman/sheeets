@@ -32,7 +32,6 @@ export function EmojiReactions({
   // Emojis available to add
   const availableEmojis = REACTION_EMOJIS.filter((e) => !activeEmojis.has(e));
 
-  const pillSize = compact ? 'px-1.5 py-0.5 text-[10px]' : 'px-1.5 py-0.5 text-xs';
   const gap = compact ? 'gap-1' : 'gap-1.5';
 
   return (
@@ -45,14 +44,10 @@ export function EmojiReactions({
             trackReactionToggle(eventId, r.emoji, !r.reacted);
             onToggle(eventId, r.emoji);
           }}
-          className={`${pillSize} rounded-full border transition-colors cursor-pointer inline-flex items-center gap-1 ${
-            r.reacted
-              ? 'border-[var(--theme-accent)]/60 bg-[var(--theme-accent)]/10 text-[var(--theme-text-primary)]'
-              : 'border-[var(--theme-border-primary)] bg-[var(--theme-bg-tertiary)]/50 text-[var(--theme-text-secondary)] hover:border-[var(--theme-text-muted)]'
-          }`}
+          className="py-0.5 transition-colors cursor-pointer inline-flex items-center gap-0.5"
         >
-          <span>{r.emoji}</span>
-          <span className="font-medium">{r.count}</span>
+          <span className="text-[18px] leading-none">{r.emoji}</span>
+          <span className={`text-xs ${r.reacted ? 'text-[var(--theme-accent)]' : 'text-[var(--theme-text-muted)]'}`}>{r.count}</span>
         </button>
       ))}
 
