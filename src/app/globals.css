@@ -329,7 +329,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(28, 69, 134, 0.12);
+  background: rgba(28, 69, 134, 0.25);
   pointer-events: none;
   z-index: 1;
 }
