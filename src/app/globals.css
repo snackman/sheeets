@@ -68,6 +68,7 @@
   --theme-header-badge-border: var(--theme-accent);
 
   --theme-map-pin: #1c1917;
+  --theme-map-pin-night: rgba(255,255,255,0.4);
 
   --theme-bg-list: var(--theme-bg-primary);
   --theme-bg-filter: var(--theme-bg-primary);
@@ -148,7 +149,8 @@
 
   --theme-now-bg: #c0564a;
 
-  --theme-map-pin: #8b6914;
+  --theme-map-pin: #d4a32c;
+  --theme-map-pin-night: #6b4c0a;
 
   --theme-logo-filter: invert(0);
 
@@ -206,7 +208,8 @@
 
   --theme-now-bg: #22c55e;
 
-  --theme-map-pin: #dc2626;
+  --theme-map-pin: #fca5a5;
+  --theme-map-pin-night: #dc2626;
 
   --theme-logo-filter: invert(0);
 
@@ -277,7 +280,8 @@
   --theme-header-accent: #ffffff;
   --theme-header-accent-muted: rgba(255, 255, 255, 0.15);
 
-  --theme-map-pin: #1c4586;
+  --theme-map-pin: #93c5fd;
+  --theme-map-pin-night: #1c4586;
 
   --theme-bg-list: rgba(28, 69, 134, 0.06);
   --theme-bg-filter: #1c4586;

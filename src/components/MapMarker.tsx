@@ -23,13 +23,12 @@ interface MapMarkerProps {
   isFeatured?: boolean;
 }
 
-/** Get pin color based on start hour: white (morning/afternoon), transparent white (evening) */
+/** Get wedge color based on start hour: white (day), dark accent (evening) */
 function getPinColor(startMinutes: number | null | undefined): string {
-  if (startMinutes == null) return '#FFFFFF'; // default white
+  if (startMinutes == null) return '#FFFFFF';
   const hour = startMinutes / 60;
-  if (hour < 12) return '#FFFFFF'; // white — morning
-  if (hour < 18) return '#FFFFFF'; // white — afternoon
-  return 'rgba(255,255,255,0.4)'; // transparent white — evening
+  if (hour >= 18) return 'var(--theme-map-pin-night)';
+  return '#FFFFFF';
 }
 
 /** SVG clock-face pin with a black wedge representing the event time */
@@ -199,10 +198,10 @@ export function MapMarker({
             }}
             onClick={handleClick}
           >
-            <div className={`px-2 py-0.5 rounded text-[10px] max-w-[140px] leading-tight transition-colors ${
+            <div className={`px-2 py-0.5 rounded text-[10px] max-w-[140px] leading-tight transition-colors shadow-md border ${
               isFeatured
-                ? 'bg-[var(--theme-bg-secondary)]/90 border-2 border-[var(--theme-accent)]/50 group-hover:bg-[var(--theme-bg-tertiary)]/90 group-hover:border-[var(--theme-accent)]/70 text-[var(--theme-text-primary)]'
-                : 'bg-[var(--theme-bg-secondary)]/90 group-hover:bg-[var(--theme-bg-tertiary)]/90 text-[var(--theme-text-primary)]'
+                ? 'bg-[var(--theme-bg-secondary)] border-[var(--theme-accent)]/50 group-hover:bg-[var(--theme-bg-tertiary)] group-hover:border-[var(--theme-accent)]/70 text-[var(--theme-text-primary)] border-2'
+                : 'bg-[var(--theme-bg-secondary)] border-[var(--theme-border-primary)] group-hover:bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)]'
             }`}>
               <div className="truncate whitespace-nowrap">{label}</div>
               {showOrganizer && organizer && (
