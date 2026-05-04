@@ -282,13 +282,13 @@
   --theme-popup-featured-border: rgba(28, 69, 134, 0.5);
   --theme-popup-shadow: rgba(0, 0, 0, 0.1);
 
-  --tag-green: #059669;
-  --tag-blue: #2563EB;
-  --tag-yellow: #D97706;
-  --tag-pink: #DB2777;
-  --tag-teal: #0D9488;
-  --tag-purple: #7C3AED;
-  --tag-default: #4B5563;
+  --tag-green: #34d399;
+  --tag-blue: #93c5fd;
+  --tag-yellow: #fbbf24;
+  --tag-pink: #f472b6;
+  --tag-teal: #5eead4;
+  --tag-purple: #c4b5fd;
+  --tag-default: #94a3b8;
   --friend-blue: #2563EB;
 
   --theme-modal-header-bg: #1c4586;
