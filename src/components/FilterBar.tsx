@@ -581,7 +581,7 @@ export const FilterBar = memo(function FilterBar({
               const hasActiveTopics = topicsTags.some(t => filters.vibes.includes(t));
 
               return (
-                <div>
+                <div className="pb-2">
                   <button
                     onClick={() => setTopicsExpanded(!topicsExpanded)}
                     className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-[var(--theme-filter-text)] mb-1 cursor-pointer hover:text-[var(--theme-filter-active)] transition-colors"
