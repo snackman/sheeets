@@ -247,9 +247,9 @@ export interface EventSponsor {
   sponsor_name: string;
   sponsor_url: string | null;
   sponsor_logo_url: string | null;
-  sponsor_type: 'sponsor' | 'partner' | 'presenter' | 'host';
+  sponsor_type: 'sponsor' | 'partner' | 'presenter' | 'host' | 'individual';
   confidence: 'high' | 'medium' | 'low';
-  extraction_method: 'api' | 'json-ld' | 'html-section' | 'description' | 'ai';
+  extraction_method: 'api' | 'json-ld' | 'html-section' | 'description' | 'ai' | 'vision';
   crawled_at: string;
 }
 
