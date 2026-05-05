@@ -56,7 +56,7 @@ const DAY_COLORS: Record<number, string> = {
 };
 
 const DAY_ABBR: Record<number, string> = {
-  0: 'Su', 1: 'Mo', 2: 'Tu', 3: 'We', 4: 'Th', 5: 'Fr', 6: 'Sa',
+  0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat',
 };
 
 /** Format a dateISO string like "2026-02-10" into "Mon Feb 10" */
