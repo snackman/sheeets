@@ -11,16 +11,16 @@ interface ItineraryFABProps {
 }
 
 const fabClass =
-  'fixed bottom-6 right-6 z-40 flex items-center gap-2 h-10 px-3.5 rounded-full ' +
-  'bg-[var(--theme-filter-control-bg)] border border-orange-500 ' +
-  'text-orange-500 hover:bg-orange-500/10 ' +
+  'fixed bottom-6 right-6 z-40 flex items-center justify-center w-12 h-12 rounded-full ' +
+  'bg-[var(--theme-accent-muted)] border border-[var(--theme-accent)] ' +
+  'text-[var(--theme-accent)] hover:bg-[var(--theme-accent)] hover:text-[var(--theme-accent-text)] ' +
   'shadow-lg shadow-black/20 backdrop-blur-sm transition-colors';
 
 export function ItineraryFAB({ count, conference, onSignInNeeded, isSignedIn }: ItineraryFABProps) {
   const href = conference ? `/plan?conf=${encodeURIComponent(conference)}` : '/plan';
 
   const badge = count > 0 ? (
-    <span className="text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1 bg-orange-500 text-white">
+    <span className="absolute -top-1 -right-1 text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1 bg-[var(--theme-accent)] text-[var(--theme-accent-text)]">
       {count}
     </span>
   ) : null;
@@ -28,7 +28,7 @@ export function ItineraryFAB({ count, conference, onSignInNeeded, isSignedIn }: 
   if (count > 0 || isSignedIn) {
     return (
       <Link href={href} className={fabClass}>
-        <CalendarIcon className="w-5 h-5" />
+        <CalendarIcon className="w-6 h-6" />
         {badge}
       </Link>
     );
@@ -36,7 +36,7 @@ export function ItineraryFAB({ count, conference, onSignInNeeded, isSignedIn }: 
 
   return (
     <button onClick={onSignInNeeded} className={`${fabClass} cursor-pointer`}>
-      <CalendarIcon className="w-5 h-5" />
+      <CalendarIcon className="w-6 h-6" />
     </button>
   );
 }
