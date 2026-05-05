@@ -581,8 +581,13 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         />
       )}
 
-      {itineraryCount > 0 && !hasNearbyLiveEvents && (
-        <ItineraryFAB count={itineraryCount} conference={filters.conference} />
+      {!hasNearbyLiveEvents && (
+        <ItineraryFAB
+          count={itineraryCount}
+          conference={filters.conference}
+          isSignedIn={!!authUser}
+          onSignInNeeded={() => setShowSignIn(true)}
+        />
       )}
 
       <AuthModal isOpen={showAuthForStar || showSignIn} onClose={() => { dismissAuth(); setShowSignIn(false); }} />
