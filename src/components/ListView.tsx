@@ -196,6 +196,7 @@ export const ListView = memo(function ListView({
   /* ---- force virtualizer to recalculate once scroll container is mounted ---- */
   useEffect(() => {
     if (containerRef.current) {
+      containerRef.current.scrollTop = 0;
       virtualizer.measure();
     }
   }, [virtualizer, containerRef]);
