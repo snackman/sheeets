@@ -677,10 +677,14 @@ function DateGroup({
                 })()}
               </div>
             </td>
-            <td className="px-3 py-2 text-[var(--theme-text-secondary)] whitespace-nowrap">
+            <td className="px-3 py-2 text-[var(--theme-text-secondary)] sm:whitespace-nowrap">
               {(() => { const u = liveEventIds?.get(event.id); return u ? <span className={`w-1.5 h-1.5 rounded-full animate-pulse inline-block align-middle mr-1.5 ${u === 'red' ? 'bg-red-400' : u === 'yellow' ? 'bg-yellow-400' : 'bg-green-400'}`} title={u === 'red' ? 'Ending soon' : u === 'yellow' ? 'Less than 1hr left' : 'Live now'} /> : null; })()}
               <span className="relative inline-block">
-                <span>{event.startTime}{event.endTime ? `-${event.endTime}` : ''}</span>
+                <span className="sm:inline hidden">{event.startTime}{event.endTime ? `-${event.endTime}` : ''}</span>
+                <span className="sm:hidden flex flex-col leading-tight">
+                  <span>{event.startTime}</span>
+                  {event.endTime && <span className="text-[10px] text-[var(--theme-text-muted)]">{event.endTime}</span>}
+                </span>
                 {(checkInCounts?.get(event.id) ?? 0) > 0 && (
                   <span className="absolute -top-1.5 -right-3 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-green-500 text-white text-[8px] font-bold px-0.5 pointer-events-none">
                     {checkInCounts!.get(event.id)}
@@ -771,12 +775,16 @@ function DateGroup({
             </td>
 
             {/* Time */}
-            <td className="px-3 py-2 text-[var(--theme-text-secondary)] whitespace-nowrap">
+            <td className="px-3 py-2 text-[var(--theme-text-secondary)] sm:whitespace-nowrap">
               {(() => { const u = liveEventIds?.get(event.id); return u ? <span className={`w-1.5 h-1.5 rounded-full animate-pulse inline-block align-middle mr-1.5 ${u === 'red' ? 'bg-red-400' : u === 'yellow' ? 'bg-yellow-400' : 'bg-green-400'}`} title={u === 'red' ? 'Ending soon' : u === 'yellow' ? 'Less than 1hr left' : 'Live now'} /> : null; })()}
               <span className="relative inline-block">
-                <span>
+                <span className="sm:inline hidden">
                   {event.startTime}
                   {event.endTime ? `-${event.endTime}` : ''}
+                </span>
+                <span className="sm:hidden flex flex-col leading-tight">
+                  <span>{event.startTime}</span>
+                  {event.endTime && <span className="text-[10px] text-[var(--theme-text-muted)]">{event.endTime}</span>}
                 </span>
                 {(checkInCounts?.get(event.id) ?? 0) > 0 && (
                   <span className="absolute -top-1.5 -right-3 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-green-500 text-white text-[8px] font-bold px-0.5 pointer-events-none">
