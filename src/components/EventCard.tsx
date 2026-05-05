@@ -42,6 +42,8 @@ interface EventCardProps {
   onRsvp?: () => void;
   /** Compact mode for map popups — smaller text, no impression tracking */
   compact?: boolean;
+  /** When true, action buttons are rendered externally (ListView desktop) — hides internal button column and enlarges flyer */
+  externalActions?: boolean;
 }
 
 function FriendsGoingModal({
@@ -144,6 +146,7 @@ export const EventCard = memo(function EventCard({
   rsvpStatus,
   onRsvp,
   compact,
+  externalActions,
 }: EventCardProps) {
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [showCheckedInModal, setShowCheckedInModal] = useState(false);
@@ -231,7 +234,7 @@ export const EventCard = memo(function EventCard({
     >
       {/* Left column: action buttons + cover image */}
       <div className="flex items-center shrink-0 gap-1">
-        <div className="flex flex-col items-center gap-1">
+        <div className={`flex flex-col items-center gap-1${externalActions ? ' sm:hidden' : ''}`}>
           {onItineraryToggle && (
             <StarButton
               eventId={event.id}
@@ -259,7 +262,7 @@ export const EventCard = memo(function EventCard({
             </button>
           )}
         </div>
-        {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} onOpenLightbox={onOpenLightbox} />}
+        {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} onOpenLightbox={onOpenLightbox} className={externalActions ? 'w-[88px] sm:w-[140px]' : undefined} />}
       </div>
 
       {/* Right: event details */}
@@ -446,3 +449,66 @@ export const EventCard = memo(function EventCard({
     </div>
   );
 });
+
+/* ------------------------------------------------------------------ */
+/* Standalone action buttons — rendered outside the card in ListView  */
+/* ------------------------------------------------------------------ */
+
+interface EventCardActionsProps {
+  event: ETHDenverEvent;
+  isInItinerary: boolean;
+  onItineraryToggle?: (eventId: string) => void;
+  rsvpStatus?: 'idle' | 'confirmed';
+  onRsvp?: () => void;
+}
+
+export function EventCardActions({
+  event,
+  isInItinerary,
+  onItineraryToggle,
+  rsvpStatus,
+  onRsvp,
+}: EventCardActionsProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!event.link) return;
+    navigator.clipboard.writeText(event.link).then(() => {
+      trackCopyEventLink(event.name);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      {onItineraryToggle && (
+        <StarButton
+          eventId={event.id}
+          isStarred={isInItinerary}
+          onToggle={onItineraryToggle}
+        />
+      )}
+      {onRsvp && event.link && (
+        <div className="mt-px">
+          <RsvpButton eventLink={event.link} status={rsvpStatus ?? 'idle'} onClick={onRsvp} />
+        </div>
+      )}
+      {event.link && (
+        <button
+          onClick={handleCopyLink}
+          className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
+          aria-label="Copy event link"
+          title="Copy link"
+        >
+          {copied ? (
+            <Check className="w-4 h-4 text-green-400" />
+          ) : (
+            <Link className="w-4 h-4" />
+          )}
+        </button>
+      )}
+    </div>
+  );
+}
