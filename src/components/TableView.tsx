@@ -452,8 +452,8 @@ export const TableView = memo(function TableView({
                         const dow = date.getDay();
                         return (
                           <>
-                            <span className="text-[10px] font-bold">{DAY_ABBR[dow]}</span>
-                            <span className="text-[9px]">{currentDateLabel.replace(/^\w+\s/, '').toUpperCase()}</span>
+                            <span className="text-[11px] font-bold">{DAY_ABBR[dow]}</span>
+                            <span className="text-[10px]">{currentDateLabel.replace(/^\w+\s/, '').toUpperCase()}</span>
                           </>
                         );
                       })()}
