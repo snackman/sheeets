@@ -80,10 +80,8 @@ function DayBadge({ dateISO, label }: { dateISO: string; label: string }) {
 
   return (
     <>
-      <span className="sm:hidden inline-flex items-center gap-1">
-        <span className={`text-[10px] font-bold ${colors}`}>
-          {abbr}
-        </span>
+      <span className="sm:hidden inline-flex items-center gap-0.5 text-[10px] text-white">
+        <span className="font-bold">{abbr}</span>
         <span>{label.replace(/^\w+\s/, '')}</span>
       </span>
       <span className="hidden sm:inline">{label}</span>
@@ -445,7 +443,7 @@ export const TableView = memo(function TableView({
                 ) : (
                   <span className="text-[var(--theme-table-header-text)] font-semibold">
                     <span className="hidden sm:inline">{currentDateLabel.toUpperCase()}</span>
-                    <span className="sm:hidden inline-flex items-center gap-0.5 text-[10px] text-white leading-none align-middle">
+                    <span className="sm:hidden inline-flex items-center gap-0.5 text-[10px] text-white">
                       {(() => {
                         const g = groups.find(gr => formatDateHeader(gr.dateISO) === currentDateLabel);
                         if (!g) return <span>{currentDateLabel.toUpperCase()}</span>;
@@ -454,9 +452,7 @@ export const TableView = memo(function TableView({
                         const dow = date.getDay();
                         return (
                           <>
-                            <span className="font-bold">
-                              {DAY_ABBR[dow]}
-                            </span>
+                            <span className="font-bold">{DAY_ABBR[dow]}</span>
                             <span>{currentDateLabel.replace(/^\w+\s/, '').toUpperCase()}</span>
                           </>
                         );
