@@ -8,6 +8,7 @@ import { useEventComments } from '@/hooks/useEventComments';
 import { timeAgo } from '@/lib/time-parse';
 import { getDisplayName } from '@/lib/user-display';
 import UserAvatar from './UserAvatar';
+import ProfileCardModal from './ProfileCardModal';
 import { trackCommentExpand, trackCommentAdd, trackCommentDelete, trackCommentVisibilityToggle } from '@/lib/analytics';
 
 interface CommentSectionProps {
@@ -25,6 +26,16 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
   );
   const [text, setText] = useState('');
   const [visibility, setVisibility] = useState<'public' | 'friends'>('public');
+  const [selectedProfile, setSelectedProfile] = useState<{
+    userId: string;
+    displayName?: string | null;
+    xHandle?: string | null;
+    avatarUrl?: string | null;
+    jobTitle?: string | null;
+    company?: string | null;
+    linkedinUrl?: string | null;
+    telegramHandle?: string | null;
+  } | null>(null);
 
   // Detect mobile viewport
   useEffect(() => {
@@ -86,26 +97,46 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
           {comments.map((comment) => {
             const name = getDisplayName(comment);
 
-            const profileUrl = comment.x_handle ? `https://x.com/${comment.x_handle}` : null;
-
             return (
               <div key={comment.id} className="flex gap-2 group/comment">
-                {profileUrl ? (
-                  <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <UserAvatar size="xs" avatarUrl={comment.avatar_url} xHandle={comment.x_handle} displayName={comment.display_name} />
-                  </a>
-                ) : (
+                <button
+                  className="shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedProfile({
+                      userId: comment.user_id,
+                      displayName: comment.display_name,
+                      xHandle: comment.x_handle,
+                      avatarUrl: comment.avatar_url,
+                      jobTitle: comment.job_title,
+                      company: comment.company,
+                      linkedinUrl: comment.linkedin_url,
+                      telegramHandle: comment.telegram_handle,
+                    });
+                  }}
+                >
                   <UserAvatar size="xs" avatarUrl={comment.avatar_url} xHandle={comment.x_handle} displayName={comment.display_name} />
-                )}
+                </button>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    {profileUrl ? (
-                      <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] font-medium text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] transition-colors" onClick={(e) => e.stopPropagation()}>
-                        {name}
-                      </a>
-                    ) : (
-                      <span className="text-[11px] font-medium text-[var(--theme-text-secondary)]">{name}</span>
-                    )}
+                    <button
+                      className="text-[11px] font-medium text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] transition-colors cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedProfile({
+                          userId: comment.user_id,
+                          displayName: comment.display_name,
+                          xHandle: comment.x_handle,
+                          avatarUrl: comment.avatar_url,
+                          jobTitle: comment.job_title,
+                          company: comment.company,
+                          linkedinUrl: comment.linkedin_url,
+                          telegramHandle: comment.telegram_handle,
+                        });
+                      }}
+                    >
+                      {name}
+                    </button>
                     <span className="text-[10px] text-[var(--theme-text-faint)]">{timeAgo(comment.created_at)}</span>
                     {comment.visibility === 'friends' && (
                       <span className="text-[9px] rounded px-1" style={{ color: 'var(--friend-blue)', opacity: 0.6, borderWidth: '1px', borderColor: 'color-mix(in srgb, var(--friend-blue) 30%, transparent)' }}>friends</span>
@@ -235,6 +266,20 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
           </div>,
           document.body
         )}
+        {selectedProfile && (
+          <ProfileCardModal
+            isOpen={!!selectedProfile}
+            onClose={() => setSelectedProfile(null)}
+            userId={selectedProfile.userId}
+            displayName={selectedProfile.displayName}
+            xHandle={selectedProfile.xHandle}
+            avatarUrl={selectedProfile.avatarUrl}
+            jobTitle={selectedProfile.jobTitle}
+            company={selectedProfile.company}
+            linkedinUrl={selectedProfile.linkedinUrl}
+            telegramHandle={selectedProfile.telegramHandle}
+          />
+        )}
       </>
     );
   }
@@ -260,6 +305,22 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
 
       {/* Input */}
       {inputContent}
+
+      {/* Profile card modal */}
+      {selectedProfile && (
+        <ProfileCardModal
+          isOpen={!!selectedProfile}
+          onClose={() => setSelectedProfile(null)}
+          userId={selectedProfile.userId}
+          displayName={selectedProfile.displayName}
+          xHandle={selectedProfile.xHandle}
+          avatarUrl={selectedProfile.avatarUrl}
+          jobTitle={selectedProfile.jobTitle}
+          company={selectedProfile.company}
+          linkedinUrl={selectedProfile.linkedinUrl}
+          telegramHandle={selectedProfile.telegramHandle}
+        />
+      )}
     </div>
   );
 }
