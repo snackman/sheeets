@@ -44,15 +44,15 @@ interface TableViewProps {
   onRsvp?: (eventId: string, lumaUrl: string, eventName: string) => void;
 }
 
-/** Day-of-week colors for mobile badges */
+/** Day-of-week styles for mobile badges — white text, no background */
 const DAY_COLORS: Record<number, string> = {
-  0: 'bg-red-500/20 text-red-400',       // Sun
-  1: 'bg-purple-500/20 text-purple-400',  // Mon
-  2: 'bg-blue-500/20 text-blue-400',      // Tue
-  3: 'bg-green-500/20 text-green-400',    // Wed
-  4: 'bg-yellow-500/20 text-yellow-400',  // Thu
-  5: 'bg-orange-500/20 text-orange-400',  // Fri
-  6: 'bg-pink-500/20 text-pink-400',      // Sat
+  0: 'text-[var(--theme-text-primary)]',  // Sun
+  1: 'text-[var(--theme-text-primary)]',  // Mon
+  2: 'text-[var(--theme-text-primary)]',  // Tue
+  3: 'text-[var(--theme-text-primary)]',  // Wed
+  4: 'text-[var(--theme-text-primary)]',  // Thu
+  5: 'text-[var(--theme-text-primary)]',  // Fri
+  6: 'text-[var(--theme-text-primary)]',  // Sat
 };
 
 const DAY_ABBR: Record<number, string> = {
@@ -80,8 +80,8 @@ function DayBadge({ dateISO, label }: { dateISO: string; label: string }) {
 
   return (
     <>
-      <span className="sm:hidden inline-flex items-center gap-1.5">
-        <span className={`inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-bold ${colors}`}>
+      <span className="sm:hidden inline-flex items-center gap-1">
+        <span className={`text-[10px] font-bold ${colors}`}>
           {abbr}
         </span>
         <span>{label.replace(/^\w+\s/, '')}</span>
@@ -445,9 +445,8 @@ export const TableView = memo(function TableView({
                 ) : (
                   <span className="text-[var(--theme-table-header-text)] font-semibold">
                     <span className="hidden sm:inline">{currentDateLabel.toUpperCase()}</span>
-                    <span className="sm:hidden inline-flex items-center gap-1.5">
+                    <span className="sm:hidden inline-flex items-center gap-1">
                       {(() => {
-                        // Find the dateISO for the current label to get day-of-week
                         const g = groups.find(gr => formatDateHeader(gr.dateISO) === currentDateLabel);
                         if (!g) return <span>{currentDateLabel.toUpperCase()}</span>;
                         const [y, m, d] = g.dateISO.split('-').map(Number);
@@ -455,7 +454,7 @@ export const TableView = memo(function TableView({
                         const dow = date.getDay();
                         return (
                           <>
-                            <span className={`inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-bold ${DAY_COLORS[dow]}`}>
+                            <span className={`text-[10px] font-bold ${DAY_COLORS[dow]}`}>
                               {DAY_ABBR[dow]}
                             </span>
                             <span>{currentDateLabel.replace(/^\w+\s/, '').toUpperCase()}</span>
