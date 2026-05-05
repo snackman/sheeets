@@ -40,6 +40,11 @@ interface AnalyticsData {
   pages: string[][];
   devices: string[][];
   audiences: Audience[];
+  realtime: {
+    activeUsers: number;
+    minutesAgo: string[][];
+    topPages: string[][];
+  } | null;
 }
 
 const FUNNEL_ORDER = [
@@ -355,6 +360,56 @@ export default function AnalyticsPage() {
             </p>
           )}
         </div>
+
+        {/* Live Activity */}
+        {data.realtime && (
+          <div className="bg-stone-900 border border-stone-700 rounded-xl p-4 mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <h2 className="text-lg font-semibold">Live</h2>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Active users now */}
+              <div className="text-center">
+                <p className="text-4xl font-bold text-green-400">{data.realtime.activeUsers}</p>
+                <p className="text-stone-400 text-sm mt-1">active users right now</p>
+              </div>
+
+              {/* Minutes ago sparkline - simple bar chart */}
+              <div>
+                <p className="text-xs text-stone-400 uppercase tracking-wide mb-2">Active Users (last 30 min)</p>
+                <div className="flex items-end gap-px h-16">
+                  {data.realtime.minutesAgo.slice(0, 30).reverse().map((row, i) => {
+                    const count = parseInt(row[1], 10);
+                    const max = Math.max(...data.realtime!.minutesAgo.map(r => parseInt(r[1], 10)), 1);
+                    const height = (count / max) * 100;
+                    return (
+                      <div
+                        key={i}
+                        className="flex-1 bg-green-500/60 rounded-t-sm min-h-[2px]"
+                        style={{ height: `${height}%` }}
+                        title={`${row[0]} min ago: ${count} users`}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Top pages right now */}
+              <div>
+                <p className="text-xs text-stone-400 uppercase tracking-wide mb-2">Top Pages Now</p>
+                <div className="space-y-1">
+                  {data.realtime.topPages.slice(0, 5).map((row, i) => (
+                    <div key={i} className="flex items-center justify-between text-sm">
+                      <span className="font-mono text-xs truncate mr-2">{row[0]}</span>
+                      <span className="text-green-400 font-medium shrink-0">{row[1]}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Scorecards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
