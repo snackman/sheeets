@@ -105,7 +105,7 @@ export function applyFilters(
   itinerary?: Set<string>,
   nowTimestamp?: number,
   friendEventIds?: Set<string>,
-  options?: { skipVibes?: boolean },
+  options?: { skipVibes?: boolean; orgEventIds?: Set<string>; eventIdToOrgs?: Map<string, string[]> },
 ): ETHDenverEvent[] {
   // Create the "now" Date once using conference timezone
   const now = nowTimestamp ? new Date(nowTimestamp) : getConferenceNow(filters.conference);
@@ -157,6 +157,11 @@ export function applyFilters(
     if (filters.selectedFriends.length > 0 && friendEventIds && !friendEventIds.has(event.id))
       return false;
 
+    // Org filter
+    if (filters.selectedOrgs.length > 0 && options?.orgEventIds) {
+      if (!options.orgEventIds.has(event.id)) return false;
+    }
+
     // Search
     if (filters.searchQuery) {
       const q = filters.searchQuery.toLowerCase();
@@ -171,7 +176,13 @@ export function applyFilters(
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
-      if (!searchable.includes(q)) return false;
+      if (!searchable.includes(q)) {
+        // Check org names for this event
+        const orgs = options?.eventIdToOrgs?.get(event.id);
+        if (!orgs || !orgs.some(o => o.toLowerCase().includes(q))) {
+          return false;
+        }
+      }
     }
 
     return true;

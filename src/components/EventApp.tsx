@@ -13,6 +13,7 @@ import { useViewMode } from '@/hooks/useViewMode';
 import { useAuthGatedActions } from '@/hooks/useAuthGatedActions';
 import { useConferenceData } from '@/hooks/useConferenceData';
 import { useNowMode } from '@/hooks/useNowMode';
+import { useOrgs } from '@/hooks/useOrgs';
 import { useAdminConfig } from '@/hooks/useAdminConfig';
 import { useConferenceTabs } from '@/hooks/useConferenceTabs';
 import { useABTest } from '@/hooks/useABTest';
@@ -63,6 +64,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
     toggleTagMatchAll,
     clearFilters,
     activeFilterCount,
+    toggleOrg,
   } = useFilters(initialConference, conferenceTabs);
 
   // Re-apply conference date range once dynamic tabs load
@@ -135,11 +137,40 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
     setFilter,
   });
 
+  const { orgMapping } = useOrgs(filters.conference);
+
+  const orgNames = useMemo(() => orgMapping.orgs.map(o => o.name), [orgMapping]);
+
+  const orgEventIds = useMemo(() => {
+    if (filters.selectedOrgs.length === 0) return undefined;
+    const ids = new Set<string>();
+    for (const org of orgMapping.orgs) {
+      if (filters.selectedOrgs.includes(org.name)) {
+        for (const id of org.eventIds) ids.add(id);
+      }
+    }
+    return ids;
+  }, [orgMapping, filters.selectedOrgs]);
+
+  const eventIdToOrgs = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const [eventId, orgNamesList] of Object.entries(orgMapping.eventOrgs)) {
+      map.set(eventId, orgNamesList);
+    }
+    return map;
+  }, [orgMapping]);
+
+  const nowModeFilterOptions = useMemo(() => ({
+    orgEventIds,
+    eventIdToOrgs,
+  }), [orgEventIds, eventIdToOrgs]);
+
   const { filteredEvents } = useNowMode({
     events,
     filters,
     itinerary,
     selectedFriendEventIds,
+    filterOptions: nowModeFilterOptions,
   });
 
   const featuredEvents = useMemo(
@@ -149,9 +180,9 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
 
   // Events filtered by everything EXCEPT vibes — used to compute tag counts
   const baseFilteredEvents = useMemo(
-    () => applyFilters(events, filters, itinerary, filters.nowMode ? getConferenceNow(filters.conference).getTime() : undefined, selectedFriendEventIds, { skipVibes: true }),
+    () => applyFilters(events, filters, itinerary, filters.nowMode ? getConferenceNow(filters.conference).getTime() : undefined, selectedFriendEventIds, { skipVibes: true, orgEventIds, eventIdToOrgs }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [events, filters, itinerary, selectedFriendEventIds]
+    [events, filters, itinerary, selectedFriendEventIds, orgEventIds, eventIdToOrgs]
   );
 
   const tagCounts = useMemo(
@@ -527,6 +558,9 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           eventCount={filteredEvents.length}
           onSubmitEvent={handleOpenSubmitEvent}
           onSignIn={handleOpenSignIn}
+          orgNames={orgNames}
+          selectedOrgs={filters.selectedOrgs}
+          onToggleOrg={toggleOrg}
           conferenceTabs={conferenceTabs}
           itineraryCount={filteredItineraryCount}
           onItineraryToggle={handleItineraryFilterToggle}

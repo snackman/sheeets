@@ -36,6 +36,7 @@ function buildDefaultFilters(conference: string, tabs?: TabConfig[]): FilterStat
     itineraryOnly: false,
     searchQuery: '',
     nowMode: false,
+    selectedOrgs: [],
   };
 }
 
@@ -98,6 +99,15 @@ export function useFilters(initialConference?: string, conferenceTabs?: TabConfi
     setFilters((prev) => ({ ...prev, tagMatchAll: !prev.tagMatchAll }));
   }, []);
 
+  const toggleOrg = useCallback((orgName: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      selectedOrgs: prev.selectedOrgs.includes(orgName)
+        ? prev.selectedOrgs.filter((o) => o !== orgName)
+        : [...prev.selectedOrgs, orgName],
+    }));
+  }, []);
+
   const clearFilters = useCallback(() => setFilters(buildDefaultFilters(filters.conference, conferenceTabs)), [filters.conference, conferenceTabs]);
 
   const activeFilterCount = useMemo(() => {
@@ -107,6 +117,7 @@ export function useFilters(initialConference?: string, conferenceTabs?: TabConfi
     if (filters.startDateTime !== currentDefaults.startDateTime || filters.endDateTime !== currentDefaults.endDateTime) count++;
     count += filters.vibes.length;
     if (filters.selectedFriends.length > 0) count++;
+    if (filters.selectedOrgs.length > 0) count++;
     return count;
   }, [filters, conferenceTabs]);
 
@@ -122,5 +133,6 @@ export function useFilters(initialConference?: string, conferenceTabs?: TabConfi
     toggleTagMatchAll,
     clearFilters,
     activeFilterCount,
+    toggleOrg,
   };
 }

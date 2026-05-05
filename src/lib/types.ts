@@ -46,6 +46,7 @@ export interface FilterState {
   itineraryOnly: boolean;
   searchQuery: string;
   nowMode: boolean;
+  selectedOrgs: string[];
 }
 
 export interface UserState {

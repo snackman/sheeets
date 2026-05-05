@@ -5,9 +5,10 @@ import clsx from 'clsx';
 import { X, ListFilter, Clock, Users, MapPin, Plus, Link2, Check, Loader2, ChevronDown } from 'lucide-react';
 import { CalendarIcon } from './icons/CalendarIcon';
 import type { FilterState } from '@/lib/types';
-import { VIBE_COLORS, getTabConfig, TAG_GROUPS, GROUPED_TAGS } from '@/lib/constants';
+import { VIBE_COLORS, getTabConfig, TAG_GROUPS } from '@/lib/constants';
 import type { TabConfig } from '@/lib/conferences';
 import { TAG_ICONS } from './TagBadge';
+import { OrgDropdown } from './OrgDropdown';
 import { SearchBar } from './SearchBar';
 import { DateTimePicker } from './DateTimePicker';
 import UserAvatar from './UserAvatar';
@@ -37,6 +38,9 @@ interface FilterBarProps {
   onSubmitEvent?: () => void;
   onSignIn?: () => void;
   conferenceTabs?: TabConfig[];
+  orgNames: string[];
+  selectedOrgs: string[];
+  onToggleOrg: (name: string) => void;
   itineraryCount: number;
   onItineraryToggle: () => void;
   isItineraryActive: boolean;
@@ -64,6 +68,9 @@ export const FilterBar = memo(function FilterBar({
   eventCount,
   onSubmitEvent,
   onSignIn,
+  orgNames,
+  selectedOrgs,
+  onToggleOrg,
   conferenceTabs,
   itineraryCount,
   onItineraryToggle,
@@ -374,11 +381,6 @@ export const FilterBar = memo(function FilterBar({
                 );
               });
 
-              // "Other" catch-all for tags not in any TAG_GROUP
-              const otherTags = [...allAvailable].filter(
-                (tag) => !GROUPED_TAGS.has(tag) && (tagCounts.get(tag) ?? 0) > 0
-              );
-
               return (
                 <>
                   {/* Any/All toggle — only show when tags are selected */}
@@ -410,37 +412,12 @@ export const FilterBar = memo(function FilterBar({
                     </div>
                   )}
                   {groupRows}
-                  {otherTags.length > 0 && (
-                    <div>
-                      <div className="text-xs uppercase tracking-wider text-[var(--theme-filter-text)] mb-1">Other</div>
-                      <div className="flex flex-wrap gap-2">
-                        {otherTags.map((vibe) => {
-                          const isActive = filters.vibes.includes(vibe);
-                          const vibeColor = VIBE_COLORS[vibe] || VIBE_COLORS['default'];
-                          const Icon = TAG_ICONS[vibe];
-                          const count = tagCounts.get(vibe) ?? 0;
-                          return (
-                            <button
-                              key={vibe}
-                              onClick={() => { trackTagToggle(vibe, !filters.vibes.includes(vibe)); onToggleVibe(vibe); }}
-                              className={clsx(
-                                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
-                                isActive
-                                  ? 'bg-[var(--theme-filter-active-bg)] border'
-                                  : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:bg-[var(--theme-filter-control-border)] active:bg-[var(--theme-filter-control-border)] border border-[var(--theme-filter-control-border)]'
-                              )}
-                              style={isActive ? { borderColor: vibeColor, color: vibeColor } : undefined}
-                            >
-                              {Icon && <Icon className="w-3.5 h-3.5" />}
-                              {vibe}
-                              <span className={clsx('text-xs', isActive ? 'opacity-70' : 'opacity-60')}>
-                                ({count})
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+                  {orgNames.length > 0 && (
+                    <OrgDropdown
+                      orgNames={orgNames}
+                      selectedOrgs={selectedOrgs}
+                      onToggleOrg={onToggleOrg}
+                    />
                   )}
                 </>
               );
