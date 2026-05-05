@@ -34,7 +34,7 @@ function typeLabel(types: string[]): string {
   return types[0] || 'Sponsor';
 }
 
-export function SponsorsContent({ sponsors, conferences, totalEvents }: Props) {
+export function OrgsContent({ sponsors, conferences, totalEvents }: Props) {
   const [search, setSearch] = useState('');
   const [conferenceFilter, setConferenceFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -86,7 +86,7 @@ export function SponsorsContent({ sponsors, conferences, totalEvents }: Props) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--theme-text-secondary)]" />
           <input
             type="text"
-            placeholder="Search sponsors..."
+            placeholder="Search organizations..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[var(--theme-border-primary)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] placeholder:text-[var(--theme-text-secondary)]"
@@ -204,7 +204,7 @@ export function SponsorsContent({ sponsors, conferences, totalEvents }: Props) {
 
       {filtered.length === 0 && (
         <p className="text-center text-sm text-[var(--theme-text-secondary)] py-12">
-          No sponsors found matching your filters.
+          No organizations found matching your filters.
         </p>
       )}
     </main>

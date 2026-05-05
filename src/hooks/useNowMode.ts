@@ -9,6 +9,7 @@ interface UseNowModeOptions {
   filters: FilterState;
   itinerary: Set<string>;
   selectedFriendEventIds?: Set<string>;
+  filterOptions?: { skipVibes?: boolean; orgEventIds?: Set<string>; eventIdToOrgs?: Map<string, string[]> };
 }
 
 /**
@@ -20,6 +21,7 @@ export function useNowMode({
   filters,
   itinerary,
   selectedFriendEventIds,
+  filterOptions,
 }: UseNowModeOptions) {
   const [nowTick, setNowTick] = useState(0);
 
@@ -38,10 +40,11 @@ export function useNowMode({
         filters,
         itinerary,
         filters.nowMode ? getConferenceNow(filters.conference).getTime() : undefined,
-        selectedFriendEventIds
+        selectedFriendEventIds,
+        filterOptions
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [events, filters, itinerary, nowTick, selectedFriendEventIds]
+    [events, filters, itinerary, nowTick, selectedFriendEventIds, filterOptions]
   );
 
   return { filteredEvents };

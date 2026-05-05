@@ -26,6 +26,7 @@ import {
   Vote,
   PartyPopper,
   Ticket,
+  BadgeDollarSign,
   CircuitBoard,
   Globe,
   Presentation,
@@ -79,6 +80,7 @@ type IconComponent = LucideIcon | ((props: React.SVGProps<SVGSVGElement>) => Rea
 
 export const TAG_ICONS: Record<string, IconComponent> = {
   '$$': Ticket,
+  'Free': BadgeDollarSign,
   'Conference': IdCardLanyard,
   'Panel/Talk': Mic,
   'Hackathon': Trophy,
