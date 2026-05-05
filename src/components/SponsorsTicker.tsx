@@ -94,7 +94,7 @@ export const SponsorsTicker = memo(function SponsorsTicker({ sponsors, conferenc
   );
 
   return (
-    <div ref={tickerRef} className="w-full overflow-hidden border-b border-[var(--theme-ticker-border)] py-1.5 bg-[var(--theme-ticker-bg)]">
+    <div ref={tickerRef} className="w-full overflow-hidden border-b border-[var(--theme-ticker-border)] py-1.5 bg-[var(--theme-ticker-bg)] shrink-0">
       <div className="sponsors-scroll inline-flex whitespace-nowrap text-xs text-[var(--theme-text-secondary)]">
         {item}{item}{item}{item}{item}{item}{item}{item}
       </div>
