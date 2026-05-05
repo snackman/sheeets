@@ -80,6 +80,7 @@ export const FilterBar = memo(function FilterBar({
   const [expanded, setExpandedRaw] = useState(false);
   const setExpanded = (v: boolean) => { setExpandedRaw(v); onExpandedChange?.(v); };
   const [confOpen, setConfOpen] = useState(false);
+  const [topicsExpanded, setTopicsExpanded] = useState(false);
   const confBtnRef = useRef<HTMLButtonElement | null>(null);
 
   // Friend invite link state
@@ -336,13 +337,12 @@ export const FilterBar = memo(function FilterBar({
               );
             })()}
 
-            {/* Tag match mode toggle + Tag groups */}
+            {/* Tag match mode toggle + Ordered filter sections */}
             {(() => {
-              // Union all available tags from both types and vibes
               const allAvailable = new Set([...availableTypes, ...availableVibes]);
 
-              // Render each TAG_GROUP that has at least one available tag with count > 0
-              const groupRows = TAG_GROUPS.map((group) => {
+              // Build a render function for a tag group
+              function renderGroup(group: typeof TAG_GROUPS[0]) {
                 const groupTags = group.tags.filter(
                   (tag) => allAvailable.has(tag) && (tagCounts.get(tag) ?? 0) > 0
                 );
@@ -380,7 +380,12 @@ export const FilterBar = memo(function FilterBar({
                     </div>
                   </div>
                 );
-              });
+              }
+
+              // Find groups by label
+              const vibeGroup = TAG_GROUPS.find(g => g.label === 'Vibe');
+              const detailsGroup = TAG_GROUPS.find(g => g.label === 'Details');
+              const audienceGroup = TAG_GROUPS.find(g => g.label === 'Audience');
 
               return (
                 <>
@@ -412,14 +417,15 @@ export const FilterBar = memo(function FilterBar({
                       </button>
                     </div>
                   )}
-                  {groupRows}
-                  {orgNames.length > 0 && (
-                    <OrgDropdown
-                      orgNames={orgNames}
-                      selectedOrgs={selectedOrgs}
-                      onToggleOrg={onToggleOrg}
-                    />
-                  )}
+
+                  {/* Vibe */}
+                  {vibeGroup && renderGroup(vibeGroup)}
+
+                  {/* Details */}
+                  {detailsGroup && renderGroup(detailsGroup)}
+
+                  {/* Audience */}
+                  {audienceGroup && renderGroup(audienceGroup)}
                 </>
               );
             })()}
@@ -500,6 +506,72 @@ export const FilterBar = memo(function FilterBar({
                 </div>
               )}
             </div>
+
+            {/* Organizations */}
+            {orgNames.length > 0 && (
+              <OrgDropdown
+                orgNames={orgNames}
+                selectedOrgs={selectedOrgs}
+                onToggleOrg={onToggleOrg}
+              />
+            )}
+
+            {/* Topics — collapsed by default */}
+            {(() => {
+              const allAvailable = new Set([...availableTypes, ...availableVibes]);
+              const topicsGroup = TAG_GROUPS.find(g => g.label === 'Topics');
+              if (!topicsGroup) return null;
+              const topicsTags = topicsGroup.tags.filter(
+                (tag) => allAvailable.has(tag) && (tagCounts.get(tag) ?? 0) > 0
+              );
+              if (topicsTags.length === 0) return null;
+              const hasActiveTopics = topicsTags.some(t => filters.vibes.includes(t));
+
+              return (
+                <div>
+                  <button
+                    onClick={() => setTopicsExpanded(!topicsExpanded)}
+                    className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-[var(--theme-filter-text)] mb-1 cursor-pointer hover:text-[var(--theme-filter-active)] transition-colors"
+                  >
+                    <span>Topics</span>
+                    {hasActiveTopics && !topicsExpanded && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--theme-filter-active)]" />
+                    )}
+                    <ChevronDown className={clsx('w-3 h-3 transition-transform', (topicsExpanded || hasActiveTopics) && 'rotate-180')} />
+                  </button>
+                  {(topicsExpanded || hasActiveTopics) && (
+                    <div className="flex flex-wrap gap-2">
+                      {topicsTags.map((vibe) => {
+                        const isActive = filters.vibes.includes(vibe);
+                        const vibeColor = VIBE_COLORS[vibe] || VIBE_COLORS['default'];
+                        const Icon = TAG_ICONS[vibe];
+                        const count = tagCounts.get(vibe) ?? 0;
+                        return (
+                          <button
+                            key={vibe}
+                            onClick={() => { trackTagToggle(vibe, !filters.vibes.includes(vibe)); onToggleVibe(vibe); }}
+                            className={clsx(
+                              'flex items-center gap-1.5 sm:px-3 px-2 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
+                              isActive
+                                ? 'bg-[var(--theme-filter-active-bg)] border'
+                                : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:bg-[var(--theme-filter-control-border)] active:bg-[var(--theme-filter-control-border)] border border-[var(--theme-filter-control-border)]'
+                            )}
+                            style={isActive ? { borderColor: vibeColor, color: vibeColor } : undefined}
+                            title={`${vibe} (${count})`}
+                          >
+                            {Icon && <Icon className="w-3.5 h-3.5" />}
+                            <span className="hidden sm:inline">{vibe}</span>
+                            <span className={clsx('text-xs hidden sm:inline', isActive ? 'opacity-70' : 'opacity-60')}>
+                              ({count})
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Clear all */}
             {activeFilterCount > 0 && (
