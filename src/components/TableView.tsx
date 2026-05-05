@@ -443,14 +443,19 @@ export const TableView = memo(function TableView({
                 ) : (
                   <span className="text-[var(--theme-table-header-text)] font-semibold">
                     <span className="hidden sm:inline">{currentDateLabel.toUpperCase()}</span>
-                    <span className="sm:hidden text-[10px] text-white">
+                    <span className="sm:hidden flex flex-col leading-tight text-white">
                       {(() => {
                         const g = groups.find(gr => formatDateHeader(gr.dateISO) === currentDateLabel);
-                        if (!g) return currentDateLabel.toUpperCase();
+                        if (!g) return <span className="text-[10px]">{currentDateLabel.toUpperCase()}</span>;
                         const [y, m, d] = g.dateISO.split('-').map(Number);
                         const date = new Date(y, m - 1, d);
                         const dow = date.getDay();
-                        return `${DAY_ABBR[dow]} ${currentDateLabel.replace(/^\w+\s/, '').toUpperCase()}`;
+                        return (
+                          <>
+                            <span className="text-[10px] font-bold">{DAY_ABBR[dow]}</span>
+                            <span className="text-[9px]">{currentDateLabel.replace(/^\w+\s/, '').toUpperCase()}</span>
+                          </>
+                        );
                       })()}
                     </span>
                   </span>
