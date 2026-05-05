@@ -36,6 +36,7 @@ async function getSponsorsData(): Promise<{
     .from('event_sponsors')
     .select('sponsor_name, sponsor_url, sponsor_logo_url, sponsor_type, event_name, event_url, conference')
     .neq('sponsor_type', 'individual')
+    .neq('extraction_method', 'description')
     .order('sponsor_name');
 
   if (error || !data) return { sponsors: [], conferences: [], totalEvents: 0 };

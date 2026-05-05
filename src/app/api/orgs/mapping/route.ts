@@ -12,7 +12,8 @@ export async function GET(request: NextRequest) {
   let query = supabase
     .from('event_sponsors')
     .select('sponsor_name, event_id')
-    .neq('sponsor_type', 'individual');
+    .neq('sponsor_type', 'individual')
+    .neq('extraction_method', 'description');
 
   if (conference) {
     query = query.eq('conference', conference);
