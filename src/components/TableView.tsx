@@ -439,13 +439,13 @@ export const TableView = memo(function TableView({
             <tr>
               <th className="py-2.5"><div className="flex justify-center"><CalendarIcon className="w-5 h-5" /></div></th>
               <th className="px-1 py-2.5 text-center" title={!isSignedIn ? 'Sign in to add friends and see who\'s going' : 'Friends going'}><Users className="w-3.5 h-3.5 mx-auto" /></th>
-              <th className="px-3 py-2.5 whitespace-nowrap">
+              <th className="px-3 py-2.5 whitespace-nowrap align-middle">
                 {currentDateLabel === 'Time' ? (
                   'WHEN'
                 ) : (
                   <span className="text-[var(--theme-table-header-text)] font-semibold">
                     <span className="hidden sm:inline">{currentDateLabel.toUpperCase()}</span>
-                    <span className="sm:hidden inline-flex items-center gap-0.5 text-[9px]">
+                    <span className="sm:hidden inline-flex items-center gap-0.5 text-[10px] text-white leading-none align-middle">
                       {(() => {
                         const g = groups.find(gr => formatDateHeader(gr.dateISO) === currentDateLabel);
                         if (!g) return <span>{currentDateLabel.toUpperCase()}</span>;
@@ -454,7 +454,7 @@ export const TableView = memo(function TableView({
                         const dow = date.getDay();
                         return (
                           <>
-                            <span className={`font-bold ${DAY_COLORS[dow]}`}>
+                            <span className="font-bold">
                               {DAY_ABBR[dow]}
                             </span>
                             <span>{currentDateLabel.replace(/^\w+\s/, '').toUpperCase()}</span>
