@@ -85,9 +85,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const jobs = insertedJobs ?? [];
     return NextResponse.json({
-      jobs: insertedJobs,
-      message: `Created ${insertedJobs.length} RSVP job(s). They will be processed shortly.`,
+      jobs,
+      message: `Created ${jobs.length} RSVP job(s). They will be processed shortly.`,
     });
   } catch (err) {
     console.error('Batch RSVP error:', err);

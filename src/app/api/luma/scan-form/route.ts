@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { parseBody, ScanFormFieldsSchema } from '@/lib/api-validation';
 import { scanLumaFormFields, type ScannedFormResult } from '@/lib/luma-form-scanner';
 
@@ -10,6 +11,29 @@ interface ScanResult {
 
 export async function POST(request: NextRequest) {
   try {
+    // Require authentication to prevent abuse
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (url && key) {
+      const supabase = createClient(url, key);
+      const token = authHeader.slice(7);
+      const { error: authError } = await supabase.auth.getUser(token);
+      if (authError) {
+        return NextResponse.json(
+          { error: 'Invalid or expired token' },
+          { status: 401 }
+        );
+      }
+    }
+
     const { data, error } = await parseBody(request, ScanFormFieldsSchema);
     if (error) return error;
 

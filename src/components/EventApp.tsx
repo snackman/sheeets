@@ -666,7 +666,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
       {authUser && batchRsvpEligibleCount > 0 && (
         <button
           onClick={() => setShowBatchRsvp(true)}
-          className="fixed bottom-6 right-6 z-[60] flex items-center gap-2 px-4 py-2.5 rounded-full bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold shadow-lg transition-colors cursor-pointer"
+          className={`fixed right-6 z-[60] flex items-center gap-2 px-4 py-2.5 rounded-full bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold shadow-lg transition-colors cursor-pointer ${hasNearbyLiveEvents ? 'bottom-20' : 'bottom-6'}`}
           title={`Batch RSVP to ${batchRsvpEligibleCount} event(s)`}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

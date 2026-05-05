@@ -163,8 +163,14 @@ async function processJob(
     const turnstileToken = await extractTurnstileToken(job.luma_slug);
 
     // Build registration answers from custom_answers
+    // custom_answers is stored as { question_id: value_string }
     const registrationAnswers = Object.entries(job.custom_answers).map(
-      ([questionId, answer]) => ({ question_id: questionId, answer })
+      ([questionId, value]) => ({
+        question_id: questionId,
+        value,
+        label: '',
+        question_type: 'text',
+      })
     );
 
     // Submit registration

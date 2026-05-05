@@ -11,7 +11,9 @@
 
 export interface RegistrationAnswer {
   question_id: string;
-  answer: string;
+  value: string | string[] | boolean | { company: string | null; job_title: string | null } | null;
+  label: string;
+  question_type: string;
 }
 
 export interface RegistrationPayload {

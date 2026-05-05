@@ -63,6 +63,12 @@ export function BatchRsvpModal({
     (e) => itinerary.has(e.id) && isLumaUrl(e.link) && !confirmedIds.has(e.id)
   );
 
+  const handleClose = useCallback(() => {
+    stopPolling();
+    reset();
+    onClose();
+  }, [stopPolling, reset, onClose]);
+
   // Pre-fill profile data from existing profile
   useEffect(() => {
     if (profile && isOpen) {
@@ -87,23 +93,17 @@ export function BatchRsvpModal({
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, handleClose]);
 
-  // Lock body scroll
+  // Lock body scroll + cleanup polling on unmount
   useEffect(() => {
     if (!isOpen) return;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = '';
+      stopPolling();
     };
-  }, [isOpen]);
-
-  const handleClose = useCallback(() => {
-    stopPolling();
-    reset();
-    onClose();
-  }, [stopPolling, reset, onClose]);
+  }, [isOpen, stopPolling]);
 
   // Trigger scan when moving from select -> profile
   const handleNextFromSelect = useCallback(async () => {

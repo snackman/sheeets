@@ -132,12 +132,19 @@ export function useBatchRsvp() {
     const slugs = Array.from(slugMap.keys());
 
     try {
+      // Get auth token for the scan request
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
       // Scan in batches of 5
       for (let i = 0; i < slugs.length; i += 5) {
         const batch = slugs.slice(i, i + 5);
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
         const res = await fetch('/api/luma/scan-form', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ slugs: batch }),
         });
 
@@ -215,12 +222,14 @@ export function useBatchRsvp() {
       .map((eventId) => {
         const scanned = scannedEvents.get(eventId);
         if (!scanned) return null;
+        // Skip events that failed scanning (no eventApiId means we can't submit)
+        if (!scanned.formResult?.eventApiId) return null;
         const eventAnswers = customAnswers.get(eventId);
         return {
           eventId,
           lumaSlug: scanned.lumaSlug,
           eventName: scanned.event.name,
-          eventApiId: scanned.formResult?.eventApiId || '',
+          eventApiId: scanned.formResult.eventApiId,
           customAnswers: eventAnswers ? Object.fromEntries(eventAnswers) : undefined,
         };
       })
