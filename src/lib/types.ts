@@ -124,7 +124,12 @@ export interface EventComment {
   created_at: string;
   display_name?: string;
   x_handle?: string;
+  rsvp_name?: string;
   avatar_url?: string;
+  job_title?: string;
+  company?: string;
+  linkedin_url?: string;
+  telegram_handle?: string;
 }
 
 export interface FriendLocation {
