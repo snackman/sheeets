@@ -63,7 +63,7 @@ export function useFilters(initialConference?: string, conferenceTabs?: TabConfi
   }, [conferenceTabs]);
 
   const setDateTimeRange = useCallback((start: string, end: string) => {
-    setFilters((prev) => ({ ...prev, startDateTime: start, endDateTime: end }));
+    setFilters((prev) => ({ ...prev, startDateTime: start, endDateTime: end, timeMode: 'off' }));
   }, []);
 
   const toggleVibe = useCallback((vibe: string) => {

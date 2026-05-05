@@ -303,32 +303,38 @@ export const FilterBar = memo(function FilterBar({
         {/* Expandable filter content — overlays map on mobile */}
         {expanded && (
           <div className="space-y-3 pt-1 sm:relative absolute left-0 right-0 sm:bg-transparent bg-[var(--theme-bg-filter)] sm:px-0 px-2 sm:pb-0 pb-4 sm:shadow-none shadow-lg shadow-black/40 sm:max-h-none max-h-[70vh] overflow-y-auto">
-            {/* Time mode notice */}
-            {filters.timeMode !== 'off' && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
-                <Clock className="w-4 h-4 shrink-0" />
-                <span>
-                  {filters.timeMode === 'now' && 'Showing events happening now or starting within 1 hour.'}
-                  {filters.timeMode === 'today' && 'Showing events happening today.'}
-                  {filters.timeMode === 'tomorrow' && 'Showing events happening tomorrow.'}
-                  {' '}Start/end filters are overridden.
-                </span>
-              </div>
-            )}
-
             {/* Mini calendar date selector */}
-            <div className={clsx(filters.timeMode !== 'off' && 'opacity-30 pointer-events-none')}>
-              <MiniCalendar
-                dates={getTabConfig(filters.conference, conferenceTabs).dates}
-                startDateTime={filters.startDateTime}
-                endDateTime={filters.endDateTime}
-                timezone={getTabConfig(filters.conference, conferenceTabs).timezone}
-                onChange={(start, end) => {
-                  trackDateTimeRange(start, end);
-                  onSetDateTimeRange(start, end);
-                }}
-              />
-            </div>
+            {(() => {
+              const tab = getTabConfig(filters.conference, conferenceTabs);
+              let calStart = filters.startDateTime;
+              let calEnd = filters.endDateTime;
+              if (filters.timeMode !== 'off') {
+                const now = new Date(new Date().toLocaleString('en-US', { timeZone: tab.timezone }));
+                const pad = (n: number) => String(n).padStart(2, '0');
+                const todayISO = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+                if (filters.timeMode === 'now' || filters.timeMode === 'today') {
+                  calStart = `${todayISO}T00:00`;
+                  calEnd = `${todayISO}T23:30`;
+                } else if (filters.timeMode === 'tomorrow') {
+                  const tmrw = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+                  const tmrwISO = `${tmrw.getFullYear()}-${pad(tmrw.getMonth() + 1)}-${pad(tmrw.getDate())}`;
+                  calStart = `${tmrwISO}T00:00`;
+                  calEnd = `${tmrwISO}T23:30`;
+                }
+              }
+              return (
+                <MiniCalendar
+                  dates={tab.dates}
+                  startDateTime={calStart}
+                  endDateTime={calEnd}
+                  timezone={tab.timezone}
+                  onChange={(start, end) => {
+                    trackDateTimeRange(start, end);
+                    onSetDateTimeRange(start, end);
+                  }}
+                />
+              );
+            })()}
 
             {/* Tag match mode toggle + Tag groups */}
             {(() => {
