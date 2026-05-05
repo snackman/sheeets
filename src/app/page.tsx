@@ -225,15 +225,15 @@ export default async function Home() {
                   href={`/${tab.slug}`}
                   className="group block rounded-xl border p-5 transition-all duration-200 hover:scale-[1.02]"
                   style={{
-                    backgroundColor: 'var(--theme-landing-card-bg)',
-                    borderColor: 'var(--theme-landing-card-border)',
+                    backgroundColor: 'var(--theme-bg-card)',
+                    borderColor: 'var(--theme-border-primary)',
                   }}
                 >
                   <h3
                     className="text-lg font-semibold transition-colors duration-200 mb-1"
-                    style={{ color: 'var(--theme-landing-card-text)' }}
+                    style={{ color: 'var(--theme-text-primary)' }}
                   >
-                    <span className="group-hover:opacity-80">{tab.name}</span>
+                    <span className="group-hover:text-[var(--theme-accent)]">{tab.name}</span>
                   </h3>
                   {daysLabel && (
                     <span
@@ -241,11 +241,11 @@ export default async function Home() {
                       style={{
                         backgroundColor: 'transparent',
                         border: daysLabel === 'Happening now'
-                          ? '1px solid var(--theme-landing-card-accent)'
-                          : '1px solid var(--theme-landing-card-secondary)',
+                          ? '1px solid var(--theme-accent)'
+                          : '1px solid var(--theme-text-secondary)',
                         color: daysLabel === 'Happening now'
-                          ? 'var(--theme-landing-card-accent)'
-                          : 'var(--theme-landing-card-secondary)',
+                          ? 'var(--theme-accent)'
+                          : 'var(--theme-text-secondary)',
                       }}
                     >
                       {daysLabel}
@@ -253,13 +253,13 @@ export default async function Home() {
                   )}
 
                   {dateRange && (
-                    <p className="text-sm mb-1" style={{ color: 'var(--theme-landing-card-secondary)' }}>
+                    <p className="text-sm mb-1" style={{ color: 'var(--theme-text-secondary)' }}>
                       {dateRange}
                     </p>
                   )}
 
                   {city && (
-                    <p className="text-sm" style={{ color: 'var(--theme-landing-card-muted)' }}>
+                    <p className="text-sm" style={{ color: 'var(--theme-text-muted)' }}>
                       {city}
                     </p>
                   )}
@@ -267,7 +267,7 @@ export default async function Home() {
                   {count > 0 && (
                     <p
                       className="text-sm font-medium mt-3"
-                      style={{ color: 'var(--theme-landing-card-accent)' }}
+                      style={{ color: 'var(--theme-accent)' }}
                     >
                       {count} events
                     </p>

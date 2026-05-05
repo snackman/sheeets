@@ -11,14 +11,12 @@ import type { AdminConfig, SponsorEntry, NativeAd, UpsellCopy, AdInventoryItem, 
 import { isConferencePast, conferenceToTab } from '@/lib/conferences';
 import type { TabConfig } from '@/lib/conferences';
 import SponsorDataTab from '@/components/admin/SponsorDataTab';
-import SubmissionsTab from '@/components/admin/SubmissionsTab';
 
 const SESSION_KEY = 'sheeets-admin-auth';
 
-type AdminTab = 'submissions' | 'featured' | 'conferences' | 'sponsors' | 'nativeAds' | 'upsell' | 'adInventory' | 'theme' | 'abTests' | 'adReports' | 'eventAnalytics' | 'sponsorData';
+type AdminTab = 'featured' | 'conferences' | 'sponsors' | 'nativeAds' | 'upsell' | 'adInventory' | 'theme' | 'abTests' | 'adReports' | 'eventAnalytics' | 'sponsorData';
 
 const TAB_LABELS: { key: AdminTab; label: string }[] = [
-  { key: 'submissions', label: 'Submissions' },
   { key: 'featured', label: 'Featured' },
   { key: 'conferences', label: 'Conferences' },
   { key: 'sponsors', label: 'Sponsors' },
@@ -108,7 +106,7 @@ export default function AdminPage() {
   const [search, setSearch] = useState('');
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<AdminTab>('submissions');
+  const [activeTab, setActiveTab] = useState<AdminTab>('featured');
   const [adminConfig, setAdminConfig] = useState<AdminConfig | null>(null);
   const [configLoading, setConfigLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -663,11 +661,6 @@ export default function AdminPage() {
 
       {/* Content */}
       <div className="max-w-5xl mx-auto px-4 py-4">
-        {/* Tab: Submissions */}
-        {activeTab === 'submissions' && (
-          <SubmissionsTab allConferenceTabs={allConferenceTabs} password={password} />
-        )}
-
         {/* Tab 1: Featured */}
         {activeTab === 'featured' && (
           <>

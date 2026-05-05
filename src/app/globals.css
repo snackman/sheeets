@@ -53,42 +53,6 @@
 
   --theme-logo-filter: invert(1);
 
-  --theme-header-bg: var(--theme-bg-primary);
-  --theme-header-border: var(--theme-border-secondary);
-  --theme-header-logo-filter: var(--theme-logo-filter);
-  --theme-header-text: var(--theme-text-secondary);
-  --theme-header-text-hover: var(--theme-text-primary);
-  --theme-header-control-bg: var(--theme-bg-secondary);
-  --theme-header-control-bg-hover: var(--theme-bg-tertiary);
-  --theme-header-control-border: var(--theme-border-primary);
-  --theme-header-accent: var(--theme-accent);
-  --theme-header-accent-muted: var(--theme-accent-muted);
-  --theme-header-badge-bg: var(--theme-accent);
-  --theme-header-badge-text: var(--theme-accent-text);
-  --theme-header-badge-border: var(--theme-accent);
-
-  --theme-map-pin: #1c1917;
-  --theme-map-pin-night: rgba(255,255,255,0.4);
-
-  --theme-bg-list: var(--theme-bg-primary);
-  --theme-bg-filter: var(--theme-bg-primary);
-  --theme-filter-text: var(--theme-text-secondary);
-  --theme-filter-control-bg: var(--theme-bg-secondary);
-  --theme-filter-control-border: var(--theme-border-primary);
-  --theme-filter-active: var(--theme-accent);
-  --theme-filter-active-bg: var(--theme-accent-muted);
-  --theme-filter-badge-bg: var(--theme-text-secondary);
-  --theme-filter-badge-text: var(--theme-bg-primary);
-  --theme-filter-badge-border: var(--theme-text-secondary);
-  --theme-table-header-bg: var(--theme-bg-secondary);
-  --theme-table-header-text: var(--theme-text-secondary);
-  --theme-landing-card-bg: var(--theme-bg-card);
-  --theme-landing-card-text: var(--theme-text-primary);
-  --theme-landing-card-secondary: var(--theme-text-secondary);
-  --theme-landing-card-muted: var(--theme-text-muted);
-  --theme-landing-card-accent: var(--theme-accent);
-  --theme-landing-card-border: var(--theme-border-primary);
-
   --theme-scrollbar-track: #0c0a09;
   --theme-scrollbar-thumb: #292524;
   --theme-scrollbar-thumb-hover: #44403c;
@@ -106,21 +70,6 @@
   --tag-purple: #A855F7;
   --tag-default: #6B7280;
   --friend-blue: #3B82F6;
-
-  --theme-modal-header-bg: transparent;
-  --theme-modal-header-text: var(--theme-text-primary);
-  --theme-modal-header-close: var(--theme-text-secondary);
-  --theme-modal-bg: var(--theme-bg-secondary);
-
-  --theme-date-sep-bg: var(--theme-bg-primary);
-  --theme-date-sep-text: var(--theme-text-primary);
-  --theme-date-sep-muted: var(--theme-text-muted);
-  --theme-date-sep-border: var(--theme-border-secondary);
-
-  --theme-ticker-bg: var(--theme-bg-primary);
-  --theme-ticker-text: var(--theme-text-secondary);
-  --theme-ticker-link: var(--theme-text-primary);
-  --theme-ticker-border: var(--theme-border-secondary);
 }
 
 /* --- Paper theme — warm parchment/cream aesthetic --- */
@@ -157,9 +106,6 @@
   --theme-star-inactive: #c4b9a8;
 
   --theme-now-bg: #c0564a;
-
-  --theme-map-pin: #d4a32c;
-  --theme-map-pin-night: #6b4c0a;
 
   --theme-logo-filter: invert(0);
 
@@ -217,9 +163,6 @@
 
   --theme-now-bg: #22c55e;
 
-  --theme-map-pin: #fca5a5;
-  --theme-map-pin-night: #dc2626;
-
   --theme-logo-filter: invert(0);
 
   --theme-scrollbar-track: #fafafa;
@@ -253,8 +196,8 @@
   --theme-bg-primary: #fafafa;
   --theme-bg-secondary: #f5f5f5;
   --theme-bg-tertiary: #e5e5e5;
-  --theme-bg-card: #f7f7f8;
-  --theme-bg-card-hover: #f0f0f2;
+  --theme-bg-card: #ffffff;
+  --theme-bg-card-hover: #f5f5f5;
   --theme-bg-input: #ffffff;
 
   --theme-border-primary: #d4d4d4;
@@ -278,33 +221,6 @@
 
   --theme-logo-filter: brightness(0) saturate(100%) invert(22%) sepia(60%) saturate(1200%) hue-rotate(198deg) brightness(95%) contrast(95%);
 
-  --theme-header-bg: #1c4586;
-  --theme-header-border: #153a73;
-  --theme-header-logo-filter: brightness(0) invert(1);
-  --theme-header-text: rgba(255, 255, 255, 0.7);
-  --theme-header-text-hover: #ffffff;
-  --theme-header-control-bg: rgba(255, 255, 255, 0.1);
-  --theme-header-control-bg-hover: rgba(255, 255, 255, 0.2);
-  --theme-header-control-border: rgba(255, 255, 255, 0.2);
-  --theme-header-accent: #ffffff;
-  --theme-header-accent-muted: rgba(255, 255, 255, 0.15);
-
-  --theme-map-pin: #93c5fd;
-  --theme-map-pin-night: #1c4586;
-
-  --theme-bg-list: rgba(28, 69, 134, 0.06);
-  --theme-bg-filter: #1c4586;
-  --theme-filter-text: rgba(255, 255, 255, 0.7);
-  --theme-filter-control-bg: rgba(255, 255, 255, 0.1);
-  --theme-filter-control-border: rgba(255, 255, 255, 0.2);
-  --theme-filter-active: #ffffff;
-  --theme-filter-active-bg: rgba(255, 255, 255, 0.15);
-  --theme-filter-badge-bg: transparent;
-  --theme-filter-badge-text: #ffffff;
-  --theme-filter-badge-border: #ffffff;
-  --theme-table-header-bg: #1c4586;
-  --theme-table-header-text: #ffffff;
-
   --theme-scrollbar-track: #fafafa;
   --theme-scrollbar-thumb: #d4d4d4;
   --theme-scrollbar-thumb-hover: #a3a3a3;
@@ -314,47 +230,20 @@
   --theme-popup-featured-border: rgba(28, 69, 134, 0.5);
   --theme-popup-shadow: rgba(0, 0, 0, 0.1);
 
-  --theme-landing-card-bg: #1c4586;
-  --theme-landing-card-text: #ffffff;
-  --theme-landing-card-secondary: rgba(255, 255, 255, 0.7);
-  --theme-landing-card-muted: rgba(255, 255, 255, 0.5);
-  --theme-landing-card-accent: #ffffff;
-  --theme-landing-card-border: rgba(255, 255, 255, 0.15);
-
-  --tag-green: #34d399;
-  --tag-blue: #93c5fd;
-  --tag-yellow: #fbbf24;
-  --tag-pink: #f472b6;
-  --tag-teal: #5eead4;
-  --tag-purple: #c4b5fd;
-  --tag-default: #94a3b8;
+  --tag-green: #059669;
+  --tag-blue: #2563EB;
+  --tag-yellow: #D97706;
+  --tag-pink: #DB2777;
+  --tag-teal: #0D9488;
+  --tag-purple: #7C3AED;
+  --tag-default: #4B5563;
   --friend-blue: #2563EB;
-
-  --theme-modal-header-bg: #1c4586;
-  --theme-modal-header-text: #ffffff;
-  --theme-modal-header-close: rgba(255, 255, 255, 0.7);
-  --theme-modal-bg: #edf0f3;
-
-  --theme-date-sep-bg: #1c4586;
-  --theme-date-sep-text: #ffffff;
-  --theme-date-sep-muted: rgba(255, 255, 255, 0.7);
-  --theme-date-sep-border: rgba(255, 255, 255, 0.2);
-
-  --theme-ticker-bg: var(--theme-bg-list);
-  --theme-ticker-text: #1c4586;
-  --theme-ticker-link: #1c4586;
-  --theme-ticker-border: rgba(28, 69, 134, 0.15);
-
-  --theme-header-badge-bg: transparent;
-  --theme-header-badge-text: #ffffff;
-  --theme-header-badge-border: #ffffff;
 }
 
 /* Light-blue: alternating table rows */
 [data-theme="light-blue"] table tbody tr:nth-child(even):not([data-date]) {
   background-color: rgba(28, 69, 134, 0.05);
 }
-
 
 /* --- SXSW theme — neon lime on dark forest green --- */
 [data-theme="sxsw"] {

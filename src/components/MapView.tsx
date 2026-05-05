@@ -44,8 +44,6 @@ interface MapViewProps {
   onCheckIn?: (eventId: string) => void;
   checkInLoading?: boolean;
   liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
-  getRsvpStatus?: (eventId: string) => 'idle' | 'confirmed';
-  onRsvp?: (eventId: string, lumaUrl: string, eventName: string) => void;
 }
 
 /**
@@ -81,14 +79,12 @@ export function MapView({
   onCheckIn,
   checkInLoading,
   liveEventIds,
-  getRsvpStatus,
-  onRsvp,
 }: MapViewProps) {
   const mapCenter = getTabConfig(conference ?? '', conferenceTabs).center;
   const { user } = useAuth();
   const { theme } = useTheme();
-  const mapStyle = (theme === 'paper' || theme === 'light' || theme === 'light-blue')
-    ? 'mapbox://styles/mapbox/streets-v12'
+  const mapStyle = (theme === 'paper' || theme === 'light')
+    ? 'mapbox://styles/mapbox/light-v11'
     : 'mapbox://styles/mapbox/dark-v11';
   const mapRef = useRef<MapRef>(null);
   const hasFittedRef = useRef(false);
@@ -426,6 +422,14 @@ export function MapView({
     setSelectedPOI(null);
   }, []);
 
+  const handleMultiEventSelect = useCallback(
+    (event: ETHDenverEvent) => {
+      setPopupEvents(null);
+      setPopupEvent(event);
+      onEventSelect?.(event);
+    },
+    [onEventSelect]
+  );
 
   const handlePOISelect = useCallback((poi: POI) => {
     setPopupEvent(null);
@@ -581,8 +585,6 @@ export function MapView({
           onCheckIn={onCheckIn}
           checkInLoading={checkInLoading}
           liveUrgency={liveEventIds?.get(popupEvent.id)}
-          rsvpStatus={getRsvpStatus?.(popupEvent.id)}
-          onRsvp={popupEvent.link ? () => onRsvp?.(popupEvent.id, popupEvent.link!, popupEvent.name) : undefined}
         />
       )}
 
@@ -592,6 +594,7 @@ export function MapView({
           latitude={popupCoords.lat}
           longitude={popupCoords.lng}
           onClose={handlePopupClose}
+          onSelectEvent={handleMultiEventSelect}
           itinerary={itinerary}
           onItineraryToggle={onItineraryToggle}
           friendsCountByEvent={friendsCountByEvent}

@@ -7,7 +7,9 @@ import type { ETHDenverEvent } from '@/lib/types';
 import { formatDateLabel } from '@/lib/utils';
 import { sortByStartTime } from '@/lib/time-parse';
 import { trackShareCardOpen, trackShareCardCopy, trackShareCardDownload } from '@/lib/analytics';
+import { imageCache } from './OGImage';
 import ShareCardTemplate from './ShareCardTemplate';
+import type { ShareCardMode } from './ShareCardTemplate';
 
 interface ShareCardModalProps {
   isOpen: boolean;
@@ -32,18 +34,11 @@ export function ShareCardModal({
   const [showPastEvents, setShowPastEvents] = useState(false);
   const defaultTitle = displayName ? `${displayName}'s ${conferenceName} Plan` : `My ${conferenceName} Plan`;
   const [cardTitle, setCardTitle] = useState(defaultTitle);
-  const [hasUserEdited, setHasUserEdited] = useState(false);
-
-  // Update card title when displayName loads (profile is async)
-  useEffect(() => {
-    if (!hasUserEdited) {
-      setCardTitle(defaultTitle);
-    }
-  }, [defaultTitle, hasUserEdited]);
-
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copying' | 'copied'>('idle');
+  const [flyerImages, setFlyerImages] = useState<Map<string, string>>(new Map());
+  const [cardMode, setCardMode] = useState<ShareCardMode>('gallery');
   const cardRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trackedRef = useRef(false);
@@ -102,6 +97,64 @@ export function ShareCardModal({
     }
     setGenerating(true);
     try {
+      // --- Pre-fetch flyer images as data URLs (gallery mode only) ---
+      if (cardMode === 'gallery') {
+        const imageMap = new Map<string, string>();
+        const ogUrls = new Map<string, string>();
+        const uncachedItems: { eventId: string; url: string }[] = [];
+
+        for (const event of selectedEvents) {
+          if (!event.link) continue;
+          const cached = imageCache.get(event.link);
+          if (cached) {
+            ogUrls.set(event.id, cached);
+          } else if (cached === undefined) {
+            uncachedItems.push({ eventId: event.id, url: event.link });
+          }
+        }
+
+        if (uncachedItems.length > 0) {
+          try {
+            const res = await fetch('/api/og', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ items: uncachedItems.slice(0, 20) }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              const results = data.results as Record<string, string | null>;
+              for (const [eventId, imgUrl] of Object.entries(results)) {
+                if (imgUrl) ogUrls.set(eventId, imgUrl);
+                const item = uncachedItems.find(i => i.eventId === eventId);
+                if (item) imageCache.set(item.url, imgUrl ?? null);
+              }
+            }
+          } catch (err) {
+            console.error('Batch OG fetch failed:', err);
+          }
+        }
+
+        const proxyFetches = Array.from(ogUrls.entries()).map(async ([eventId, imgUrl]) => {
+          try {
+            const proxyRes = await fetch(`/api/image-proxy?url=${encodeURIComponent(imgUrl)}`);
+            if (!proxyRes.ok) return;
+            const blob = await proxyRes.blob();
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+            imageMap.set(eventId, dataUrl);
+          } catch { /* skip failed images */ }
+        });
+
+        await Promise.all(proxyFetches);
+        setFlyerImages(imageMap);
+      }
+
+      await new Promise(r => setTimeout(r, 50));
+
       const { toPng } = await import('html-to-image');
       const dataUrl = await toPng(cardRef.current, {
         pixelRatio: 2,
@@ -114,7 +167,7 @@ export function ShareCardModal({
     } finally {
       setGenerating(false);
     }
-  }, [selectedEvents.length]);
+  }, [selectedEvents, cardMode]);
 
   // Debounced preview regeneration when selection changes
   useEffect(() => {
@@ -126,7 +179,7 @@ export function ShareCardModal({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [isOpen, selectedEvents, cardTitle, generatePreview]);
+  }, [isOpen, selectedEvents, cardTitle, cardMode, generatePreview]);
 
   // Track open event
   useEffect(() => {
@@ -211,7 +264,7 @@ export function ShareCardModal({
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
         <div
           className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
@@ -237,10 +290,30 @@ export function ShareCardModal({
               <input
                 type="text"
                 value={cardTitle}
-                onChange={(e) => { setCardTitle(e.target.value); setHasUserEdited(true); }}
+                onChange={(e) => setCardTitle(e.target.value)}
                 className="w-full px-3 py-2 bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm focus:outline-none focus:border-[var(--theme-accent)] transition-colors"
                 placeholder={defaultTitle}
               />
+            </div>
+
+            {/* Card style toggle */}
+            <div className="flex rounded-lg border border-[var(--theme-border-primary)] overflow-hidden w-fit">
+              {([
+                { mode: 'gallery' as const, label: 'Flyers' },
+                { mode: 'text' as const, label: 'Text Only' },
+              ]).map(({ mode, label }) => (
+                <button
+                  key={mode}
+                  onClick={() => setCardMode(mode)}
+                  className={`px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                    cardMode === mode
+                      ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
+                      : 'bg-[var(--theme-bg-primary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)]'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
             {/* Preview area */}
@@ -382,6 +455,8 @@ export function ShareCardModal({
         conferenceName={cardTitle || conferenceName}
         displayName={displayName}
         avatarUrl={avatarUrl}
+        flyerImages={flyerImages}
+        mode={cardMode}
       />
     </>,
     document.body

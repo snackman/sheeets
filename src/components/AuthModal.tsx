@@ -2,15 +2,12 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, LogOut, User, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, ArrowRight, Send, Building2, Briefcase, Linkedin, Smartphone, Moon, Sun } from 'lucide-react';
+import { X, Mail, LogOut, User, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, Share2, ArrowRight } from 'lucide-react';
 import { ShareCardModal } from './ShareCardModal';
-import { LockScreenModal } from './LockScreenModal';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { trackAuthSuccess, trackSignOut, trackFriendCodeGenerate, trackFriendCodeCopy, trackModalDismiss } from '@/lib/analytics';
 import { getDisplayName } from '@/lib/user-display';
 import UserAvatar from './UserAvatar';
-import { getSocialLinks } from '@/lib/social-urls';
 
 import { supabase } from '@/lib/supabase';
 import { useProfile } from '@/hooks/useProfile';
@@ -127,7 +124,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   return (
     <>
       <div className="fixed inset-0 z-[80] bg-black/50" onClick={handleClose} />
-      <div className="fixed inset-0 z-[90] flex items-center justify-center p-4" onClick={handleClose}>
+      <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
         <div className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)]">
@@ -376,7 +373,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   const { profile, updateProfile, uploadAvatar } = useProfile();
   const { friendCount, refreshFriends: localRefreshFriends } = useFriends();
   const { config } = useAdminConfig();
-  const { theme, setTheme } = useTheme();
 
   const refreshFriends = useCallback(async () => {
     await localRefreshFriends();
@@ -400,10 +396,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   const [displayName, setDisplayName] = useState('');
   const [xHandle, setXHandle] = useState('');
   const [rsvpName, setRsvpName] = useState('');
-  const [telegramHandle, setTelegramHandle] = useState('');
-  const [company, setCompany] = useState('');
-  const [linkedinUrl, setLinkedinUrl] = useState('');
-  const [jobTitle, setJobTitle] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -434,63 +426,12 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   const shareConferenceName = activeConference || 'Itinerary';
   const badgeCount = externalCount ?? pendingIncomingCount;
 
-  // Lock screen card state
-  const [showLockScreen, setShowLockScreen] = useState(false);
-  const [friendCode, setFriendCode] = useState<string | null>(null);
-  const socialLinks = useMemo(
-    () => getSocialLinks(profile ?? {}),
-    [profile]
-  );
-
-  // Ensure friend code exists (create if needed) for lock screen card
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      const { data: existing } = await supabase
-        .from('friend_codes')
-        .select('code')
-        .eq('user_id', user.id)
-        .single();
-
-      if (existing?.code) {
-        setFriendCode(existing.code);
-        return;
-      }
-
-      // Generate a new code (8 char alphanumeric)
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-      const arr = new Uint8Array(8);
-      crypto.getRandomValues(arr);
-      const code = Array.from(arr, (b) => chars[b % chars.length]).join('');
-
-      const { error } = await supabase
-        .from('friend_codes')
-        .insert({ user_id: user.id, code });
-
-      if (error) {
-        // Race condition — try fetching again
-        const { data: retry } = await supabase
-          .from('friend_codes')
-          .select('code')
-          .eq('user_id', user.id)
-          .single();
-        if (retry?.code) setFriendCode(retry.code);
-      } else {
-        setFriendCode(code);
-      }
-    })();
-  }, [user]);
-
   // Sync form state when profile loads
   useEffect(() => {
     if (profile) {
       setDisplayName(profile.display_name ?? '');
       setXHandle(profile.x_handle ?? '');
       setRsvpName(profile.rsvp_name ?? '');
-      setTelegramHandle(profile.telegram_handle ?? '');
-      setCompany(profile.company ?? '');
-      setLinkedinUrl(profile.linkedin_url ?? '');
-      setJobTitle(profile.job_title ?? '');
     }
   }, [profile]);
 
@@ -511,17 +452,9 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
   // Auto-save profile on change (debounced)
   useEffect(() => {
     if (!profile) return;
-    const current = { displayName, xHandle, rsvpName, telegramHandle, company, linkedinUrl, jobTitle };
-    const original = {
-      displayName: profile.display_name ?? '',
-      xHandle: profile.x_handle ?? '',
-      rsvpName: profile.rsvp_name ?? '',
-      telegramHandle: profile.telegram_handle ?? '',
-      company: profile.company ?? '',
-      linkedinUrl: profile.linkedin_url ?? '',
-      jobTitle: profile.job_title ?? '',
-    };
-    if (current.displayName === original.displayName && current.xHandle === original.xHandle && current.rsvpName === original.rsvpName && current.telegramHandle === original.telegramHandle && current.company === original.company && current.linkedinUrl === original.linkedinUrl && current.jobTitle === original.jobTitle) return;
+    const current = { displayName, xHandle, rsvpName };
+    const original = { displayName: profile.display_name ?? '', xHandle: profile.x_handle ?? '', rsvpName: profile.rsvp_name ?? '' };
+    if (current.displayName === original.displayName && current.xHandle === original.xHandle && current.rsvpName === original.rsvpName) return;
 
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
     setSaveStatus('idle');
@@ -531,10 +464,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
         display_name: displayName.trim() || null,
         x_handle: xHandle.trim() || null,
         rsvp_name: rsvpName.trim() || null,
-        telegram_handle: telegramHandle.trim() || null,
-        company: company.trim() || null,
-        linkedin_url: linkedinUrl.trim() || null,
-        job_title: jobTitle.trim() || null,
       });
       setSaving(false);
       setSaveStatus('saved');
@@ -544,7 +473,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
     return () => {
       if (saveTimeout.current) clearTimeout(saveTimeout.current);
     };
-  }, [displayName, xHandle, rsvpName, telegramHandle, company, linkedinUrl, jobTitle, profile, updateProfile]);
+  }, [displayName, xHandle, rsvpName, profile, updateProfile]);
 
   async function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -659,13 +588,12 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
     <>
       <button
         onClick={() => setOpen(true)}
-        className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--theme-header-control-border)] text-[var(--theme-header-text)] hover:text-[var(--theme-header-text-hover)] active:text-[var(--theme-header-text-hover)] transition-colors text-sm cursor-pointer"
-        style={{ backgroundColor: 'var(--theme-header-control-bg)' }}
+        className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--theme-border-primary)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] transition-colors text-sm cursor-pointer"
         title="Profile"
       >
         <CircleUser className="w-4 h-4" />
         {badgeCount > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full px-1 border border-[var(--theme-header-badge-border)] bg-[var(--theme-header-badge-bg)] text-[var(--theme-header-badge-text)]">
+          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full px-1 border border-[var(--theme-accent)] bg-[var(--theme-accent)] text-[var(--theme-accent-text)]">
             {badgeCount}
           </span>
         )}
@@ -676,14 +604,14 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
             setOpen(false);
             setSearchQuery('');
           }}>
-            <div className="bg-[var(--theme-modal-bg)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
               {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)] rounded-t-xl" style={{ backgroundColor: 'var(--theme-modal-header-bg)' }}>
-                <h2 className="text-base font-bold truncate" style={{ color: 'var(--theme-modal-header-text)' }}>{user.email}</h2>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)]">
+                <h2 className="text-base font-bold text-[var(--theme-text-primary)] truncate">{user.email}</h2>
                 <button onClick={() => {
                   setOpen(false);
                   setSearchQuery('');
-                }} className="p-1 hover:opacity-80 transition-colors cursor-pointer" style={{ color: 'var(--theme-modal-header-close)' }}>
+                }} className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -692,8 +620,8 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
               <div className="max-h-[80vh] overflow-y-auto px-4 py-5 space-y-4">
                 {/* Profile Fields */}
                 <div className="space-y-3">
-                  {/* Avatar + Name row */}
-                  <div className="flex items-center gap-3">
+                  {/* Avatar upload */}
+                  <div className="flex items-center gap-4">
                     <button
                       type="button"
                       onClick={() => avatarInputRef.current?.click()}
@@ -701,7 +629,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                       className="relative group cursor-pointer shrink-0"
                     >
                       <UserAvatar
-                        size="md"
+                        size="lg"
                         avatarUrl={profile?.avatar_url}
                         xHandle={profile?.x_handle}
                         displayName={profile?.display_name}
@@ -709,9 +637,9 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                       />
                       <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         {avatarUploading ? (
-                          <Loader2 className="w-4 h-4 text-white animate-spin" />
+                          <Loader2 className="w-5 h-5 text-white animate-spin" />
                         ) : (
-                          <User className="w-4 h-4 text-white" />
+                          <User className="w-5 h-5 text-white" />
                         )}
                       </div>
                     </button>
@@ -723,82 +651,33 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                       onChange={handleAvatarSelect}
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
-                        <User className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
-                        <input
-                          type="text"
-                          value={displayName}
-                          onChange={(e) => setDisplayName(e.target.value)}
-                          placeholder="Username"
-                          className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  {avatarError && (
-                    <p className="text-xs text-red-400">{avatarError}</p>
-                  )}
-
-                  <div>
-                    <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
-                      <Building2 className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
-                      <input
-                        type="text"
-                        value={company}
-                        onChange={(e) => setCompany(e.target.value)}
-                        placeholder="Organization"
-                        className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
-                      />
+                      <p className="text-xs text-[var(--theme-text-muted)]">
+                        {avatarUploading ? 'Uploading...' : 'Tap to change photo'}
+                      </p>
+                      {avatarError && (
+                        <p className="text-xs text-red-400 mt-0.5">{avatarError}</p>
+                      )}
                     </div>
                   </div>
 
                   <div>
-                    <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
-                      <Briefcase className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
-                      <input
-                        type="text"
-                        value={jobTitle}
-                        onChange={(e) => setJobTitle(e.target.value)}
-                        placeholder="Job Title"
-                        className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Username"
+                      className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg text-[var(--theme-text-primary)] text-sm px-3 py-2 focus:border-[var(--theme-accent)] focus:outline-none placeholder:text-[var(--theme-text-muted)]"
+                    />
                   </div>
 
                   <div>
                     <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
-                      <span className="text-[var(--theme-text-muted)] text-sm ml-3 shrink-0 select-none font-bold leading-none" style={{ fontFamily: 'serif' }}>{'\u{1D54F}'}</span>
+                      <span className="text-[var(--theme-text-muted)] text-sm pl-3 select-none">@</span>
                       <input
                         type="text"
                         value={xHandle}
                         onChange={(e) => setXHandle(e.target.value.replace(/^@/, ''))}
                         placeholder="X handle"
-                        className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
-                      <Send className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
-                      <input
-                        type="text"
-                        value={telegramHandle}
-                        onChange={(e) => setTelegramHandle(e.target.value.replace(/^@/, ''))}
-                        placeholder="Telegram"
-                        className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg focus-within:border-[var(--theme-accent)]">
-                      <Linkedin className="w-4 h-4 text-[var(--theme-text-muted)] ml-3 shrink-0" />
-                      <input
-                        type="text"
-                        value={linkedinUrl}
-                        onChange={(e) => setLinkedinUrl(e.target.value)}
-                        placeholder="linkedin.com/in/yourname"
                         className="flex-1 bg-transparent text-[var(--theme-text-primary)] text-sm px-2 py-2 focus:outline-none placeholder:text-[var(--theme-text-muted)]"
                       />
                     </div>
@@ -811,17 +690,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                     </div>
                   )}
                 </div>
-
-                {/* Lock Screen Card */}
-                {(socialLinks.length > 0 || friendCode) && (
-                  <button
-                    onClick={() => setShowLockScreen(true)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--theme-bg-tertiary)] hover:bg-[var(--theme-bg-card-hover)] text-[var(--theme-text-primary)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
-                  >
-                    <Smartphone className="w-3.5 h-3.5" />
-                    Generate Lock Screen
-                  </button>
-                )}
 
                 {/* Friends */}
                 <div className="border-t border-[var(--theme-border-primary)] pt-4 space-y-3">
@@ -949,25 +817,27 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                   )}
                 </div>
 
-                {/* Sign Out + Dark Mode Toggle */}
-                <div className="border-t border-[var(--theme-border-primary)] pt-4 flex items-center gap-2">
+                {/* Share Itinerary + Submit Event + Sign Out */}
+                <div className="border-t border-[var(--theme-border-primary)] pt-4 space-y-2">
+                  {itineraryEvents.length > 0 && (
+                    <button
+                      onClick={() => { setOpen(false); setShowShareCard(true); }}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      Share My Plan
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       trackSignOut();
                       signOut();
                       setOpen(false);
                     }}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-[var(--theme-border-primary)] hover:border-red-500/50 hover:bg-red-500/10 text-[var(--theme-text-secondary)] hover:text-red-400 rounded-lg text-sm transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-[var(--theme-border-primary)] hover:border-red-500/50 hover:bg-red-500/10 text-[var(--theme-text-secondary)] hover:text-red-400 rounded-lg text-sm transition-colors cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     Sign out
-                  </button>
-                  <button
-                    onClick={() => setTheme(theme === 'dark' ? 'light-blue' : 'dark')}
-                    aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                    className="shrink-0 flex items-center justify-center w-10 h-10 border border-[var(--theme-border-primary)] hover:border-[var(--theme-text-primary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] rounded-lg transition-colors cursor-pointer"
-                  >
-                    {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                   </button>
                 </div>
 
@@ -987,7 +857,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                         trackAdEvent({ ad_id: profileAd.id || 'profile-ad', ad_name: profileAd.title, placement: 'profile', event_type: 'click', url: profileAd.link });
                       }}
                     >
-                      <div className="bg-[var(--theme-bg-card)] border border-[var(--theme-border-primary)] rounded-lg p-3 transition-colors hover:border-[var(--theme-accent)]">
+                      <div className="bg-[var(--theme-bg-card)] border border-[var(--theme-border-primary)] rounded-lg p-3 transition-colors hover:border-amber-500/30">
                         <div className="flex gap-3">
                           {profileAd.imageUrl && (
                             <div className="w-[60px] h-[60px] flex-shrink-0 rounded-lg overflow-hidden bg-[var(--theme-bg-tertiary)]">
@@ -997,12 +867,12 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-xs font-semibold text-[var(--theme-text-primary)] truncate">{profileAd.title}</span>
-                              <span className="flex-shrink-0 text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--theme-accent-muted)] text-[var(--theme-accent)] border border-[var(--theme-accent-muted)]">
+                              <span className="flex-shrink-0 text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20">
                                 Ad
                               </span>
                             </div>
                             <p className="text-[11px] text-[var(--theme-text-secondary)] line-clamp-2 mb-1.5">{profileAd.description}</p>
-                            <span className="inline-flex items-center gap-1 text-[var(--theme-accent)] text-[11px] font-medium">
+                            <span className="inline-flex items-center gap-1 text-amber-400 text-[11px] font-medium">
                               {profileAd.badge || 'Learn more'}
                               <ArrowRight className="w-3 h-3" />
                             </span>
@@ -1024,17 +894,6 @@ export function UserMenu({ events, itinerary, onOpenFriends, onSubmitEvent, pend
         conferenceName={shareConferenceName}
         displayName={profile?.display_name ?? null}
         avatarUrl={profile?.avatar_url}
-      />
-      <LockScreenModal
-        isOpen={showLockScreen}
-        onClose={() => setShowLockScreen(false)}
-        displayName={profile?.display_name ?? null}
-        company={profile?.company ?? null}
-        jobTitle={profile?.job_title ?? null}
-        avatarUrl={profile?.avatar_url ?? null}
-        xHandle={profile?.x_handle ?? null}
-        socialLinks={socialLinks}
-        friendCode={friendCode}
       />
     </>
   );

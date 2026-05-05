@@ -1,9 +1,11 @@
 # plan.wtf - Multi-Conference Side Event Guide
 
 ## Project Overview
-A standalone Next.js app that displays crypto/tech conference side events with interactive map, list, table, and gallery views. Landing page at `plan.wtf` shows active conference cards with event counts, days-away badges, social links, and upcoming conferences with "Notify Me" email signups. Users can filter events by conference, date range, time range, tags, and more. Add events to your plan and build a personal itinerary with PNG export and shareable links. Social features include friend connections, check-ins, emoji reactions, and event comments. RSVP flow for Luma events with in-app registration overlay.
+A standalone Next.js app that displays crypto/tech conference side events with interactive map, list, and table views. Users can filter events by conference, date range, time range, tags, and more. Star favorites and build a personal itinerary with PNG export and shareable links. Social features include friend connections, check-ins, emoji reactions, and event comments.
 
 **Live**: https://plan.wtf
+**Legacy**: https://sheeets.xyz (301 redirects to plan.wtf via .htaccess)
+**Vercel**: https://sheeets.vercel.app (redirects to plan.wtf)
 **Repo**: https://github.com/snackman/sheeets
 **Data Source**: Google Sheet `1xWmIHyEyOmPHfkYuZkucPRlLGWbb9CF6Oqvfl8FUV6k` (https://plan.wtf/data)
 
@@ -12,155 +14,523 @@ A standalone Next.js app that displays crypto/tech conference side events with i
 ## Tech Stack
 - **Next.js 16** (App Router, Turbopack)
 - **TypeScript**
-- **Tailwind CSS** (CSS custom properties theme system with `data-theme` attribute)
+- **Tailwind CSS** (dark theme, warm-dark color scheme: stone backgrounds, amber accents)
 - **Mapbox GL JS** via `react-map-gl` (individual markers, zoom-aware labels)
-- **Supabase** (auth via email OTP, itinerary sync, friends, check-ins, reactions, comments, POIs, image caching, ad tracking, profile pictures via Storage, RSVPs)
-- **OpenAI** (GPT-4o-mini for sponsor extraction in crawl script)
+- **Supabase** (auth via email OTP, itinerary sync, friends, check-ins, reactions, comments, POIs, image caching)
 - **@tanstack/react-virtual** (list virtualization for scroll performance)
 - **Google Sheets API** (service account auth for event submission)
-- **Google Analytics** (GA4, custom event tracking)
+- **Google Analytics** (GA4, measurement ID: `G-2WB3SFJ13V`, custom event tracking)
 - **html-to-image** for itinerary PNG export
-- **localStorage + Supabase** for user state (plan items, itinerary, hidden events — dual storage with sync)
+- **localStorage + Supabase** for user state (stars, itinerary — dual storage with sync)
+
+## Getting Started
+
+```bash
+cd sheeets
+npm install
+npm run dev        # http://localhost:3000
+```
+
+### Environment Variables (`.env.local`)
+```
+NEXT_PUBLIC_MAPBOX_TOKEN=pk.xxx           # Required for map view
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxx      # Supabase anon key
+SUPABASE_SERVICE_ROLE_KEY=eyJxxx          # For server-side operations
+MAPBOX_TOKEN=pk.xxx                        # Server-side geocoding
+GOOGLE_SERVICE_ACCOUNT_EMAIL=sheeets-writer@planwtf.iam.gserviceaccount.com
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n..."
+```
+
+### Geocoding (for map view)
+Events have addresses but no lat/lng. Two systems:
+
+1. **Build-time script** (populates static cache):
+```bash
+MAPBOX_SECRET_TOKEN=pk.xxx npx tsx scripts/geocode.ts
+```
+Creates/updates `src/data/geocoded-addresses.json`. Matched to events via `normalizeAddress()` in `fetch-events.ts`. **Auto-runs on every deploy** via the `prebuild` npm script — skips gracefully if `MAPBOX_SECRET_TOKEN` isn't set. Set the token in Vercel env vars to auto-geocode new addresses on each deploy.
+
+2. **Runtime API** (`/api/geocode`): Events not in the static cache get geocoded on-the-fly via Mapbox. The `useEvents` hook detects un-geocoded addresses and POSTs to this endpoint. Uses proximity bias based on conference city.
+
+The geocode cache also stores a `matchedAddress` field (full street address from Mapbox). This is passed to `AddressLink` via the `navAddress` prop so Lyft/Uber/Google Maps receive the complete address even when the spreadsheet has a shorthand like "The 1up Arcade Bar".
+
+### POI Address Backfill
+Existing user-added POIs may have incomplete addresses. Run to fix:
+```bash
+NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... MAPBOX_SECRET_TOKEN=... npx tsx scripts/backfill-poi-addresses.ts
+```
 
 ---
 
-## Recent Changes (This Session — May 3, 2026)
+## Architecture
 
-All changes on branch `pineapple-22344-itinerary-overhaul` (PR #123).
+### Data Flow
+```
+Google Sheet (GViz API, multiple tabs)
+  → fetch-events.ts (paginated, header detection, tag parsing, geocode lookup, synthetic tags)
+    → useEvents hook (lazy-geocodes missing addresses via /api/geocode)
+      → EventApp
+          ├── MapView (Mapbox GL, auto-centers on events, friend location markers)
+          ├── ListView (virtualized cards via @tanstack/react-virtual, grouped by date, OG images, reactions, comments)
+          └── TableView (compact rows with icon-only tags)
+```
 
-### Share Card Flyer Gallery
-- **New file**: `src/app/api/image-proxy/route.ts` — server-side image proxy to bypass CORS for html-to-image canvas rendering
-- **ShareCardModal** (`src/components/ShareCardModal.tsx`):
-  - Pre-fetches flyer images as data URLs: checks `imageCache` → batch POST `/api/og` → proxy via `/api/image-proxy` → FileReader → data URL map
-  - Flyers/Text Only toggle (`ShareCardMode` type) — skips image pre-fetching in text mode
-  - Passes `flyerImages` map and `mode` prop to template
-- **ShareCardTemplate** (`src/components/ShareCardTemplate.tsx`):
-  - **Gallery mode** (default): 2-column grid of 486px square flyer tiles with event name (22px bold) and time (19px) above each image. Dark placeholder for events without flyers.
-  - **Text mode**: Classic layout with time + event name + address in a list
-  - End times now shown (e.g., "6:00p - 9:00p")
-  - Exported `ShareCardMode` type
+### Extracted Hooks (Architecture Refactor)
+| Hook | File | Purpose |
+|------|------|---------|
+| useViewMode | src/hooks/useViewMode.ts | View mode state (list/map/table) with localStorage |
+| useAuthGatedActions | src/hooks/useAuthGatedActions.ts | Auth-gated starring with pending action after login |
+| useConferenceData | src/hooks/useConferenceData.ts | Conference-scoped memos (types, vibes, counts, friends) |
+| useNowMode | src/hooks/useNowMode.ts | Auto-refresh tick for "Now" mode filtering |
+| useAdminConfig | src/hooks/useAdminConfig.ts | Admin config key-value store |
 
-### /plan Page Improvements
-- **Friend avatars**: Added `useFriends()` + `useFriendsItineraries()` hooks, computes `friendsByEvent` map, passes `friendsGoing` prop to EventCard (blue left border + avatar stack)
-- **Google Calendar export**: Added `GoogleCalendarButton` (icon-only, 18px CalendarPlus) to header with `conferenceTimezone` and `exportableEvents` memos
-- **View mode sync**: /plan page reads `STORAGE_KEYS.VIEW_MODE` from localStorage on mount via useEffect + `viewModeRestored` gate to prevent flash
-- **Header cleanup**:
-  - Removed "My Plan (N events)" heading
-  - Conference dropdown moved next to back arrow (same flex group)
-  - Back button navigates to `/<conference-slug>` instead of `/`
-  - Logo replaces calendar emoji, heading says "My Plan" not "plan.wtf"
-  - CalendarX icon replaced with plan.wtf logo in empty state
-- **Schedule conflicts removed**: Removed conflict banner, per-card indicators, border styling, `detectConflicts` import
-- **Larger link/copy icons**: Bumped from `w-3.5 h-3.5` to `w-4 h-4` in EventCard to match StarButton
+### Extracted Modules
+| Module | File | Purpose |
+|--------|------|---------|
+| time-parse | src/lib/time-parse.ts | Time parsing and sorting helpers |
+| tags | src/lib/tags.ts | TYPE_TAGS, VIBE_TAGS constants |
+| conferences | src/lib/conferences.ts | Conference timezone helpers |
+| storage-keys | src/lib/storage-keys.ts | localStorage key constants |
+| user-display | src/lib/user-display.ts | Display name formatting |
+| pois | src/lib/pois.ts | Points of interest types |
+| json-ld | src/lib/json-ld.ts | JSON-LD structured data generation |
+| api-validation | src/lib/api-validation.ts | Zod schemas for API routes |
+
+### Conference Tab System
+Each conference tab in `EVENT_TABS` (in `src/lib/constants.ts`) defines:
+- `gid` — Google Sheet tab ID
+- `name` — Display name (used as filter key)
+- `timezone` — IANA timezone for "Now" filter and date defaults
+- `dates` — Array of ISO date strings for the date picker
+- `center` — `{lat, lng}` for default map center and geocoding proximity
+
+**Current tabs:**
+
+| Tab | GID | Timezone | Dates |
+|-----|-----|----------|-------|
+| SXSW 2026 | 1543768695 | America/Chicago | Mar 5-18, 2026 |
+| ETHCC 2026 | 437576609 | Europe/Paris | Mar 27-Apr 2, 2026 |
+
+Switching conferences resets the date range filter to that conference's dates. If the current time is before or after the conference date range, all events are shown.
+
+**Previously active tabs** (removed, GIDs for reference):
+- ETHDenver: 356217373
+- Consensus Hong Kong 2026: 377806756
+
+### Auth & User Data
+```
+Supabase Auth (email OTP via Resend SMTP)
+  → AuthContext (signIn, verifyOtp, signOut)
+  → useItinerary (dual storage: localStorage + Supabase itineraries table)
+  → useCheckIns (fetches check-in counts + user IDs per event for friend indicators)
+  → useEventReactions (batch-fetches all reactions, optimistic toggle)
+  → useEventComments (per-event comments with profile joins)
+  → useEventCommentCounts (batch comment counts)
+  → useFriendLocations (upserts own location on mount, fetches friends via RPC)
+  → AuthModal (two-step: email → 6-digit code)
+  → UserMenu (profile, friends, check-in, submit event)
+```
+
+**Auth guards**:
+- Starring an event requires auth — pending star completes after login + Supabase sync (race-condition safe via `ready` flag in useItinerary)
+- Itinerary filter button requires auth — if user signs out or auth is dismissed, `itineraryOnly` is automatically deselected
+- Toggling reactions requires auth — shows auth modal, no pending action stored
+
+**Email config**:
+- SMTP via **Resend** (`smtp.resend.com:465`)
+- Sender: `noreply@sheeets.xyz`
+- DNS records (DKIM, SPF, DMARC) configured on Namecheap cPanel for `sheeets.xyz`
+- Rate limit: 30 emails/hour (auto-increased with custom SMTP)
+
+### Event Submission
+Users can submit events via the **SubmitEventModal** (accessible from UserMenu):
+1. **Step 1**: Paste a Luma URL to auto-fill event details (via `/api/luma`), or enter manually
+2. **Step 2**: Editable form with conference selector, all event fields, tag picker
+3. **Step 3**: Success confirmation
+
+The submission writes to the **"Add Events Here"** section of the Google Sheet tab. The `findNextEmptyRow()` function in `google-sheets.ts` scans for the marker cell containing "Add Events Here", finds the header row below it, and appends to the first empty row after that.
+
+**URL parsing**: Submit form auto-detects platform from pasted URLs:
+- **Luma** (lu.ma/*): Fetches event data via Luma API
+- **Posh.vip**: Extracts event details via posh.vip page scraping
+- **Eventbrite**: Standard og:image scraping with JSON-LD fallback
+
+**Service account**: `sheeets-writer@planwtf.iam.gserviceaccount.com` (GCP project: `planwtf`)
+- Google Sheets API enabled
+- Shared as Editor on the spreadsheet
+- Env vars set in Vercel: `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`
+
+### Social Features
+
+#### Emoji Reactions
+- Predefined set: 🔥 ❤️ 💯 👍 🎉 👀 (in `REACTION_EMOJIS` constant)
+- Rendered as pills `[🔥 3] [❤️ 1] [+]` via `EmojiReactions` component
+- Highlighted border (orange) when user has reacted
+- `compact` prop for smaller rendering in map popups
+- Optimistic add/remove with revert on error
+- Public reactions visible to all users (including anonymous); friends-only requires auth + friendship
+
+#### Event Comments
+- `CommentSection` component: expandable, collapsed shows count link
+- Scrollable list with avatar initial, name, time-ago, text
+- Public/friends visibility toggle on input
+- Delete own comments on hover
+- `useEventComments(eventId)` hook fetches per-event, joins profiles for display names
+- `useEventCommentCounts()` hook batch-fetches counts for all events
+
+#### Friend Location Sharing
+- `useFriendLocations` hook: upserts own location via `navigator.geolocation.getCurrentPosition()` on mount (any view, not just map), fetches friends via `get_friends_locations()` RPC, re-fetches every 5 min
+- `FriendMarker` component: 32px circular avatar (`unavatar.io/x/{handle}`), green/gray border based on recency, green pulse if <5min ago, 50% opacity if >1h stale, name + time-ago label visible at zoom >= 13
+
+#### Green Check-in Friend Indicators
+- `useCheckIns` returns `checkInUsersByEvent: Map<string, string[]>` (user IDs per event)
+- EventApp computes `checkedInFriendsByEvent` from check-in user IDs + friends list
+- Green MapPin row on EventCard: "Sam, Alex checked in"
+- `FriendsGoingModal` supports `accentColor` param ('blue' for itinerary, 'green' for check-in)
+
+### Multi-Tab Sheet Structure
+The Google Sheet has multiple tabs. Each event tab has:
+- **Header rows** (rows 1-12): Sponsor info, social links, promo content
+- **Data header** (row 13): `"", "Start Time", "End Time", "Organizer", "Event Name", "Address", "Cost", "Tags", "Link", "", "", "Note"`
+- **Event rows**: Below the header until the first empty row
+- **"Add Events Here" section**: Below the main events, with its own header row for user submissions
+
+The parser finds the header row by looking for `col B = "Start Time"`, then reads events until the first empty row.
+
+### File Structure
+```
+src/
+├── app/
+│   ├── page.tsx              # Renders EventApp
+│   ├── layout.tsx            # Inter font, dark theme, viewport config, GA4 script, JSON-LD
+│   ├── globals.css           # Tailwind + Mapbox CSS + warm-dark theme vars + safe-area insets
+│   ├── sitemap.ts            # Dynamic sitemap generation
+│   ├── robots.ts             # Robots.txt configuration
+│   ├── itinerary/
+│   │   ├── page.tsx          # Standalone itinerary page
+│   │   └── s/[code]/page.tsx # Shared itinerary viewer
+│   ├── admin/page.tsx        # Admin panel (sponsors, ticker, ad inventory, drag-reorder)
+│   └── api/
+│       ├── page.tsx          # Agent API documentation page
+│       ├── CodeBlock.tsx     # Tabbed code examples with copy button
+│       ├── geocode/route.ts  # Runtime geocoding via Mapbox (POST, batch up to 25)
+│       ├── og/route.ts       # OG image resolution (Luma API + HTML scraping + JSON-LD, Supabase cache)
+│       ├── fetch-event/route.ts # Fetch single event details for posh.vip/other platforms
+│       ├── luma/route.ts     # Luma event scraper for submit form auto-fill
+│       └── submit-event/route.ts # Event submission to Google Sheet via service account
+├── components/
+│   ├── EventApp.tsx          # Main orchestrator - hooks, view routing, auth guards
+│   ├── Header.tsx            # Logo, view toggle, itinerary badge, auth (sticky)
+│   ├── AuthModal.tsx         # Email OTP auth, UserMenu with profile, friends, check-in, submit event
+│   ├── SubmitEventModal.tsx  # 3-step event submission: URL paste → form → success
+│   ├── ViewToggle.tsx        # Map | List | Table toggle
+│   ├── FilterBar.tsx         # Conference tabs, Now toggle, Filters (conference-aware date bounds)
+│   ├── DateTimePicker.tsx    # Custom date dropdown + 30-min time dropdown (accepts dates prop)
+│   ├── AddressLink.tsx       # Address tap → Google Maps / Uber / Lyft (mobile sheet, desktop direct)
+│   ├── SearchBar.tsx         # Debounced text search (300ms)
+│   ├── TagBadge.tsx          # Tag icon with color (supports iconOnly mode, custom SVG crypto icons)
+│   ├── EventCard.tsx         # Event card: OG image, details, friends going/checked-in, reactions, comments
+│   ├── ListView.tsx          # Virtualized cards via @tanstack/react-virtual, grouped by date, sticky headers
+│   ├── TableView.tsx         # table-fixed layout, fills viewport, CSS truncate
+│   ├── MapView.tsx           # Mapbox map, auto-centers, friend markers, conference-aware center
+│   ├── MapViewWrapper.tsx    # Dynamic import wrapper (ssr: false)
+│   ├── MapMarker.tsx         # Clock-face SVG pin (white wedge, 19px), opaque amber featured labels
+│   ├── EventPopup.tsx        # Map popup with OG image, star, reactions, checked-in friends
+│   ├── EmojiReactions.tsx    # Row of emoji pills with picker dropdown
+│   ├── CommentSection.tsx    # Expandable comment list with input
+│   ├── FriendMarker.tsx      # Map marker for friend locations (avatar, pulse, time-ago)
+│   ├── NativeAdCard.tsx      # Native ad card interleaved in list view
+│   ├── POIPopup.tsx          # POI map popup with AddressLink, share toggle, delete
+│   ├── POIMarker.tsx         # POI map pin
+│   ├── POISearchBar.tsx      # Mapbox Search Box for adding POIs
+│   ├── StarButton.tsx        # Star toggle (yellow), friends count badge (orange)
+│   ├── ItineraryPanel.tsx    # Slide-over panel with conflict detection, share, PNG export
+│   ├── FriendsPanel.tsx      # Friends list slide-over with remove friend
+│   ├── OGImage.tsx           # Lazy-loaded OG image thumbnails (flexible height for non-square images)
+│   ├── SponsorsTicker.tsx    # Scrolling sponsor/announcement ticker below header
+│   ├── Providers.tsx         # AuthProvider wrapper
+│   └── Loading.tsx           # Spinner
+├── contexts/
+│   └── AuthContext.tsx       # Supabase auth context (email OTP)
+├── hooks/
+│   ├── useEvents.ts          # Fetch + parse events from GViz, lazy-geocode via /api/geocode
+│   ├── useFilters.ts         # Filter state (conference-aware dates, resets on conference switch)
+│   ├── useItinerary.ts       # Dual storage: localStorage + Supabase sync
+│   ├── useFriends.ts         # Friend list (bidirectional query + profiles)
+│   ├── useFriendRequests.ts  # Friend search, send/accept/reject/cancel requests
+│   ├── useFriendsItineraries.ts # Friends' event lists (RPC-based)
+│   ├── useCheckIns.ts        # Check-in counts + user IDs per event (Map<eventId, count/string[]>)
+│   ├── useEventReactions.ts  # Batch reactions with optimistic toggle
+│   ├── useEventComments.ts   # Per-event comments with profile joins
+│   ├── useEventCommentCounts.ts # Batch comment counts
+│   ├── useFriendLocations.ts # Location sharing: upsert own, fetch friends via RPC
+│   ├── useProfile.ts         # Current user's profile
+│   ├── usePOIs.ts            # Points of interest CRUD
+│   ├── useGeocoder.ts        # Mapbox Search Box API for POI search
+│   ├── useViewMode.ts        # View mode state with localStorage persistence
+│   ├── useAuthGatedActions.ts # Auth-gated starring with pending action
+│   ├── useConferenceData.ts  # Conference-scoped memos (types, vibes, counts, friends)
+│   ├── useNowMode.ts         # Auto-refresh tick for "Now" mode
+│   └── useAdminConfig.ts     # Admin config key-value store
+├── lib/
+│   ├── geo.ts                # distanceMeters() — haversine distance
+│   ├── gviz.ts               # GViz response parser
+│   ├── types.ts              # TypeScript types (ETHDenverEvent, FilterState, ReactionEmoji, NativeAd, etc.)
+│   ├── constants.ts          # EVENT_TABS (with dates/tz/center), tag colors, REACTION_EMOJIS
+│   ├── analytics.ts          # GA4 custom event tracking (gtag wrapper)
+│   ├── supabase.ts           # Supabase client (singleton, anon key)
+│   ├── google-sheets.ts      # Service account auth, findNextEmptyRow, appendEventRow
+│   ├── fetch-events.ts       # GViz fetch + synthetic tag generation + geocode lookup
+│   ├── fetch-events-cached.ts # Cached event fetching for server-side use
+│   ├── filters.ts            # Filter logic (conference-aware timezone in getConferenceNow)
+│   ├── utils.ts              # Date formatting, normalizeAddress, time parsing
+│   ├── calendar.ts           # ICS export for itinerary
+│   ├── json-ld.ts            # JSON-LD structured data generation (Schema.org Event, CollectionPage)
+│   ├── api-validation.ts     # Zod schemas for API route validation
+│   ├── time-parse.ts         # Time parsing and sorting helpers
+│   ├── tags.ts               # TYPE_TAGS, VIBE_TAGS constants
+│   ├── conferences.ts        # Conference timezone helpers
+│   ├── storage-keys.ts       # localStorage key constants
+│   ├── user-display.ts       # Display name formatting
+│   └── pois.ts               # Points of interest types
+├── data/
+│   └── geocoded-addresses.json  # Cached geocoded addresses
+scripts/
+├── geocode.ts                # Build-time geocoding script (multi-tab, proximity-aware)
+└── backfill-poi-addresses.ts # One-time script to fix incomplete POI addresses
+packages/
+└── mcp-server/               # MCP server package for AI agent integration
+supabase/
+├── migrations/               # SQL migrations (run via supabase db push --linked)
+└── functions/
+    └── agent-api/index.ts    # RESTful API edge function for AI agents
+public/
+└── logo.png                  # plan.wtf brand logo (black on transparent, inverted to white in header)
+```
+
+### Key Types (`src/lib/types.ts`)
+```typescript
+interface ETHDenverEvent {
+  id, date, dateISO, startTime, endTime, isAllDay,
+  organizer, name, address, cost, isFree,
+  vibe,           // Primary tag (first tag)
+  tags: string[], // All tags + synthetic tags ($$, Food, Bar)
+  conference,     // Which tab this event belongs to
+  link, hasFood, hasBar, note,
+  lat?, lng?, matchedAddress?,
+  timeOfDay, isDuplicate?
+}
+
+type ReactionEmoji = '🔥' | '❤️' | '💯' | '👍' | '🎉' | '👀'
+
+interface EventComment {
+  id, event_id, user_id, text,
+  visibility: 'public' | 'friends',
+  created_at, display_name?, x_handle?
+}
+
+interface FriendLocation {
+  user_id, lat, lng, updated_at,
+  display_name?, x_handle?
+}
+
+interface NativeAd {
+  id, title, description, ctaText, ctaUrl,
+  imageUrl?, sponsor, active, position?
+}
+
+type ViewMode = 'map' | 'list' | 'table'
+
+interface FilterState {
+  conference,      // Single-select: which conference to show
+  startDateTime,   // ISO local: "2026-03-12T14:00" (conference-aware default)
+  endDateTime,     // ISO local: "2026-03-18T23:30"
+  vibes,           // Selected tags (includes $$, Food, Bar)
+  selectedFriends, // Filter to events where selected friends are going
+  itineraryOnly,   // Show itinerary only
+  searchQuery,     // Text search
+  nowMode          // Show happening-now events
+}
+```
+
+### Supabase Tables
+
+| Table | Purpose | Key Columns |
+|-------|---------|-------------|
+| `profiles` | User metadata | user_id, display_name, x_handle, email, rsvp_name |
+| `itineraries` | User's starred events | user_id, event_ids (text[]), updated_at |
+| `check_ins` | User check-ins at events | user_id, event_id, lat, lng; UNIQUE(user_id, event_id) |
+| `friendships` | Bidirectional friends (user_a < user_b) | user_a, user_b |
+| `friend_requests` | Friend request flow | sender_id, receiver_id, status |
+| `friend_codes` | Shareable friend invite codes | user_id, code (unique) |
+| `shared_itineraries` | Shareable itinerary links | short_code (unique), event_ids, created_by |
+| `event_images` | OG image cache | event_id (PK), source_url, image_url |
+| `event_reactions` | Emoji reactions | event_id, user_id, emoji, visibility; UNIQUE(event_id, user_id, emoji) |
+| `event_comments` | Event comments | event_id, user_id, text (1-500 chars), visibility |
+| `user_locations` | Friend location sharing | user_id (PK), lat, lng, updated_at |
+| `rsvps` | RSVP tracking | user_id, event_id, luma_api_id, status, method |
+| `pois` | User points of interest | id (uuid), user_id, name, lat, lng, address, category, note, is_public |
+| `api_keys` | Agent API keys | user_id, key_hash (SHA-256), key_prefix, scopes, revoked_at |
+| `api_rate_limits` | Rate limiting | key_hash, window_start, request_count |
+| `events_cache` | 15-min TTL events cache for API | id, conference, date_iso, tags, link, cached_at |
+| `admin_config` | Key-value config store for admin settings | key (PK), value (jsonb), updated_at |
+
+**Supabase project**: `qsiukfwuwbpwyujfahtz` (sheeets)
+
+### Server-Side Aggregation RPCs
+| RPC | Purpose |
+|-----|---------|
+| `get_event_reaction_summaries` | Batch reaction counts for all events |
+| `get_event_comment_counts` | Batch comment counts for all events |
+| `get_event_checkin_counts` | Batch check-in counts for all events |
+
+### RLS Policies (Social Features)
+
+**Reactions & Comments visibility:**
+- "Anyone can read public reactions/comments" — no auth required, `visibility = 'public'`
+- "Friends can read friends-only reactions/comments" — requires auth + `are_friends()` check
+- Authenticated users can insert/delete their own
+
+**`are_friends()` helper** (SECURITY DEFINER): checks `friendships` table for bidirectional friendship.
+
+**`get_friends_locations()` RPC** (SECURITY DEFINER): returns `{user_id, lat, lng, updated_at}[]` for calling user's friends by joining `user_locations` with `friendships`.
+
+### SECURITY DEFINER Functions
+- `get_friends_itineraries()` — Returns friends' event_ids
+- `get_friends_locations()` — Returns friends' last known locations
+- `respond_to_friend_request(request_id, accept)` — Accept/reject + create friendship
+- `send_friend_request(receiver)` — Send or auto-accept mutual requests
+- `search_users(search_query, search_type)` — Find users by exact email/display_name/x_handle
+- `check_rate_limit(key_hash, window_min, max_req)` — Atomic rate limiting counter
+- `are_friends(uid1, uid2)` — Check if two users are friends
+
+### Edge Functions
+
+| Function | Auth | Purpose |
+|----------|------|---------|
+| `agent-api` | API key (`shts_` prefix) | RESTful API for AI agents — events, itinerary, friends, RSVPs, recommendations |
 
 ---
 
-## Open PRs
-| PR | Branch | Description | Preview |
-|----|--------|-------------|---------|
-| #126 | `calzone-34833-gallery-view` | Gallery view (flyer grid) | https://sheeets-git-calzone-34833-gallery-view-pizza-dao.vercel.app |
-| #125 | `onion-98806-admin-submissions` | Admin submissions approval queue | https://sheeets-git-onion-98806-admin-submissions-pizza-dao.vercel.app |
-| #123 | `pineapple-22344-itinerary-overhaul` | Itinerary page overhaul + share card flyer gallery | https://sheeets-git-pineapple-22344-itinerary-overhaul-pizza-dao.vercel.app |
-| #122 | `worktree-agent-ab7637fb` | Luma RSVP flow + profile fields | https://sheeets-git-worktree-agent-ab7637fb-pizza-dao.vercel.app |
-| #89 | `image-ad-column` | Image ad column (stale) | — |
-| #78 | `luma-gmail-importer` | Gmail Luma importer (stale) | — |
+## Hosting & DNS
+
+### plan.wtf (primary domain)
+- **Registrar**: Namecheap (API user: `snackman`)
+- **DNS**: Namecheap BasicDNS (`dns1.registrar-servers.com`)
+- **A Record**: `@` → `76.76.21.21` (Vercel)
+- **CNAME**: `www` → `cname.vercel-dns.com`
+- **SSL**: Vercel auto-provisioned
+
+### sheeets.xyz (legacy, redirects to plan.wtf)
+- **Hosting**: Namecheap cPanel (`premium266.web-hosting.com`)
+- **DNS**: `dns1.namecheaphosting.com` (hosting DNS, NOT registrar DNS)
+- **Redirects**: via `.htaccess` — all paths redirect to `plan.wtf` except `/admin` → Google Sheet
+- **Email DNS**: DKIM, SPF, DMARC configured for Resend
+
+### Vercel
+- **Team**: `pizza-dao`
+- **Project**: `sheeets`
+- **Production URL**: https://plan.wtf
+- **Auto-deploy**: from `master` branch
+
+### GCP (Google Cloud)
+- **Project**: `planwtf` (ID: 352068458659)
+- **Service account**: `sheeets-writer@planwtf.iam.gserviceaccount.com`
+- **APIs enabled**: Google Sheets API, Google Drive API
+- **CLI**: `gcloud` installed via Homebrew, authenticated as `snax.ynot@gmail.com`
+
+### Redirects
+| From | To | Method |
+|------|----|--------|
+| `sheeets.vercel.app/*` | `plan.wtf/*` | Vercel auto-redirect |
+| `sheeets.xyz/*` | `plan.wtf` | .htaccess 301 |
+| `sheeets.xyz/admin` | Google Sheet (admin) | .htaccess 301 |
+| `plan.wtf/data` | Google Sheet (data) | Next.js redirect |
 
 ---
 
-## Pending Work
+## Adding a New Conference Tab
 
-### Not yet pushed
-- **Blue header theme changes** — on local `calzone-34833-luma-rsvp` branch (globals.css, Header.tsx, ViewToggle.tsx, AuthModal.tsx)
-
-### Gallery view card redesign
-- Updated plan at `plans/flyer-gallery-view.md` — overlay bar on image instead of text below, StarButton (not stars)
-- Not yet implemented
-
-### DB migration needed
-- `supabase/migrations/20260502_add_profile_fields.sql` — `ALTER TABLE profiles ADD COLUMN telegram_handle text; ADD COLUMN company text;`
-- Must be applied to Supabase production before merging PR #122
-
-### Luma pre-fill research (concluded)
-- Luma embed iframe does NOT support pre-filling name/email via URL params or postMessage
-- Only supported params: `coupon`, `utm_source`
-- Server-side API registration possible but requires organizer Luma Plus API keys (not viable for arbitrary events)
-- Current copy-fields approach is the best available UX
+1. Find the tab's `gid` from the spreadsheet HTML: `curl -sL "https://docs.google.com/spreadsheets/d/SHEET_ID/edit" | grep -oE '.{0,50}TAB_NAME.{0,50}'` — look for the number in quotes before the tab name
+2. Add to `EVENT_TABS` in `src/lib/constants.ts` with `gid`, `name`, `timezone`, `dates`, and `center`
+3. Add a proximity center in `scripts/geocode.ts` → `PROXIMITY_CENTERS` and in `src/app/api/geocode/route.ts` → `PROXIMITY` if the conference is in a new city
+4. Run the geocoding script to cache new addresses
 
 ---
 
-## Plans
+## Recent Changes (2026-03-07)
 
-### Active
-- `plans/pineapple-22344-itinerary-overhaul.md` — Itinerary overhaul + share card flyer gallery (PR #123, ready to merge)
-- `plans/flyer-gallery-view.md` — Gallery view (implemented, card redesign pending)
+### Merged This Session
+| PR | Description |
+|----|-------------|
+| #45 | Drag-to-reorder sponsors in admin panel |
+| #47 | Friends filter empty state with invite link |
+| #54 | JSON-LD structured data, SEO metadata, sitemap, robots.txt |
+| #55 | Server-side aggregation RPCs for batch data fetching |
+| #56 | List virtualization with @tanstack/react-virtual |
+| #57 | Architecture refactor: extract hooks, split modules, Zod validation |
+| #58 | Fix Eventbrite image fetching via JSON-LD extraction |
+| #59 | Posh.vip link parsing for submit + image display |
 
-### Pending (not yet implemented)
-- `plans/admin-conference-management.md`
-- `plans/automated-testing.md`
-- `plans/calendar-export.md`
-- `plans/event-click-tracking.md`
-- `plans/featured-events.md`
-- `plans/google-calendar-export.md`
-- `plans/image-ad-column.md`
-- `plans/instant-geocoding.md`
-- `plans/itinerary-privacy.md`
-- `plans/luma-gmail-importer.md`
-- `plans/pineapple-49198-ai-sponsor-extraction.md`
-- `plans/profile-picture.md`
-- `plans/salami-77082-landing-page.md`
-- `plans/sponsor-admin-ui.md`
-- `plans/sponsor-crawling.md`
+### Direct Master Commits
+- Opaque featured labels on map (solid amber instead of transparent)
+- Food/Bar priority in tags filter (sort to front)
+- Smaller emoji reaction pills (match comments button height)
+- Remove submit button pop-out icon
 
-### Done
-- `plans/done/ad-placements.md`
-- `plans/done/olive-29895-checkin-buttons.md`
-- `plans/done/per-conference-ad-inventory.md`
-- `plans/done/submit-form-improvements.md`
-- `plans/done/sxsw-theme.md`
-- `plans/done/sxsw-theme-v2.md`
-- `plans/done/tomato-46571-theme-toggle.md`
+### Open PRs (not yet merged)
+| PR | Branch | Description | Status |
+|----|--------|-------------|--------|
+| #60 | advertiser-page | /advertise page + admin Ad Inventory tab | Draft |
+| #53 | tag-count-badges | Tag count badges on filter pills | Has merge conflicts |
+| #46 | worktree-agent-a678de75 | Onboarding wizard for first-time users | Draft |
+| #40 | luma-rsvp-v2 | Luma RSVP with in-page checkout | Draft |
 
 ---
 
-## Key Architecture Notes
+## Development Notes
 
-### Share Card Image Pipeline
-- **Image proxy**: `/api/image-proxy?url=<encoded>` — server-side fetch bypasses CORS for html-to-image canvas rendering
-- **Pre-fetch flow**: `imageCache` (OGImage.tsx) → batch POST `/api/og` → proxy fetch → FileReader → data URL map
-- **Two modes**: `ShareCardMode` = `'gallery'` (flyer grid) or `'text'` (classic list). Text mode skips image fetching entirely.
-- **Rendering**: html-to-image `toPng()` at 2x pixel ratio, 1080px card width. Uses explicit pixel sizes (not CSS grid/aspectRatio) for html-to-image compatibility.
+### tsconfig Excludes
+`packages/` and `supabase/` are excluded from the root tsconfig. They have their own TypeScript configs and dependencies. Next.js will fail to build if these are included.
 
-### RSVP System
-- `isLumaUrl()` / `getLumaSlug()` in `src/lib/luma.ts` — matches `lu.ma`, `luma.com`, `www.luma.com`
-- `useRsvp` hook — loads confirmed RSVPs from `rsvps` table, manages overlay state
-- `RsvpButton` — only renders for Luma events (inline `isLumaUrl` check)
-- `RsvpOverlay` — self-contained portal with inline `getLumaSlug`, copy fields, Luma iframe
-- Embed URL: `https://lu.ma/embed/event/{slug}/simple` (also works with `luma.com`)
-- DB table: `rsvps` (id, user_id, event_id, luma_api_id, status, method, created_at)
+### Key Patterns
+- **Warm-dark color scheme**: stone backgrounds (stone-950, stone-900, stone-800), amber accents. All slate references replaced with stone.
+- **Conference-aware defaults**: `useFilters` resets date range when switching conferences via `getDateTimeRangeForConference()`. `getConferenceNow(conference)` uses per-conference timezone. Map centers on conference city.
+- **Auth-gated actions**: Star and RSVP use the same pattern — `pendingRef` stores the action, shows AuthModal, completes after login via useEffect
+- **Profile fields**: Column is `rsvp_name` (NOT `farcaster_username`)
+- **Address links**: Use `<AddressLink>` component everywhere — desktop opens Google Maps, mobile shows Maps/Uber/Lyft drawer. Pass `navAddress` prop with the full Mapbox address.
+- **Profile auto-save**: Profile fields debounce-save after 800ms of inactivity
+- **Friends refresh**: `refreshFriends` is shared from EventApp → Header → UserMenu
+- **Optimistic updates**: Reactions, comments, friend requests all use optimistic UI with revert on error
+- **Scroll-based filter bar**: Both table and list views hide the filter bar on scroll down and show it on scroll up. Both have an `overflowAmount > 80` guard to prevent jitter.
+- **Contained scroll**: All three views use `h-dvh flex flex-col overflow-hidden` layout
+- **Check-in badges**: Green numbered badges on the time field. Green friend rows on event cards.
+- **Check-in logic**: Gets GPS, finds itinerary events within 150m that pass "now" filter, upserts to `check_ins` table
+- **OG images**: Lazy-loaded via IntersectionObserver. Luma uses API for clean cover images. Eventbrite uses JSON-LD extraction with og:image fallback. Other sites use HTML og:image scraping with relative URL resolution. Cached in Supabase `event_images` table.
+- **Event submission**: Writes to "Add Events Here" section of the sheet. Finds marker cell, then header row below, appends to first empty row.
+- **List virtualization**: @tanstack/react-virtual with variable-height items via measureElement. Flat list interleaves date headers, event cards, and native ads.
+- **Food/Bar tag priority**: 🍕 Food and 🍺 Bar always sort to front of vibes filter list.
+- **Prop threading pattern**: Social data (reactions, comments, check-ins, friend locations) flows from hooks in EventApp through view components (ListView/TableView/MapViewWrapper/MapView) to card/popup components.
 
-### Performance Caching
-- **Edge caching**: `/api/events` (5min), `/api/geocoded-addresses` (1hr) via `Cache-Control` headers
-- **Server cache**: `fetchEventsCached()` uses `unstable_cache` with 5min revalidation
-- **SSR hydration**: `[slug]/page.tsx` passes `initialEvents` to `EventApp` — zero loading spinner
-- **Client cache**: sessionStorage with 5min staleness in `useEvents` hook
-- **OG image cache**: Module-level `imageCache` Map in `OGImage.tsx`, batch POST `/api/og` for gallery
+### Supabase Migrations
+Migrations are in `supabase/migrations/`. Push with:
+```bash
+supabase db push --linked
+```
+If remote has migrations not found locally, repair with:
+```bash
+supabase migration repair <version> --status reverted
+```
 
-### Friend Data Pipeline
-- `Friend` type (`src/lib/types.ts`) — raw Supabase profile fields (`user_id`, `avatar_url`, `x_handle`, etc.)
-- `FriendInfo` type — lightweight view type (`userId`, `displayName`, `avatarUrl`, `xHandle`)
-- `useFriendsItineraries` hook — fetches friend itineraries, merges display names + avatars
-- `useConferenceData` hook — builds `friendsByEvent` and `checkedInFriendsByEvent` maps (both `Map<string, FriendInfo[]>`)
-- `UserAvatar` component — fallback chain: uploaded avatar → X/Twitter photo via unavatar.io → deterministic color initials
+**Pending migrations:**
+- `20260306120000_add_admin_config.sql` — admin_config table for admin settings
+- `20260307120000_add_aggregation_rpcs.sql` — server-side aggregation RPCs
 
-### Theme System
-- Themes defined as CSS custom properties in `src/app/globals.css` using `[data-theme="name"]` selectors
-- Theme metadata in `src/lib/themes.ts` — `ThemeId` union type + `THEME_OPTIONS` array
-- **Header variables**: `--theme-header-bg`, `--theme-header-border`, `--theme-header-logo-filter`, `--theme-header-text`, `--theme-header-control-*`, `--theme-header-accent-*`
-- Per-conference theme selection via admin config (`theme:{conference}` key in Supabase)
-- 8 themes: dark, paper, light, light-blue, sxsw, sxsw2, gdc, ethcc
-
-### Icon System
-- Most icons from `lucide-react`
-- Custom planwtf calendar SVG at `src/components/icons/CalendarIcon.tsx`
-- Event add-to-plan: `Plus`/`Check` in circular container (`StarButton.tsx`)
-- View toggle: Map, List, Table, LayoutGrid (gallery)
+### Known Issues
+- `search_users` has two overloaded versions in Supabase — the old one `(text, uuid)` is unused and should be dropped
+- `check_ins` RLS policies may block friends' check-ins — if so, create a `get_friends_check_ins()` SECURITY DEFINER RPC
+- Check-in/reaction/comment data is fetched once on mount — no realtime subscriptions
+- Eventbrite og:image URLs that were cached before the relative-URL fix may still be broken in `event_images` table — clear stale entries or wait for TTL
+- PR #53 (tag count badges) has merge conflicts from architecture refactor — needs resolution
+- The `lightningcss.darwin-arm64.node` module causes build issues locally — use `npx tsc --noEmit` for type checking instead of `npm run build`

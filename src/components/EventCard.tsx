@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { MapPin, Calendar, X, Link, Check, MapPinCheck, Loader2 } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
-import { trackEventClick, trackCopyEventLink, trackFriendsGoingOpen, trackFriendsCheckedInOpen, trackOutboundClick } from '@/lib/analytics';
+import { trackEventClick, trackCopyEventLink, trackFriendsGoingOpen, trackFriendsCheckedInOpen } from '@/lib/analytics';
 import { trackAdEvent } from '@/lib/ad-tracking';
 import { trackEvent } from '@/lib/event-tracking';
 import { formatFriendsText } from '@/lib/user-display';
@@ -18,7 +18,6 @@ import { EmojiReactions } from './EmojiReactions';
 import UserAvatar from './UserAvatar';
 import { CommentSection } from './CommentSection';
 import { FriendAvatarStack } from './FriendAvatarStack';
-import { RsvpButton } from './RsvpButton';
 
 interface EventCardProps {
   event: ETHDenverEvent;
@@ -38,8 +37,6 @@ interface EventCardProps {
   liveUrgency?: 'green' | 'yellow' | 'red';
   userLocation?: { lat: number; lng: number } | null;
   onOpenLightbox?: (imageUrl: string, rsvpUrl?: string) => void;
-  rsvpStatus?: 'idle' | 'confirmed';
-  onRsvp?: () => void;
   /** Compact mode for map popups — smaller text, no impression tracking */
   compact?: boolean;
 }
@@ -124,7 +121,7 @@ function FriendsGoingModal({
   );
 }
 
-export const EventCard = memo(function EventCard({
+export function EventCard({
   event,
   isInItinerary = false,
   onItineraryToggle,
@@ -141,8 +138,6 @@ export const EventCard = memo(function EventCard({
   liveUrgency,
   userLocation,
   onOpenLightbox,
-  rsvpStatus,
-  onRsvp,
   compact,
 }: EventCardProps) {
   const [showFriendsModal, setShowFriendsModal] = useState(false);
@@ -229,44 +224,14 @@ export const EventCard = memo(function EventCard({
     }`}
       style={event.isFeatured ? { borderColor: 'var(--theme-popup-featured-border)' } : hasFriends ? { borderLeftColor: 'var(--friend-blue)' } : undefined}
     >
-      {/* Left column: action buttons + cover image */}
-      <div className="flex items-center shrink-0 gap-1">
-        <div className="flex flex-col items-center gap-1">
-          {onItineraryToggle && (
-            <StarButton
-              eventId={event.id}
-              isStarred={isInItinerary}
-              onToggle={onItineraryToggle}
-            />
-          )}
-          {onRsvp && event.link && (
-            <div className="mt-px">
-              <RsvpButton eventLink={event.link} status={rsvpStatus ?? 'idle'} onClick={onRsvp} />
-            </div>
-          )}
-          {event.link && (
-            <button
-              onClick={handleCopyLink}
-              className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
-              aria-label="Copy event link"
-              title="Copy link"
-            >
-              {copied ? (
-                <Check className="w-4 h-4 text-green-400" />
-              ) : (
-                <Link className="w-4 h-4" />
-              )}
-            </button>
-          )}
-        </div>
-        {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} onOpenLightbox={onOpenLightbox} />}
-      </div>
+      {/* Left: cover image */}
+      {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} onOpenLightbox={onOpenLightbox} />}
 
       {/* Right: event details */}
       <div className="flex-1 min-w-0">
-        {/* Top row: Name */}
-        <div>
-          <div className="min-w-0">
+        {/* Top row: Name + Avatars + Star */}
+        <div className="flex items-start gap-2">
+          <div className="flex-1 min-w-0">
             <h3 className={`font-semibold text-[var(--theme-text-primary)] ${compact ? 'text-sm' : 'text-sm sm:text-base'} leading-tight`}>
               {event.isFeatured && (
                 <span className="inline-block text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded mr-1.5 align-middle" style={{ color: 'var(--theme-popup-featured-border)', background: 'var(--theme-accent-muted)' }}>Featured</span>
@@ -279,7 +244,6 @@ export const EventCard = memo(function EventCard({
                   className="hover:text-[var(--theme-accent)] active:text-[var(--theme-accent)] transition-colors"
                   onClick={() => {
                     trackEventClick(event.name, event.link!);
-                    trackOutboundClick(event.name, event.link!);
                     trackEvent({
                       event_id: event.id,
                       event_name: event.name,
@@ -309,6 +273,46 @@ export const EventCard = memo(function EventCard({
             {event.organizer && (
               <p className="text-[var(--theme-text-muted)] text-xs mt-0.5">{event.organizer}</p>
             )}
+          </div>
+
+          <div className="flex items-start shrink-0 gap-1.5">
+            {/* Friend avatars — inline with star button */}
+            {friendsGoing && friendsGoing.length > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  trackFriendsGoingOpen(event.name);
+                  setShowFriendsModal(true);
+                }}
+                className="cursor-pointer hover:opacity-80 transition-opacity"
+                title={formatFriendsText(friendsGoing)}
+              >
+                <FriendAvatarStack friends={friendsGoing} maxShow={2} size="sm" />
+              </button>
+            )}
+            <div className="flex flex-col items-center gap-0.5">
+              {onItineraryToggle && (
+                <StarButton
+                  eventId={event.id}
+                  isStarred={isInItinerary}
+                  onToggle={onItineraryToggle}
+                />
+              )}
+              {event.link && (
+                <button
+                  onClick={handleCopyLink}
+                  className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
+                  aria-label="Copy event link"
+                  title="Copy link"
+                >
+                  {copied ? (
+                    <Check className="w-4 h-4 text-green-400" />
+                  ) : (
+                    <Link className="w-4 h-4" />
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -369,33 +373,22 @@ export const EventCard = memo(function EventCard({
           </AddressLink>
         )}
 
-        {/* Tags */}
-        <div className="flex flex-wrap items-center gap-1.5 mt-3">
-          {event.tags.map((tag) => (
-            <TagBadge key={tag} tag={tag} iconOnly={compact} />
-          ))}
-        </div>
+        {/* Tags row */}
+        {event.tags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 mt-3">
+            {event.tags.map((tag) => (
+              <TagBadge key={tag} tag={tag} iconOnly={compact} />
+            ))}
+          </div>
+        )}
 
         {/* Note */}
         {event.note && (
           <p className="text-[var(--theme-text-faint)] text-xs mt-1 italic truncate">{event.note}</p>
         )}
 
-        {/* Bottom row: friends + reactions + checked-in indicator */}
-        <div className="flex items-center gap-2 mt-2">
-          {friendsGoing && friendsGoing.length > 0 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                trackFriendsGoingOpen(event.name);
-                setShowFriendsModal(true);
-              }}
-              className="cursor-pointer hover:opacity-80 transition-opacity shrink-0"
-              title={formatFriendsText(friendsGoing)}
-            >
-              <FriendAvatarStack friends={friendsGoing} maxShow={2} size="sm" />
-            </button>
-          )}
+        {/* Bottom row: reactions + checked-in indicator */}
+        <div className="flex flex-wrap items-center gap-2 mt-2">
           {onToggleReaction && (
             <EmojiReactions
               eventId={event.id}
@@ -444,4 +437,4 @@ export const EventCard = memo(function EventCard({
       )}
     </div>
   );
-});
+}

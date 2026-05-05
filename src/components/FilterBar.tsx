@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import clsx from 'clsx';
 import { X, ListFilter, Clock, Users, MapPin, Plus, Link2, Check, Loader2, ChevronDown } from 'lucide-react';
 import { CalendarIcon } from './icons/CalendarIcon';
@@ -41,9 +41,10 @@ interface FilterBarProps {
   onItineraryToggle: () => void;
   isItineraryActive: boolean;
   onExpandedChange?: (expanded: boolean) => void;
+  trailingButtons?: React.ReactNode;
 }
 
-export const FilterBar = memo(function FilterBar({
+export function FilterBar({
   filters,
   onSetConference,
   onSetDateTimeRange,
@@ -69,6 +70,7 @@ export const FilterBar = memo(function FilterBar({
   onItineraryToggle,
   isItineraryActive,
   onExpandedChange,
+  trailingButtons,
 }: FilterBarProps) {
   const [expanded, setExpandedRaw] = useState(false);
   const setExpanded = (v: boolean) => { setExpandedRaw(v); onExpandedChange?.(v); };
@@ -132,10 +134,10 @@ export const FilterBar = memo(function FilterBar({
   }
 
   return (
-    <div className="relative bg-[var(--theme-bg-filter)] border-b border-[var(--theme-border-secondary)] z-30">
-      <div className="px-2 sm:px-4 pt-3.5 pb-2 space-y-3">
+    <div className="relative bg-[var(--theme-bg-primary)] border-b border-[var(--theme-border-secondary)] z-30">
+      <div className="px-2 sm:px-4 py-3 space-y-3">
         {/* Top row: Conference tabs + Filter toggle */}
-        <div className="flex items-center gap-1.5 sm:gap-3 lg:justify-center">
+        <div className="flex items-center gap-3 lg:justify-center">
           {/* Conference selector — dropdown on all screen sizes */}
           {availableConferences.length > 0 && (
             <div className="shrink-0">
@@ -143,13 +145,13 @@ export const FilterBar = memo(function FilterBar({
                 ref={(el) => { confBtnRef.current = el; }}
                 onClick={() => setConfOpen(!confOpen)}
                 className={clsx(
-                  'flex items-center gap-1.5 px-3 h-9 rounded-lg font-semibold cursor-pointer transition-colors border',
+                  'flex items-center gap-1.5 px-3 py-2 rounded-lg font-semibold cursor-pointer transition-colors border',
                   confOpen
-                    ? 'text-[var(--theme-filter-active)] border-[var(--theme-filter-active)]'
-                    : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border-[var(--theme-filter-control-border)]',
+                    ? 'text-[var(--theme-accent)] border-[var(--theme-accent)]'
+                    : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border-[var(--theme-border-primary)]',
                   (filters.conference || 'All').length > 12 ? 'text-xs' : 'text-sm'
                 )}
-                style={confOpen ? { backgroundColor: 'var(--theme-filter-active-bg)' } : undefined}
+                style={confOpen ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
               >
                 <MapPin className="w-3.5 h-3.5 shrink-0" />
                 <span className="whitespace-nowrap">{filters.conference || 'All'}</span>
@@ -191,7 +193,7 @@ export const FilterBar = memo(function FilterBar({
             {onSubmitEvent && (
               <button
                 onClick={onSubmitEvent}
-                className="shrink-0 h-9 flex items-center justify-center rounded-lg bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)] transition-colors cursor-pointer px-2 xl:px-3 gap-1.5"
+                className="shrink-0 h-9 flex items-center justify-center rounded-lg bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)] transition-colors cursor-pointer px-2 xl:px-3 gap-1.5"
                 aria-label="Submit event"
               >
                 <Plus className="w-4 h-4" />
@@ -208,12 +210,12 @@ export const FilterBar = memo(function FilterBar({
             onClick={() => { trackNowMode(!filters.nowMode); onToggleNowMode(); }}
             aria-label="Now"
             className={clsx(
-              'shrink-0 flex items-center gap-1 px-2.5 h-9 rounded-lg text-sm font-semibold transition-colors cursor-pointer',
+              'shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer',
               filters.nowMode
-                ? 'text-[var(--theme-filter-active)] border border-[var(--theme-filter-active)]'
-                : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)]'
+                ? 'text-[var(--theme-accent)] border border-[var(--theme-accent)]'
+                : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)]'
             )}
-            style={filters.nowMode ? { backgroundColor: 'var(--theme-filter-active-bg)' } : undefined}
+            style={filters.nowMode ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
           >
             <Clock className="w-4 h-4" />
           </button>
@@ -223,50 +225,41 @@ export const FilterBar = memo(function FilterBar({
             onClick={() => setExpanded(!expanded)}
             aria-label="Filters"
             className={clsx(
-              'group shrink-0 flex items-center gap-1 px-2.5 h-9 rounded-lg text-sm font-medium transition-colors cursor-pointer',
+              'shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
               expanded
-                ? 'text-[var(--theme-filter-active)] border border-[var(--theme-filter-active)]'
-                : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)]'
+                ? 'text-[var(--theme-accent)] border border-[var(--theme-accent)]'
+                : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)]'
             )}
-            style={expanded ? { backgroundColor: 'var(--theme-filter-active-bg)' } : undefined}
+            style={expanded ? { backgroundColor: 'var(--theme-accent-muted)' } : undefined}
           >
             <ListFilter className="w-4 h-4" />
             {activeFilterCount > 0 && (
               <span className={clsx(
-                'text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1 transition-colors',
+                'text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1',
                 expanded
-                  ? 'bg-[var(--theme-filter-active)] text-[var(--theme-bg-filter)] border border-[var(--theme-filter-active)]'
-                  : 'bg-[var(--theme-filter-badge-bg)] text-[var(--theme-filter-badge-text)] border border-[var(--theme-filter-badge-border)] group-hover:text-[var(--theme-text-primary)] group-hover:border-[var(--theme-text-primary)] group-hover:bg-transparent'
+                  ? 'bg-[var(--theme-accent-text)] text-[var(--theme-accent)] border border-[var(--theme-accent)]'
+                  : 'bg-[var(--theme-text-secondary)] text-[var(--theme-bg-primary)]'
               )}>
                 {activeFilterCount}
               </span>
             )}
           </button>
 
-          {/* Itinerary toggle */}
-          <button
-            onClick={onItineraryToggle}
-            aria-label={`Itinerary: ${itineraryCount} events`}
-            className={clsx(
-              'group shrink-0 flex items-center gap-1 px-2.5 h-9 rounded-lg text-sm font-medium transition-colors cursor-pointer',
-              isItineraryActive
-                ? 'text-[var(--theme-filter-active)] border border-[var(--theme-filter-active)]'
-                : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)]'
-            )}
-            style={isItineraryActive ? { backgroundColor: 'var(--theme-filter-active-bg)' } : undefined}
-          >
-            <CalendarIcon className="w-5 h-5" />
-            {itineraryCount > 0 && (
-              <span className={clsx(
-                'text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1 transition-colors',
-                isItineraryActive
-                  ? 'bg-[var(--theme-filter-active)] text-[var(--theme-bg-filter)] border border-[var(--theme-filter-active)]'
-                  : 'bg-[var(--theme-filter-badge-bg)] text-[var(--theme-filter-badge-text)] border border-[var(--theme-filter-badge-border)] group-hover:text-[var(--theme-text-primary)] group-hover:border-[var(--theme-text-primary)] group-hover:bg-transparent'
-              )}>
-                {itineraryCount}
-              </span>
-            )}
-          </button>
+          {/* Trailing buttons: plan button or custom (e.g. share/calendar on /plan) */}
+          {trailingButtons || (
+            <button
+              onClick={onItineraryToggle}
+              aria-label={`My Plan: ${itineraryCount} events`}
+              className="shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)]"
+            >
+              <CalendarIcon className="w-5 h-5" />
+              {itineraryCount > 0 && (
+                <span className="text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1 bg-[var(--theme-text-secondary)] text-[var(--theme-bg-primary)]">
+                  {itineraryCount}
+                </span>
+              )}
+            </button>
+          )}
         </div>
 
         {/* Search bar — mobile only (desktop is inline in the row above) */}
@@ -275,7 +268,7 @@ export const FilterBar = memo(function FilterBar({
           {onSubmitEvent && (
             <button
               onClick={onSubmitEvent}
-              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)] transition-colors cursor-pointer"
+              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)] transition-colors cursor-pointer"
               aria-label="Submit event"
             >
               <Plus className="w-4 h-4" />
@@ -300,7 +293,7 @@ export const FilterBar = memo(function FilterBar({
               return (
                 <div className={clsx('flex gap-3 items-end', filters.nowMode && 'opacity-30 pointer-events-none')}>
                   <div className="w-40 shrink-0">
-                    <div className="text-xs uppercase tracking-wider text-[var(--theme-filter-text)] mb-2">Start</div>
+                    <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-2">Start</div>
                     <DateTimePicker
                       value={filters.startDateTime}
                       min={`${tabDates[0]}T00:00`}
@@ -313,7 +306,7 @@ export const FilterBar = memo(function FilterBar({
                     />
                   </div>
                   <div className="w-40 shrink-0">
-                    <div className="text-xs uppercase tracking-wider text-[var(--theme-filter-text)] mb-2">End</div>
+                    <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-2">End</div>
                     <DateTimePicker
                       value={filters.endDateTime}
                       min={filters.startDateTime}
@@ -342,7 +335,7 @@ export const FilterBar = memo(function FilterBar({
                 if (groupTags.length === 0) return null;
                 return (
                   <div key={group.label}>
-                    <div className="text-xs uppercase tracking-wider text-[var(--theme-filter-text)] mb-1">{group.label}</div>
+                    <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-1">{group.label}</div>
                     <div className="flex flex-wrap gap-2">
                       {groupTags.map((vibe) => {
                         const isActive = filters.vibes.includes(vibe);
@@ -356,14 +349,14 @@ export const FilterBar = memo(function FilterBar({
                             className={clsx(
                               'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                               isActive
-                                ? 'bg-[var(--theme-filter-active-bg)] border'
-                                : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:bg-[var(--theme-filter-control-border)] active:bg-[var(--theme-filter-control-border)] border border-[var(--theme-filter-control-border)]'
+                                ? 'border'
+                                : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-border-primary)] active:bg-[var(--theme-border-primary)] border border-transparent'
                             )}
                             style={isActive ? { borderColor: vibeColor, color: vibeColor } : undefined}
                           >
                             {Icon && <Icon className="w-3.5 h-3.5" />}
                             {vibe}
-                            <span className={clsx('text-xs', isActive ? 'opacity-70' : 'opacity-60')}>
+                            <span className={clsx('text-xs', isActive ? 'opacity-70' : 'text-[var(--theme-text-muted)]')}>
                               ({count})
                             </span>
                           </button>
@@ -384,14 +377,14 @@ export const FilterBar = memo(function FilterBar({
                   {/* Any/All toggle — only show when tags are selected */}
                   {filters.vibes.length > 1 && (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-[var(--theme-filter-text)]">Match</span>
+                      <span className="text-xs text-[var(--theme-text-secondary)]">Match</span>
                       <button
                         onClick={() => { trackTagMatchMode('any'); onToggleTagMatchAll(); }}
                         className={clsx(
                           'px-2 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer',
                           !filters.tagMatchAll
                             ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
-                            : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)]'
+                            : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)]'
                         )}
                       >
                         Any
@@ -402,7 +395,7 @@ export const FilterBar = memo(function FilterBar({
                           'px-2 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer',
                           filters.tagMatchAll
                             ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)]'
-                            : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)]'
+                            : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)]'
                         )}
                       >
                         All
@@ -412,7 +405,7 @@ export const FilterBar = memo(function FilterBar({
                   {groupRows}
                   {otherTags.length > 0 && (
                     <div>
-                      <div className="text-xs uppercase tracking-wider text-[var(--theme-filter-text)] mb-1">Other</div>
+                      <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-1">Other</div>
                       <div className="flex flex-wrap gap-2">
                         {otherTags.map((vibe) => {
                           const isActive = filters.vibes.includes(vibe);
@@ -426,14 +419,14 @@ export const FilterBar = memo(function FilterBar({
                               className={clsx(
                                 'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                                 isActive
-                                  ? 'bg-[var(--theme-filter-active-bg)] border'
-                                  : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:bg-[var(--theme-filter-control-border)] active:bg-[var(--theme-filter-control-border)] border border-[var(--theme-filter-control-border)]'
+                                  ? 'border'
+                                  : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-border-primary)] active:bg-[var(--theme-border-primary)] border border-transparent'
                               )}
                               style={isActive ? { borderColor: vibeColor, color: vibeColor } : undefined}
                             >
                               {Icon && <Icon className="w-3.5 h-3.5" />}
                               {vibe}
-                              <span className={clsx('text-xs', isActive ? 'opacity-70' : 'opacity-60')}>
+                              <span className={clsx('text-xs', isActive ? 'opacity-70' : 'text-[var(--theme-text-muted)]')}>
                                 ({count})
                               </span>
                             </button>
@@ -448,7 +441,7 @@ export const FilterBar = memo(function FilterBar({
 
             {/* Friends filter */}
             <div>
-              <div className="text-xs uppercase tracking-wider text-[var(--theme-filter-text)] mb-1">
+              <div className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] mb-1">
                 Friends
               </div>
               {friendsForFilter.length > 0 ? (
@@ -463,7 +456,7 @@ export const FilterBar = memo(function FilterBar({
                           'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                           isActive
                             ? 'text-white'
-                            : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:bg-[var(--theme-filter-control-border)] active:bg-[var(--theme-filter-control-border)]'
+                            : 'bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-border-primary)] active:bg-[var(--theme-border-primary)]'
                         )}
                         style={isActive ? { backgroundColor: 'var(--friend-blue)' } : undefined}
                       >
@@ -484,11 +477,11 @@ export const FilterBar = memo(function FilterBar({
                 </div>
               ) : (
                 <div
-                  className={clsx('bg-[var(--theme-filter-control-bg)] rounded-lg p-4 flex items-center gap-3 border border-[var(--theme-filter-control-border)]', !user && 'cursor-pointer hover:bg-[var(--theme-filter-control-border)] transition-colors')}
+                  className={clsx('bg-[var(--theme-bg-tertiary)]/50 rounded-lg p-4 flex items-center gap-3', !user && 'cursor-pointer hover:bg-[var(--theme-bg-tertiary)]/70 transition-colors')}
                 >
-                  <Users className="w-5 h-5 text-[var(--theme-filter-text)] shrink-0" />
+                  <Users className="w-5 h-5 text-[var(--theme-text-muted)] shrink-0" />
                   <div className="flex-1 min-w-0" onClick={!user ? onSignIn : undefined}>
-                    <p className="text-[var(--theme-filter-text)] text-sm">{user ? 'Add friends to see their plans' : 'Sign in to add friends'}</p>
+                    <p className="text-[var(--theme-text-secondary)] text-sm">{user ? 'Add friends to see their plans' : 'Sign in to add friends'}</p>
                   </div>
                   {user && (
                     <button
@@ -498,7 +491,7 @@ export const FilterBar = memo(function FilterBar({
                         'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer',
                         friendLinkCopied
                           ? 'bg-green-500/20 text-green-400'
-                          : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-filter-active)] border border-[var(--theme-filter-control-border)]'
+                          : 'bg-orange-500 hover:bg-orange-600 text-white'
                       )}
                     >
                       {friendLinkCopied ? (
@@ -514,7 +507,7 @@ export const FilterBar = memo(function FilterBar({
                       ) : (
                         <>
                           <Link2 className="w-3.5 h-3.5" />
-                          Copy friend link
+                          Copy invite link
                         </>
                       )}
                     </button>
@@ -528,7 +521,7 @@ export const FilterBar = memo(function FilterBar({
               <div className="flex items-center">
                 <button
                   onClick={() => { trackClearFilters(); onClearFilters(); }}
-                  className="flex items-center gap-1.5 text-[var(--theme-filter-active)] hover:opacity-80 active:opacity-80 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 text-[var(--theme-accent)] hover:opacity-80 active:opacity-80 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                   Clear all
@@ -540,4 +533,4 @@ export const FilterBar = memo(function FilterBar({
       </div>
     </div>
   );
-});
+}
