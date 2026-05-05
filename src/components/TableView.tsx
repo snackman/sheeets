@@ -44,6 +44,11 @@ interface TableViewProps {
   onRsvp?: (eventId: string, lumaUrl: string, eventName: string) => void;
 }
 
+/** Day-of-week abbreviations for mobile badges */
+const DAY_ABBR: Record<number, string> = {
+  0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat',
+};
+
 /** Format a dateISO string like "2026-02-10" into "Mon Feb 10" */
 function formatDateHeader(dateISO: string): string {
   // Parse as local date (avoid timezone offset issues with new Date(string))
@@ -53,6 +58,24 @@ function formatDateHeader(dateISO: string): string {
   const monthName = d.toLocaleDateString('en-US', { month: 'short' });
   const dayNum = d.getDate();
   return `${dayName} ${monthName} ${dayNum}`;
+}
+
+/** Render a styled day badge on mobile, plain text on desktop */
+function DayBadge({ dateISO, label }: { dateISO: string; label: string }) {
+  const [year, month, day] = dateISO.split('-').map(Number);
+  const d = new Date(year, month - 1, day);
+  const dow = d.getDay();
+  const abbr = DAY_ABBR[dow];
+
+  return (
+    <>
+      <span className="sm:hidden inline-flex items-center gap-0.5 text-xs text-white">
+        <span className="font-bold">{abbr}</span>
+        <span>{label.replace(/^\w+\s/, '')}</span>
+      </span>
+      <span className="hidden sm:inline">{label}</span>
+    </>
+  );
 }
 
 /** Group events by dateISO, preserving order */
@@ -404,12 +427,27 @@ export const TableView = memo(function TableView({
             <tr>
               <th className="py-2.5"><div className="flex justify-center"><CalendarIcon className="w-5 h-5" /></div></th>
               <th className="px-1 py-2.5 text-center" title={!isSignedIn ? 'Sign in to add friends and see who\'s going' : 'Friends going'}><Users className="w-3.5 h-3.5 mx-auto" /></th>
-              <th className="px-3 py-2.5 whitespace-nowrap">
+              <th className="px-3 py-2.5 whitespace-nowrap align-middle">
                 {currentDateLabel === 'Time' ? (
                   'WHEN'
                 ) : (
                   <span className="text-[var(--theme-table-header-text)] font-semibold">
-                    {currentDateLabel.toUpperCase()}
+                    <span className="hidden sm:inline">{currentDateLabel.toUpperCase()}</span>
+                    <span className="sm:hidden flex flex-col leading-tight text-white">
+                      {(() => {
+                        const g = groups.find(gr => formatDateHeader(gr.dateISO) === currentDateLabel);
+                        if (!g) return <span className="text-[11px]">{currentDateLabel.toUpperCase()}</span>;
+                        const [y, m, d] = g.dateISO.split('-').map(Number);
+                        const date = new Date(y, m - 1, d);
+                        const dow = date.getDay();
+                        return (
+                          <>
+                            <span className="text-[11px] font-bold">{DAY_ABBR[dow]}</span>
+                            <span className="text-[10px]">{currentDateLabel.replace(/^\w+\s/, '').toUpperCase()}</span>
+                          </>
+                        );
+                      })()}
+                    </span>
                   </span>
                 )}
               </th>
@@ -681,19 +719,25 @@ function FeaturedTableRow({
           })()}
         </div>
       </td>
-      <td className="px-3 py-2 text-[var(--theme-text-secondary)] whitespace-nowrap">
-        {(() => { const u = liveEventIds?.get(event.id); return u ? <span className={`w-1.5 h-1.5 rounded-full animate-pulse inline-block align-middle mr-1.5 ${u === 'red' ? 'bg-red-400' : u === 'yellow' ? 'bg-yellow-400' : 'bg-green-400'}`} title={u === 'red' ? 'Ending soon' : u === 'yellow' ? 'Less than 1hr left' : 'Live now'} /> : null; })()}
-        <span className="relative inline-block">
-          <span>{event.startTime}{event.endTime ? `-${event.endTime}` : ''}</span>
-          {(checkInCounts?.get(event.id) ?? 0) > 0 && (
-            <span className="absolute -top-1.5 -right-3 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-green-500 text-white text-[8px] font-bold px-0.5 pointer-events-none">
-              {checkInCounts!.get(event.id)}
+      <td className="px-3 py-2 text-[var(--theme-text-secondary)] sm:whitespace-nowrap">
+        <div className="flex items-start sm:items-center gap-1.5">
+          {(() => { const u = liveEventIds?.get(event.id); return u ? <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 mt-1.5 sm:mt-0 ${u === 'red' ? 'bg-red-400' : u === 'yellow' ? 'bg-yellow-400' : 'bg-green-400'}`} title={u === 'red' ? 'Ending soon' : u === 'yellow' ? 'Less than 1hr left' : 'Live now'} /> : null; })()}
+          <span className="relative inline-block">
+            <span className="sm:inline hidden">{event.startTime}{event.endTime ? `-${event.endTime}` : ''}</span>
+            <span className="sm:hidden flex flex-col leading-tight">
+              <span>{event.startTime}</span>
+              {event.endTime && <span className="text-[10px] text-[var(--theme-text-muted)]">{event.endTime}</span>}
             </span>
+            {(checkInCounts?.get(event.id) ?? 0) > 0 && (
+              <span className="absolute -top-1.5 -right-3 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-green-500 text-white text-[8px] font-bold px-0.5 pointer-events-none">
+                {checkInCounts!.get(event.id)}
+              </span>
+            )}
+          </span>
+          {userLocation && event.lat && event.lng && (
+            <span className="text-[10px] text-[var(--theme-text-muted)]">{formatDistance(distanceMeters(userLocation.lat, userLocation.lng, event.lat, event.lng))}</span>
           )}
-        </span>
-        {userLocation && event.lat && event.lng && (
-          <span className="text-[10px] text-[var(--theme-text-muted)] ml-1.5">{formatDistance(distanceMeters(userLocation.lat, userLocation.lng, event.lat, event.lng))}</span>
-        )}
+        </div>
       </td>
       <td className="px-3 py-2 text-[var(--theme-text-secondary)] truncate hidden sm:table-cell" title={event.organizer}>{event.organizer}</td>
       <td className="px-3 py-2 font-medium text-[var(--theme-text-primary)] overflow-hidden truncate max-w-[25ch] sm:max-w-none" title={event.name}>
@@ -815,22 +859,28 @@ function TableRow({
       </td>
 
       {/* Time */}
-      <td className="px-3 py-2 text-[var(--theme-text-secondary)] whitespace-nowrap">
-        {(() => { const u = liveEventIds?.get(event.id); return u ? <span className={`w-1.5 h-1.5 rounded-full animate-pulse inline-block align-middle mr-1.5 ${u === 'red' ? 'bg-red-400' : u === 'yellow' ? 'bg-yellow-400' : 'bg-green-400'}`} title={u === 'red' ? 'Ending soon' : u === 'yellow' ? 'Less than 1hr left' : 'Live now'} /> : null; })()}
-        <span className="relative inline-block">
-          <span>
-            {event.startTime}
-            {event.endTime ? `-${event.endTime}` : ''}
-          </span>
-          {(checkInCounts?.get(event.id) ?? 0) > 0 && (
-            <span className="absolute -top-1.5 -right-3 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-green-500 text-white text-[8px] font-bold px-0.5 pointer-events-none">
-              {checkInCounts!.get(event.id)}
+      <td className="px-3 py-2 text-[var(--theme-text-secondary)] sm:whitespace-nowrap">
+        <div className="flex items-start sm:items-center gap-1.5">
+          {(() => { const u = liveEventIds?.get(event.id); return u ? <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 mt-1.5 sm:mt-0 ${u === 'red' ? 'bg-red-400' : u === 'yellow' ? 'bg-yellow-400' : 'bg-green-400'}`} title={u === 'red' ? 'Ending soon' : u === 'yellow' ? 'Less than 1hr left' : 'Live now'} /> : null; })()}
+          <span className="relative inline-block">
+            <span className="sm:inline hidden">
+              {event.startTime}
+              {event.endTime ? `-${event.endTime}` : ''}
             </span>
+            <span className="sm:hidden flex flex-col leading-tight">
+              <span>{event.startTime}</span>
+              {event.endTime && <span className="text-[10px] text-[var(--theme-text-muted)]">{event.endTime}</span>}
+            </span>
+            {(checkInCounts?.get(event.id) ?? 0) > 0 && (
+              <span className="absolute -top-1.5 -right-3 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-green-500 text-white text-[8px] font-bold px-0.5 pointer-events-none">
+                {checkInCounts!.get(event.id)}
+              </span>
+            )}
+          </span>
+          {userLocation && event.lat && event.lng && (
+            <span className="text-[10px] text-[var(--theme-text-muted)]">{formatDistance(distanceMeters(userLocation.lat, userLocation.lng, event.lat, event.lng))}</span>
           )}
-        </span>
-        {userLocation && event.lat && event.lng && (
-          <span className="text-[10px] text-[var(--theme-text-muted)] ml-1.5">{formatDistance(distanceMeters(userLocation.lat, userLocation.lng, event.lat, event.lng))}</span>
-        )}
+        </div>
       </td>
 
       {/* Organizer (hidden on mobile portrait — shown inside Event cell instead) */}
@@ -947,7 +997,7 @@ function DateGroup({
           colSpan={COLUMN_COUNT - 1}
           className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider border-b border-[var(--theme-date-sep-border)] text-[var(--theme-date-sep-text)]"
         >
-          {group.label}
+          <DayBadge dateISO={group.dateISO} label={group.label} />
         </td>
       </tr>
 
