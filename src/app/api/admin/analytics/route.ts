@@ -87,6 +87,9 @@ export async function GET(req: NextRequest) {
       pagesReport,
       devicesReport,
       audiencesRes,
+      realtimeActiveRes,
+      realtimeMinutesRes,
+      realtimeTopPagesRes,
     ] = await Promise.all([
       // a. Totals
       runReport(accessToken, {
@@ -192,6 +195,44 @@ export async function GET(req: NextRequest) {
       fetch(`${ADMIN_API}/audiences`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       }),
+      // j. Realtime: active users
+      fetch(`${DATA_API}:runRealtimeReport`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          metrics: [{ name: 'activeUsers' }],
+        }),
+      }),
+      // k. Realtime: minutes ago sparkline
+      fetch(`${DATA_API}:runRealtimeReport`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dimensions: [{ name: 'minutesAgo' }],
+          metrics: [{ name: 'activeUsers' }],
+          orderBys: [{ dimension: { dimensionName: 'minutesAgo' } }],
+        }),
+      }),
+      // l. Realtime: top pages
+      fetch(`${DATA_API}:runRealtimeReport`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dimensions: [{ name: 'unifiedScreenName' }],
+          metrics: [{ name: 'activeUsers' }],
+          orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
+          limit: 10,
+        }),
+      }),
     ]);
 
     // Process audiences
@@ -199,6 +240,26 @@ export async function GET(req: NextRequest) {
     if (audiencesRes.ok) {
       const audiencesData = await audiencesRes.json();
       audiences = audiencesData.audiences ?? [];
+    }
+
+    // Process realtime data (graceful fallback if unavailable)
+    let realtime = null;
+    try {
+      if (realtimeActiveRes.ok && realtimeMinutesRes.ok && realtimeTopPagesRes.ok) {
+        const realtimeActiveData: Report = await realtimeActiveRes.json();
+        const realtimeMinutesData: Report = await realtimeMinutesRes.json();
+        const realtimeTopPagesData: Report = await realtimeTopPagesRes.json();
+
+        const activeUsersRow = realtimeActiveData.rows?.[0]?.metricValues;
+        realtime = {
+          activeUsers: parseInt(activeUsersRow?.[0]?.value ?? '0', 10),
+          minutesAgo: extractRows(realtimeMinutesData),
+          topPages: extractRows(realtimeTopPagesData),
+        };
+      }
+    } catch {
+      // Realtime API may not be available — leave as null
+      realtime = null;
     }
 
     // Extract totals from first row
@@ -221,6 +282,7 @@ export async function GET(req: NextRequest) {
       pages: extractRows(pagesReport),
       devices: extractRows(devicesReport),
       audiences,
+      realtime,
     });
   } catch (err) {
     console.error('GA4 analytics error:', err);
