@@ -11,6 +11,19 @@ interface Audience {
   description?: string;
 }
 
+interface PopularEvent {
+  event_name: string;
+  conference: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+}
+
+interface EventReportData {
+  events: PopularEvent[];
+  totals: { clicks: number; impressions: number; ctr: number };
+}
+
 interface AnalyticsData {
   totals: {
     activeUsers: string;
@@ -56,6 +69,7 @@ export default function AnalyticsPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<AnalyticsData | null>(null);
+  const [popularEvents, setPopularEvents] = useState<EventReportData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [chartReady, setChartReady] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -78,13 +92,20 @@ export default function AnalyticsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/admin/analytics?password=trusttheplan');
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || `HTTP ${res.status}`);
+      const [analyticsRes, eventsRes] = await Promise.all([
+        fetch('/api/admin/analytics?password=trusttheplan'),
+        fetch('/api/events/report?password=trusttheplan'),
+      ]);
+      if (!analyticsRes.ok) {
+        const err = await analyticsRes.json();
+        throw new Error(err.error || `HTTP ${analyticsRes.status}`);
       }
-      const json = await res.json();
+      const json = await analyticsRes.json();
       setData(json);
+      if (eventsRes.ok) {
+        const eventsJson = await eventsRes.json();
+        setPopularEvents(eventsJson);
+      }
       setLastUpdated(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -378,6 +399,66 @@ export default function AnalyticsPage() {
             </p>
           </div>
         </div>
+
+        {/* Popular Listed Events */}
+        {popularEvents && popularEvents.events.length > 0 && (
+          <div className="bg-stone-900 rounded-xl overflow-hidden mb-8">
+            <div className="px-4 py-3 border-b border-stone-700 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Popular Listed Events</h2>
+              <span className="text-xs text-stone-400">
+                {popularEvents.totals.clicks.toLocaleString()} total clicks &middot;{' '}
+                {popularEvents.totals.impressions.toLocaleString()} impressions &middot;{' '}
+                {popularEvents.totals.ctr}% CTR
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-stone-800 text-stone-400 text-left">
+                    <th className="px-4 py-2">#</th>
+                    <th className="px-4 py-2">Event Name</th>
+                    <th className="px-4 py-2">Conference</th>
+                    <th className="px-4 py-2 text-right">Clicks</th>
+                    <th className="px-4 py-2 text-right">Impressions</th>
+                    <th className="px-4 py-2 text-right">CTR</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {popularEvents.events
+                    .sort((a, b) => b.clicks - a.clicks)
+                    .slice(0, 25)
+                    .map((evt, i) => (
+                      <tr
+                        key={i}
+                        className={
+                          i % 2 === 0 ? 'bg-stone-900' : 'bg-stone-900/50'
+                        }
+                      >
+                        <td className="px-4 py-2 text-stone-500 text-xs">
+                          {i + 1}
+                        </td>
+                        <td className="px-4 py-2 text-xs max-w-xs truncate">
+                          {evt.event_name}
+                        </td>
+                        <td className="px-4 py-2 text-xs text-stone-400">
+                          {evt.conference}
+                        </td>
+                        <td className="px-4 py-2 text-right font-medium">
+                          {evt.clicks.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2 text-right text-stone-400">
+                          {evt.impressions.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2 text-right text-stone-400">
+                          {evt.ctr}%
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Traffic Sources */}
         <div className="bg-stone-900 rounded-xl overflow-hidden mb-8">
