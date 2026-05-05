@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { EventCard } from '@/components/EventCard';
-import { Trash2, Share2, GripVertical, Eye, EyeOff } from 'lucide-react';
+import { Trash2, Share2, GripVertical, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useEvents } from '@/hooks/useEvents';
 import { useItinerary } from '@/hooks/useItinerary';
 
@@ -273,7 +273,11 @@ function ItineraryContent() {
         itinerary={itinerary}
         onOpenFriends={() => {}}
         activeConference={activeConference}
-      />
+      >
+        <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--theme-accent-muted)] text-[var(--theme-accent)] border border-[var(--theme-accent)]">
+          My Plan
+        </span>
+      </Header>
 
       <SponsorsTicker
         sponsors={resolvedSponsors}
@@ -494,6 +498,16 @@ function ItineraryContent() {
         avatarUrl={profile?.avatar_url}
         hiddenEventIds={hiddenEvents}
       />
+
+      {/* Back to browse FAB */}
+      <Link
+        href={activeConference ? `/?conf=${encodeURIComponent(activeConference)}` : '/'}
+        className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-12 h-12 rounded-full bg-[var(--theme-accent-muted)] border border-[var(--theme-accent)] text-[var(--theme-accent)] hover:bg-[var(--theme-accent)] hover:text-[var(--theme-accent-text)] shadow-lg shadow-black/20 backdrop-blur-sm transition-colors"
+        aria-label="Back to events"
+        title="Back to events"
+      >
+        <ArrowLeft className="w-6 h-6" />
+      </Link>
     </div>
   );
 }
