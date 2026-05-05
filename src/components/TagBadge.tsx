@@ -50,8 +50,8 @@ import { VIBE_COLORS } from '@/lib/constants';
 function EthIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M12 1.5l-7 10.17L12 15l7-3.33z" />
-      <path d="M5 11.67L12 22.5l7-10.83L12 15z" />
+      <path d="M12 2L5.5 13 12 22l6.5-9z" />
+      <path d="M5.5 13L12 10.5 18.5 13" />
     </svg>
   );
 }
@@ -59,8 +59,11 @@ function EthIcon(props: React.SVGProps<SVGSVGElement>) {
 function BtcIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M9 5V3m4 2V3M9 21v-2m4 2v-2" />
-      <path d="M7 7h7a3 3 0 010 6H7zm0 6h8a3 3 0 010 6H7z" />
+      <g transform="rotate(14, 12, 12)">
+        <path d="M9 4v2.5M13 4v2.5M9 17.5v2.5M13 17.5v2.5" />
+        <path d="M7 6.5h6.5a3 3 0 0 1 0 5.5H7V6.5z" />
+        <path d="M7 12h7a3 3 0 0 1 0 5.5H7V12z" />
+      </g>
     </svg>
   );
 }
