@@ -361,16 +361,17 @@ export const FilterBar = memo(function FilterBar({
                             key={vibe}
                             onClick={() => { trackTagToggle(vibe, !filters.vibes.includes(vibe)); onToggleVibe(vibe); }}
                             className={clsx(
-                              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
+                              'flex items-center gap-1.5 sm:px-3 px-2 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap cursor-pointer',
                               isActive
                                 ? 'bg-[var(--theme-filter-active-bg)] border'
                                 : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:bg-[var(--theme-filter-control-border)] active:bg-[var(--theme-filter-control-border)] border border-[var(--theme-filter-control-border)]'
                             )}
                             style={isActive ? { borderColor: vibeColor, color: vibeColor } : undefined}
+                            title={`${vibe} (${count})`}
                           >
                             {Icon && <Icon className="w-3.5 h-3.5" />}
-                            {vibe}
-                            <span className={clsx('text-xs', isActive ? 'opacity-70' : 'opacity-60')}>
+                            <span className="hidden sm:inline">{vibe}</span>
+                            <span className={clsx('text-xs hidden sm:inline', isActive ? 'opacity-70' : 'opacity-60')}>
                               ({count})
                             </span>
                           </button>
