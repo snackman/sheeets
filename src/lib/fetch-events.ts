@@ -11,10 +11,6 @@ const TAG_ALIASES: Record<string, string> = {
   'Fitness/Wellness': 'Wellness',
   'Devs/Builders': 'Devs',
   'VCs/Angels': 'VCs',
-  'Jobs/Hiring': 'Jobs',
-  'Brunch': 'Food',
-  'Dinner': 'Food',
-  'Bar/Pub': 'Drinks',
 };
 
 function parseTags(raw: string): string[] {
@@ -132,7 +128,7 @@ export async function fetchEvents(runtimeAddresses?: GeoAddressMap, tabs?: TabCo
       if (foodBool) syntheticTags.push('Food');
       if (barBool) syntheticTags.push('Drinks');
 
-      const tags = [...new Set([...rawTags, ...syntheticTags])];
+      const tags = [...rawTags, ...syntheticTags];
 
       const address = getCellValue(row.c[5]);
       const staticAddresses = geocodedData.addresses as GeoAddressMap;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ThumbsUp } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { REACTION_EMOJIS } from '@/lib/constants';
 import type { ReactionEmoji } from '@/lib/types';
 import { trackReactionToggle, trackReactionPickerOpen } from '@/lib/analytics';
@@ -32,6 +32,7 @@ export function EmojiReactions({
   // Emojis available to add
   const availableEmojis = REACTION_EMOJIS.filter((e) => !activeEmojis.has(e));
 
+  const pillSize = compact ? 'px-1.5 py-0.5 text-[10px]' : 'px-1.5 py-0.5 text-xs';
   const gap = compact ? 'gap-1' : 'gap-1.5';
 
   return (
@@ -44,10 +45,14 @@ export function EmojiReactions({
             trackReactionToggle(eventId, r.emoji, !r.reacted);
             onToggle(eventId, r.emoji);
           }}
-          className="py-0.5 transition-colors cursor-pointer inline-flex items-center gap-0.5"
+          className={`${pillSize} rounded-full border transition-colors cursor-pointer inline-flex items-center gap-1 ${
+            r.reacted
+              ? 'border-[var(--theme-accent)]/60 bg-[var(--theme-accent)]/10 text-[var(--theme-text-primary)]'
+              : 'border-[var(--theme-border-primary)] bg-[var(--theme-bg-tertiary)]/50 text-[var(--theme-text-secondary)] hover:border-[var(--theme-text-muted)]'
+          }`}
         >
-          <span className="text-[18px] leading-none">{r.emoji}</span>
-          <span className={`text-xs ${r.reacted ? 'text-[var(--theme-accent)]' : 'text-[var(--theme-text-muted)]'}`}>{r.count}</span>
+          <span>{r.emoji}</span>
+          <span className="font-medium">{r.count}</span>
         </button>
       ))}
 
@@ -59,9 +64,9 @@ export function EmojiReactions({
             if (!showPicker) trackReactionPickerOpen();
             setShowPicker(!showPicker);
           }}
-          className="text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer inline-flex items-center"
+          className={`${pillSize} rounded-full border border-[var(--theme-border-primary)] bg-[var(--theme-bg-tertiary)]/50 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:border-[var(--theme-text-muted)] transition-colors cursor-pointer inline-flex items-center`}
         >
-          <ThumbsUp className="w-5 h-5 translate-y-[3px]" />
+          <Plus className={compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
         </button>
 
         {showPicker && (
@@ -73,8 +78,8 @@ export function EmojiReactions({
                 setShowPicker(false);
               }}
             />
-            <div className="absolute bottom-full left-0 mb-1 z-[41] bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl p-1.5 grid grid-cols-4 gap-1 min-w-[160px]">
-              {REACTION_EMOJIS.map((emoji) => (
+            <div className="absolute bottom-full left-0 mb-1 z-[41] bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl p-1.5 flex gap-1">
+              {(availableEmojis.length > 0 ? availableEmojis : REACTION_EMOJIS).map((emoji) => (
                 <button
                   key={emoji}
                   onClick={(e) => {

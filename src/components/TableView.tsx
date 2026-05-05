@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useRef, useState, useEffect, useMemo, useCallback } from 'react';
+import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, Download, ExternalLink, Plus, Check, X, Users } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
@@ -14,7 +14,6 @@ import { CalendarIcon } from './icons/CalendarIcon';
 import { FriendAvatarStack } from './FriendAvatarStack';
 import UserAvatar from './UserAvatar';
 import { distanceMeters } from '@/lib/geo';
-import { imageCache, FlyerLightbox } from './OGImage';
 
 interface TableViewProps {
   events: ETHDenverEvent[];
@@ -40,8 +39,6 @@ interface TableViewProps {
   liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
   /** User's current location for distance display */
   userLocation?: { lat: number; lng: number } | null;
-  getRsvpStatus?: (eventId: string) => 'idle' | 'confirmed';
-  onRsvp?: (eventId: string, lumaUrl: string, eventName: string) => void;
 }
 
 /** Format a dateISO string like "2026-02-10" into "Mon Feb 10" */
@@ -116,7 +113,7 @@ function FriendsGoingModal({ eventName, friends, onClose }: { eventName: string;
 
 const COLUMN_COUNT = 7; // star, friends, time, organizer, event, location, tags
 
-export const TableView = memo(function TableView({
+export function TableView({
   events,
   totalCount,
   itinerary,
@@ -135,8 +132,6 @@ export const TableView = memo(function TableView({
   onSignIn,
   liveEventIds,
   userLocation,
-  getRsvpStatus,
-  onRsvp,
 }: TableViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
@@ -147,72 +142,6 @@ export const TableView = memo(function TableView({
   const [friendsModalEvent, setFriendsModalEvent] = useState<{ name: string; friends: FriendInfo[] } | null>(null);
 
   const groups = useMemo(() => groupByDate(events), [events]);
-
-  /* ---- flyer lightbox navigation ---- */
-  const [lightboxEventIndex, setLightboxEventIndex] = useState<number | null>(null);
-  const [, setImageLoadTick] = useState(0);
-
-  const allEvents = useMemo(() => groups.flatMap((g) => g.events), [groups]);
-
-  const lightboxEvent = lightboxEventIndex !== null ? allEvents[lightboxEventIndex] : null;
-  const lightboxImageUrl = lightboxEvent?.link
-    ? imageCache.get(lightboxEvent.link) ?? null
-    : null;
-  const lightboxRsvpUrl = lightboxEvent?.link;
-
-  const hasImage = useCallback((idx: number) => {
-    const ev = allEvents[idx];
-    return !!(ev?.link && imageCache.get(ev.link));
-  }, [allEvents]);
-
-  const canPrev = lightboxEventIndex !== null && allEvents.slice(0, lightboxEventIndex).some((ev) => ev.link && imageCache.get(ev.link));
-  const canNext = lightboxEventIndex !== null && allEvents.slice(lightboxEventIndex + 1).some((ev) => ev.link && imageCache.get(ev.link));
-
-  useEffect(() => {
-    if (lightboxEventIndex === null) return;
-    const toPreload: number[] = [lightboxEventIndex];
-    for (let d = 1; d <= 2; d++) {
-      if (lightboxEventIndex + d < allEvents.length) toPreload.push(lightboxEventIndex + d);
-      if (lightboxEventIndex - d >= 0) toPreload.push(lightboxEventIndex - d);
-    }
-    for (const pos of toPreload) {
-      const ev = allEvents[pos];
-      if (ev.link && !imageCache.has(ev.link)) {
-        const params = new URLSearchParams({ url: ev.link });
-        if (ev.id) params.set('eventId', ev.id);
-        fetch(`/api/og?${params.toString()}`)
-          .then((res) => res.json())
-          .then((data) => {
-            imageCache.set(ev.link!, data.imageUrl);
-            setImageLoadTick((n) => n + 1);
-          })
-          .catch(() => {
-            imageCache.set(ev.link!, null);
-            setImageLoadTick((n) => n + 1);
-          });
-      }
-    }
-  }, [lightboxEventIndex, allEvents]);
-
-  const handleLightboxPrev = useCallback(() => {
-    if (!canPrev) return;
-    setLightboxEventIndex((i) => {
-      for (let j = i! - 1; j >= 0; j--) {
-        if (hasImage(j)) return j;
-      }
-      return i;
-    });
-  }, [canPrev, hasImage]);
-
-  const handleLightboxNext = useCallback(() => {
-    if (!canNext) return;
-    setLightboxEventIndex((i) => {
-      for (let j = i! + 1; j < allEvents.length; j++) {
-        if (hasImage(j)) return j;
-      }
-      return i;
-    });
-  }, [canNext, hasImage, allEvents.length]);
 
   // Compute dynamic tags column width based on max tag count across visible events
   const tagsColWidth = useMemo(() => {
@@ -399,7 +328,7 @@ export const TableView = memo(function TableView({
             <col style={{ width: `calc((100% - 36px - 44px - 100px - ${tagsColWidth}px) * 0.28)` }} />             {/* where */}
             <col style={{ width: tagsColWidth }} />                                                                {/* tags */}
           </colgroup>
-          <thead className="text-xs uppercase tracking-wider text-[var(--theme-table-header-text)] bg-[var(--theme-table-header-bg)] border-b border-[var(--theme-border-primary)] sticky top-0 z-20">
+          <thead className="text-xs uppercase tracking-wider text-[var(--theme-text-secondary)] bg-[var(--theme-bg-secondary)] border-b border-[var(--theme-border-primary)] sticky top-0 z-20">
             <tr>
               <th className="py-2.5"><div className="flex justify-center"><CalendarIcon className="w-5 h-5" /></div></th>
               <th className="px-1 py-2.5 text-center" title={!isSignedIn ? 'Sign in to add friends and see who\'s going' : 'Friends going'}><Users className="w-3.5 h-3.5 mx-auto" /></th>
@@ -407,7 +336,7 @@ export const TableView = memo(function TableView({
                 {currentDateLabel === 'Time' ? (
                   'WHEN'
                 ) : (
-                  <span className="text-[var(--theme-table-header-text)] font-semibold">
+                  <span className="text-[var(--theme-accent)] font-semibold" style={{ opacity: 0.8 }}>
                     {currentDateLabel.toUpperCase()}
                   </span>
                 )}
@@ -484,30 +413,8 @@ export const TableView = memo(function TableView({
           onToggleReaction={onToggleReaction}
           commentCount={commentCounts?.get(selectedEvent.id)}
           onClose={() => setSelectedEvent(null)}
-          rsvpStatus={getRsvpStatus?.(selectedEvent.id)}
-          onRsvp={selectedEvent.link ? () => onRsvp?.(selectedEvent.id, selectedEvent.link!, selectedEvent.name) : undefined}
-          onOpenLightbox={() => {
-            const idx = allEvents.findIndex((e) => e.id === selectedEvent.id);
-            if (idx >= 0) {
-              setSelectedEvent(null);
-              setLightboxEventIndex(idx);
-            }
-          }}
         />,
         document.body
-      )}
-      {lightboxEventIndex !== null && lightboxImageUrl && lightboxEvent && (
-        <FlyerLightbox
-          imageUrl={lightboxImageUrl}
-          rsvpUrl={lightboxRsvpUrl}
-          onClose={() => setLightboxEventIndex(null)}
-          onPrev={canPrev ? handleLightboxPrev : undefined}
-          onNext={canNext ? handleLightboxNext : undefined}
-          eventId={lightboxEvent.id}
-          isInItinerary={itinerary?.has(lightboxEvent.id)}
-          onItineraryToggle={onItineraryToggle}
-          friendsGoing={friendsByEvent?.get(lightboxEvent.id)}
-        />
       )}
       {friendsModalEvent && createPortal(
         <FriendsGoingModal
@@ -519,7 +426,7 @@ export const TableView = memo(function TableView({
       )}
     </div>
   );
-});
+}
 
 /** Modal overlay showing full EventCard for a selected table row */
 function EventDetailModal({
@@ -533,9 +440,6 @@ function EventDetailModal({
   onToggleReaction,
   commentCount,
   onClose,
-  rsvpStatus,
-  onRsvp,
-  onOpenLightbox,
 }: {
   event: ETHDenverEvent;
   isInItinerary: boolean;
@@ -547,9 +451,6 @@ function EventDetailModal({
   onToggleReaction?: (eventId: string, emoji: ReactionEmoji) => void;
   commentCount?: number;
   onClose: () => void;
-  rsvpStatus?: 'idle' | 'confirmed';
-  onRsvp?: () => void;
-  onOpenLightbox?: () => void;
 }) {
   return (
     <>
@@ -568,9 +469,6 @@ function EventDetailModal({
             reactions={reactions}
             onToggleReaction={onToggleReaction}
             commentCount={commentCount}
-            rsvpStatus={rsvpStatus}
-            onRsvp={onRsvp}
-            onOpenLightbox={onOpenLightbox ? () => onOpenLightbox() : undefined}
           />
         </div>
       </div>
@@ -619,13 +517,14 @@ function DateGroup({
       {/* Date separator row */}
       <tr
         ref={(el) => setSeparatorRef(group.dateISO, el)}
-        className="bg-[var(--theme-date-sep-bg)]"
+        className="bg-[var(--theme-bg-secondary)]/80"
         data-date={group.dateISO}
       >
-        <td className="border-b border-[var(--theme-date-sep-border)]"></td>
+        <td className="border-b border-[var(--theme-border-primary)]/70"></td>
         <td
           colSpan={COLUMN_COUNT - 1}
-          className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider border-b border-[var(--theme-date-sep-border)] text-[var(--theme-date-sep-text)]"
+          className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider border-b border-[var(--theme-border-primary)]/70"
+          style={{ color: 'var(--theme-accent)', opacity: 0.8 }}
         >
           {group.label}
         </td>

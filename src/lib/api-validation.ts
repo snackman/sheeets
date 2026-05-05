@@ -117,25 +117,3 @@ export const ABTrackEventSchema = z.object({
   event_type: z.enum(['impression', 'click', 'conversion']),
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
-
-/** Schema for POST /api/admin/submissions */
-export const SubmissionActionSchema = z.object({
-  password: z.string(),
-  action: z.enum(['approve', 'reject']),
-  id: z.string().uuid(),
-  rejection_reason: z.string().optional(),
-  edits: z.object({
-    event_name: z.string().optional(),
-    event_date: z.string().optional(),
-    start_time: z.string().optional(),
-    end_time: z.string().optional(),
-    organizer: z.string().optional(),
-    address: z.string().optional(),
-    cost: z.string().optional(),
-    tags: z.string().optional(),
-    link: z.string().optional(),
-    has_food: z.boolean().optional(),
-    has_bar: z.boolean().optional(),
-    note: z.string().optional(),
-  }).optional(),
-});

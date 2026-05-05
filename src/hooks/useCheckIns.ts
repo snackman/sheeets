@@ -1,4 +1,3 @@
-// @deprecated Use useFriendsDependentData instead. Kept for reference.
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';

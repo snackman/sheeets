@@ -1,14 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useEvents } from '@/hooks/useEvents';
 import { useFilters } from '@/hooks/useFilters';
 import { useItinerary } from '@/hooks/useItinerary';
 import { usePOIs } from '@/hooks/usePOIs';
 import { useFriends } from '@/hooks/useFriends';
-import { useFriendsDependentData } from '@/hooks/useFriendsDependentData';
+import { useFriendsItineraries } from '@/hooks/useFriendsItineraries';
+import { useCheckIns } from '@/hooks/useCheckIns';
 import { useEventReactions } from '@/hooks/useEventReactions';
 import { useEventCommentCounts } from '@/hooks/useEventCommentCounts';
+import { useFriendLocations } from '@/hooks/useFriendLocations';
 import { useViewMode } from '@/hooks/useViewMode';
 import { useAuthGatedActions } from '@/hooks/useAuthGatedActions';
 import { useConferenceData } from '@/hooks/useConferenceData';
@@ -17,7 +20,6 @@ import { useAdminConfig } from '@/hooks/useAdminConfig';
 import { useConferenceTabs } from '@/hooks/useConferenceTabs';
 import { useABTest } from '@/hooks/useABTest';
 import { useEventCheckIn } from '@/hooks/useEventCheckIn';
-import { useFriendCode } from '@/hooks/useFriendCode';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeId, DEFAULT_THEME, THEME_OPTIONS } from '@/lib/themes';
 import type { ABTest, ETHDenverEvent } from '@/lib/types';
@@ -25,7 +27,6 @@ import { resolveItemVariants, getVisitorId } from '@/lib/ab-testing';
 import { Header } from './Header';
 import { FilterBar } from './FilterBar';
 import { ListView } from './ListView';
-import { GalleryView } from './GalleryView';
 import { TableView } from './TableView';
 import { MapViewWrapper } from './MapViewWrapper';
 import { Loading } from './Loading';
@@ -34,18 +35,16 @@ import { SubmitEventModal } from './SubmitEventModal';
 import { FriendsPanel } from './FriendsPanel';
 import { SponsorsTicker } from './SponsorsTicker';
 import { CheckInFAB } from './CheckInFAB';
+import { ItineraryFAB } from './ItineraryFAB';
 import { OnboardingWizard } from './OnboardingWizard';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
-import { trackAuthPrompt, trackRsvpOpen, trackRsvpConfirm, setConferenceProperty } from '@/lib/analytics';
+import { trackAuthPrompt } from '@/lib/analytics';
 import { getTabConfig } from '@/lib/conferences';
 import { extractFeaturedEvents } from '@/lib/featured';
 import { passesNowFilter, getConferenceNow, applyFilters, computeTagCounts } from '@/lib/filters';
 import { parseTimeToMinutes } from '@/lib/time-parse';
 import { distanceMeters } from '@/lib/geo';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRsvp } from '@/hooks/useRsvp';
-import { useProfile } from '@/hooks/useProfile';
-import { RsvpOverlay } from './RsvpOverlay';
 
 export function EventApp({ initialConference, initialEvents }: { initialConference?: string; initialEvents?: ETHDenverEvent[] }) {
   const { config } = useAdminConfig();
@@ -95,9 +94,11 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
   const { pois, addPOI, removePOI, updatePOI, ownerNames } = usePOIs();
 
   const { friends, removeFriend, refreshFriends } = useFriends();
-  const { friendItineraries, checkInCounts, checkInUsersByEvent, friendLocations } = useFriendsDependentData(friends);
+  const { friendItineraries } = useFriendsItineraries(friends);
+  const { checkInCounts, checkInUsersByEvent } = useCheckIns(friends);
   const { reactionsByEvent, toggleReaction } = useEventReactions();
   const commentCounts = useEventCommentCounts();
+  const friendLocations = useFriendLocations(friends);
 
   const {
     showAuthForStar,
@@ -142,8 +143,8 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
   });
 
   const featuredEvents = useMemo(
-    () => filters.itineraryOnly ? [] : extractFeaturedEvents(filteredEvents),
-    [filteredEvents, filters.itineraryOnly],
+    () => extractFeaturedEvents(filteredEvents),
+    [filteredEvents],
   );
 
   // Events filtered by everything EXCEPT vibes — used to compute tag counts
@@ -167,9 +168,6 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
     result: checkInResult,
     clearResult: clearCheckInResult,
   } = useEventCheckIn();
-
-  const { getRsvpStatus, openRsvp, confirmRsvp, closeRsvp, activeRsvp } = useRsvp();
-  const { profile } = useProfile();
 
   const liveEventIds = useMemo(() => {
     const now = getConferenceNow(filters.conference);
@@ -243,14 +241,15 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
     checkInToNearbyEvents(events, itinerary, filters.conference);
   }, [checkInToNearbyEvents, events, itinerary, filters.conference]);
 
+  const router = useRouter();
   const handleItineraryFilterToggle = useCallback(() => {
     if (!authUser) {
       trackAuthPrompt('itinerary_button');
       setShowSignIn(true);
       return;
     }
-    toggleBool('itineraryOnly');
-  }, [authUser, toggleBool]);
+    router.push(`/plan${filters.conference ? `?conf=${encodeURIComponent(filters.conference)}` : ''}`);
+  }, [authUser, router, filters.conference]);
 
   // Theme: read from admin config per-conference and apply
   const { setTheme } = useTheme();
@@ -277,7 +276,6 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
       if (window.location.pathname !== newPath) {
         window.history.replaceState(null, '', newPath);
       }
-      setConferenceProperty(tab.slug);
     }
   }, [filters.conference, conferenceTabs]);
 
@@ -360,45 +358,6 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
   const [showSubmitEvent, setShowSubmitEvent] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
 
-  // Friend code (?fc=) URL handler
-  const { toast: friendCodeToast } = useFriendCode({
-    openAuth: () => setShowSignIn(true),
-    refreshFriends,
-  });
-
-  const handleRsvp = useCallback((eventId: string, lumaUrl: string, eventName: string) => {
-    if (!authUser) {
-      trackAuthPrompt('rsvp');
-      setShowSignIn(true);
-      return;
-    }
-    trackRsvpOpen(eventId, eventName);
-    openRsvp(eventId, lumaUrl, eventName);
-  }, [authUser, openRsvp]);
-
-  const handleRsvpConfirm = useCallback(() => {
-    if (activeRsvp) {
-      trackRsvpConfirm(activeRsvp.eventId, activeRsvp.eventName);
-    }
-    confirmRsvp();
-  }, [activeRsvp, confirmRsvp]);
-
-  // Stable callback refs for child prop stability
-  const handleOpenFriends = useCallback(() => setShowFriends(true), []);
-  const handleOpenSubmitEvent = useCallback(() => setShowSubmitEvent(true), []);
-  const handleOpenSignIn = useCallback(() => setShowSignIn(true), []);
-  const handleSearchChange = useCallback((q: string) => setFilter('searchQuery', q), [setFilter]);
-  const handleCloseAuth = useCallback(() => { dismissAuth(); setShowSignIn(false); }, [dismissAuth]);
-  const handleCloseSubmitEvent = useCallback(() => setShowSubmitEvent(false), []);
-  const handleCloseFriends = useCallback(() => setShowFriends(false), []);
-  const handleOnboardingAuth = useCallback(() => { setShowOnboarding(false); setShowSignIn(true); }, []);
-
-  // Memoized derived value
-  const filteredItineraryCount = useMemo(
-    () => filteredEvents.filter(e => itinerary.has(e.id)).length,
-    [filteredEvents, itinerary]
-  );
-
   // Onboarding wizard for first-time users
   const [showOnboarding, setShowOnboarding] = useState(false);
   useEffect(() => {
@@ -444,7 +403,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           onViewChange={setViewMode}
           events={events}
           itinerary={itinerary}
-          onOpenFriends={handleOpenFriends}
+          onOpenFriends={() => setShowFriends(true)}
           refreshFriends={refreshFriends}
         />
         <Loading />
@@ -460,7 +419,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           onViewChange={setViewMode}
           events={events}
           itinerary={itinerary}
-          onOpenFriends={handleOpenFriends}
+          onOpenFriends={() => setShowFriends(true)}
           refreshFriends={refreshFriends}
         />
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-4">
@@ -484,8 +443,8 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         onViewChange={setViewMode}
         events={events}
         itinerary={itinerary}
-        onOpenFriends={handleOpenFriends}
-        onSubmitEvent={handleOpenSubmitEvent}
+        onOpenFriends={() => setShowFriends(true)}
+        onSubmitEvent={() => setShowSubmitEvent(true)}
         refreshFriends={refreshFriends}
         activeConference={filters.conference}
         hasNearbyLiveEvents={hasNearbyLiveEvents}
@@ -501,7 +460,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
 
       {/* Filter bar -- collapses on scroll down in table/list views */}
       <div className={
-        viewMode === 'table' || viewMode === 'list' || viewMode === 'gallery'
+        viewMode === 'table' || viewMode === 'list'
           ? `shrink-0 transition-all duration-200 ${contentScrolled ? 'lg:overflow-visible lg:max-h-none overflow-hidden max-h-0' : ''}`
           : 'shrink-0'
       }>
@@ -522,14 +481,13 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           selectedFriends={filters.selectedFriends}
           onToggleFriend={toggleFriend}
           searchQuery={filters.searchQuery}
-          onSearchChange={handleSearchChange}
+          onSearchChange={(query) => setFilter('searchQuery', query)}
           eventCount={filteredEvents.length}
-          onSubmitEvent={handleOpenSubmitEvent}
-          onSignIn={handleOpenSignIn}
+          onSubmitEvent={() => setShowSubmitEvent(true)}
+          onSignIn={() => setShowSignIn(true)}
           conferenceTabs={conferenceTabs}
-          itineraryCount={filteredItineraryCount}
+          itineraryCount={filteredEvents.filter(e => itinerary.has(e.id)).length}
           onItineraryToggle={handleItineraryFilterToggle}
-          isItineraryActive={filters.itineraryOnly}
         />
       </div>
 
@@ -555,17 +513,15 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
             onRemovePOI={removePOI}
             onUpdatePOI={updatePOI}
             ownerNames={ownerNames}
-            onSignIn={handleOpenSignIn}
+            onSignIn={() => setShowSignIn(true)}
             conferenceTabs={conferenceTabs}
             onCheckIn={checkInToEvent}
             checkInLoading={checkInLoading}
             liveEventIds={liveEventIds}
-            getRsvpStatus={getRsvpStatus}
-            onRsvp={handleRsvp}
           />
         </main>
       ) : viewMode === 'table' ? (
-        <main className="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden bg-[var(--theme-bg-list)]">
+        <main className="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
           <TableView
             events={filteredEvents}
             totalCount={conferenceEventCount}
@@ -582,34 +538,13 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
             conference={filters.conference}
             featuredEvents={featuredEvents}
             isSignedIn={!!authUser}
-            onSignIn={handleOpenSignIn}
+            onSignIn={() => setShowSignIn(true)}
             liveEventIds={liveEventIds}
             userLocation={userLocation}
-            getRsvpStatus={getRsvpStatus}
-            onRsvp={handleRsvp}
-          />
-        </main>
-      ) : viewMode === 'gallery' ? (
-        <main ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto bg-[var(--theme-bg-list)]">
-          <GalleryView
-            events={filteredEvents}
-            totalCount={conferenceEventCount}
-            itinerary={itinerary}
-            onItineraryToggle={handleItineraryToggle}
-            friendsCountByEvent={friendsCountByEvent}
-            friendsByEvent={friendsByEvent}
-            checkedInFriendsByEvent={checkedInFriendsByEvent}
-            checkInCounts={checkInCounts}
-            reactionsByEvent={reactionsByEvent}
-            onToggleReaction={handleToggleReaction}
-            commentCounts={commentCounts}
-            scrollContainerRef={listMainRef}
-            conference={filters.conference}
-            liveEventIds={liveEventIds}
           />
         </main>
       ) : (
-        <main ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto bg-[var(--theme-bg-list)]">
+        <main ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto">
           <ListView
             events={filteredEvents}
             totalCount={conferenceEventCount}
@@ -633,8 +568,6 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
             checkInLoading={checkInLoading}
             liveEventIds={liveEventIds}
             userLocation={userLocation}
-            getRsvpStatus={getRsvpStatus}
-            onRsvp={handleRsvp}
           />
         </main>
       )}
@@ -648,11 +581,15 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         />
       )}
 
-      <AuthModal isOpen={showAuthForStar || showSignIn} onClose={handleCloseAuth} />
-      <SubmitEventModal isOpen={showSubmitEvent} onClose={handleCloseSubmitEvent} upsellCopy={config?.upsell_copy} initialConference={filters.conference} conferenceTabs={conferenceTabs} />
+      {itineraryCount > 0 && !hasNearbyLiveEvents && (
+        <ItineraryFAB count={itineraryCount} conference={filters.conference} />
+      )}
+
+      <AuthModal isOpen={showAuthForStar || showSignIn} onClose={() => { dismissAuth(); setShowSignIn(false); }} />
+      <SubmitEventModal isOpen={showSubmitEvent} onClose={() => setShowSubmitEvent(false)} upsellCopy={config?.upsell_copy} initialConference={filters.conference} conferenceTabs={conferenceTabs} />
       <FriendsPanel
         isOpen={showFriends}
-        onClose={handleCloseFriends}
+        onClose={() => setShowFriends(false)}
         friends={friends}
         onRemoveFriend={removeFriend}
       />
@@ -663,33 +600,9 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         availableConferences={availableConferences}
         conferenceEventCounts={conferenceEventCounts}
         events={events}
-        onOpenAuth={handleOnboardingAuth}
+        onOpenAuth={() => { setShowOnboarding(false); setShowSignIn(true); }}
         conferenceTabs={conferenceTabs}
       />
-      {activeRsvp && (
-        <RsvpOverlay
-          eventName={activeRsvp.eventName}
-          lumaUrl={activeRsvp.lumaUrl}
-          userName={profile?.rsvp_name ?? profile?.display_name}
-          userEmail={profile?.email}
-          userXHandle={profile?.x_handle}
-          userTelegram={profile?.telegram_handle}
-          userCompany={profile?.company}
-          userLinkedin={profile?.linkedin_url}
-          userJobTitle={profile?.job_title}
-          onConfirm={handleRsvpConfirm}
-          onClose={closeRsvp}
-        />
-      )}
-      {friendCodeToast && (
-        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-opacity duration-300 ${
-          friendCodeToast.type === 'success'
-            ? 'bg-green-600 text-white'
-            : 'bg-red-600 text-white'
-        }`}>
-          {friendCodeToast.message}
-        </div>
-      )}
     </div>
   );
 }

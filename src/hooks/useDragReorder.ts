@@ -71,10 +71,12 @@ export function useDragReorder({ onReorder }: UseDragReorderOptions) {
   const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', id);
-    // Set a small drag image offset
+    // Use the full item element as drag image instead of the tiny handle
     if (e.dataTransfer.setDragImage) {
-      const target = e.currentTarget as HTMLElement;
-      e.dataTransfer.setDragImage(target, 20, 20);
+      const itemEl = itemRefs.current.get(id);
+      if (itemEl) {
+        e.dataTransfer.setDragImage(itemEl, 20, 20);
+      }
     }
     setDragState({ dragId: id, overId: null, position: 'below' });
   }, []);

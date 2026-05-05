@@ -79,7 +79,7 @@ export default function NativeAdCard({ ad, conference, onImpression, onClick }: 
       className="block group"
       onClick={handleClick}
     >
-      <div className="bg-[var(--theme-bg-card)] border border-[var(--theme-border-primary)] rounded-lg p-4 transition-colors hover:border-[var(--theme-accent)]">
+      <div className="bg-[var(--theme-bg-card)] border border-[var(--theme-border-primary)] rounded-lg p-4 transition-colors hover:border-amber-500/30">
         <div className="flex gap-4">
           {ad.imageUrl && (
             <div className="w-[90px] h-[90px] flex-shrink-0 rounded-lg overflow-hidden bg-[var(--theme-bg-tertiary)]">
@@ -97,7 +97,7 @@ export default function NativeAdCard({ ad, conference, onImpression, onClick }: 
               <span className="text-sm font-semibold text-[var(--theme-text-primary)] truncate">
                 {ad.title}
               </span>
-              <span className="flex-shrink-0 text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--theme-accent-muted)] text-[var(--theme-accent)] border border-[var(--theme-accent-muted)]">
+              <span className="flex-shrink-0 text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20">
                 Ad
               </span>
             </div>
@@ -119,7 +119,7 @@ export default function NativeAdCard({ ad, conference, onImpression, onClick }: 
             <p className="text-xs text-[var(--theme-text-secondary)] line-clamp-2 mb-2">
               {ad.description}
             </p>
-            <span className="inline-flex items-center gap-1 text-[var(--theme-accent)] hover:text-[var(--theme-accent-hover)] text-xs font-medium transition-colors">
+            <span className="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 text-xs font-medium transition-colors">
               {ad.badge || 'Learn more'}
               <ArrowRight className="w-3 h-3" />
             </span>

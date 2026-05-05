@@ -42,12 +42,12 @@ export function GoogleCalendarButton({ events, timezone }: GoogleCalendarButtonP
       onClick={handleClick}
       disabled={isLoading}
       className={clsx(
-        'px-2 py-1 text-xs font-medium rounded transition-colors cursor-pointer inline-flex items-center gap-1',
+        'p-1.5 rounded transition-colors cursor-pointer',
         status === 'success'
-          ? 'bg-emerald-500/20 text-emerald-400'
+          ? 'text-emerald-400'
           : status === 'error'
-            ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-            : 'bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] hover:border-[var(--theme-border-primary)]'
+            ? 'text-red-400 hover:text-red-300'
+            : 'text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)]'
       )}
       title={
         status === 'error' && errorMessage
@@ -55,38 +55,14 @@ export function GoogleCalendarButton({ events, timezone }: GoogleCalendarButtonP
           : 'Add all events to Google Calendar'
       }
     >
-      {status === 'authorizing' && (
-        <>
-          <Loader2 className="w-3 h-3 animate-spin" />
-          <span>Connecting...</span>
-        </>
-      )}
-      {status === 'exporting' && (
-        <>
-          <Loader2 className="w-3 h-3 animate-spin" />
-          <span>Adding {events.length} event{events.length !== 1 ? 's' : ''}...</span>
-        </>
-      )}
-      {status === 'success' && (
-        <>
-          <Check className="w-3 h-3" />
-          <span>
-            Added {result?.inserted ?? events.length}
-            {result?.failed ? ` (${result.failed} failed)` : ''}!
-          </span>
-        </>
-      )}
-      {status === 'error' && (
-        <>
-          <AlertCircle className="w-3 h-3" />
-          <span>Retry</span>
-        </>
-      )}
-      {status === 'idle' && (
-        <>
-          <CalendarPlus className="w-3 h-3" />
-          <span className="hidden sm:inline">Google Cal</span>
-        </>
+      {isLoading ? (
+        <Loader2 className="w-[18px] h-[18px] animate-spin" />
+      ) : status === 'success' ? (
+        <Check className="w-[18px] h-[18px]" />
+      ) : status === 'error' ? (
+        <AlertCircle className="w-[18px] h-[18px]" />
+      ) : (
+        <CalendarPlus className="w-[18px] h-[18px]" />
       )}
     </button>
   );

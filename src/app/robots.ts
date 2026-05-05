@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/admin', '/itinerary'],
+      disallow: ['/admin', '/plan', '/itinerary'],
     },
     sitemap: 'https://plan.wtf/sitemap.xml',
   };

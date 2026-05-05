@@ -23,12 +23,13 @@ interface MapMarkerProps {
   isFeatured?: boolean;
 }
 
-/** Get wedge color based on start hour: white (day), dark accent (evening) */
+/** Get pin color based on start hour: white (morning/afternoon), transparent white (evening) */
 function getPinColor(startMinutes: number | null | undefined): string {
-  if (startMinutes == null) return '#FFFFFF';
+  if (startMinutes == null) return '#FFFFFF'; // default white
   const hour = startMinutes / 60;
-  if (hour >= 18) return 'var(--theme-map-pin-night)';
-  return '#FFFFFF';
+  if (hour < 12) return '#FFFFFF'; // white — morning
+  if (hour < 18) return '#FFFFFF'; // white — afternoon
+  return 'rgba(255,255,255,0.4)'; // transparent white — evening
 }
 
 /** SVG clock-face pin with a black wedge representing the event time */
@@ -53,8 +54,8 @@ function ClockPin({
   if (isAllDay || startMinutes == null) {
     return (
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <circle cx={cx} cy={cy} r={ir} fill="var(--theme-map-pin)" />
-        <circle cx={cx} cy={cy} r={ir} fill="none" stroke="var(--theme-map-pin-night)" strokeWidth={1.5} strokeOpacity={0.8} />
+        <circle cx={cx} cy={cy} r={ir} fill={color} />
+        <circle cx={cx} cy={cy} r={ir} fill="none" stroke="white" strokeWidth={1.5} strokeOpacity={0.8} />
         {/* Clock tick marks at 12, 3, 6, 9 */}
         <line x1={cx} y1={cy - ir} x2={cx} y2={cy - ir + 3} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
         <line x1={cx + ir} y1={cy} x2={cx + ir - 3} y2={cy} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
@@ -87,9 +88,9 @@ function ClockPin({
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={cx} cy={cy} r={ir} fill="var(--theme-map-pin)" />
+      <circle cx={cx} cy={cy} r={ir} fill="#1c1917" />
       <path d={wedgePath} fill={color} />
-      <circle cx={cx} cy={cy} r={ir} fill="none" stroke="var(--theme-map-pin-night)" strokeWidth={1.5} strokeOpacity={0.8} />
+      <circle cx={cx} cy={cy} r={ir} fill="none" stroke="white" strokeWidth={1.5} strokeOpacity={0.8} />
       {/* Clock tick marks at 12, 3, 6, 9 */}
       <line x1={cx} y1={cy - ir} x2={cx} y2={cy - ir + 3} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
       <line x1={cx + ir} y1={cy} x2={cx + ir - 3} y2={cy} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
@@ -198,10 +199,10 @@ export function MapMarker({
             }}
             onClick={handleClick}
           >
-            <div className={`px-2 py-0.5 rounded text-[10px] max-w-[140px] leading-tight transition-colors shadow-md border ${
+            <div className={`px-2 py-0.5 rounded text-[10px] max-w-[140px] leading-tight transition-colors ${
               isFeatured
-                ? 'bg-[var(--theme-bg-secondary)] border-[var(--theme-accent)]/50 group-hover:bg-[var(--theme-bg-tertiary)] group-hover:border-[var(--theme-accent)]/70 text-[var(--theme-text-primary)] border-2'
-                : 'bg-[var(--theme-bg-secondary)] border-[var(--theme-border-primary)] group-hover:bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)]'
+                ? 'bg-[var(--theme-bg-secondary)]/90 border-2 border-[var(--theme-accent)]/50 group-hover:bg-[var(--theme-bg-tertiary)]/90 group-hover:border-[var(--theme-accent)]/70 text-[var(--theme-text-primary)]'
+                : 'bg-[var(--theme-bg-secondary)]/90 group-hover:bg-[var(--theme-bg-tertiary)]/90 text-[var(--theme-text-primary)]'
             }`}>
               <div className="truncate whitespace-nowrap">{label}</div>
               {showOrganizer && organizer && (

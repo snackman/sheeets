@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { Friend } from '@/lib/types';
-import { fetchProfiles } from '@/lib/profile-cache';
 
 export function useFriends() {
   const { user, loading: authLoading } = useAuth();
@@ -34,7 +33,14 @@ export function useFriends() {
       return;
     }
 
-    const profileMap = await fetchProfiles(supabase, [...friendIds]);
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('user_id, email, display_name, x_handle, rsvp_name, avatar_url')
+      .in('user_id', [...friendIds]);
+
+    const profileMap = new Map(
+      (profiles ?? []).map((p) => [p.user_id, p])
+    );
 
     setFriends(
       [...friendIds].map((id) => {

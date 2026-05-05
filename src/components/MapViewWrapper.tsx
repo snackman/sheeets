@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { ChevronUp, ChevronDown, MapPinOff } from 'lucide-react';
 import type { ETHDenverEvent, POI, POICategory, ReactionEmoji, FriendLocation, FriendInfo } from '@/lib/types';
@@ -44,11 +44,9 @@ interface MapViewWrapperProps {
   onCheckIn?: (eventId: string) => void;
   checkInLoading?: boolean;
   liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
-  getRsvpStatus?: (eventId: string) => 'idle' | 'confirmed';
-  onRsvp?: (eventId: string, lumaUrl: string, eventName: string) => void;
 }
 
-export const MapViewWrapper = memo(function MapViewWrapper({
+export function MapViewWrapper({
   events,
   onEventSelect,
   itinerary,
@@ -73,8 +71,6 @@ export const MapViewWrapper = memo(function MapViewWrapper({
   onCheckIn,
   checkInLoading,
   liveEventIds,
-  getRsvpStatus,
-  onRsvp,
 }: MapViewWrapperProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -112,8 +108,6 @@ export const MapViewWrapper = memo(function MapViewWrapper({
         onCheckIn={onCheckIn}
         checkInLoading={checkInLoading}
         liveEventIds={liveEventIds}
-        getRsvpStatus={getRsvpStatus}
-        onRsvp={onRsvp}
       />
 
       {/* No-location drawer */}
@@ -131,8 +125,6 @@ export const MapViewWrapper = memo(function MapViewWrapper({
                     onItineraryToggle={onItineraryToggle}
                     friendsCount={friendsCountByEvent?.get(event.id)}
                     friendsGoing={friendsByEvent?.get(event.id)}
-                    rsvpStatus={getRsvpStatus?.(event.id)}
-                    onRsvp={event.link ? () => onRsvp?.(event.id, event.link!, event.name) : undefined}
                   />
                 ))}
               </div>
@@ -152,4 +144,4 @@ export const MapViewWrapper = memo(function MapViewWrapper({
       )}
     </div>
   );
-});
+}

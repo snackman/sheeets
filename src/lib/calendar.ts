@@ -19,7 +19,7 @@ export function parseTime(t: string): { hour: number; minute: number } | null {
   return { hour, minute };
 }
 
-export function toCalendarDateTime(dateISO: string, time: { hour: number; minute: number }): string {
+function toCalendarDateTime(dateISO: string, time: { hour: number; minute: number }): string {
   const date = dateISO.replace(/-/g, '');
   const h = time.hour.toString().padStart(2, '0');
   const m = time.minute.toString().padStart(2, '0');

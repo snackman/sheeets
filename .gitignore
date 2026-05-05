@@ -38,13 +38,9 @@ yarn-error.log*
 
 # secrets
 secrets.md
-notes/
 
 # one-off scripts
 scripts/migrate-itinerary-ids.ts
-
-# generated reports
-ga4-dashboard.html
 
 # typescript
 *.tsbuildinfo

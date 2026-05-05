@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
-import type { FriendInfo } from '@/lib/types';
-import { StarButton } from './StarButton';
 
 interface OGImageProps {
   url: string;
@@ -12,15 +10,11 @@ interface OGImageProps {
   rsvpUrl?: string;
   /** If provided, clicking the thumbnail calls this instead of opening the built-in lightbox */
   onOpenLightbox?: (imageUrl: string, rsvpUrl?: string) => void;
-  /** Props for built-in lightbox (used when onOpenLightbox is not provided, e.g. map view) */
-  isInItinerary?: boolean;
-  onItineraryToggle?: (eventId: string) => void;
-  friendsGoing?: FriendInfo[];
 }
 
 export const imageCache = new Map<string, string | null>();
 
-export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox, isInItinerary, onItineraryToggle, friendsGoing }: OGImageProps) {
+export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox }: OGImageProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(
     imageCache.get(url) ?? null
   );
@@ -133,48 +127,16 @@ export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox, isInItinerary, 
               alt=""
               className="max-w-[60vw] max-h-[60vh] object-contain rounded-lg"
             />
-            <div className="flex items-center gap-3">
-              {eventId && onItineraryToggle && (
-                <StarButton
-                  eventId={eventId}
-                  isStarred={isInItinerary ?? false}
-                  onToggle={onItineraryToggle}
-                />
-              )}
-              {rsvpUrl && (
-                <a
-                  href={rsvpUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
-                >
-                  Event Page &rarr;
-                </a>
-              )}
-              {friendsGoing && friendsGoing.length > 0 && (
-                <div className="flex items-center">
-                  {friendsGoing.slice(0, 3).map((friend, i) => (
-                    <div
-                      key={friend.userId}
-                      className={`w-6 h-6 rounded-full border-2 border-white/30 shrink-0 overflow-hidden ${i > 0 ? '-ml-2' : ''}`}
-                      style={{ zIndex: 3 - i }}
-                      title={friend.displayName}
-                    >
-                      {friend.avatarUrl ? (
-                        <img src={friend.avatarUrl} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div
-                          className="w-full h-full flex items-center justify-center text-[9px] font-bold text-white"
-                          style={{ backgroundColor: `hsl(${Math.abs(friend.userId.split('').reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0)) % 360}, 60%, 45%)` }}
-                        >
-                          {(friend.displayName || '?')[0].toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            {rsvpUrl && (
+              <a
+                href={rsvpUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                RSVP / Event Page &rarr;
+              </a>
+            )}
           </div>
         </div>,
         document.body
@@ -193,13 +155,9 @@ interface FlyerLightboxProps {
   onClose: () => void;
   onPrev?: () => void;
   onNext?: () => void;
-  eventId?: string;
-  isInItinerary?: boolean;
-  onItineraryToggle?: (eventId: string) => void;
-  friendsGoing?: FriendInfo[];
 }
 
-export function FlyerLightbox({ imageUrl, rsvpUrl, onClose, onPrev, onNext, eventId, isInItinerary, onItineraryToggle, friendsGoing }: FlyerLightboxProps) {
+export function FlyerLightbox({ imageUrl, rsvpUrl, onClose, onPrev, onNext }: FlyerLightboxProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -251,48 +209,16 @@ export function FlyerLightbox({ imageUrl, rsvpUrl, onClose, onPrev, onNext, even
           alt=""
           className="max-w-[60vw] max-h-[60vh] object-contain rounded-lg"
         />
-        <div className="flex items-center gap-3">
-          {eventId && onItineraryToggle && (
-            <StarButton
-              eventId={eventId}
-              isStarred={isInItinerary ?? false}
-              onToggle={onItineraryToggle}
-            />
-          )}
-          {rsvpUrl && (
-            <a
-              href={rsvpUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              Event Page &rarr;
-            </a>
-          )}
-          {friendsGoing && friendsGoing.length > 0 && (
-            <div className="flex items-center">
-              {friendsGoing.slice(0, 3).map((friend, i) => (
-                <div
-                  key={friend.userId}
-                  className={`w-6 h-6 rounded-full border-2 border-white/30 shrink-0 overflow-hidden ${i > 0 ? '-ml-2' : ''}`}
-                  style={{ zIndex: 3 - i }}
-                  title={friend.displayName}
-                >
-                  {friend.avatarUrl ? (
-                    <img src={friend.avatarUrl} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <div
-                      className="w-full h-full flex items-center justify-center text-[9px] font-bold text-white"
-                      style={{ backgroundColor: `hsl(${Math.abs(friend.userId.split('').reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0)) % 360}, 60%, 45%)` }}
-                    >
-                      {(friend.displayName || '?')[0].toUpperCase()}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {rsvpUrl && (
+          <a
+            href={rsvpUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            RSVP / Event Page &rarr;
+          </a>
+        )}
       </div>
     </div>,
     document.body

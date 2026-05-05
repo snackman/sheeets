@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { SponsorEntry } from '@/lib/types';
 import { trackAdClick, trackAdImpression } from '@/lib/analytics';
 import { trackAdEvent, slugifySponsor } from '@/lib/ad-tracking';
@@ -24,7 +24,7 @@ interface SponsorsTickerProps {
   onSponsorClick?: (url: string) => void;
 }
 
-export const SponsorsTicker = memo(function SponsorsTicker({ sponsors, conference, onImpression, onSponsorClick }: SponsorsTickerProps) {
+export function SponsorsTicker({ sponsors, conference, onImpression, onSponsorClick }: SponsorsTickerProps) {
   const sponsorList = sponsors && sponsors.length > 0 ? sponsors : defaultSponsors;
 
   const tickerRef = useRef<HTMLDivElement>(null);
@@ -94,10 +94,10 @@ export const SponsorsTicker = memo(function SponsorsTicker({ sponsors, conferenc
   );
 
   return (
-    <div ref={tickerRef} className="w-full overflow-hidden border-b border-[var(--theme-ticker-border)] py-1.5 bg-[var(--theme-ticker-bg)]">
+    <div ref={tickerRef} className="w-full overflow-hidden border-b py-1.5" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-bg-primary) 80%, transparent)', borderColor: 'color-mix(in srgb, var(--theme-border-secondary) 50%, transparent)' }}>
       <div className="sponsors-scroll inline-flex whitespace-nowrap text-xs text-[var(--theme-text-secondary)]">
         {item}{item}{item}{item}{item}{item}{item}{item}
       </div>
     </div>
   );
-});
+}
