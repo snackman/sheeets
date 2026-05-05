@@ -14,7 +14,7 @@ function makeFilters(overrides: Partial<FilterState> = {}): FilterState {
     selectedFriends: [],
     itineraryOnly: false,
     searchQuery: '',
-    nowMode: false,
+    timeMode: 'off',
     ...overrides,
   };
 }

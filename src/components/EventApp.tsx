@@ -60,7 +60,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
     toggleVibe,
     toggleFriend,
     toggleBool,
-    toggleNowMode,
+    cycleTimeMode,
     toggleTagMatchAll,
     clearFilters,
     activeFilterCount,
@@ -180,7 +180,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
 
   // Events filtered by everything EXCEPT vibes — used to compute tag counts
   const baseFilteredEvents = useMemo(
-    () => applyFilters(events, filters, itinerary, filters.nowMode ? getConferenceNow(filters.conference).getTime() : undefined, selectedFriendEventIds, { skipVibes: true, orgEventIds, eventIdToOrgs }),
+    () => applyFilters(events, filters, itinerary, filters.timeMode !== 'off' ? getConferenceNow(filters.conference).getTime() : undefined, selectedFriendEventIds, { skipVibes: true, orgEventIds, eventIdToOrgs }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [events, filters, itinerary, selectedFriendEventIds, orgEventIds, eventIdToOrgs]
   );
@@ -542,7 +542,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           onSetConference={setConference}
           onSetDateTimeRange={setDateTimeRange}
           onToggleVibe={toggleVibe}
-          onToggleNowMode={toggleNowMode}
+          onCycleTimeMode={cycleTimeMode}
           onToggleTagMatchAll={toggleTagMatchAll}
           onClearFilters={clearFilters}
           activeFilterCount={activeFilterCount}
