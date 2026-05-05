@@ -404,7 +404,7 @@ export const EventCard = memo(function EventCard({
               compact={compact}
             />
           )}
-          <CommentSection eventId={event.id} commentCount={commentCount} />
+          <CommentSection eventId={event.id} commentCount={commentCount} eventName={event.name} />
           {checkedInFriends && checkedInFriends.length > 0 && (
             <button
               onClick={(e) => {
