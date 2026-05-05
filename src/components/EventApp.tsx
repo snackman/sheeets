@@ -141,6 +141,12 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
 
   const orgNames = useMemo(() => orgMapping.orgs.map(o => o.name), [orgMapping]);
 
+  const orgEventCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const org of orgMapping.orgs) m.set(org.name, org.eventIds.length);
+    return m;
+  }, [orgMapping]);
+
   const friendEventCount = friendsCountByEvent.size;
 
   const orgEventCount = useMemo(() => {
@@ -569,6 +575,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           onSubmitEvent={handleOpenSubmitEvent}
           onSignIn={handleOpenSignIn}
           orgNames={orgNames}
+          orgEventCounts={orgEventCounts}
           selectedOrgs={filters.selectedOrgs}
           onToggleOrg={toggleOrg}
           conferenceTabs={conferenceTabs}

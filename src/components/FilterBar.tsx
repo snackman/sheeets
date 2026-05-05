@@ -39,6 +39,7 @@ interface FilterBarProps {
   onSignIn?: () => void;
   conferenceTabs?: TabConfig[];
   orgNames: string[];
+  orgEventCounts: Map<string, number>;
   selectedOrgs: string[];
   onToggleOrg: (name: string) => void;
   itineraryCount: number;
@@ -71,6 +72,7 @@ export const FilterBar = memo(function FilterBar({
   onSubmitEvent,
   onSignIn,
   orgNames,
+  orgEventCounts,
   selectedOrgs,
   onToggleOrg,
   conferenceTabs,
@@ -512,6 +514,7 @@ export const FilterBar = memo(function FilterBar({
             {orgNames.length > 0 && (
               <OrgDropdown
                 orgNames={orgNames}
+                orgEventCounts={orgEventCounts}
                 selectedOrgs={selectedOrgs}
                 onToggleOrg={onToggleOrg}
                 orgEventCount={orgEventCount}

@@ -6,12 +6,13 @@ import clsx from 'clsx';
 
 interface OrgDropdownProps {
   orgNames: string[];
+  orgEventCounts: Map<string, number>;
   selectedOrgs: string[];
   onToggleOrg: (name: string) => void;
   orgEventCount?: number;
 }
 
-export function OrgDropdown({ orgNames, selectedOrgs, onToggleOrg, orgEventCount }: OrgDropdownProps) {
+export function OrgDropdown({ orgNames, orgEventCounts, selectedOrgs, onToggleOrg, orgEventCount }: OrgDropdownProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -120,6 +121,9 @@ export function OrgDropdown({ orgNames, selectedOrgs, onToggleOrg, orgEventCount
                       {isSelected && <span className="text-[10px] text-[var(--theme-accent-text)] font-bold">&#10003;</span>}
                     </div>
                     <span className="truncate">{name}</span>
+                    {(orgEventCounts.get(name) ?? 0) > 0 && (
+                      <span className="shrink-0 text-xs opacity-50">({orgEventCounts.get(name)})</span>
+                    )}
                   </button>
                 );
               })
