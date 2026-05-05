@@ -44,6 +44,21 @@ interface TableViewProps {
   onRsvp?: (eventId: string, lumaUrl: string, eventName: string) => void;
 }
 
+/** Day-of-week colors for mobile badges */
+const DAY_COLORS: Record<number, string> = {
+  0: 'bg-red-500/20 text-red-400',       // Sun
+  1: 'bg-purple-500/20 text-purple-400',  // Mon
+  2: 'bg-blue-500/20 text-blue-400',      // Tue
+  3: 'bg-green-500/20 text-green-400',    // Wed
+  4: 'bg-yellow-500/20 text-yellow-400',  // Thu
+  5: 'bg-orange-500/20 text-orange-400',  // Fri
+  6: 'bg-pink-500/20 text-pink-400',      // Sat
+};
+
+const DAY_ABBR: Record<number, string> = {
+  0: 'Su', 1: 'Mo', 2: 'Tu', 3: 'We', 4: 'Th', 5: 'Fr', 6: 'Sa',
+};
+
 /** Format a dateISO string like "2026-02-10" into "Mon Feb 10" */
 function formatDateHeader(dateISO: string): string {
   // Parse as local date (avoid timezone offset issues with new Date(string))
@@ -53,6 +68,27 @@ function formatDateHeader(dateISO: string): string {
   const monthName = d.toLocaleDateString('en-US', { month: 'short' });
   const dayNum = d.getDate();
   return `${dayName} ${monthName} ${dayNum}`;
+}
+
+/** Render a colored day badge on mobile, plain text on desktop */
+function DayBadge({ dateISO, label }: { dateISO: string; label: string }) {
+  const [year, month, day] = dateISO.split('-').map(Number);
+  const d = new Date(year, month - 1, day);
+  const dow = d.getDay();
+  const abbr = DAY_ABBR[dow];
+  const colors = DAY_COLORS[dow];
+
+  return (
+    <>
+      <span className="sm:hidden inline-flex items-center gap-1.5">
+        <span className={`inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-bold ${colors}`}>
+          {abbr}
+        </span>
+        <span>{label.replace(/^\w+\s/, '')}</span>
+      </span>
+      <span className="hidden sm:inline">{label}</span>
+    </>
+  );
 }
 
 /** Group events by dateISO, preserving order */
@@ -408,7 +444,25 @@ export const TableView = memo(function TableView({
                   'WHEN'
                 ) : (
                   <span className="text-[var(--theme-table-header-text)] font-semibold">
-                    {currentDateLabel.toUpperCase()}
+                    <span className="hidden sm:inline">{currentDateLabel.toUpperCase()}</span>
+                    <span className="sm:hidden inline-flex items-center gap-1.5">
+                      {(() => {
+                        // Find the dateISO for the current label to get day-of-week
+                        const g = groups.find(gr => formatDateHeader(gr.dateISO) === currentDateLabel);
+                        if (!g) return <span>{currentDateLabel.toUpperCase()}</span>;
+                        const [y, m, d] = g.dateISO.split('-').map(Number);
+                        const date = new Date(y, m - 1, d);
+                        const dow = date.getDay();
+                        return (
+                          <>
+                            <span className={`inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-bold ${DAY_COLORS[dow]}`}>
+                              {DAY_ABBR[dow]}
+                            </span>
+                            <span>{currentDateLabel.replace(/^\w+\s/, '').toUpperCase()}</span>
+                          </>
+                        );
+                      })()}
+                    </span>
                   </span>
                 )}
               </th>
@@ -627,7 +681,7 @@ function DateGroup({
           colSpan={COLUMN_COUNT - 1}
           className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider border-b border-[var(--theme-date-sep-border)] text-[var(--theme-date-sep-text)]"
         >
-          {group.label}
+          <DayBadge dateISO={group.dateISO} label={group.label} />
         </td>
       </tr>
 
