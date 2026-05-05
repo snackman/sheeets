@@ -92,6 +92,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
     toggleHidden,
   } = useItinerary();
 
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const { pois, addPOI, removePOI, updatePOI, ownerNames } = usePOIs();
 
   const { friends, removeFriend, refreshFriends } = useFriends();
@@ -502,7 +503,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
       {/* Filter bar -- collapses on scroll down in table/list views */}
       <div className={
         viewMode === 'table' || viewMode === 'list' || viewMode === 'gallery'
-          ? `shrink-0 transition-all duration-200 ${contentScrolled ? 'lg:overflow-visible lg:max-h-none overflow-hidden max-h-0' : ''}`
+          ? `shrink-0 transition-all duration-200 ${contentScrolled && !filtersExpanded ? 'lg:overflow-visible lg:max-h-none overflow-hidden max-h-0' : ''}`
           : 'shrink-0'
       }>
         <FilterBar
@@ -530,6 +531,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           itineraryCount={filteredItineraryCount}
           onItineraryToggle={handleItineraryFilterToggle}
           isItineraryActive={filters.itineraryOnly}
+          onExpandedChange={setFiltersExpanded}
         />
       </div>
 

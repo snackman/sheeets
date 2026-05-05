@@ -40,6 +40,7 @@ interface FilterBarProps {
   itineraryCount: number;
   onItineraryToggle: () => void;
   isItineraryActive: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 export const FilterBar = memo(function FilterBar({
@@ -67,8 +68,10 @@ export const FilterBar = memo(function FilterBar({
   itineraryCount,
   onItineraryToggle,
   isItineraryActive,
+  onExpandedChange,
 }: FilterBarProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpandedRaw] = useState(false);
+  const setExpanded = (v: boolean) => { setExpandedRaw(v); onExpandedChange?.(v); };
   const [confOpen, setConfOpen] = useState(false);
   const confBtnRef = useRef<HTMLButtonElement | null>(null);
 
