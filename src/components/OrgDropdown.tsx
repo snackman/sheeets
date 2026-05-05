@@ -8,9 +8,10 @@ interface OrgDropdownProps {
   orgNames: string[];
   selectedOrgs: string[];
   onToggleOrg: (name: string) => void;
+  orgEventCount?: number;
 }
 
-export function OrgDropdown({ orgNames, selectedOrgs, onToggleOrg }: OrgDropdownProps) {
+export function OrgDropdown({ orgNames, selectedOrgs, onToggleOrg, orgEventCount }: OrgDropdownProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -39,7 +40,7 @@ export function OrgDropdown({ orgNames, selectedOrgs, onToggleOrg }: OrgDropdown
 
   return (
     <div ref={containerRef}>
-      <div className="text-xs uppercase tracking-wider text-[var(--theme-filter-text)] mb-1">Organizations</div>
+      <div className="text-xs uppercase tracking-wider text-[var(--theme-filter-text)] mb-1">Organizations{orgEventCount != null && orgEventCount > 0 && <span className="normal-case tracking-normal opacity-60"> ({orgEventCount})</span>}</div>
 
       {/* Selected chips */}
       {selectedOrgs.length > 0 && (

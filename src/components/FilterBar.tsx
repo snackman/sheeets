@@ -45,6 +45,8 @@ interface FilterBarProps {
   onItineraryToggle: () => void;
   isItineraryActive: boolean;
   onExpandedChange?: (expanded: boolean) => void;
+  friendEventCount: number;
+  orgEventCount: number;
 }
 
 export const FilterBar = memo(function FilterBar({
@@ -76,6 +78,8 @@ export const FilterBar = memo(function FilterBar({
   onItineraryToggle,
   isItineraryActive,
   onExpandedChange,
+  friendEventCount,
+  orgEventCount,
 }: FilterBarProps) {
   const [expanded, setExpandedRaw] = useState(false);
   const setExpanded = (v: boolean) => { setExpandedRaw(v); onExpandedChange?.(v); };
@@ -430,7 +434,7 @@ export const FilterBar = memo(function FilterBar({
             {/* Friends filter */}
             <div>
               <div className="text-xs uppercase tracking-wider text-[var(--theme-filter-text)] mb-1">
-                Friends
+                Friends{friendEventCount > 0 && <span className="normal-case tracking-normal opacity-60"> ({friendEventCount})</span>}
               </div>
               {friendsForFilter.length > 0 ? (
                 <div className="overflow-x-auto flex gap-2 pb-1">
@@ -510,6 +514,7 @@ export const FilterBar = memo(function FilterBar({
                 orgNames={orgNames}
                 selectedOrgs={selectedOrgs}
                 onToggleOrg={onToggleOrg}
+                orgEventCount={orgEventCount}
               />
             )}
 
