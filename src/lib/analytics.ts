@@ -217,6 +217,13 @@ export const setAuthProperty = (isAuthenticated: boolean) =>
 export const setItineraryProperty = (hasItinerary: boolean) =>
   setUserProperties({ has_itinerary: String(hasItinerary) });
 
+// Tag match mode
+export const trackTagMatchMode = (mode: 'any' | 'all') =>
+  track('tag_match_mode', { action: mode });
+
+// Table export
+export const trackTableExport = () => track('table_export', { action: 'csv' });
+
 // Outbound clicks
 export const trackOutboundClick = (eventName: string, url: string) =>
   track('outbound_click', { event_name: eventName, url });

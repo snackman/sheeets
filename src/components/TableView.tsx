@@ -4,7 +4,7 @@ import { memo, useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, Download, ExternalLink, Plus, Check, X, Users } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
-import { trackEventClick } from '@/lib/analytics';
+import { trackEventClick, trackTableExport, trackOutboundClick } from '@/lib/analytics';
 import { trackEvent } from '@/lib/event-tracking';
 import { shortenAddress } from '@/lib/utils';
 import { AddressLink } from './AddressLink';
@@ -350,6 +350,7 @@ export const TableView = memo(function TableView({
 
   // Generate and download CSV from currently displayed events
   const downloadCSV = useCallback(() => {
+    trackTableExport();
     const escapeCSV = (value: string) => {
       if (value.includes(',') || value.includes('"') || value.includes('\n')) {
         return `"${value.replace(/"/g, '""')}"`;
@@ -434,6 +435,7 @@ export const TableView = memo(function TableView({
                       className="p-1 rounded text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] transition-colors"
                       title="Open spreadsheet"
                       aria-label="Open spreadsheet"
+                      onClick={() => trackOutboundClick('spreadsheet', 'https://plan.wtf/data')}
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                     </a>

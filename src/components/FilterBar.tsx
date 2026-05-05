@@ -11,7 +11,7 @@ import { TAG_ICONS } from './TagBadge';
 import { SearchBar } from './SearchBar';
 import { DateTimePicker } from './DateTimePicker';
 import UserAvatar from './UserAvatar';
-import { trackConferenceSelect, trackDateTimeRange, trackTagToggle, trackNowMode, trackClearFilters, trackFriendFilter, trackFriendCodeGenerate, trackFriendCodeCopy } from '@/lib/analytics';
+import { trackConferenceSelect, trackDateTimeRange, trackTagToggle, trackNowMode, trackClearFilters, trackFriendFilter, trackFriendCodeGenerate, trackFriendCodeCopy, trackTagMatchMode } from '@/lib/analytics';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 
@@ -386,7 +386,7 @@ export const FilterBar = memo(function FilterBar({
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-[var(--theme-filter-text)]">Match</span>
                       <button
-                        onClick={onToggleTagMatchAll}
+                        onClick={() => { trackTagMatchMode('any'); onToggleTagMatchAll(); }}
                         className={clsx(
                           'px-2 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer',
                           !filters.tagMatchAll
@@ -397,7 +397,7 @@ export const FilterBar = memo(function FilterBar({
                         Any
                       </button>
                       <button
-                        onClick={onToggleTagMatchAll}
+                        onClick={() => { trackTagMatchMode('all'); onToggleTagMatchAll(); }}
                         className={clsx(
                           'px-2 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer',
                           filters.tagMatchAll
