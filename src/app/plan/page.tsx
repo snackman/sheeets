@@ -16,6 +16,7 @@ import type { ETHDenverEvent } from '@/lib/types';
 import { Loading } from '@/components/Loading';
 import { useEventCheckIn } from '@/hooks/useEventCheckIn';
 import { useDragReorder } from '@/hooks/useDragReorder';
+import { parseTimeToMinutes } from '@/lib/time-parse';
 import { useProfile } from '@/hooks/useProfile';
 import { Header } from '@/components/Header';
 import { FilterBar } from '@/components/FilterBar';
@@ -241,6 +242,18 @@ function ItineraryContent() {
     [itinerary, flatEventIds, reorderItinerary]
   );
 
+  const eventMap = useMemo(() => new Map(events.map(e => [e.id, e])), [events]);
+
+  const getEventTime = useCallback((id: string) => {
+    const ev = eventMap.get(id);
+    if (!ev) return null;
+    return {
+      dateISO: ev.dateISO,
+      startMinutes: parseTimeToMinutes(ev.startTime),
+      endMinutes: parseTimeToMinutes(ev.endTime),
+    };
+  }, [eventMap]);
+
   const {
     setOrderedIds,
     registerItemRef,
@@ -248,7 +261,7 @@ function ItineraryContent() {
     getItemProps,
     getDropIndicator,
     dragId,
-  } = useDragReorder({ onReorder: handleReorder });
+  } = useDragReorder({ onReorder: handleReorder, getEventTime });
 
   // Keep ordered IDs in sync
   useEffect(() => {

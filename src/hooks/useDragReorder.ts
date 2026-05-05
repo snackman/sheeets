@@ -2,9 +2,17 @@
 
 import { useState, useRef, useCallback } from 'react';
 
+interface EventTime {
+  dateISO: string;
+  startMinutes: number | null;
+  endMinutes: number | null;
+}
+
 interface UseDragReorderOptions {
   /** Called with the new ordered array when a drop completes */
   onReorder: (orderedIds: string[]) => void;
+  /** Optional: return time info for an event ID to enforce chronological constraints */
+  getEventTime?: (id: string) => EventTime | null;
 }
 
 interface DragState {
@@ -31,7 +39,45 @@ interface TouchDragState {
   position: 'above' | 'below';
 }
 
-export function useDragReorder({ onReorder }: UseDragReorderOptions) {
+/** Check if event A ends before event B starts (different day or earlier time) */
+function endsBefore(a: EventTime, b: EventTime): boolean {
+  if (a.dateISO < b.dateISO) return true;
+  if (a.dateISO > b.dateISO) return false;
+  // Same day: check if A's end <= B's start
+  if (a.endMinutes == null || b.startMinutes == null) return false;
+  return a.endMinutes <= b.startMinutes;
+}
+
+/** Clamp insertion index so the source event can't be placed after events it ends before */
+function clampInsertIndex(ids: string[], sourceId: string, insertIndex: number, getEventTime: (id: string) => EventTime | null): number {
+  const sourceTime = getEventTime(sourceId);
+  if (!sourceTime) return insertIndex;
+
+  // Don't allow placing below an event that starts after this event ends
+  // Find the latest valid position
+  let clamped = insertIndex;
+  for (let i = 0; i < ids.length; i++) {
+    if (ids[i] === sourceId) continue;
+    const t = getEventTime(ids[i]);
+    if (t && endsBefore(sourceTime, t) && i < clamped) {
+      // Source ends before this event starts, can't go below it
+      clamped = Math.min(clamped, i);
+    }
+  }
+
+  // Also don't allow placing above an event that ends before this one starts
+  for (let i = ids.length - 1; i >= 0; i--) {
+    if (ids[i] === sourceId) continue;
+    const t = getEventTime(ids[i]);
+    if (t && endsBefore(t, sourceTime) && i >= clamped) {
+      clamped = Math.max(clamped, i + 1);
+    }
+  }
+
+  return clamped;
+}
+
+export function useDragReorder({ onReorder, getEventTime }: UseDragReorderOptions) {
   const [dragState, setDragState] = useState<DragState>({
     dragId: null,
     overId: null,
@@ -138,10 +184,14 @@ export function useDragReorder({ onReorder }: UseDragReorderOptions) {
       targetIndex += 1;
     }
 
+    if (getEventTime) {
+      targetIndex = clampInsertIndex(ids, sourceId, targetIndex, getEventTime);
+    }
+
     ids.splice(targetIndex, 0, sourceId);
     onReorderRef.current(ids);
     setDragState({ dragId: null, overId: null, position: 'below' });
-  }, []);
+  }, [getEventTime]);
 
   const handleDragEnd = useCallback(() => {
     setDragState({ dragId: null, overId: null, position: 'below' });
@@ -279,6 +329,9 @@ export function useDragReorder({ onReorder }: UseDragReorderOptions) {
         if (targetIndex !== -1) {
           if (position === 'below') {
             targetIndex += 1;
+          }
+          if (getEventTime) {
+            targetIndex = clampInsertIndex(ids, sourceId, targetIndex, getEventTime);
           }
           ids.splice(targetIndex, 0, sourceId);
           onReorderRef.current(ids);
