@@ -16,6 +16,7 @@ interface AggregatedSponsor {
 interface Props {
   sponsors: AggregatedSponsor[];
   conferences: string[];
+  totalEvents: number;
 }
 
 function typeIcon(types: string[]) {
@@ -33,7 +34,7 @@ function typeLabel(types: string[]): string {
   return types[0] || 'Sponsor';
 }
 
-export function SponsorsContent({ sponsors, conferences }: Props) {
+export function SponsorsContent({ sponsors, conferences, totalEvents }: Props) {
   const [search, setSearch] = useState('');
   const [conferenceFilter, setConferenceFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -61,15 +62,15 @@ export function SponsorsContent({ sponsors, conferences }: Props) {
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="rounded-lg border border-[var(--theme-border-primary)] p-3 text-center">
           <div className="text-2xl font-bold text-[var(--theme-text-primary)]">
-            {stats.uniqueSponsors}
+            {totalEvents}
           </div>
-          <div className="text-xs text-[var(--theme-text-secondary)]">Organizations</div>
+          <div className="text-xs text-[var(--theme-text-secondary)]">Events</div>
         </div>
         <div className="rounded-lg border border-[var(--theme-border-primary)] p-3 text-center">
           <div className="text-2xl font-bold text-[var(--theme-text-primary)]">
-            {stats.totalAssociations}
+            {stats.uniqueSponsors}
           </div>
-          <div className="text-xs text-[var(--theme-text-secondary)]">Event Sponsorships</div>
+          <div className="text-xs text-[var(--theme-text-secondary)]">Organizations</div>
         </div>
         <div className="rounded-lg border border-[var(--theme-border-primary)] p-3 text-center">
           <div className="text-2xl font-bold text-[var(--theme-text-primary)]">

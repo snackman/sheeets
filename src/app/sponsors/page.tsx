@@ -25,6 +25,7 @@ interface AggregatedSponsor {
 async function getSponsorsData(): Promise<{
   sponsors: AggregatedSponsor[];
   conferences: string[];
+  totalEvents: number;
 }> {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,14 +38,16 @@ async function getSponsorsData(): Promise<{
     .neq('sponsor_type', 'individual')
     .order('sponsor_name');
 
-  if (error || !data) return { sponsors: [], conferences: [] };
+  if (error || !data) return { sponsors: [], conferences: [], totalEvents: 0 };
 
   // Aggregate by normalized sponsor name
   const map = new Map<string, AggregatedSponsor>();
   const conferenceSet = new Set<string>();
+  const eventUrlSet = new Set<string>();
 
   for (const row of data) {
     conferenceSet.add(row.conference);
+    eventUrlSet.add(row.event_url);
     const key = row.sponsor_name.toLowerCase().trim();
 
     if (!map.has(key)) {
@@ -74,11 +77,11 @@ async function getSponsorsData(): Promise<{
 
   const sponsors = [...map.values()].sort((a, b) => b.eventCount - a.eventCount);
 
-  return { sponsors, conferences: [...conferenceSet].sort() };
+  return { sponsors, conferences: [...conferenceSet].sort(), totalEvents: eventUrlSet.size };
 }
 
 export default async function SponsorsPage() {
-  const { sponsors, conferences } = await getSponsorsData();
+  const { sponsors, conferences, totalEvents } = await getSponsorsData();
 
   return (
     <div className="min-h-screen bg-[var(--theme-bg-primary)]">
@@ -91,7 +94,7 @@ export default async function SponsorsPage() {
         </span>
       </header>
 
-      <SponsorsContent sponsors={sponsors} conferences={conferences} />
+      <SponsorsContent sponsors={sponsors} conferences={conferences} totalEvents={totalEvents} />
     </div>
   );
 }
