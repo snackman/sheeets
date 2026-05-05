@@ -123,6 +123,7 @@ export interface EventComment {
   created_at: string;
   display_name?: string;
   x_handle?: string;
+  email?: string;
   avatar_url?: string;
   job_title?: string;
   company?: string;
