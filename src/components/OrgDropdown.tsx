@@ -106,17 +106,17 @@ export function OrgDropdown({ orgNames, selectedOrgs, onToggleOrg }: OrgDropdown
                     className={clsx(
                       'w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors cursor-pointer',
                       isSelected
-                        ? 'bg-[var(--theme-filter-active-bg)] text-[var(--theme-filter-active)]'
+                        ? 'bg-[var(--theme-accent-muted)] text-[var(--theme-accent)]'
                         : 'text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]'
                     )}
                   >
                     <div className={clsx(
                       'w-4 h-4 rounded border flex items-center justify-center shrink-0',
                       isSelected
-                        ? 'border-[var(--theme-filter-active)] bg-[var(--theme-filter-active)]'
+                        ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)]'
                         : 'border-[var(--theme-text-secondary)]'
                     )}>
-                      {isSelected && <span className="text-[10px] text-white font-bold">&#10003;</span>}
+                      {isSelected && <span className="text-[10px] text-[var(--theme-accent-text)] font-bold">&#10003;</span>}
                     </div>
                     <span className="truncate">{name}</span>
                   </button>
