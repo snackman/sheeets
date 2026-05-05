@@ -156,7 +156,7 @@ export function TagBadge({ tag, size = 'sm', iconOnly = false, iconClassName }: 
       title={tag}
     >
       {Icon && <Icon className={`${iconSize} flex-shrink-0`} style={{ color }} />}
-      <span className="text-[var(--theme-text-secondary)]">{tag}</span>
+      <span className="hidden sm:inline text-[var(--theme-text-secondary)]">{tag}</span>
     </span>
   );
 }
