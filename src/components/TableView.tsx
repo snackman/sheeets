@@ -80,7 +80,7 @@ function DayBadge({ dateISO, label }: { dateISO: string; label: string }) {
 
   return (
     <>
-      <span className="sm:hidden inline-flex items-center gap-0.5 text-[10px] text-white">
+      <span className="sm:hidden inline-flex items-center gap-0.5 text-xs text-white">
         <span className="font-bold">{abbr}</span>
         <span>{label.replace(/^\w+\s/, '')}</span>
       </span>
