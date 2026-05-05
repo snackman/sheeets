@@ -11,9 +11,9 @@ interface ItineraryFABProps {
 }
 
 const fabClass =
-  'fixed bottom-6 right-6 z-40 flex items-center gap-2 h-10 px-3.5 rounded-lg ' +
-  'bg-[var(--theme-filter-control-bg)] border border-[var(--theme-filter-control-border)] ' +
-  'text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] ' +
+  'fixed bottom-6 right-6 z-40 flex items-center gap-2 h-10 px-3.5 rounded-full ' +
+  'bg-[var(--theme-filter-control-bg)] border border-orange-500 ' +
+  'text-orange-500 hover:bg-orange-500/10 ' +
   'shadow-lg shadow-black/20 backdrop-blur-sm transition-colors';
 
 export function ItineraryFAB({ count, conference, onSignInNeeded, isSignedIn }: ItineraryFABProps) {
