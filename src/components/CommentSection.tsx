@@ -10,6 +10,7 @@ import { getDisplayName } from '@/lib/user-display';
 import UserAvatar from './UserAvatar';
 import ProfileCardModal from './ProfileCardModal';
 import { trackCommentExpand, trackCommentAdd, trackCommentDelete, trackCommentVisibilityToggle } from '@/lib/analytics';
+import { useXVerification } from '@/hooks/useXVerification';
 
 interface CommentSectionProps {
   eventId: string;
@@ -19,6 +20,7 @@ interface CommentSectionProps {
 
 export function CommentSection({ eventId, commentCount = 0, eventName }: CommentSectionProps) {
   const { user } = useAuth();
+  const { isXVerified, linkX } = useXVerification();
   const [expanded, setExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const { comments, loading, addComment, deleteComment } = useEventComments(
@@ -164,45 +166,60 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
   );
 
   // Shared input content
-  const inputContent = user && (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 flex items-center gap-1 bg-[var(--theme-bg-tertiary)]/50 border border-[var(--theme-border-primary)] rounded-lg px-2 py-1.5">
-        <input
-          type="text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              handleSubmit();
-            }
-          }}
-          placeholder="Add a comment..."
-          maxLength={500}
-          className="flex-1 bg-transparent text-xs text-[var(--theme-text-primary)] placeholder-slate-500 outline-none min-w-0"
-        />
+  const inputContent = user ? (
+    isXVerified ? (
+      <div className="flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-1 bg-[var(--theme-bg-tertiary)]/50 border border-[var(--theme-border-primary)] rounded-lg px-2 py-1.5">
+          <input
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+            placeholder="Add a comment..."
+            maxLength={500}
+            className="flex-1 bg-transparent text-xs text-[var(--theme-text-primary)] placeholder-slate-500 outline-none min-w-0"
+          />
+          <button
+            onClick={() => { const next = visibility === 'public' ? 'friends' : 'public'; trackCommentVisibilityToggle(next); setVisibility(next); }}
+            className={`text-[9px] px-1.5 py-0.5 rounded border shrink-0 cursor-pointer transition-colors ${
+              visibility === 'friends'
+                ? ''
+                : 'border-[var(--theme-border-primary)] text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)]'
+            }`}
+            style={visibility === 'friends' ? { borderColor: 'color-mix(in srgb, var(--friend-blue) 40%, transparent)', color: 'var(--friend-blue)', backgroundColor: 'color-mix(in srgb, var(--friend-blue) 10%, transparent)' } : undefined}
+            title={visibility === 'public' ? 'Visible to everyone' : 'Visible to friends only'}
+          >
+            {visibility === 'public' ? 'public' : 'friends'}
+          </button>
+        </div>
         <button
-          onClick={() => { const next = visibility === 'public' ? 'friends' : 'public'; trackCommentVisibilityToggle(next); setVisibility(next); }}
-          className={`text-[9px] px-1.5 py-0.5 rounded border shrink-0 cursor-pointer transition-colors ${
-            visibility === 'friends'
-              ? ''
-              : 'border-[var(--theme-border-primary)] text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)]'
-          }`}
-          style={visibility === 'friends' ? { borderColor: 'color-mix(in srgb, var(--friend-blue) 40%, transparent)', color: 'var(--friend-blue)', backgroundColor: 'color-mix(in srgb, var(--friend-blue) 10%, transparent)' } : undefined}
-          title={visibility === 'public' ? 'Visible to everyone' : 'Visible to friends only'}
+          onClick={handleSubmit}
+          disabled={!text.trim()}
+          className="p-1.5 rounded-lg bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] disabled:bg-[var(--theme-bg-tertiary)] disabled:text-[var(--theme-text-muted)] text-[var(--theme-accent-text)] transition-colors cursor-pointer disabled:cursor-not-allowed"
         >
-          {visibility === 'public' ? 'public' : 'friends'}
+          <Send className="w-3.5 h-3.5" />
         </button>
       </div>
+    ) : (
       <button
-        onClick={handleSubmit}
-        disabled={!text.trim()}
-        className="p-1.5 rounded-lg bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] disabled:bg-[var(--theme-bg-tertiary)] disabled:text-[var(--theme-text-muted)] text-[var(--theme-accent-text)] transition-colors cursor-pointer disabled:cursor-not-allowed"
+        onClick={(e) => {
+          e.stopPropagation();
+          linkX();
+        }}
+        className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-lg border border-[var(--theme-border-primary)] bg-[var(--theme-bg-tertiary)]/50 text-sm text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:border-[var(--theme-accent)] transition-colors cursor-pointer"
       >
-        <Send className="w-3.5 h-3.5" />
+        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden="true">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+        </svg>
+        Connect X to comment
       </button>
-    </div>
-  );
+    )
+  ) : null;
 
   // Mobile: render bottom-sheet modal via portal
   if (isMobile) {

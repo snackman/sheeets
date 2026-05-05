@@ -91,7 +91,7 @@ export function useProfile() {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('user_id, email, display_name, x_handle, rsvp_name, avatar_url, telegram_handle, company, linkedin_url, job_title')
+          .select('user_id, email, display_name, x_handle, rsvp_name, avatar_url, telegram_handle, company, linkedin_url, job_title, x_verified, x_oauth_id, x_avatar_url')
           .eq('user_id', user!.id)
           .maybeSingle();
 
@@ -116,6 +116,9 @@ export function useProfile() {
             company: null,
             linkedin_url: null,
             job_title: null,
+            x_verified: false,
+            x_oauth_id: null,
+            x_avatar_url: null,
           };
 
           const { error: insertError } = await supabase
@@ -126,7 +129,7 @@ export function useProfile() {
             // Could be a race condition — try fetching again
             const { data: retryData } = await supabase
               .from('profiles')
-              .select('user_id, email, display_name, x_handle, rsvp_name, avatar_url, telegram_handle, company, linkedin_url, job_title')
+              .select('user_id, email, display_name, x_handle, rsvp_name, avatar_url, telegram_handle, company, linkedin_url, job_title, x_verified, x_oauth_id, x_avatar_url')
               .eq('user_id', user!.id)
               .maybeSingle();
 
