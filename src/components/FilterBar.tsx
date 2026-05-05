@@ -464,9 +464,9 @@ export const FilterBar = memo(function FilterBar({
                 </div>
               ) : (
                 <div
-                  className={clsx('bg-[var(--theme-filter-control-bg)] rounded-lg p-4 flex items-center gap-3 border border-[var(--theme-filter-control-border)]', !user && 'cursor-pointer hover:bg-[var(--theme-filter-control-border)] transition-colors')}
+                  className={clsx('bg-[var(--theme-filter-control-bg)] rounded-lg px-3 py-2 flex items-center gap-2 border border-[var(--theme-filter-control-border)]', !user && 'cursor-pointer hover:bg-[var(--theme-filter-control-border)] transition-colors')}
                 >
-                  <Users className="w-5 h-5 text-[var(--theme-filter-text)] shrink-0" />
+                  <Users className="w-4 h-4 text-[var(--theme-filter-text)] shrink-0" />
                   <div className="flex-1 min-w-0" onClick={!user ? onSignIn : undefined}>
                     <p className="text-[var(--theme-filter-text)] text-sm">{user ? 'Add friends to see their plans' : 'Sign in to add friends'}</p>
                   </div>
@@ -577,7 +577,7 @@ export const FilterBar = memo(function FilterBar({
                     {hasActiveTopics && !topicsExpanded && (
                       <span className="w-1.5 h-1.5 rounded-full bg-[var(--theme-filter-active)]" />
                     )}
-                    <ChevronDown className={clsx('w-3 h-3 transition-transform', (topicsExpanded || hasActiveTopics) && 'rotate-180')} />
+                    <ChevronDown className={clsx('w-3 h-3 transition-transform', !(topicsExpanded || hasActiveTopics) && '-rotate-90')} />
                   </button>
                   {(topicsExpanded || hasActiveTopics) && (
                     <div className="flex flex-wrap gap-2">
