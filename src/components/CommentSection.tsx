@@ -86,12 +86,26 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
           {comments.map((comment) => {
             const name = getDisplayName(comment);
 
+            const profileUrl = comment.x_handle ? `https://x.com/${comment.x_handle}` : null;
+
             return (
               <div key={comment.id} className="flex gap-2 group/comment">
-                <UserAvatar size="xs" avatarUrl={comment.avatar_url} xHandle={comment.x_handle} displayName={comment.display_name} />
+                {profileUrl ? (
+                  <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <UserAvatar size="xs" avatarUrl={comment.avatar_url} xHandle={comment.x_handle} displayName={comment.display_name} />
+                  </a>
+                ) : (
+                  <UserAvatar size="xs" avatarUrl={comment.avatar_url} xHandle={comment.x_handle} displayName={comment.display_name} />
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-medium text-[var(--theme-text-secondary)]">{name}</span>
+                    {profileUrl ? (
+                      <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] font-medium text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] transition-colors" onClick={(e) => e.stopPropagation()}>
+                        {name}
+                      </a>
+                    ) : (
+                      <span className="text-[11px] font-medium text-[var(--theme-text-secondary)]">{name}</span>
+                    )}
                     <span className="text-[10px] text-[var(--theme-text-faint)]">{timeAgo(comment.created_at)}</span>
                     {comment.visibility === 'friends' && (
                       <span className="text-[9px] rounded px-1" style={{ color: 'var(--friend-blue)', opacity: 0.6, borderWidth: '1px', borderColor: 'color-mix(in srgb, var(--friend-blue) 30%, transparent)' }}>friends</span>
