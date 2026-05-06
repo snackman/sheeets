@@ -106,7 +106,7 @@ export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox, isInItinerary, 
           <img
             src={imageUrl}
             alt=""
-            className="w-full h-auto rounded-lg"
+            className="w-full h-auto max-h-[106px] sm:max-h-[140px] object-cover rounded-lg"
             loading="lazy"
             onError={() => setError(true)}
           />
