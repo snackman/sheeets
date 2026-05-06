@@ -436,7 +436,7 @@ export const ListView = memo(function ListView({
                   </div>
                 </div>
               ) : item.kind === 'ad' ? (
-                <div className="pt-3">
+                <div className="pt-2">
                   <NativeAdCard
                     ad={item.ad}
                     conference={conference}
@@ -445,7 +445,7 @@ export const ListView = memo(function ListView({
                   />
                 </div>
               ) : (
-                <div className="pt-3">
+                <div className="pt-2">
                   <EventCard
                     event={item.event}
                     isInItinerary={itinerary?.has(item.event.id)}

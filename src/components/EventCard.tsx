@@ -225,7 +225,7 @@ export const EventCard = memo(function EventCard({
     : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
 
   return (
-    <div ref={cardRef} className={`rounded-lg ${compact ? 'p-3' : 'p-4'} transition-colors group flex gap-${compact ? '3' : '4'} overflow-hidden ${
+    <div ref={cardRef} className={`rounded-lg p-3 transition-colors group flex gap-2.5 overflow-hidden ${
       event.isFeatured
         ? 'bg-[var(--theme-bg-card)] border-2 hover:bg-[var(--theme-bg-card-hover)]'
         : `bg-[var(--theme-bg-card)] border border-[var(--theme-border-primary)] hover:bg-[var(--theme-bg-card-hover)] hover:border-[var(--theme-border-primary)] active:bg-[var(--theme-bg-card-hover)]${hasFriends ? ' border-l-[3px]' : ''}`
@@ -387,7 +387,7 @@ export const EventCard = memo(function EventCard({
         )}
 
         {/* Tags */}
-        <div className="flex flex-wrap items-center gap-1.5 mt-3">
+        <div className="flex flex-wrap items-center gap-1.5 mt-2">
           {event.tags.map((tag) => (
             <TagBadge key={tag} tag={tag} iconOnly={compact} />
           ))}
@@ -399,7 +399,7 @@ export const EventCard = memo(function EventCard({
         )}
 
         {/* Bottom strip: action buttons + reactions */}
-        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[var(--theme-border-primary)]/50">
+        <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-[var(--theme-border-primary)]/50">
           {buttonsAboveFlyer && onItineraryToggle && (
             <StarButton
               eventId={event.id}
