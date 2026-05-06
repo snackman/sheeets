@@ -5,7 +5,6 @@ import {
   Trophy,
   Handshake,
   Wrench,
-  CircleDollarSign,
   Bot,
   ChartCandlestick,
   Image,
@@ -76,6 +75,17 @@ function SolIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+function MoneyBagIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M9.5 2h5l-2.5 4-2.5-4z" />
+      <path d="M7 6c-3 3-4.5 6-4.5 10 0 3.5 3.5 6 9.5 6s9.5-2.5 9.5-6c0-4-1.5-7-4.5-10H7z" />
+      <path d="M12 11v6" />
+      <path d="M10 13.5c0-1 .8-1.5 2-1.5s2 .5 2 1.5-.8 1.5-2 1.5-2 .5-2 1.5.8 1.5 2 1.5 2-.5 2-1.5" />
+    </svg>
+  );
+}
+
 type IconComponent = LucideIcon | ((props: React.SVGProps<SVGSVGElement>) => React.ReactNode);
 
 export const TAG_ICONS: Record<string, IconComponent> = {
@@ -86,7 +96,7 @@ export const TAG_ICONS: Record<string, IconComponent> = {
   'Hackathon': Trophy,
   'Networking': Handshake,
   'Devs': Wrench,
-  'VCs': CircleDollarSign,
+  'VCs': MoneyBagIcon,
   'AI': Bot,
   'DeFi': ChartCandlestick,
   'DAOs': Vote,
