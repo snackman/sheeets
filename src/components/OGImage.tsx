@@ -255,11 +255,13 @@ export function FlyerLightbox({ imageUrl, rsvpUrl, onClose, onPrev, onNext, even
         />
         <div className="flex items-center gap-3">
           {eventId && onItineraryToggle && (
-            <StarButton
-              eventId={eventId}
-              isStarred={isInItinerary ?? false}
-              onToggle={onItineraryToggle}
-            />
+            <div style={{ '--theme-text-secondary': '#ffffff', '--theme-border-primary': 'rgba(255,255,255,0.6)', '--theme-accent': '#ffffff', '--theme-accent-muted': 'rgba(255,255,255,0.2)' } as React.CSSProperties}>
+              <StarButton
+                eventId={eventId}
+                isStarred={isInItinerary ?? false}
+                onToggle={onItineraryToggle}
+              />
+            </div>
           )}
           {rsvpUrl && (
             <a
