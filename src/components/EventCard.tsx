@@ -235,7 +235,9 @@ export const EventCard = memo(function EventCard({
       {/* Left column: action buttons + cover image */}
       {buttonsAboveFlyer ? (
         <div className="flex flex-col items-center shrink-0 gap-1">
-          {/* Row of all action buttons above flyer */}
+          {/* Flyer image */}
+          {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} onOpenLightbox={onOpenLightbox} className="w-[106px] sm:w-[140px]" />}
+          {/* Row of all action buttons below flyer */}
           <div className="flex items-center gap-2">
             {onItineraryToggle && (
               <StarButton
@@ -263,8 +265,6 @@ export const EventCard = memo(function EventCard({
               </button>
             )}
           </div>
-          {/* Flyer image below buttons */}
-          {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} onOpenLightbox={onOpenLightbox} className="w-[106px] sm:w-[140px]" />}
         </div>
       ) : (
         <div className="flex items-center shrink-0 gap-1">
