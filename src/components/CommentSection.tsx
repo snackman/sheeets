@@ -11,6 +11,7 @@ import UserAvatar from './UserAvatar';
 import ProfileCardModal from './ProfileCardModal';
 import { trackCommentExpand, trackCommentAdd, trackCommentDelete, trackCommentVisibilityToggle } from '@/lib/analytics';
 import { useXVerification } from '@/hooks/useXVerification';
+import { AuthModal } from './AuthModal';
 
 interface CommentSectionProps {
   eventId: string;
@@ -28,6 +29,7 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
   );
   const [text, setText] = useState('');
   const [visibility, setVisibility] = useState<'public' | 'friends'>('public');
+  const [showAuth, setShowAuth] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<{
     userId: string;
     displayName?: string | null;
@@ -219,7 +221,17 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
         Connect X to comment
       </button>
     )
-  ) : null;
+  ) : (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        setShowAuth(true);
+      }}
+      className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-lg border border-[var(--theme-border-primary)] bg-[var(--theme-bg-tertiary)]/50 text-sm text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:border-[var(--theme-accent)] transition-colors cursor-pointer"
+    >
+      Sign in to comment
+    </button>
+  );
 
   // Mobile: render bottom-sheet modal via portal
   if (isMobile) {
@@ -274,11 +286,9 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
               </div>
 
               {/* Sticky input at bottom */}
-              {user && (
-                <div className="border-t border-[var(--theme-border-primary)] px-4 py-3" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-                  {inputContent}
-                </div>
-              )}
+              <div className="border-t border-[var(--theme-border-primary)] px-4 py-3" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+                {inputContent}
+              </div>
             </div>
           </div>,
           document.body
@@ -297,6 +307,7 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
             telegramHandle={selectedProfile.telegramHandle}
           />
         )}
+        <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />
       </>
     );
   }
@@ -338,6 +349,7 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
           telegramHandle={selectedProfile.telegramHandle}
         />
       )}
+      <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />
     </div>
   );
 }
