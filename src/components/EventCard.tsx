@@ -363,9 +363,12 @@ export const EventCard = memo(function EventCard({
               )}
               <Calendar className="w-3.5 h-3.5 shrink-0 hidden sm:inline" />
               <span className="hidden sm:inline">{event.date} · {timeDisplay}</span>
-              <span className="sm:hidden">
-                {event.isAllDay ? 'All Day' : event.startTime}{!event.isAllDay && event.endTime ? `-${event.endTime}` : ''}
-                {event.address && <span className="text-[var(--theme-text-muted)]"> · {shortenAddress(event.address)}</span>}
+              <span className="sm:hidden flex flex-col leading-tight">
+                <span>
+                  {event.isAllDay ? 'All Day' : event.startTime}
+                  {event.address && <span className="text-[var(--theme-text-muted)]"> · {shortenAddress(event.address)}</span>}
+                </span>
+                {!event.isAllDay && event.endTime && <span className="text-[10px] text-[var(--theme-text-muted)]">{event.endTime}</span>}
               </span>
             </p>
             {(checkInCount ?? 0) > 0 && (
