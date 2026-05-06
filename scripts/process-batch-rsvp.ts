@@ -21,7 +21,6 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { submitLumaRegistration } from '../src/lib/luma-registration';
 
 // ---------------------------------------------------------------------------
 // CLI arg parsing
@@ -80,48 +79,165 @@ function delay(ms: number): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Turnstile token extraction via Playwright
+// Form-fill submission via Playwright
 // ---------------------------------------------------------------------------
 
-async function extractTurnstileToken(lumaSlug: string): Promise<string> {
-  // Dynamic import so Playwright is only required when actually running
+interface SubmissionResult {
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Submit a Luma registration by filling the embed form via Playwright.
+ *
+ * Luma uses invisible Cloudflare Turnstile which injects a token on form submit.
+ * Instead of trying to extract the token, we let Luma's own JS handle it by
+ * filling and submitting the form natively, then intercepting the API response.
+ */
+async function submitViaPlaywright(
+  lumaSlug: string,
+  profile: Record<string, string>,
+  customAnswers: Record<string, string>,
+): Promise<SubmissionResult> {
   const { chromium } = await import('@playwright/test');
 
-  const browser = await chromium.launch({ headless: true });
+  // Use system Chrome in headed mode — Turnstile blocks headless browsers.
+  // NOTE: Turnstile may still block Playwright-driven Chrome. If this doesn't
+  // work, consider using a CAPTCHA-solving service or a persistent browser
+  // session where the user solves Turnstile once.
+  const browser = await chromium.launch({
+    headless: false,
+    channel: 'chrome',
+    args: ['--disable-blink-features=AutomationControlled'],
+  });
   const page = await browser.newPage();
 
   try {
     const embedUrl = `https://lu.ma/embed/event/${lumaSlug}/simple`;
     await page.goto(embedUrl, { waitUntil: 'networkidle', timeout: 30000 });
 
-    // Wait for the Turnstile iframe to appear and be solved
-    // The token is stored in a hidden input or as a response from the Turnstile widget
-    await page.waitForTimeout(5000); // Allow time for Turnstile to solve
+    // Click "Register" / "Request to Join" / "RSVP" button to open the form
+    const registerBtn = page.locator(
+      'button:has-text("Register"), button:has-text("Request to Join"), button:has-text("RSVP")'
+    );
+    const btnCount = await registerBtn.count();
+    if (btnCount === 0) {
+      return { success: false, error: 'No register button found on embed page' };
+    }
+    console.log(`    Found ${btnCount} register button(s), clicking first...`);
+    await registerBtn.first().click();
+    await page.waitForTimeout(2000);
 
-    // Try to find the Turnstile response token
-    const token = await page.evaluate(() => {
-      // Turnstile typically stores its response in a specific element
-      const turnstileInput = document.querySelector<HTMLInputElement>(
-        'input[name="cf-turnstile-response"]'
-      );
-      if (turnstileInput?.value) return turnstileInput.value;
-
-      // Try the global turnstile object
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const w = window as any;
-      if (w.turnstile) {
-        const widgets = w.turnstile.getResponse?.();
-        if (widgets) return widgets;
-      }
-
-      return null;
-    });
-
-    if (!token) {
-      throw new Error('Could not extract Turnstile token');
+    // Fill standard fields
+    const nameInput = page.locator('input[placeholder="Your Name"], input[name="name"]').first();
+    if (await nameInput.count() > 0) {
+      const nameVal = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+      await nameInput.fill(nameVal);
+      console.log(`    Filled name: ${nameVal}`);
     }
 
-    return token;
+    const emailInput = page.locator('input[placeholder*="email"], input[type="email"], input[name="email"]').first();
+    if (await emailInput.count() > 0) {
+      await emailInput.fill(profile.email || '');
+      console.log(`    Filled email: ${profile.email}`);
+    }
+
+    // Fill custom fields by scanning the form DOM in order.
+    // Luma renders labels as div/span elements followed by the input/select.
+    // We walk through each label-like element, match it to a custom answer by
+    // question position, and fill the corresponding field.
+    //
+    // customAnswers is { questionId: value } ordered by form position.
+    const answerEntries = Object.entries(customAnswers);
+
+    // Luma renders labels with the class names we've seen.
+    // The form fields appear in order: each label div is followed by an input/select.
+    // Strategy: find all visible select + input fields (except name/email) and fill sequentially.
+
+    // 1. Fill all native <select> dropdowns
+    const selects = page.locator('select:visible');
+    const selectCount = await selects.count();
+    let selectIdx = 0;
+
+    for (let i = 0; i < selectCount; i++) {
+      const sel = selects.nth(i);
+      // Find the matching answer (look for values that exist as options)
+      for (let j = selectIdx; j < answerEntries.length; j++) {
+        const [, val] = answerEntries[j];
+        try {
+          await sel.selectOption(val);
+          console.log(`    Selected dropdown: ${val}`);
+          selectIdx = j + 1;
+          // Mark this answer as used
+          answerEntries[j] = [answerEntries[j][0], '__USED__'];
+          break;
+        } catch {
+          // This answer doesn't match this select, try next
+        }
+      }
+    }
+
+    // 2. Fill remaining text inputs with unused answers
+    const unusedAnswers = answerEntries.filter(([, v]) => v !== '__USED__');
+    let unusedIdx = 0;
+
+    const allInputs = page.locator('input:visible');
+    const inputCount = await allInputs.count();
+    for (let i = 0; i < inputCount && unusedIdx < unusedAnswers.length; i++) {
+      const input = allInputs.nth(i);
+      const val = await input.inputValue();
+      const placeholder = await input.getAttribute('placeholder') || '';
+      const type = await input.getAttribute('type') || '';
+      // Skip name, email, hidden, and already-filled inputs
+      if (placeholder.includes('Your Name') || placeholder.includes('email')) continue;
+      if (type === 'hidden' || type === 'checkbox') continue;
+      if (val) continue; // Already has a value
+
+      await input.fill(unusedAnswers[unusedIdx][1]);
+      console.log(`    Filled input: ${unusedAnswers[unusedIdx][1]}`);
+      unusedIdx++;
+    }
+
+    console.log(`    Form filled. Taking screenshot...`);
+    await page.screenshot({ path: 'batch-rsvp-filled.png' }).catch(() => {});
+    await page.waitForTimeout(1000);
+
+    // Set up response interception to capture the registration result
+    const responsePromise = page.waitForResponse(
+      (res) => res.url().includes('api.lu.ma') && res.url().includes('register'),
+      { timeout: 45000 }
+    ).catch(() => null);
+
+    // Also log all outgoing API requests for debugging
+    page.on('request', (req) => {
+      if (req.url().includes('api.lu.ma')) {
+        console.log(`    >> ${req.method()} ${req.url().slice(0, 80)}`);
+      }
+    });
+
+    // Click the submit button (it's the last "Request to Join" button on the page)
+    const submitBtn = page.locator(
+      'button:has-text("Register"), button:has-text("Request to Join"), button:has-text("Submit")'
+    ).last();
+    console.log(`    Clicking submit...`);
+    await submitBtn.click();
+
+    // Wait for the API response (give Turnstile more time)
+    console.log(`    Waiting for API response (up to 45s for Turnstile)...`);
+    const response = await responsePromise;
+    if (!response) {
+      return { success: false, error: 'No API response received (timeout or Turnstile failed)' };
+    }
+
+    const status = response.status();
+    const body = await response.json().catch(() => null);
+
+    if (status >= 200 && status < 300) {
+      return { success: true };
+    }
+
+    const errorMsg = body?.message || body?.error || body?.code || `HTTP ${status}`;
+    return { success: false, error: errorMsg };
   } finally {
     await browser.close();
   }
@@ -145,7 +261,7 @@ async function processJob(
 ): Promise<'success' | 'failed'> {
   const profile = job.profile_snapshot;
 
-  console.log(`  Extracting Turnstile token for ${job.luma_slug}...`);
+  console.log(`  Submitting via Playwright for ${job.luma_slug}...`);
 
   if (dryRun) {
     console.log('  [DRY RUN] Would submit registration');
@@ -159,31 +275,8 @@ async function processJob(
       .update({ status: 'submitting', updated_at: new Date().toISOString() })
       .eq('id', job.id);
 
-    // Extract Turnstile token
-    const turnstileToken = await extractTurnstileToken(job.luma_slug);
-
-    // Build registration answers from custom_answers
-    // custom_answers is stored as { question_id: value_string }
-    const registrationAnswers = Object.entries(job.custom_answers).map(
-      ([questionId, value]) => ({
-        question_id: questionId,
-        value,
-        label: '',
-        question_type: 'text',
-      })
-    );
-
-    // Submit registration
-    const result = await submitLumaRegistration({
-      name: `${profile.firstName} ${profile.lastName}`,
-      first_name: profile.firstName,
-      last_name: profile.lastName,
-      email: profile.email,
-      event_api_id: job.event_api_id,
-      registration_answers: registrationAnswers,
-      phone_number: profile.phone || undefined,
-      turnstile_token: turnstileToken,
-    });
+    // Submit via Playwright (fills form + lets Luma handle Turnstile)
+    const result = await submitViaPlaywright(job.luma_slug, profile, job.custom_answers);
 
     if (result.success) {
       await supabase
