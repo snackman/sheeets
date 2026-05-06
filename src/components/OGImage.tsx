@@ -16,11 +16,13 @@ interface OGImageProps {
   isInItinerary?: boolean;
   onItineraryToggle?: (eventId: string) => void;
   friendsGoing?: FriendInfo[];
+  /** Optional className to override the default width classes on the thumbnail container */
+  className?: string;
 }
 
 export const imageCache = new Map<string, string | null>();
 
-export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox, isInItinerary, onItineraryToggle, friendsGoing }: OGImageProps) {
+export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox, isInItinerary, onItineraryToggle, friendsGoing, className }: OGImageProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(
     imageCache.get(url) ?? null
   );
@@ -86,7 +88,7 @@ export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox, isInItinerary, 
     <>
       <div
         ref={ref}
-        className="shrink-0 w-[88px] sm:w-[106px] rounded-lg overflow-hidden bg-stone-800/30 self-center cursor-pointer"
+        className={`shrink-0 ${className ?? 'w-[88px] sm:w-[106px]'} rounded-lg overflow-hidden bg-stone-800/30 self-center cursor-pointer`}
         onClick={(e) => {
           e.stopPropagation();
           if (!imageUrl) return;
