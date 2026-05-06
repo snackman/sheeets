@@ -187,6 +187,7 @@ export const ListView = memo(function ListView({
       return 180; // event card estimate
     },
     overscan: 4,
+    initialOffset: 0,
     measureElement: (el) => {
       // Include the item's actual height (padding is part of the element)
       return el.getBoundingClientRect().height;
@@ -197,9 +198,10 @@ export const ListView = memo(function ListView({
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = 0;
+      virtualizer.scrollToOffset(0);
       virtualizer.measure();
     }
-  }, [virtualizer, containerRef]);
+  }, [virtualizer, containerRef, flatItems]);
 
   /* ---- flyer lightbox navigation ---- */
   const [lightboxEventIndex, setLightboxEventIndex] = useState<number | null>(null);
