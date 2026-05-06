@@ -590,7 +590,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
 
       {/* Main content area */}
       {viewMode === 'map' ? (
-        <main className="flex-1 min-h-0">
+        <main key="map" className="flex-1 min-h-0">
           <MapViewWrapper
             events={filteredEvents}
             itinerary={itinerary}
@@ -620,7 +620,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           />
         </main>
       ) : viewMode === 'table' ? (
-        <main className="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden bg-[var(--theme-bg-list)]">
+        <main key="table" className="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden bg-[var(--theme-bg-list)]">
           <TableView
             events={filteredEvents}
             totalCount={conferenceEventCount}
@@ -645,7 +645,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           />
         </main>
       ) : viewMode === 'gallery' ? (
-        <main ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto bg-[var(--theme-bg-list)]">
+        <main key="gallery" ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto bg-[var(--theme-bg-list)]">
           <GalleryView
             events={filteredEvents}
             totalCount={conferenceEventCount}
@@ -664,7 +664,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           />
         </main>
       ) : (
-        <main ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto bg-[var(--theme-bg-list)]">
+        <main key="list" ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto bg-[var(--theme-bg-list)]">
           <ListView
             events={filteredEvents}
             totalCount={conferenceEventCount}
