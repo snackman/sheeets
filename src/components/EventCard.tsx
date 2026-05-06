@@ -399,7 +399,7 @@ export const EventCard = memo(function EventCard({
         )}
 
         {/* Bottom strip: action buttons + reactions */}
-        <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-[var(--theme-border-primary)]/50">
+        <div className="flex items-center gap-1.5 mt-1.5">
           {buttonsAboveFlyer && onItineraryToggle && (
             <StarButton
               eventId={event.id}
