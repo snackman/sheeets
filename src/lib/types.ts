@@ -66,6 +66,10 @@ export interface UserProfile {
   company: string | null;
   linkedin_url: string | null;
   job_title: string | null;
+  phone: string | null;
+  website: string | null;
+  first_name: string | null;
+  last_name: string | null;
 }
 
 export interface Friend {
@@ -365,4 +369,54 @@ export interface Submission {
   reviewed_at: string | null;
   sheet_row: number | null;
   created_at: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Batch RSVP (Luma form scanning + registration)                      */
+/* ------------------------------------------------------------------ */
+
+export interface LumaRegistrationQuestion {
+  id: string;
+  label: string;
+  question_type: 'company' | 'text' | 'linkedin' | 'twitter' | 'dropdown' | 'multi-select' | 'terms';
+  is_required: boolean;
+  options?: string[];           // for dropdown / multi-select
+  terms_content?: string;       // for terms type
+  job_title_label?: string;     // for company type
+}
+
+export interface LumaFormField {
+  id: number;
+  luma_slug: string;
+  event_api_id: string;
+  event_name: string | null;
+  name_requirement: string | null;
+  questions: LumaRegistrationQuestion[];
+  scanned_at: string;
+}
+
+export type BatchRsvpJobStatus = 'pending' | 'submitting' | 'success' | 'failed';
+
+export interface BatchRsvpJob {
+  id: number;
+  user_id: string;
+  event_id: string;
+  luma_slug: string;
+  event_name: string | null;
+  event_api_id: string;
+  status: BatchRsvpJobStatus;
+  error_message: string | null;
+  profile_snapshot: Record<string, string>;
+  custom_answers: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomFieldAnswer {
+  id: number;
+  user_id: string;
+  question_label: string;
+  question_type: string;
+  answer: string;
+  updated_at: string;
 }

@@ -118,6 +118,34 @@ export const ABTrackEventSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
+/** Schema for POST /api/luma/scan-form */
+export const ScanFormFieldsSchema = z.object({
+  slugs: z.array(z.string().min(1)).min(1).max(5),
+});
+
+/** Schema for POST /api/batch-rsvp */
+export const BatchRsvpSubmitSchema = z.object({
+  events: z.array(z.object({
+    eventId: z.string().min(1),
+    lumaSlug: z.string().min(1),
+    eventName: z.string(),
+    eventApiId: z.string().min(1),
+    customAnswers: z.record(z.string(), z.string()).optional(),
+  })).min(1).max(20),
+  profile: z.object({
+    email: z.string().email(),
+    firstName: z.string().min(1),
+    lastName: z.string().min(1),
+    company: z.string().optional(),
+    jobTitle: z.string().optional(),
+    phone: z.string().optional(),
+    telegram: z.string().optional(),
+    xHandle: z.string().optional(),
+    linkedin: z.string().optional(),
+    website: z.string().optional(),
+  }),
+});
+
 /** Schema for POST /api/admin/submissions */
 export const SubmissionActionSchema = z.object({
   password: z.string(),
