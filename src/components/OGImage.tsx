@@ -16,11 +16,13 @@ interface OGImageProps {
   isInItinerary?: boolean;
   onItineraryToggle?: (eventId: string) => void;
   friendsGoing?: FriendInfo[];
+  /** Optional className to override the default width classes on the thumbnail container */
+  className?: string;
 }
 
 export const imageCache = new Map<string, string | null>();
 
-export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox, isInItinerary, onItineraryToggle, friendsGoing }: OGImageProps) {
+export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox, isInItinerary, onItineraryToggle, friendsGoing, className }: OGImageProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(
     imageCache.get(url) ?? null
   );
@@ -86,7 +88,7 @@ export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox, isInItinerary, 
     <>
       <div
         ref={ref}
-        className="shrink-0 w-[88px] sm:w-[106px] rounded-lg overflow-hidden bg-stone-800/30 self-center cursor-pointer"
+        className={`shrink-0 ${className ?? 'w-[88px] sm:w-[106px]'} rounded-lg overflow-hidden bg-stone-800/30 self-center cursor-pointer`}
         onClick={(e) => {
           e.stopPropagation();
           if (!imageUrl) return;
@@ -104,7 +106,7 @@ export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox, isInItinerary, 
           <img
             src={imageUrl}
             alt=""
-            className="w-full h-auto rounded-lg"
+            className="w-full h-auto max-h-[106px] sm:max-h-[140px] object-cover rounded-lg"
             loading="lazy"
             onError={() => setError(true)}
           />
@@ -131,7 +133,7 @@ export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox, isInItinerary, 
             <img
               src={imageUrl}
               alt=""
-              className="max-w-[60vw] max-h-[60vh] object-contain rounded-lg"
+              className="h-[60vh] max-w-[90vw] sm:max-w-[60vw] object-contain rounded-lg"
             />
             <div className="flex items-center gap-3">
               {eventId && onItineraryToggle && (
@@ -253,11 +255,13 @@ export function FlyerLightbox({ imageUrl, rsvpUrl, onClose, onPrev, onNext, even
         />
         <div className="flex items-center gap-3">
           {eventId && onItineraryToggle && (
-            <StarButton
-              eventId={eventId}
-              isStarred={isInItinerary ?? false}
-              onToggle={onItineraryToggle}
-            />
+            <div style={{ '--theme-text-secondary': '#ffffff', '--theme-border-primary': 'rgba(255,255,255,0.6)', '--theme-accent': '#ffffff', '--theme-accent-muted': 'rgba(255,255,255,0.2)' } as React.CSSProperties}>
+              <StarButton
+                eventId={eventId}
+                isStarred={isInItinerary ?? false}
+                onToggle={onItineraryToggle}
+              />
+            </div>
           )}
           {rsvpUrl && (
             <a

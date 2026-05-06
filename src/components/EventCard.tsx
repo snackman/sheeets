@@ -42,6 +42,8 @@ interface EventCardProps {
   onRsvp?: () => void;
   /** Compact mode for map popups — smaller text, no impression tracking */
   compact?: boolean;
+  /** When true, RSVP + link buttons render above the flyer inside the card (star button is external) */
+  buttonsAboveFlyer?: boolean;
 }
 
 function FriendsGoingModal({
@@ -144,6 +146,7 @@ export const EventCard = memo(function EventCard({
   rsvpStatus,
   onRsvp,
   compact,
+  buttonsAboveFlyer,
 }: EventCardProps) {
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [showCheckedInModal, setShowCheckedInModal] = useState(false);
@@ -222,7 +225,7 @@ export const EventCard = memo(function EventCard({
     : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
 
   return (
-    <div ref={cardRef} className={`rounded-lg ${compact ? 'p-3' : 'p-4'} transition-colors group flex gap-${compact ? '3' : '4'} overflow-hidden ${
+    <div ref={cardRef} className={`rounded-lg p-3 transition-colors group flex gap-2.5 overflow-hidden ${
       event.isFeatured
         ? 'bg-[var(--theme-bg-card)] border-2 hover:bg-[var(--theme-bg-card-hover)]'
         : `bg-[var(--theme-bg-card)] border border-[var(--theme-border-primary)] hover:bg-[var(--theme-bg-card-hover)] hover:border-[var(--theme-border-primary)] active:bg-[var(--theme-bg-card-hover)]${hasFriends ? ' border-l-[3px]' : ''}`
@@ -230,37 +233,44 @@ export const EventCard = memo(function EventCard({
       style={event.isFeatured ? { borderColor: 'var(--theme-popup-featured-border)' } : hasFriends ? { borderLeftColor: 'var(--friend-blue)' } : undefined}
     >
       {/* Left column: action buttons + cover image */}
-      <div className="flex items-center shrink-0 gap-1">
-        <div className="flex flex-col items-center gap-1">
-          {onItineraryToggle && (
-            <StarButton
-              eventId={event.id}
-              isStarred={isInItinerary}
-              onToggle={onItineraryToggle}
-            />
-          )}
-          {onRsvp && event.link && (
-            <div className="mt-px">
-              <RsvpButton eventLink={event.link} status={rsvpStatus ?? 'idle'} onClick={onRsvp} />
-            </div>
-          )}
-          {event.link && (
-            <button
-              onClick={handleCopyLink}
-              className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
-              aria-label="Copy event link"
-              title="Copy link"
-            >
-              {copied ? (
-                <Check className="w-4 h-4 text-green-400" />
-              ) : (
-                <Link className="w-4 h-4" />
-              )}
-            </button>
-          )}
+      {buttonsAboveFlyer ? (
+        <div className="shrink-0">
+          {/* Flyer image only */}
+          {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} onOpenLightbox={onOpenLightbox} className="w-[106px] sm:w-[140px]" />}
         </div>
-        {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} onOpenLightbox={onOpenLightbox} />}
-      </div>
+      ) : (
+        <div className="flex items-center shrink-0 gap-1">
+          <div className="flex flex-col items-center gap-1">
+            {onItineraryToggle && (
+              <StarButton
+                eventId={event.id}
+                isStarred={isInItinerary}
+                onToggle={onItineraryToggle}
+              />
+            )}
+            {onRsvp && event.link && (
+              <div className="mt-px">
+                <RsvpButton eventLink={event.link} status={rsvpStatus ?? 'idle'} onClick={onRsvp} />
+              </div>
+            )}
+            {event.link && (
+              <button
+                onClick={handleCopyLink}
+                className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
+                aria-label="Copy event link"
+                title="Copy link"
+              >
+                {copied ? (
+                  <Check className="w-4 h-4 text-green-400" />
+                ) : (
+                  <Link className="w-4 h-4" />
+                )}
+              </button>
+            )}
+          </div>
+          {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} onOpenLightbox={onOpenLightbox} />}
+        </div>
+      )}
 
       {/* Right: event details */}
       <div className="flex-1 min-w-0">
@@ -323,8 +333,12 @@ export const EventCard = memo(function EventCard({
                   'bg-green-400'
                 }`} title={liveUrgency === 'red' ? 'Ending soon' : liveUrgency === 'yellow' ? 'Less than 1hr left' : 'Live now'} />
               )}
-              <Calendar className="w-3.5 h-3.5 shrink-0" />
-              <span>{event.date} · {timeDisplay}</span>
+              <Calendar className="w-3.5 h-3.5 shrink-0 hidden sm:inline" />
+              <span className="hidden sm:inline">{event.date} · {timeDisplay}</span>
+              <span className="sm:hidden inline-flex items-baseline gap-1 min-w-0">
+                <span className="shrink-0">{event.isAllDay ? 'All Day' : `${event.startTime}${event.endTime ? `-${event.endTime}` : ''}`}</span>
+                {event.address && <span className="text-[var(--theme-text-muted)] truncate min-w-0">· {shortenAddress(event.address)}</span>}
+              </span>
             </p>
             {(checkInCount ?? 0) > 0 && (
               <span className="absolute -top-1 -right-3 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-green-500 text-white text-[9px] font-bold px-0.5 pointer-events-none">
@@ -351,11 +365,11 @@ export const EventCard = memo(function EventCard({
           )}
         </div>
 
-        {/* Address */}
+        {/* Address — hidden on mobile (shown inline with time) */}
         {event.address && (
           <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
             eventId={event.id} eventName={event.name}
-            className="w-full text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-sm mt-1 flex items-start gap-1 overflow-hidden transition-colors min-w-0">
+            className="hidden sm:flex w-full text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-sm mt-1 items-start gap-1 overflow-hidden transition-colors min-w-0">
             <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
             <span className="truncate">{shortenAddress(event.address)}</span>
             {userLocation && event.lat && event.lng && (
@@ -370,7 +384,7 @@ export const EventCard = memo(function EventCard({
         )}
 
         {/* Tags */}
-        <div className="flex flex-wrap items-center gap-1.5 mt-3">
+        <div className="flex flex-wrap items-center gap-1.5 mt-2">
           {event.tags.map((tag) => (
             <TagBadge key={tag} tag={tag} iconOnly={compact} />
           ))}
@@ -381,8 +395,41 @@ export const EventCard = memo(function EventCard({
           <p className="text-[var(--theme-text-faint)] text-xs mt-1 italic truncate">{event.note}</p>
         )}
 
-        {/* Bottom row: friends + reactions + checked-in indicator */}
-        <div className="flex items-center gap-2 mt-2">
+        {/* Bottom strip: action buttons + reactions */}
+        <div className="flex items-center gap-1.5 mt-1.5">
+          {buttonsAboveFlyer && onItineraryToggle && (
+            <StarButton
+              eventId={event.id}
+              isStarred={isInItinerary}
+              onToggle={onItineraryToggle}
+              size="sm"
+            />
+          )}
+          {buttonsAboveFlyer && onRsvp && event.link && (
+            <RsvpButton eventLink={event.link} status={rsvpStatus ?? 'idle'} onClick={onRsvp} />
+          )}
+          {buttonsAboveFlyer && event.link && (
+            <button
+              onClick={handleCopyLink}
+              className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
+              aria-label="Copy event link"
+              title="Copy link"
+            >
+              {copied ? (
+                <Check className="w-4 h-4 text-green-400" />
+              ) : (
+                <Link className="w-4 h-4" />
+              )}
+            </button>
+          )}
+          {onToggleReaction && (
+            <EmojiReactions
+              eventId={event.id}
+              reactions={reactions}
+              onToggle={onToggleReaction}
+              compact={compact}
+            />
+          )}
           {friendsGoing && friendsGoing.length > 0 && (
             <button
               onClick={(e) => {
@@ -396,16 +443,6 @@ export const EventCard = memo(function EventCard({
               <FriendAvatarStack friends={friendsGoing} maxShow={2} size="sm" />
             </button>
           )}
-          {onToggleReaction && (
-            <EmojiReactions
-              eventId={event.id}
-              reactions={reactions}
-              onToggle={onToggleReaction}
-              compact={compact}
-            />
-          )}
-          {/* Comments disabled until social verification is in place */}
-          {/* <CommentSection eventId={event.id} commentCount={commentCount} eventName={event.name} /> */}
           {checkedInFriends && checkedInFriends.length > 0 && (
             <button
               onClick={(e) => {
@@ -446,3 +483,21 @@ export const EventCard = memo(function EventCard({
     </div>
   );
 });
+
+/* ------------------------------------------------------------------ */
+/* EventCardActions — external star button for buttonsAboveFlyer mode  */
+/* ------------------------------------------------------------------ */
+
+export function EventCardActions({ event, isInItinerary, onItineraryToggle }: {
+  event: ETHDenverEvent;
+  isInItinerary: boolean;
+  onItineraryToggle: (eventId: string) => void;
+}) {
+  return (
+    <StarButton
+      eventId={event.id}
+      isStarred={isInItinerary}
+      onToggle={onItineraryToggle}
+    />
+  );
+}

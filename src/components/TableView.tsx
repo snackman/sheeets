@@ -611,6 +611,7 @@ function EventDetailModal({
             rsvpStatus={rsvpStatus}
             onRsvp={onRsvp}
             onOpenLightbox={onOpenLightbox ? () => onOpenLightbox() : undefined}
+            buttonsAboveFlyer
           />
         </div>
       </div>

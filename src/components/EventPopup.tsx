@@ -95,6 +95,7 @@ export const EventPopup = memo(function EventPopup({
           rsvpStatus={rsvpStatus}
           onRsvp={onRsvp}
           compact
+          buttonsAboveFlyer
         />
       </div>
     </Popup>
@@ -155,6 +156,7 @@ export function MultiEventPopup({
                 onToggleReaction={onToggleReaction}
                 commentCount={commentCounts?.get(event.id)}
                 compact
+                buttonsAboveFlyer
               />
             </div>
           ))}

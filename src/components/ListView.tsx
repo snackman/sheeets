@@ -438,7 +438,7 @@ export const ListView = memo(function ListView({
                   </div>
                 </div>
               ) : item.kind === 'ad' ? (
-                <div className="pt-3">
+                <div className="pt-2">
                   <NativeAdCard
                     ad={item.ad}
                     conference={conference}
@@ -447,7 +447,7 @@ export const ListView = memo(function ListView({
                   />
                 </div>
               ) : (
-                <div className="pt-3">
+                <div className="pt-2">
                   <EventCard
                     event={item.event}
                     isInItinerary={itinerary?.has(item.event.id)}
@@ -467,6 +467,7 @@ export const ListView = memo(function ListView({
                     onOpenLightbox={() => setLightboxEventIndex(virtualRow.index)}
                     rsvpStatus={getRsvpStatus?.(item.event.id)}
                     onRsvp={item.event.link ? () => onRsvp?.(item.event.id, item.event.link!, item.event.name) : undefined}
+                    buttonsAboveFlyer
                   />
                 </div>
               )}
