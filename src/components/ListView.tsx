@@ -447,7 +447,7 @@ export const ListView = memo(function ListView({
               ) : (
                 <div className="pt-3">
                   <div className="flex items-center gap-2">
-                    <div className="hidden sm:flex flex-col items-center gap-1 shrink-0">
+                    <div className="flex flex-col items-center gap-1 shrink-0">
                       <EventCardActions
                         event={item.event}
                         isInItinerary={itinerary?.has(item.event.id) ?? false}

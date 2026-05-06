@@ -234,7 +234,7 @@ export const EventCard = memo(function EventCard({
     >
       {/* Left column: action buttons + cover image */}
       <div className="flex items-center shrink-0 gap-1">
-        <div className={`flex flex-col items-center gap-1${externalActions ? ' sm:hidden' : ''}`}>
+        <div className={`flex flex-col items-center gap-1${externalActions ? ' hidden' : ''}`}>
           {onItineraryToggle && (
             <StarButton
               eventId={event.id}
@@ -262,7 +262,7 @@ export const EventCard = memo(function EventCard({
             </button>
           )}
         </div>
-        {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} onOpenLightbox={onOpenLightbox} className={externalActions ? 'w-[88px] sm:w-[140px]' : undefined} />}
+        {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} onOpenLightbox={onOpenLightbox} className={externalActions ? 'w-[106px] sm:w-[140px]' : undefined} />}
       </div>
 
       {/* Right: event details */}
