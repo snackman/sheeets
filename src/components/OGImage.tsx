@@ -133,7 +133,7 @@ export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox, isInItinerary, 
             <img
               src={imageUrl}
               alt=""
-              className="max-w-[60vw] max-h-[60vh] object-contain rounded-lg"
+              className="h-[60vh] max-w-[90vw] sm:max-w-[60vw] object-contain rounded-lg"
             />
             <div className="flex items-center gap-3">
               {eventId && onItineraryToggle && (
