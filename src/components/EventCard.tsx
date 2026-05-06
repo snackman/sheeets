@@ -234,37 +234,9 @@ export const EventCard = memo(function EventCard({
     >
       {/* Left column: action buttons + cover image */}
       {buttonsAboveFlyer ? (
-        <div className="flex flex-col items-center shrink-0 gap-1">
-          {/* Flyer image */}
+        <div className="shrink-0">
+          {/* Flyer image only */}
           {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} onOpenLightbox={onOpenLightbox} className="w-[106px] sm:w-[140px]" />}
-          {/* Row of all action buttons below flyer */}
-          <div className="flex items-center gap-2">
-            {onItineraryToggle && (
-              <StarButton
-                eventId={event.id}
-                isStarred={isInItinerary}
-                onToggle={onItineraryToggle}
-                size="sm"
-              />
-            )}
-            {onRsvp && event.link && (
-              <RsvpButton eventLink={event.link} status={rsvpStatus ?? 'idle'} onClick={onRsvp} />
-            )}
-            {event.link && (
-              <button
-                onClick={handleCopyLink}
-                className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
-                aria-label="Copy event link"
-                title="Copy link"
-              >
-                {copied ? (
-                  <Check className="w-4 h-4 text-green-400" />
-                ) : (
-                  <Link className="w-4 h-4" />
-                )}
-              </button>
-            )}
-          </div>
         </div>
       ) : (
         <div className="flex items-center shrink-0 gap-1">
@@ -426,8 +398,41 @@ export const EventCard = memo(function EventCard({
           <p className="text-[var(--theme-text-faint)] text-xs mt-1 italic truncate">{event.note}</p>
         )}
 
-        {/* Bottom row: friends + reactions + checked-in indicator */}
-        <div className="flex items-center gap-2 mt-2">
+        {/* Bottom strip: action buttons + reactions */}
+        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[var(--theme-border-primary)]/50">
+          {buttonsAboveFlyer && onItineraryToggle && (
+            <StarButton
+              eventId={event.id}
+              isStarred={isInItinerary}
+              onToggle={onItineraryToggle}
+              size="sm"
+            />
+          )}
+          {buttonsAboveFlyer && onRsvp && event.link && (
+            <RsvpButton eventLink={event.link} status={rsvpStatus ?? 'idle'} onClick={onRsvp} />
+          )}
+          {buttonsAboveFlyer && event.link && (
+            <button
+              onClick={handleCopyLink}
+              className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
+              aria-label="Copy event link"
+              title="Copy link"
+            >
+              {copied ? (
+                <Check className="w-4 h-4 text-green-400" />
+              ) : (
+                <Link className="w-4 h-4" />
+              )}
+            </button>
+          )}
+          {onToggleReaction && (
+            <EmojiReactions
+              eventId={event.id}
+              reactions={reactions}
+              onToggle={onToggleReaction}
+              compact={compact}
+            />
+          )}
           {friendsGoing && friendsGoing.length > 0 && (
             <button
               onClick={(e) => {
@@ -441,16 +446,6 @@ export const EventCard = memo(function EventCard({
               <FriendAvatarStack friends={friendsGoing} maxShow={2} size="sm" />
             </button>
           )}
-          {onToggleReaction && (
-            <EmojiReactions
-              eventId={event.id}
-              reactions={reactions}
-              onToggle={onToggleReaction}
-              compact={compact}
-            />
-          )}
-          {/* Comments disabled until social verification is in place */}
-          {/* <CommentSection eventId={event.id} commentCount={commentCount} eventName={event.name} /> */}
           {checkedInFriends && checkedInFriends.length > 0 && (
             <button
               onClick={(e) => {
