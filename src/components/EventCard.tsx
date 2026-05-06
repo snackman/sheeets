@@ -362,7 +362,7 @@ export const EventCard = memo(function EventCard({
                 }`} title={liveUrgency === 'red' ? 'Ending soon' : liveUrgency === 'yellow' ? 'Less than 1hr left' : 'Live now'} />
               )}
               <Calendar className="w-3.5 h-3.5 shrink-0" />
-              <span>{event.date} · {timeDisplay}</span>
+              <span><span className="hidden sm:inline">{event.date} · </span>{timeDisplay}</span>
             </p>
             {(checkInCount ?? 0) > 0 && (
               <span className="absolute -top-1 -right-3 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-green-500 text-white text-[9px] font-bold px-0.5 pointer-events-none">
