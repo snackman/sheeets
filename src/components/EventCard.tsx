@@ -361,11 +361,11 @@ export const EventCard = memo(function EventCard({
                   'bg-green-400'
                 }`} title={liveUrgency === 'red' ? 'Ending soon' : liveUrgency === 'yellow' ? 'Less than 1hr left' : 'Live now'} />
               )}
-              <Calendar className="w-3.5 h-3.5 shrink-0" />
+              <Calendar className="w-3.5 h-3.5 shrink-0 hidden sm:inline" />
               <span className="hidden sm:inline">{event.date} · {timeDisplay}</span>
-              <span className="sm:hidden flex flex-col leading-tight">
-                <span>{event.isAllDay ? 'All Day' : event.startTime}</span>
-                {!event.isAllDay && event.endTime && <span className="text-[10px] text-[var(--theme-text-muted)]">{event.endTime}</span>}
+              <span className="sm:hidden">
+                {event.isAllDay ? 'All Day' : event.startTime}{!event.isAllDay && event.endTime ? `-${event.endTime}` : ''}
+                {event.address && <span className="text-[var(--theme-text-muted)]"> · {shortenAddress(event.address)}</span>}
               </span>
             </p>
             {(checkInCount ?? 0) > 0 && (
@@ -393,11 +393,11 @@ export const EventCard = memo(function EventCard({
           )}
         </div>
 
-        {/* Address */}
+        {/* Address — hidden on mobile (shown inline with time) */}
         {event.address && (
           <AddressLink address={event.address} navAddress={event.matchedAddress} lat={event.lat} lng={event.lng}
             eventId={event.id} eventName={event.name}
-            className="w-full text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-sm mt-1 flex items-start gap-1 overflow-hidden transition-colors min-w-0">
+            className="hidden sm:flex w-full text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] text-sm mt-1 items-start gap-1 overflow-hidden transition-colors min-w-0">
             <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
             <span className="truncate">{shortenAddress(event.address)}</span>
             {userLocation && event.lat && event.lng && (
