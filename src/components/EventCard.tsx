@@ -235,28 +235,34 @@ export const EventCard = memo(function EventCard({
       {/* Left column: action buttons + cover image */}
       {buttonsAboveFlyer ? (
         <div className="flex flex-col items-center shrink-0 gap-1">
-          {/* Small row of RSVP + link buttons above flyer */}
-          {(onRsvp && event.link) || event.link ? (
-            <div className="flex items-center gap-2">
-              {onRsvp && event.link && (
-                <RsvpButton eventLink={event.link} status={rsvpStatus ?? 'idle'} onClick={onRsvp} />
-              )}
-              {event.link && (
-                <button
-                  onClick={handleCopyLink}
-                  className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
-                  aria-label="Copy event link"
-                  title="Copy link"
-                >
-                  {copied ? (
-                    <Check className="w-4 h-4 text-green-400" />
-                  ) : (
-                    <Link className="w-4 h-4" />
-                  )}
-                </button>
-              )}
-            </div>
-          ) : null}
+          {/* Row of all action buttons above flyer */}
+          <div className="flex items-center gap-2">
+            {onItineraryToggle && (
+              <StarButton
+                eventId={event.id}
+                isStarred={isInItinerary}
+                onToggle={onItineraryToggle}
+                size="sm"
+              />
+            )}
+            {onRsvp && event.link && (
+              <RsvpButton eventLink={event.link} status={rsvpStatus ?? 'idle'} onClick={onRsvp} />
+            )}
+            {event.link && (
+              <button
+                onClick={handleCopyLink}
+                className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
+                aria-label="Copy event link"
+                title="Copy link"
+              >
+                {copied ? (
+                  <Check className="w-4 h-4 text-green-400" />
+                ) : (
+                  <Link className="w-4 h-4" />
+                )}
+              </button>
+            )}
+          </div>
           {/* Flyer image below buttons */}
           {event.link && <OGImage url={event.link} eventId={event.id} rsvpUrl={event.link} onOpenLightbox={onOpenLightbox} className="w-[106px] sm:w-[140px]" />}
         </div>
