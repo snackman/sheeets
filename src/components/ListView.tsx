@@ -5,7 +5,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import type { ETHDenverEvent, ReactionEmoji, NativeAd, FriendInfo } from '@/lib/types';
 import { formatDateLabel } from '@/lib/utils';
 import { sortByStartTime } from '@/lib/time-parse';
-import { EventCard } from './EventCard';
+import { EventCard, EventCardActions } from './EventCard';
 import { FeaturedSection } from './FeaturedSection';
 import NativeAdCard from './NativeAdCard';
 import { imageCache, FlyerLightbox } from './OGImage';
@@ -448,26 +448,40 @@ export const ListView = memo(function ListView({
                 </div>
               ) : (
                 <div className="pt-3">
-                  <EventCard
-                    event={item.event}
-                    isInItinerary={itinerary?.has(item.event.id)}
-                    onItineraryToggle={onItineraryToggle}
-                    friendsCount={friendsCountByEvent?.get(item.event.id)}
-                    friendsGoing={friendsByEvent?.get(item.event.id)}
-                    checkedInFriends={checkedInFriendsByEvent?.get(item.event.id)}
-                    checkInCount={checkInCounts?.get(item.event.id)}
-                    reactions={reactionsByEvent?.get(item.event.id)}
-                    onToggleReaction={onToggleReaction}
-                    commentCount={commentCounts?.get(item.event.id)}
-                    conference={conference}
-                    onCheckIn={onCheckIn}
-                    checkInLoading={checkInLoading}
-                    liveUrgency={liveEventIds?.get(item.event.id)}
-                    userLocation={userLocation}
-                    onOpenLightbox={() => setLightboxEventIndex(virtualRow.index)}
-                    rsvpStatus={getRsvpStatus?.(item.event.id)}
-                    onRsvp={item.event.link ? () => onRsvp?.(item.event.id, item.event.link!, item.event.name) : undefined}
-                  />
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-center gap-1 shrink-0">
+                      <EventCardActions
+                        event={item.event}
+                        isInItinerary={itinerary?.has(item.event.id) ?? false}
+                        onItineraryToggle={onItineraryToggle}
+                        rsvpStatus={getRsvpStatus?.(item.event.id)}
+                        onRsvp={item.event.link ? () => onRsvp?.(item.event.id, item.event.link!, item.event.name) : undefined}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <EventCard
+                        event={item.event}
+                        isInItinerary={itinerary?.has(item.event.id)}
+                        onItineraryToggle={onItineraryToggle}
+                        friendsCount={friendsCountByEvent?.get(item.event.id)}
+                        friendsGoing={friendsByEvent?.get(item.event.id)}
+                        checkedInFriends={checkedInFriendsByEvent?.get(item.event.id)}
+                        checkInCount={checkInCounts?.get(item.event.id)}
+                        reactions={reactionsByEvent?.get(item.event.id)}
+                        onToggleReaction={onToggleReaction}
+                        commentCount={commentCounts?.get(item.event.id)}
+                        conference={conference}
+                        onCheckIn={onCheckIn}
+                        checkInLoading={checkInLoading}
+                        liveUrgency={liveEventIds?.get(item.event.id)}
+                        userLocation={userLocation}
+                        onOpenLightbox={() => setLightboxEventIndex(virtualRow.index)}
+                        rsvpStatus={getRsvpStatus?.(item.event.id)}
+                        onRsvp={item.event.link ? () => onRsvp?.(item.event.id, item.event.link!, item.event.name) : undefined}
+                        externalActions
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
