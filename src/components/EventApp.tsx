@@ -47,6 +47,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRsvp } from '@/hooks/useRsvp';
 import { useProfile } from '@/hooks/useProfile';
 import { RsvpOverlay } from './RsvpOverlay';
+import { BatchRsvpModal } from './BatchRsvpModal';
+import { isLumaUrl } from '@/lib/luma';
 
 export function EventApp({ initialConference, initialEvents }: { initialConference?: string; initialEvents?: ETHDenverEvent[] }) {
   const { config } = useAdminConfig();
@@ -216,8 +218,19 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
     clearResult: clearCheckInResult,
   } = useEventCheckIn();
 
-  const { getRsvpStatus, openRsvp, confirmRsvp, closeRsvp, activeRsvp } = useRsvp();
+  const { getRsvpStatus, openRsvp, confirmRsvp, closeRsvp, activeRsvp, confirmedIds } = useRsvp();
   const { profile } = useProfile();
+
+  // Batch RSVP: count eligible Luma events in itinerary that aren't RSVP'd yet
+  const batchRsvpEligibleCount = useMemo(() => {
+    let count = 0;
+    for (const e of events) {
+      if (itinerary.has(e.id) && isLumaUrl(e.link) && !confirmedIds.has(e.id)) {
+        count++;
+      }
+    }
+    return count;
+  }, [events, itinerary, confirmedIds]);
 
   const liveEventIds = useMemo(() => {
     const now = getConferenceNow(filters.conference);
@@ -407,6 +420,7 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
   const [showFriends, setShowFriends] = useState(false);
   const [showSubmitEvent, setShowSubmitEvent] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
+  const [showBatchRsvp, setShowBatchRsvp] = useState(false);
 
   // Friend code (?fc=) URL handler
   const { toast: friendCodeToast } = useFriendCode({
@@ -703,6 +717,20 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
         />
       )}
 
+      {/* Batch RSVP FAB: visible when logged in with eligible Luma events */}
+      {authUser && batchRsvpEligibleCount > 0 && (
+        <button
+          onClick={() => setShowBatchRsvp(true)}
+          className={`fixed right-6 z-[60] flex items-center gap-2 px-4 py-2.5 rounded-full bg-orange-600 hover:bg-orange-500 text-white text-sm font-semibold shadow-lg transition-colors cursor-pointer ${hasNearbyLiveEvents ? 'bottom-20' : 'bottom-6'}`}
+          title={`Batch RSVP to ${batchRsvpEligibleCount} event(s)`}
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          Batch RSVP ({batchRsvpEligibleCount})
+        </button>
+      )}
+
       <AuthModal isOpen={showAuthForStar || showSignIn} onClose={handleCloseAuth} />
       <SubmitEventModal isOpen={showSubmitEvent} onClose={handleCloseSubmitEvent} upsellCopy={config?.upsell_copy} initialConference={filters.conference} conferenceTabs={conferenceTabs} />
       <FriendsPanel
@@ -736,6 +764,13 @@ export function EventApp({ initialConference, initialEvents }: { initialConferen
           onClose={closeRsvp}
         />
       )}
+      <BatchRsvpModal
+        isOpen={showBatchRsvp}
+        onClose={() => setShowBatchRsvp(false)}
+        events={events}
+        itinerary={itinerary}
+        confirmedIds={confirmedIds}
+      />
       {friendCodeToast && (
         <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-opacity duration-300 ${
           friendCodeToast.type === 'success'
