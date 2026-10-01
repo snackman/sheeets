@@ -66,6 +66,9 @@ export interface UserProfile {
   company: string | null;
   linkedin_url: string | null;
   job_title: string | null;
+  x_verified: boolean;
+  x_oauth_id: string | null;
+  x_avatar_url: string | null;
 }
 
 export interface Friend {
@@ -130,6 +133,7 @@ export interface EventComment {
   company?: string;
   linkedin_url?: string;
   telegram_handle?: string;
+  x_verified?: boolean;
 }
 
 export interface FriendLocation {
