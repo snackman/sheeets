@@ -26,7 +26,15 @@ import { buildEventDataContent, buildSystemPrompt, scanForInjection } from './pr
 /** Env-overridable so a cheaper/newer model can be swapped in without a code
  *  change; defaults to the model picked for Phase 1a (see PR description). */
 export const INGEST_MODEL = process.env.INGEST_MODEL || 'gpt-5-nano';
-export const CLASSIFIER_MAX_TOKENS = 300;
+/**
+ * Reasoning tokens count against `max_completion_tokens` (and are billed as
+ * output tokens) on gpt-5-* models. 300 was enough at `reasoning_effort:
+ * 'minimal'` (near-zero reasoning), but 'low' effort reliably blew through
+ * it — the API returns a length-limited, unparseable response instead of
+ * the JSON object (confirmed live during the tuning round). 1200 gives
+ * reasoning room up through 'low' while staying a real ceiling.
+ */
+export const CLASSIFIER_MAX_TOKENS = 1200;
 export const PROMPT_VERSION = '1a-v2-openai';
 
 export class ClassifierError extends Error {
@@ -36,12 +44,21 @@ export class ClassifierError extends Error {
   }
 }
 
+/** OpenAI's documented reasoning-effort levels (gpt-5 family). */
+export type ReasoningEffort = 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+
 export interface ClassifyOptions {
   client: OpenAI;
   profile: ThemeProfile;
   conference: ClassifierConferenceContext;
   event: ClassifierEventInput;
   fewShot?: FewShotExample[];
+  /** Override the model for this call. Defaults to INGEST_MODEL. Used by the
+   *  eval harness's model-comparison sweep; production code should leave
+   *  this unset. */
+  model?: string;
+  /** Override reasoning effort for this call. Defaults to 'minimal'. */
+  reasoningEffort?: ReasoningEffort;
 }
 
 export interface ClassifyResult {
@@ -56,7 +73,7 @@ export interface ClassifyResult {
 }
 
 export async function classifyEvent(opts: ClassifyOptions): Promise<ClassifyResult> {
-  const { client, profile, conference, event, fewShot = [] } = opts;
+  const { client, profile, conference, event, fewShot = [], model = INGEST_MODEL, reasoningEffort = 'minimal' } = opts;
 
   const injectionDetected =
     scanForInjection(event.name) || scanForInjection(event.descriptionText);
@@ -67,11 +84,12 @@ export async function classifyEvent(opts: ClassifyOptions): Promise<ClassifyResu
   let completion;
   try {
     completion = await client.chat.completions.parse({
-      model: INGEST_MODEL,
+      model,
       max_completion_tokens: CLASSIFIER_MAX_TOKENS,
-      // gpt-5-nano is a reasoning model: no `temperature` (fixed at the
-      // model's default), use `reasoning_effort` to keep this fast/cheap.
-      reasoning_effort: 'minimal',
+      // gpt-5-* reasoning models: no `temperature` (fixed at the model's
+      // default — sending one errors), use `reasoning_effort` to keep this
+      // fast/cheap instead.
+      reasoning_effort: reasoningEffort,
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: userContent },
@@ -101,7 +119,7 @@ export async function classifyEvent(opts: ClassifyOptions): Promise<ClassifyResu
     // completion_tokens includes reasoning tokens, which is also how OpenAI
     // bills them, so this is the right figure for cost estimates.
     outputTokens: completion.usage?.completion_tokens ?? 0,
-    model: INGEST_MODEL,
+    model,
     promptVersion: PROMPT_VERSION,
   };
 }

@@ -40,10 +40,25 @@ export const CLASSIFIER_FLAGS = [
 
 export type ClassifierFlag = (typeof CLASSIFIER_FLAGS)[number];
 
+/**
+ * 'sufficient': enough detail (description, venue, or other confirming
+ * signal) to be confident this is a real, correctly specified event.
+ * 'thin': only sparse fields are known (e.g. just a name/host/date) and
+ * real-event-ness can't be confirmed from the data alone, but nothing
+ * suggests it's spam or a non-event either. Thin data must never drive
+ * `theme_score` down — it's a separate axis, handled by `routeCandidate`
+ * (signals.ts), which sends thin-but-plausible events to review instead of
+ * auto-publishing or auto-rejecting them (tuning round, 2026-10-11).
+ */
+export const DATA_QUALITY = ['sufficient', 'thin'] as const;
+export type DataQuality = (typeof DATA_QUALITY)[number];
+
 /** Structured-output schema the classifier model fills in (§5.5). */
 export const ClassifierOutputSchema = z.object({
   is_event: z.boolean(),
-  score: z.number().int().min(0).max(100),
+  /** Topical fit ONLY (0-100) — never lowered just because detail is sparse. */
+  theme_score: z.number().int().min(0).max(100),
+  data_quality: z.enum(DATA_QUALITY),
   reason: z.string().max(160),
   suggested_tags: z.array(z.enum(ALLOWED_TAGS)).max(4),
   flags: z.array(z.enum(CLASSIFIER_FLAGS)).max(5),

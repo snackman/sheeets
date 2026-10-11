@@ -129,21 +129,32 @@ export function meetsPublishFloor(llmScore: number, publishThreshold: number): b
 export type Route = 'publish' | 'review' | 'reject';
 
 /**
- * Route a classified+signaled candidate (§5.7). `isEvent=false` is a hard
- * reject. A hard-reject signal (blocked host) is also a reject. Otherwise:
- * final >= publishThreshold (and the floor, and no review-forcing flag) -> publish;
- * final >= reviewThreshold -> review; else reject.
+ * Route a classified+signaled candidate (§5.7, revised in the tuning round,
+ * 2026-10-11, to separate theme fit from data quality). `isEvent=false` or a
+ * hard-reject signal (blocked host) is a reject — "clearly not an event".
+ * `final < reviewThreshold` is a reject — "clearly off-theme", independent of
+ * data quality (a thin event that doesn't even look plausible on theme from
+ * its name/hosts/calendar is still off-theme, not "needs review").
+ * Otherwise, theme fit is at least plausible: `dataQuality === 'thin'` caps
+ * the route at review — never auto-publish on sparse data, no matter how
+ * high the score. With sufficient data, the original rule applies: final >=
+ * publishThreshold (and the floor, and no other review-forcing flag) ->
+ * publish; else review.
  */
 export function routeCandidate(opts: {
   isEvent: boolean;
   llmScore: number;
+  dataQuality: 'sufficient' | 'thin';
   signals: SignalResult;
   profile: { publishThreshold: number; reviewThreshold: number };
 }): Route {
-  const { isEvent, llmScore, signals, profile } = opts;
+  const { isEvent, llmScore, dataQuality, signals, profile } = opts;
   if (!isEvent || signals.hardReject) return 'reject';
 
   const final = combineFinalScore(llmScore, signals);
+  if (final < profile.reviewThreshold) return 'reject';
+
+  if (dataQuality === 'thin') return 'review';
 
   if (
     final >= profile.publishThreshold &&
@@ -152,6 +163,5 @@ export function routeCandidate(opts: {
   ) {
     return 'publish';
   }
-  if (final >= profile.reviewThreshold) return 'review';
-  return 'reject';
+  return 'review';
 }

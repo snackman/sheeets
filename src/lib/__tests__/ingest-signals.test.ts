@@ -88,21 +88,23 @@ describe('meetsPublishFloor', () => {
 
 describe('routeCandidate', () => {
   const profile = { publishThreshold: 85, reviewThreshold: 40 };
+  const sufficient = 'sufficient' as const;
+  const thin = 'thin' as const;
 
   it('rejects when is_event is false, regardless of score', () => {
     const signals = computeSignals({ text: '', includeKeywords: [], excludeKeywords: [] });
-    expect(routeCandidate({ isEvent: false, llmScore: 99, signals, profile })).toBe('reject');
+    expect(routeCandidate({ isEvent: false, llmScore: 99, dataQuality: sufficient, signals, profile })).toBe('reject');
   });
 
   it('rejects on a hard-reject signal (blocked host) regardless of score', () => {
     const signals = computeSignals({ isBlockedHost: true, text: '', includeKeywords: [], excludeKeywords: [] });
-    expect(routeCandidate({ isEvent: true, llmScore: 99, signals, profile })).toBe('reject');
+    expect(routeCandidate({ isEvent: true, llmScore: 99, dataQuality: sufficient, signals, profile })).toBe('reject');
   });
 
   it('publishes when final >= publish and the floor is met and nothing caps the route', () => {
     const signals = computeSignals({ isTrustedHost: true, text: '', includeKeywords: [], excludeKeywords: [] });
     // llm 75 + trusted_host 20 = 95 final, floor needs llm>=70
-    expect(routeCandidate({ isEvent: true, llmScore: 75, signals, profile })).toBe('publish');
+    expect(routeCandidate({ isEvent: true, llmScore: 75, dataQuality: sufficient, signals, profile })).toBe('publish');
   });
 
   it('does not publish a weak score even if signals push the final over the threshold (the floor)', () => {
@@ -114,7 +116,7 @@ describe('routeCandidate', () => {
       excludeKeywords: [],
     });
     // llm 68 + 35 = 100 final >= 85, but floor requires llm >= 70 -> fails -> review, not publish
-    expect(routeCandidate({ isEvent: true, llmScore: 68, signals: lowSignals, profile })).not.toBe('publish');
+    expect(routeCandidate({ isEvent: true, llmScore: 68, dataQuality: sufficient, signals: lowSignals, profile })).not.toBe('publish');
   });
 
   it('caps a possible-duplicate at review even with a publish-level score', () => {
@@ -124,12 +126,29 @@ describe('routeCandidate', () => {
       includeKeywords: [],
       excludeKeywords: [],
     });
-    expect(routeCandidate({ isEvent: true, llmScore: 95, signals, profile })).toBe('review');
+    expect(routeCandidate({ isEvent: true, llmScore: 95, dataQuality: sufficient, signals, profile })).toBe('review');
   });
 
   it('falls to review between the two thresholds, and reject below review', () => {
     const signals = computeSignals({ text: '', includeKeywords: [], excludeKeywords: [] });
-    expect(routeCandidate({ isEvent: true, llmScore: 50, signals, profile })).toBe('review');
-    expect(routeCandidate({ isEvent: true, llmScore: 10, signals, profile })).toBe('reject');
+    expect(routeCandidate({ isEvent: true, llmScore: 50, dataQuality: sufficient, signals, profile })).toBe('review');
+    expect(routeCandidate({ isEvent: true, llmScore: 10, dataQuality: sufficient, signals, profile })).toBe('reject');
+  });
+
+  it('never auto-publishes thin data, even at a publish-level score — caps at review', () => {
+    const signals = computeSignals({ isTrustedHost: true, text: '', includeKeywords: [], excludeKeywords: [] });
+    // Same inputs as the "publishes" case above, but thin data.
+    expect(routeCandidate({ isEvent: true, llmScore: 75, dataQuality: thin, signals, profile })).toBe('review');
+    expect(routeCandidate({ isEvent: true, llmScore: 100, dataQuality: thin, signals, profile })).toBe('review');
+  });
+
+  it('still rejects thin data when the theme fit is not even plausible (final < reviewThreshold)', () => {
+    const signals = computeSignals({ text: '', includeKeywords: [], excludeKeywords: [] });
+    expect(routeCandidate({ isEvent: true, llmScore: 10, dataQuality: thin, signals, profile })).toBe('reject');
+  });
+
+  it('routes thin data with a plausible (review-band) score to review, same as sufficient data would', () => {
+    const signals = computeSignals({ text: '', includeKeywords: [], excludeKeywords: [] });
+    expect(routeCandidate({ isEvent: true, llmScore: 50, dataQuality: thin, signals, profile })).toBe('review');
   });
 });

@@ -1,7 +1,7 @@
 /**
  * Theme-classifier eval harness (plan §13.2, Phase 1a).
  *
- * Two modes:
+ * Three modes:
  *
  *   npx tsx scripts/ingest-eval.ts build-fixture [--sample-out <path>]
  *     Assembles the labeled set from the live sheet tabs (+ a local
@@ -11,9 +11,13 @@
  *     `scripts/fixtures/ingest-eval-sample.json`, which IS committed, for
  *     unit tests. Needs no OpenAI key — only network access to the sheet
  *     (and optionally Supabase, for more conference tabs / rejected
- *     submissions; both degrade gracefully to what's reachable).
+ *     submissions; both degrade gracefully to what's reachable). A cheap
+ *     keyword pre-check drops cross-theme "negatives" that actually match
+ *     the target theme's include keywords (mixed calendars, e.g. a crypto
+ *     event on a general tech-week tab) — see DROPPED_NOISY_XNEG_LOG below.
  *
- *   npx tsx scripts/ingest-eval.ts [--fixture <path>] [--limit N] [--profile <themeKey>]
+ *   npx tsx scripts/ingest-eval.ts [--fixture <path>] [--limit N]
+ *       [--profile <themeKey>] [--model <id>] [--effort <level>]
  *     Classifies the labeled set (a stratified `--limit` sample across
  *     label x source, so negatives are never crowded out by the positives
  *     that get built first) and reports precision/recall at the publish
@@ -21,23 +25,31 @@
  *     worst misclassifications. Requires OPENAI_API_KEY (checked, never
  *     printed). Without it the script exits without making any API calls.
  *
+ *   npx tsx scripts/ingest-eval.ts compare [--limit N] [--fixture <path>]
+ *     Runs the SAME stratified sample through a fixed set of model/effort
+ *     configs (gpt-5-nano at 'minimal' and 'low', gpt-5-mini at 'minimal')
+ *     and prints a side-by-side precision/recall/cost-per-1000 table, plus
+ *     the worst 5 misclassifications for whichever config has the best
+ *     precision@85 (ties broken by recall@40).
+ *
  * Positives: each conference's own sheet tab, labeled on_theme for that
  * conference's theme profile.
  * Negatives: (a) cross-theme — other conferences' tabs scored against a
- * different theme, when more than one theme is reachable; (b) a small
- * hand-picked hard-negative seed (non-crypto generic city events);
- * (c) rejected `event_submissions` rows with off-theme reasons, when
- * Supabase credentials are available.
+ * different theme, when more than one theme is reachable, with the
+ * keyword pre-check above dropping ones that look genuinely on-theme;
+ * (b) a small hand-picked hard-negative seed (non-crypto generic city
+ * events); (c) rejected `event_submissions` rows with off-theme reasons,
+ * when Supabase credentials are available.
  *
  * No --batch mode: unlike Anthropic's Batch API (same request shape, just
  * async), OpenAI's Batch API needs a separate file-based workflow — upload a
  * JSONL file of requests, create a batch against that file id, poll (most
  * batches finish within an hour, but OpenAI's SLA is up to 24h), then
  * download and parse a JSONL output file. That's a lot of extra surface for
- * an eval harness whose point is a quick iteration loop, and at gpt-5-nano's
- * price the batch 50% discount is fractions of a cent at our volumes (see
- * the PR description for the cost estimate). Dropped per go-ahead to do so
- * if simpler — sync calls are fast enough at `--limit 200`.
+ * an eval harness whose point is a quick iteration loop, and at these
+ * models' prices the batch 50% discount is fractions of a cent at our
+ * volumes. Dropped per go-ahead to do so if simpler — sync calls are fast
+ * enough at `--limit 200`.
  *
  * Env vars:
  *   OPENAI_API_KEY             required to classify (build-fixture doesn't need it)
@@ -64,12 +76,30 @@ import {
 } from '../src/lib/ingest/types';
 import { DEFAULT_THEME_PROFILES } from '../src/lib/ingest/profiles';
 import { computeSignals, combineFinalScore, routeCandidate, type Route } from '../src/lib/ingest/signals';
-import { INGEST_MODEL, PROMPT_VERSION, classifyEvent } from '../src/lib/ingest/classifier';
+import { INGEST_MODEL, PROMPT_VERSION, classifyEvent, type ReasoningEffort } from '../src/lib/ingest/classifier';
 
-/** $/MTok for the default INGEST_MODEL (gpt-5-nano), for the cost estimate in
- *  the report. If INGEST_MODEL is overridden, update this (there's no public
- *  pricing-lookup API), or treat the printed cost as approximate. */
-const PRICE_PER_MTOK = { in: 0.05, out: 0.4 };
+/** $/MTok by model, for cost estimates. gpt-5-nano and gpt-5-mini prices
+ *  confirmed live against GET /v1/models + current OpenAI pricing at the
+ *  time of the tuning round (2026-10-11) — there's no pricing-lookup API,
+ *  so update this if a listed model's price changes. */
+const PRICE_TABLE: Record<string, { in: number; out: number }> = {
+  'gpt-5-nano': { in: 0.05, out: 0.4 },
+  'gpt-5-mini': { in: 0.25, out: 2.0 },
+};
+function priceFor(model: string) {
+  return PRICE_TABLE[model] ?? PRICE_TABLE['gpt-5-nano'];
+}
+
+/** `String(err)` on a `ClassifierError` loses its `.cause` (the real reason,
+ *  e.g. an OpenAI API error) — surface it so eval error logs are actionable. */
+function describeError(err: unknown): string {
+  if (err instanceof Error) {
+    const cause = (err as { cause?: unknown }).cause;
+    const causeStr = cause instanceof Error ? cause.message : cause ? String(cause) : undefined;
+    return causeStr ? `${err.message} (${causeStr})` : err.message;
+  }
+  return String(err);
+}
 
 const FIXTURES_DIR = path.join(__dirname, 'fixtures');
 const FULL_FIXTURE_PATH = path.join(FIXTURES_DIR, 'ingest-eval.json');
@@ -79,7 +109,11 @@ const LUMA_CACHE_PATH = path.join(FIXTURES_DIR, '.ingest-eval-luma-cache.json');
 
 const SAMPLE_SIZE = 50;
 const LUMA_RATE_LIMIT_MS = 1000;
-const MAX_LUMA_ENRICHMENTS = 300;
+/** Raised from 300 (tuning round): the fetch is free and rate-limited, only
+ *  script runtime is the cost, and thin-description events were the single
+ *  biggest source of recall loss in the first eval run. Still capped so a
+ *  bad run can't loop forever; the cache makes repeat runs incremental. */
+const MAX_LUMA_ENRICHMENTS = 3000;
 
 type ExampleSource = 'sheet_own_tab' | 'sheet_cross_theme' | 'hard_negative' | 'rejected_submission';
 
@@ -109,16 +143,18 @@ interface HardNegativeSeed {
 
 function parseArgs(argv: string[]) {
   const args = {
-    command: 'run' as 'run' | 'build-fixture',
+    command: 'run' as 'run' | 'build-fixture' | 'compare',
     limit: undefined as number | undefined,
     profile: undefined as ThemeKey | undefined,
     batch: false,
     fixture: undefined as string | undefined,
     sampleOut: undefined as string | undefined,
+    model: undefined as string | undefined,
+    effort: undefined as ReasoningEffort | undefined,
   };
   const rest = [...argv];
-  if (rest[0] === 'build-fixture') {
-    args.command = 'build-fixture';
+  if (rest[0] === 'build-fixture' || rest[0] === 'compare') {
+    args.command = rest[0];
     rest.shift();
   }
   for (let i = 0; i < rest.length; i++) {
@@ -128,6 +164,8 @@ function parseArgs(argv: string[]) {
     else if (a === '--batch') args.batch = true;
     else if (a === '--fixture') args.fixture = rest[++i];
     else if (a === '--sample-out') args.sampleOut = rest[++i];
+    else if (a === '--model') args.model = rest[++i];
+    else if (a === '--effort') args.effort = rest[++i] as ReasoningEffort;
   }
   return args;
 }
@@ -155,8 +193,44 @@ function inferThemeKey(conferenceName: string): ThemeKey {
   if (/(art basel|art week|frieze)/.test(n)) return 'art';
   if (/(music|sxsw music|festival)/.test(n)) return 'music';
   if (/(ai\b|artificial intelligence)/.test(n)) return 'ai';
-  if (/(crypto|blockchain|bitcoin|eth|web3|consensus|token|defi)/.test(n)) return 'crypto';
+  // Added nft/coin/webx (tuning round): "NFT NYC" and "Coinfest Asia" were
+  // falling through to the generic 'tech' bucket and then getting used as
+  // cross-theme-negative TARGETS for genuinely crypto events sourced from
+  // other crypto tabs — a labeling bug, not model error. "WebX" (Tokyo) is
+  // also a crypto/Web3 conference.
+  if (/(crypto|blockchain|bitcoin|eth|web3|webx|consensus|token|defi|nft|coin)/.test(n)) return 'crypto';
   return 'tech';
+}
+
+// ---------------------------------------------------------------------------
+// Noisy cross-theme negative pre-check (tuning round)
+// ---------------------------------------------------------------------------
+
+function countKeywordHits(text: string, includeKeywords: string[]): number {
+  const signals = computeSignals({ text, includeKeywords, excludeKeywords: [] });
+  return Object.keys(signals.breakdown).filter((k) => k.startsWith('keyword:') && k !== 'keyword:cap').length;
+}
+
+/**
+ * A cheap keyword check (reuses the same word-boundary matcher as
+ * `signals.ts`) for whether an event's own text clearly matches the target
+ * theme — used to drop cross-theme "negatives" drawn from mixed calendars
+ * (e.g. a crypto-focused event that happens to be listed on a general
+ * tech-week tab, such as "Solana Career Night Toronto" — a single hit, but
+ * it's in the title). "Clearly matches" is one include-keyword hit in the
+ * event's own NAME (a title built from the theme's own vocabulary is a
+ * deliberate, strong signal), or two-or-more hits anywhere across
+ * name/hosts/organizer/description (the same bar `computeSignals` uses for
+ * its own +15 cap) when the title alone doesn't give it away. This is
+ * intentionally cheap, not precise — a generic name that happens to contain
+ * a common keyword (e.g. "exchange") can still get dropped; see the PR
+ * description for the count of examples this removed.
+ */
+function looksOnTheme(event: ClassifierEventInput, includeKeywords: string[]): boolean {
+  if (includeKeywords.length === 0) return false;
+  if (countKeywordHits(event.name, includeKeywords) >= 1) return true;
+  const fullText = `${event.name} ${(event.hosts ?? []).join(' ')} ${event.organizer ?? ''} ${event.descriptionText ?? ''}`;
+  return countKeywordHits(fullText, includeKeywords) >= 2;
 }
 
 // ---------------------------------------------------------------------------
@@ -176,6 +250,10 @@ function toClassifierInput(e: ETHDenverEvent, descriptionText?: string, hosts?: 
   return {
     name: e.name,
     hosts: hosts && hosts.length ? hosts : e.organizer ? [e.organizer] : [],
+    // The sheet tab an event was sourced from is our proxy for "calendar"
+    // until Phase 1b's real per-calendar ingestion — it's extra topical
+    // context the model can use when there's no description (tuning round).
+    calendarName: e.conference || null,
     organizer: e.organizer || null,
     venue: e.address || null,
     dateISO: e.dateISO || null,
@@ -308,7 +386,7 @@ async function buildFixture(sampleOutOverride?: string) {
   const events = await fetchEvents(undefined, tabs);
   console.log(`  ${events.length} sheet event(s)`);
 
-  console.log('Enriching Luma links (rate-limited, cached)...');
+  console.log(`Enriching Luma links (rate-limited, cached, cap ${MAX_LUMA_ENRICHMENTS})...`);
   const enrichment = await enrichLumaLinks(events);
   console.log(`  enriched ${enrichment.size} link(s) (cache: ${LUMA_CACHE_PATH})`);
 
@@ -336,26 +414,39 @@ async function buildFixture(sampleOutOverride?: string) {
 
   // Cross-theme negatives: events from a *different* theme's tab, scored
   // against each conference whose tab theme differs. Reported separately
-  // because it's an easy negative (§13.2 (a)). Only non-empty once more than
-  // one theme is reachable (needs Supabase-configured non-crypto tabs).
+  // because it's an easy negative (§13.2 (a)) — but mixed calendars mean
+  // it isn't always clean (a crypto-focused event can live on a general
+  // tech-week tab), so a cheap keyword pre-check drops ones that clearly
+  // match the TARGET theme's own include keywords (tuning round).
   const conferencesSeen = Array.from(new Set(events.map((e) => e.conference)));
+  let droppedNoisyCrossTheme = 0;
   for (const conference of conferencesSeen) {
     const targetTheme = inferThemeKey(conference);
+    const targetProfile = DEFAULT_THEME_PROFILES[targetTheme as Exclude<ThemeKey, 'custom'>] ?? DEFAULT_THEME_PROFILES.tech;
     for (const [theme, themeEvents] of eventsByTheme) {
       if (theme === targetTheme) continue;
       for (const e of themeEvents) {
         const enriched = enrichment.get(e.link);
+        const classifierEvent = toClassifierInput(e, enriched?.descriptionText, enriched?.hosts);
+        if (looksOnTheme(classifierEvent, targetProfile.includeKeywords)) {
+          droppedNoisyCrossTheme++;
+          continue;
+        }
         examples.push({
           id: `xneg-${stableId([conference, e.conference, e.dateISO, e.startTime, e.name])}`,
           conference,
           themeKey: targetTheme,
           label: 'off_theme',
           source: 'sheet_cross_theme',
-          event: toClassifierInput(e, enriched?.descriptionText, enriched?.hosts),
+          event: classifierEvent,
         });
       }
     }
   }
+  console.log(
+    `  dropped ${droppedNoisyCrossTheme} cross-theme "negative(s)" that matched >=2 of the target ` +
+      'theme\'s include keywords (noisy mixed-calendar labels — tuning round).'
+  );
   if (eventsByTheme.size <= 1) {
     console.log(
       '  only one theme reachable from current tabs — cross-theme negatives are empty. ' +
@@ -442,7 +533,12 @@ function profileFor(themeKey: ThemeKey) {
   return DEFAULT_THEME_PROFILES[themeKey];
 }
 
-async function classifySync(client: OpenAI, examples: EvalExample[]): Promise<ScoredExample[]> {
+async function classifySync(
+  client: OpenAI,
+  examples: EvalExample[],
+  modelOverride?: string,
+  effortOverride?: ReasoningEffort
+): Promise<ScoredExample[]> {
   const out: ScoredExample[] = [];
   for (const example of examples) {
     const profile = profileFor(example.themeKey);
@@ -452,6 +548,8 @@ async function classifySync(client: OpenAI, examples: EvalExample[]): Promise<Sc
         profile,
         conference: { name: example.conference },
         event: example.event,
+        model: modelOverride,
+        reasoningEffort: effortOverride,
       });
       const signals = computeSignals({
         text: `${example.event.name} ${(example.event.hosts ?? []).join(' ')} ${example.event.organizer ?? ''} ${example.event.descriptionText ?? ''}`,
@@ -459,11 +557,17 @@ async function classifySync(client: OpenAI, examples: EvalExample[]): Promise<Sc
         excludeKeywords: profile.excludeKeywords,
         injectionDetected: result.injectionDetected,
       });
-      const finalScore = combineFinalScore(result.output.score, signals);
-      const route = routeCandidate({ isEvent: result.output.is_event, llmScore: result.output.score, signals, profile });
+      const finalScore = combineFinalScore(result.output.theme_score, signals);
+      const route = routeCandidate({
+        isEvent: result.output.is_event,
+        llmScore: result.output.theme_score,
+        dataQuality: result.output.data_quality,
+        signals,
+        profile,
+      });
       out.push({ example, output: result.output, finalScore, route, inputTokens: result.inputTokens, outputTokens: result.outputTokens });
     } catch (err) {
-      out.push({ example, output: null, finalScore: null, route: null, error: String(err), inputTokens: 0, outputTokens: 0 });
+      out.push({ example, output: null, finalScore: null, route: null, error: describeError(err), inputTokens: 0, outputTokens: 0 });
     }
   }
   return out;
@@ -485,7 +589,16 @@ function metricsAtThreshold(scored: ScoredExample[], threshold: number) {
   return { tp, fp, fn, tn, precision, recall };
 }
 
-function printReport(scored: ScoredExample[]) {
+function costFor(scored: ScoredExample[], model: string) {
+  const ok = scored.filter((s) => !s.error);
+  const inputTokens = ok.reduce((sum, s) => sum + s.inputTokens, 0);
+  const outputTokens = ok.reduce((sum, s) => sum + s.outputTokens, 0);
+  const price = priceFor(model);
+  const cost = (inputTokens / 1e6) * price.in + (outputTokens / 1e6) * price.out;
+  return { inputTokens, outputTokens, cost };
+}
+
+function printReport(scored: ScoredExample[], model: string) {
   const errors = scored.filter((s) => s.error);
   const ok = scored.filter((s) => !s.error);
 
@@ -510,12 +623,11 @@ function printReport(scored: ScoredExample[]) {
 
   printWorstMisclassifications(ok, 5);
 
-  const inputTokens = ok.reduce((sum, s) => sum + s.inputTokens, 0);
-  const outputTokens = ok.reduce((sum, s) => sum + s.outputTokens, 0);
-  const cost = (inputTokens / 1e6) * PRICE_PER_MTOK.in + (outputTokens / 1e6) * PRICE_PER_MTOK.out;
+  const { inputTokens, outputTokens, cost } = costFor(scored, model);
+  const price = priceFor(model);
   console.log(
     `\nTokens: ${inputTokens} in / ${outputTokens} out. Estimated cost: $${cost.toFixed(4)} ` +
-      `(${INGEST_MODEL} sync pricing, $${PRICE_PER_MTOK.in}/$${PRICE_PER_MTOK.out} per MTok).`
+      `(${model} sync pricing, $${price.in}/$${price.out} per MTok).`
   );
 
   if (errors.length > 0) {
@@ -545,7 +657,8 @@ function printWorstMisclassifications(ok: ScoredExample[], n: number) {
   console.log(`\nWorst ${withError.length} misclassification(s) (by |final score - ideal for label|):`);
   for (const { s, errorMagnitude } of withError) {
     console.log(
-      `  [${s.example.id}] label=${s.example.label} final=${s.finalScore} (llm=${s.output!.score}, err=${errorMagnitude}) ` +
+      `  [${s.example.id}] label=${s.example.label} final=${s.finalScore} ` +
+        `(theme_score=${s.output!.theme_score}, data_quality=${s.output!.data_quality}, err=${errorMagnitude}) ` +
         `route=${s.route} "${s.example.event.name}" (${s.example.conference}) — reason: ${s.output!.reason}`
     );
   }
@@ -553,6 +666,73 @@ function printWorstMisclassifications(ok: ScoredExample[], n: number) {
 
 function fmtPct(v: number | null): string {
   return v == null ? 'n/a' : `${(v * 100).toFixed(1)}%`;
+}
+
+// ---------------------------------------------------------------------------
+// compare: run the same sample through several model/effort configs
+// ---------------------------------------------------------------------------
+
+interface CompareConfig {
+  label: string;
+  model: string;
+  effort: ReasoningEffort;
+}
+
+const COMPARE_CONFIGS: CompareConfig[] = [
+  { label: 'gpt-5-nano (minimal)', model: 'gpt-5-nano', effort: 'minimal' },
+  { label: 'gpt-5-nano (low)', model: 'gpt-5-nano', effort: 'low' },
+  { label: 'gpt-5-mini (minimal)', model: 'gpt-5-mini', effort: 'minimal' },
+];
+
+async function runCompare(client: OpenAI, examples: EvalExample[]) {
+  const results: { config: CompareConfig; scored: ScoredExample[] }[] = [];
+
+  for (const config of COMPARE_CONFIGS) {
+    console.log(`\n--- Running ${config.label} on ${examples.length} example(s) ---`);
+    const scored = await classifySync(client, examples, config.model, config.effort);
+    results.push({ config, scored });
+    const { cost } = costFor(scored, config.model);
+    console.log(`  done. cost so far this config: $${cost.toFixed(4)}`);
+  }
+
+  console.log('\n=== Comparison (same stratified sample for every row) ===');
+  console.log(
+    'config                     precision@85  recall@85  precision@40  recall@40  cost/1000  errors'
+  );
+  let totalCost = 0;
+  const rows: { config: CompareConfig; p85: number | null; r85: number | null; p40: number | null; r40: number | null; costPer1000: number }[] = [];
+  for (const { config, scored } of results) {
+    const ok = scored.filter((s) => !s.error);
+    const m85 = metricsAtThreshold(ok, 85);
+    const m40 = metricsAtThreshold(ok, 40);
+    const { cost } = costFor(scored, config.model);
+    totalCost += cost;
+    const costPer1000 = ok.length > 0 ? (cost / ok.length) * 1000 : 0;
+    const errCount = scored.length - ok.length;
+    rows.push({ config, p85: m85.precision, r85: m85.recall, p40: m40.precision, r40: m40.recall, costPer1000 });
+    console.log(
+      `${config.label.padEnd(27)} ${fmtPct(m85.precision).padStart(11)}  ${fmtPct(m85.recall).padStart(9)}  ` +
+        `${fmtPct(m40.precision).padStart(12)}  ${fmtPct(m40.recall).padStart(9)}  $${costPer1000.toFixed(3).padStart(8)}  ${errCount}`
+    );
+  }
+  console.log(`\nTotal spend across all ${COMPARE_CONFIGS.length} configs: $${totalCost.toFixed(4)}`);
+
+  // Best = highest precision@85 (the harder, more consequential threshold),
+  // ties broken by recall@40.
+  let best = results[0];
+  let bestRow = rows[0];
+  for (let i = 1; i < results.length; i++) {
+    const row = rows[i];
+    const better =
+      (row.p85 ?? -1) > (bestRow.p85 ?? -1) ||
+      ((row.p85 ?? -1) === (bestRow.p85 ?? -1) && (row.r40 ?? -1) > (bestRow.r40 ?? -1));
+    if (better) {
+      best = results[i];
+      bestRow = row;
+    }
+  }
+  console.log(`\nBest config by precision@85 (tie-break recall@40): ${best.config.label}`);
+  printWorstMisclassifications(best.scored.filter((s) => !s.error), 5);
 }
 
 // ---------------------------------------------------------------------------
@@ -598,13 +778,21 @@ async function main() {
   if (args.profile) examples = examples.filter((e) => e.themeKey === args.profile);
   // Stratified, not a prefix slice — `build-fixture` writes all positives
   // before any negatives, so slicing the first N would skew heavily
-  // positive at small limits.
+  // positive at small limits. Deterministic (sorted by id, no RNG), so the
+  // same `--limit N` always picks the same rows for a given fixture.
   if (args.limit) examples = stratifiedSample(examples, args.limit);
-  console.log(`Classifying ${examples.length} example(s) with prompt_version=${PROMPT_VERSION}, model=${INGEST_MODEL}...`);
 
   const client = new OpenAI({ apiKey });
-  const scored = await classifySync(client, examples);
-  printReport(scored);
+
+  if (args.command === 'compare') {
+    await runCompare(client, examples);
+    return;
+  }
+
+  const model = args.model ?? INGEST_MODEL;
+  console.log(`Classifying ${examples.length} example(s) with prompt_version=${PROMPT_VERSION}, model=${model}...`);
+  const scored = await classifySync(client, examples, args.model, args.effort);
+  printReport(scored, model);
 }
 
 main().catch((err) => {

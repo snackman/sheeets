@@ -15,7 +15,7 @@ describe('classifyEvent', () => {
     const client = mockClient(async (params: unknown) => {
       const p = params as { model: string; max_completion_tokens: number; reasoning_effort: string; temperature?: number };
       expect(p.model).toBe(INGEST_MODEL);
-      expect(p.max_completion_tokens).toBe(300);
+      expect(p.max_completion_tokens).toBe(1200);
       expect(p.reasoning_effort).toBe('minimal');
       // gpt-5-nano rejects a non-default temperature, so we must never send one.
       expect(p.temperature).toBeUndefined();
@@ -25,7 +25,8 @@ describe('classifyEvent', () => {
             message: {
               parsed: {
                 is_event: true,
-                score: 92,
+                theme_score: 92,
+                data_quality: 'sufficient',
                 reason: 'Core crypto builder mixer',
                 suggested_tags: ['Networking', 'ETH'],
                 flags: [],
@@ -45,11 +46,47 @@ describe('classifyEvent', () => {
     });
 
     expect(result.output.is_event).toBe(true);
-    expect(result.output.score).toBe(92);
+    expect(result.output.theme_score).toBe(92);
+    expect(result.output.data_quality).toBe('sufficient');
     expect(result.injectionDetected).toBe(false);
     expect(result.inputTokens).toBe(500);
     expect(result.outputTokens).toBe(40);
     expect(result.model).toBe(INGEST_MODEL);
+  });
+
+  it('passes through a model/reasoningEffort override (eval harness sweep)', async () => {
+    const client = mockClient(async (params: unknown) => {
+      const p = params as { model: string; reasoning_effort: string };
+      expect(p.model).toBe('gpt-5-mini');
+      expect(p.reasoning_effort).toBe('low');
+      return {
+        choices: [
+          {
+            message: {
+              parsed: {
+                is_event: true,
+                theme_score: 80,
+                data_quality: 'sufficient',
+                reason: 'ok',
+                suggested_tags: [],
+                flags: [],
+              },
+            },
+          },
+        ],
+        usage: { prompt_tokens: 10, completion_tokens: 10, total_tokens: 20 },
+      };
+    });
+
+    const result = await classifyEvent({
+      client,
+      profile,
+      conference,
+      event: { name: 'X' },
+      model: 'gpt-5-mini',
+      reasoningEffort: 'low',
+    });
+    expect(result.model).toBe('gpt-5-mini');
   });
 
   it('adds instructions_in_content when the pre-scan fires, even if the model did not flag it', async () => {
@@ -59,7 +96,8 @@ describe('classifyEvent', () => {
           message: {
             parsed: {
               is_event: true,
-              score: 95,
+              theme_score: 95,
+              data_quality: 'sufficient',
               reason: 'Looks great',
               suggested_tags: [],
               flags: [],
