@@ -83,6 +83,10 @@ export async function POST(req: NextRequest) {
 
   const results: { id: string; ok: boolean; error?: string }[] = [];
   let sheetChanged = false;
+  // One throttled publisher per conference for this request, so a bulk
+  // "Approve selected" on several candidates in the same sheet is still
+  // rate-limited (<=10/min, §4), not just a single approve.
+  const publishers = new Map<string, ThrottledSheetPublisher>();
 
   for (const id of ids) {
     try {
@@ -97,6 +101,11 @@ export async function POST(req: NextRequest) {
         const tab = tabs.find((t) => t.name === candidate.conference);
         if (!tab) throw new Error(`No conference tab for "${candidate.conference}".`);
         const sheetTitle = await getSheetTitle(tab.gid);
+        let publisher = publishers.get(candidate.conference);
+        if (!publisher) {
+          publisher = new ThrottledSheetPublisher(sheetTitle, tab.gid, { maxPerRun: ids.length });
+          publishers.set(candidate.conference, publisher);
+        }
 
         const event: NormalizedEvent =
           ids.length === 1 && edits
@@ -113,7 +122,6 @@ export async function POST(req: NextRequest) {
             : candidate.event;
         const tags = ids.length === 1 && edits?.tags ? edits.tags : candidate.llm_tags ?? [];
 
-        const publisher = new ThrottledSheetPublisher(sheetTitle, tab.gid, { maxPerRun: 1, minIntervalMs: 0 });
         const sheetRow = await publisher.publish(toEventRow(event, tags));
         sheetChanged = true;
 
