@@ -78,3 +78,42 @@ export function guessTimezoneFromOffset(isoDate: string, fallback: string): stri
   if (isoDate.endsWith('Z')) return 'UTC';
   return fallback;
 }
+
+const SHEET_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * Format a UTC ISO instant as the sheet's short date style in the given
+ * timezone, e.g. "Oct 14" — matches `formatDateShort` in
+ * `DateTimePicker.tsx`/`SubmitEventModal.tsx` (no weekday, no year), which
+ * `insertEventRowSorted`'s `parseSheetDate` expects (§5.1, used by the
+ * ingestion normalizer so Luma-sourced events sort correctly in the sheet).
+ */
+export function sheetDateShort(isoInstant: string, timezone: string): string {
+  const d = new Date(isoInstant);
+  if (isNaN(d.getTime())) return '';
+  const iso = formatDateISO(isoInstant, timezone); // "YYYY-MM-DD"
+  return sheetDateShortFromISODate(iso);
+}
+
+/** Same output as `sheetDateShort`, but from an already-local "YYYY-MM-DD"
+ *  (no timezone conversion) — for all-day / `VALUE=DATE` events, where
+ *  converting through a UTC instant could shift the date by a day. */
+export function sheetDateShortFromISODate(isoDate: string): string {
+  const [, m, day] = isoDate.split('-').map(Number);
+  if (!m || !day) return '';
+  return `${SHEET_MONTHS[m - 1]} ${day}`;
+}
+
+/**
+ * Format a UTC ISO instant as "6:00 PM" in the given timezone — matches
+ * `format12Hour` in `DateTimePicker.tsx` applied to a 24h "HH:mm" string.
+ */
+export function sheetTime12Hour(isoInstant: string, timezone: string): string {
+  const time24 = formatTime24(isoInstant, timezone); // "HH:mm"
+  const [hoursStr, minutes] = time24.split(':');
+  if (!minutes) return '';
+  const hours = Number(hoursStr);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const h12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+  return `${h12}:${minutes} ${period}`;
+}

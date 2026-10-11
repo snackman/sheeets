@@ -6,11 +6,17 @@
 //
 // Switched from Anthropic to OpenAI per Snax's request (follow-up to the
 // original plan, which specified Claude Haiku): same schema, same
-// injection guard, cheaper model. `gpt-5-nano` was selected by querying
-// `GET /v1/models` against the live key and checking current per-token
-// pricing — see the PR description for the comparison. It's a reasoning
-// model, so `temperature` isn't configurable (fixed at 1 server-side) and
-// cost is controlled via `reasoning_effort: 'minimal'` instead.
+// injection guard, cheaper model. It's a reasoning model, so `temperature`
+// isn't configurable (fixed at 1 server-side) and cost is controlled via
+// `reasoning_effort: 'minimal'` instead.
+//
+// Default model (Phase 1b): `gpt-5-mini`, chosen by the orchestrator as the
+// §17.3 default since Snax didn't weigh in before 1b shipped (1a's eval had
+// used `gpt-5-nano`; `gpt-5-mini` trades a small per-call cost increase for
+// materially better judgment on the ambiguous "is this plausibly an event"
+// and theme-fit calls this classifier makes — re-run `scripts/ingest-eval.ts`
+// before changing it back). Always overridable via `INGEST_MODEL` without a
+// code change.
 import OpenAI from 'openai';
 import { zodResponseFormat } from 'openai/helpers/zod';
 import { ClassifierOutputSchema } from './types';
@@ -23,9 +29,8 @@ import type {
 } from './types';
 import { buildEventDataContent, buildSystemPrompt, scanForInjection } from './prompt';
 
-/** Env-overridable so a cheaper/newer model can be swapped in without a code
- *  change; defaults to the model picked for Phase 1a (see PR description). */
-export const INGEST_MODEL = process.env.INGEST_MODEL || 'gpt-5-nano';
+/** Env-overridable so a cheaper/newer model can be swapped in without a code change. */
+export const INGEST_MODEL = process.env.INGEST_MODEL || 'gpt-5-mini';
 /**
  * Reasoning tokens count against `max_completion_tokens` (and are billed as
  * output tokens) on gpt-5-* models. 300 was enough at `reasoning_effort:

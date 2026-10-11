@@ -1,0 +1,63 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Luma//Calendar//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+UID:evt-ABC123DEF456@events.lu.ma
+DTSTAMP:20260301T000000Z
+DTSTART:20260310T180000Z
+DTEND:20260310T210000Z
+SEQUENCE:0
+STATUS:CONFIRMED
+GEO:43.5528;7.0174
+LOCATION:https://luma.com/event/evt-ABC123DEF456
+SUMMARY:ETHCC Builders Mixer — a long enough title that Luma would fold
+  it across multiple physical lines per RFC 5545
+DESCRIPTION:Get up-to-date information at: https://luma.com/ethcc-mixer\n\nHosted by Alice\, Bob & Carol
+END:VEVENT
+BEGIN:VEVENT
+UID:evt-PASTEVENT001@events.lu.ma
+DTSTAMP:20230101T000000Z
+DTSTART:20230310T180000Z
+DTEND:20230310T210000Z
+SEQUENCE:0
+STATUS:CONFIRMED
+GEO:43.5528;7.0174
+LOCATION:https://luma.com/event/evt-PASTEVENT001
+SUMMARY:ETHCC 2023 Welcome Party (past)
+DESCRIPTION:Get up-to-date information at: https://luma.com/ethcc2023\n\nHosted by Dave
+END:VEVENT
+BEGIN:VEVENT
+UID:evt-CANCELLED001@events.lu.ma
+DTSTAMP:20260301T000000Z
+DTSTART:20260311T180000Z
+DTEND:20260311T200000Z
+SEQUENCE:2
+STATUS:CANCELLED
+LOCATION:https://luma.com/event/evt-CANCELLED001
+SUMMARY:Cancelled Rooftop Party
+DESCRIPTION:Get up-to-date information at: https://luma.com/cancelled-party\n\nHosted by Eve
+END:VEVENT
+BEGIN:VEVENT
+UID:evt-NOGEO0001XY@events.lu.ma
+DTSTAMP:20260301T000000Z
+DTSTART:20260312T090000Z
+DTEND:20260312T110000Z
+SEQUENCE:0
+STATUS:CONFIRMED
+LOCATION:https://luma.com/event/evt-NOGEO0001XY
+SUMMARY:Breakfast Builders Roundtable
+DESCRIPTION:Get up-to-date information at: https://luma.com/builders-breakfast\n\nHosted by Frank & Grace
+END:VEVENT
+BEGIN:VEVENT
+UID:evt-ALLDAY0001@events.lu.ma
+DTSTAMP:20260301T000000Z
+DTSTART;VALUE=DATE:20260313
+SEQUENCE:0
+STATUS:CONFIRMED
+GEO:43.5528;7.0174
+LOCATION:https://luma.com/event/evt-ALLDAY0001
+SUMMARY:ETHCC Demo Day (all-day)
+DESCRIPTION:Get up-to-date information at: https://luma.com/ethcc-demo-day\n\nHosted by Heidi
+END:VEVENT
+END:VCALENDAR
