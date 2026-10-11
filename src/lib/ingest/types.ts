@@ -40,7 +40,7 @@ export const CLASSIFIER_FLAGS = [
 
 export type ClassifierFlag = (typeof CLASSIFIER_FLAGS)[number];
 
-/** Structured-output schema the classifier asks Claude to fill in (§5.5). */
+/** Structured-output schema the classifier model fills in (§5.5). */
 export const ClassifierOutputSchema = z.object({
   is_event: z.boolean(),
   score: z.number().int().min(0).max(100),

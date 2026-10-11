@@ -1,10 +1,18 @@
-// Theme classifier (§5.5): one Claude Haiku call per candidate, structured
-// output, temperature 0. Budget/retry/content-hash-skip plumbing that needs
+// Theme classifier (§5.5): one small OpenAI model call per candidate,
+// structured output. Budget/retry/content-hash-skip plumbing that needs
 // `ingest_candidates`/`ingest_runs` lands in Phase 1b — this module is the
 // pure request/response boundary so it can be unit-tested with the SDK
 // mocked and reused by the eval harness.
-import Anthropic from '@anthropic-ai/sdk';
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+//
+// Switched from Anthropic to OpenAI per Snax's request (follow-up to the
+// original plan, which specified Claude Haiku): same schema, same
+// injection guard, cheaper model. `gpt-5-nano` was selected by querying
+// `GET /v1/models` against the live key and checking current per-token
+// pricing — see the PR description for the comparison. It's a reasoning
+// model, so `temperature` isn't configurable (fixed at 1 server-side) and
+// cost is controlled via `reasoning_effort: 'minimal'` instead.
+import OpenAI from 'openai';
+import { zodResponseFormat } from 'openai/helpers/zod';
 import { ClassifierOutputSchema } from './types';
 import type {
   ClassifierConferenceContext,
@@ -15,11 +23,11 @@ import type {
 } from './types';
 import { buildEventDataContent, buildSystemPrompt, scanForInjection } from './prompt';
 
-/** Pinned per the approved plan (§5.5) rather than a floating alias, so eval
- *  results stay comparable across runs until we deliberately move the pin. */
-export const CLASSIFIER_MODEL = 'claude-haiku-4-5-20251001';
+/** Env-overridable so a cheaper/newer model can be swapped in without a code
+ *  change; defaults to the model picked for Phase 1a (see PR description). */
+export const INGEST_MODEL = process.env.INGEST_MODEL || 'gpt-5-nano';
 export const CLASSIFIER_MAX_TOKENS = 300;
-export const PROMPT_VERSION = '1a-v1';
+export const PROMPT_VERSION = '1a-v2-openai';
 
 export class ClassifierError extends Error {
   constructor(message: string, public readonly cause?: unknown) {
@@ -29,7 +37,7 @@ export class ClassifierError extends Error {
 }
 
 export interface ClassifyOptions {
-  client: Anthropic;
+  client: OpenAI;
   profile: ThemeProfile;
   conference: ClassifierConferenceContext;
   event: ClassifierEventInput;
@@ -56,25 +64,30 @@ export async function classifyEvent(opts: ClassifyOptions): Promise<ClassifyResu
   const system = buildSystemPrompt(profile, conference, fewShot);
   const userContent = buildEventDataContent(event);
 
-  let response;
+  let completion;
   try {
-    response = await client.messages.parse({
-      model: CLASSIFIER_MODEL,
-      max_tokens: CLASSIFIER_MAX_TOKENS,
-      temperature: 0,
-      system,
-      messages: [{ role: 'user', content: userContent }],
-      output_config: { format: zodOutputFormat(ClassifierOutputSchema) },
+    completion = await client.chat.completions.parse({
+      model: INGEST_MODEL,
+      max_completion_tokens: CLASSIFIER_MAX_TOKENS,
+      // gpt-5-nano is a reasoning model: no `temperature` (fixed at the
+      // model's default), use `reasoning_effort` to keep this fast/cheap.
+      reasoning_effort: 'minimal',
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: userContent },
+      ],
+      response_format: zodResponseFormat(ClassifierOutputSchema, 'event_classification'),
     });
   } catch (err) {
     throw new ClassifierError('Classifier request failed.', err);
   }
 
-  if (!response.parsed_output) {
+  const message = completion.choices[0]?.message;
+  if (!message || message.parsed == null) {
     throw new ClassifierError('Classifier returned output that failed schema validation.');
   }
 
-  let output = response.parsed_output;
+  let output = message.parsed;
   // Belt-and-suspenders: our own regex pre-scan is authoritative for capping
   // the route at review, even if the model didn't self-report the flag.
   if (injectionDetected && !output.flags.includes('instructions_in_content')) {
@@ -84,9 +97,11 @@ export async function classifyEvent(opts: ClassifyOptions): Promise<ClassifyResu
   return {
     output,
     injectionDetected,
-    inputTokens: response.usage?.input_tokens ?? 0,
-    outputTokens: response.usage?.output_tokens ?? 0,
-    model: CLASSIFIER_MODEL,
+    inputTokens: completion.usage?.prompt_tokens ?? 0,
+    // completion_tokens includes reasoning tokens, which is also how OpenAI
+    // bills them, so this is the right figure for cost estimates.
+    outputTokens: completion.usage?.completion_tokens ?? 0,
+    model: INGEST_MODEL,
     promptVersion: PROMPT_VERSION,
   };
 }

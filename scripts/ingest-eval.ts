@@ -9,16 +9,17 @@
  *     (gitignored — regenerate locally, don't commit the full set). Also
  *     writes a small stratified sample (<=50 rows) to
  *     `scripts/fixtures/ingest-eval-sample.json`, which IS committed, for
- *     unit tests. Needs no Anthropic key — only network access to the sheet
+ *     unit tests. Needs no OpenAI key — only network access to the sheet
  *     (and optionally Supabase, for more conference tabs / rejected
  *     submissions; both degrade gracefully to what's reachable).
  *
- *   npx tsx scripts/ingest-eval.ts [--fixture <path>] [--limit N]
- *       [--profile <themeKey>] [--batch]
- *     Classifies the labeled set and reports precision/recall at the
- *     publish (85) and review (40) thresholds, plus a confusion summary.
- *     Requires ANTHROPIC_API_KEY (checked, never printed). Without it the
- *     script exits without making any API calls.
+ *   npx tsx scripts/ingest-eval.ts [--fixture <path>] [--limit N] [--profile <themeKey>]
+ *     Classifies the labeled set (a stratified `--limit` sample across
+ *     label x source, so negatives are never crowded out by the positives
+ *     that get built first) and reports precision/recall at the publish
+ *     (85) and review (40) thresholds, a confusion summary, and the 5
+ *     worst misclassifications. Requires OPENAI_API_KEY (checked, never
+ *     printed). Without it the script exits without making any API calls.
  *
  * Positives: each conference's own sheet tab, labeled on_theme for that
  * conference's theme profile.
@@ -28,15 +29,25 @@
  * (c) rejected `event_submissions` rows with off-theme reasons, when
  * Supabase credentials are available.
  *
+ * No --batch mode: unlike Anthropic's Batch API (same request shape, just
+ * async), OpenAI's Batch API needs a separate file-based workflow — upload a
+ * JSONL file of requests, create a batch against that file id, poll (most
+ * batches finish within an hour, but OpenAI's SLA is up to 24h), then
+ * download and parse a JSONL output file. That's a lot of extra surface for
+ * an eval harness whose point is a quick iteration loop, and at gpt-5-nano's
+ * price the batch 50% discount is fractions of a cent at our volumes (see
+ * the PR description for the cost estimate). Dropped per go-ahead to do so
+ * if simpler — sync calls are fast enough at `--limit 200`.
+ *
  * Env vars:
- *   ANTHROPIC_API_KEY          required to classify (build-fixture doesn't need it)
+ *   OPENAI_API_KEY             required to classify (build-fixture doesn't need it)
+ *   INGEST_MODEL                optional — overrides the classifier model (src/lib/ingest/classifier.ts)
  *   NEXT_PUBLIC_SUPABASE_URL,
  *   SUPABASE_SERVICE_ROLE_KEY  optional — more conference tabs + rejected-submission negatives
  */
 import * as fs from 'fs';
 import * as path from 'path';
-import Anthropic from '@anthropic-ai/sdk';
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
 
 import { fetchEvents } from '../src/lib/fetch-events';
@@ -47,15 +58,18 @@ import { detectPlatform } from '../src/lib/event-extractors';
 import { getValidLumaSlug, extractMirrorText, snapshotHosts } from '../src/lib/luma';
 import { fetchLumaEvent } from '../src/lib/luma-server';
 import {
-  ClassifierOutputSchema,
   type ClassifierEventInput,
   type ClassifierOutput,
   type ThemeKey,
 } from '../src/lib/ingest/types';
 import { DEFAULT_THEME_PROFILES } from '../src/lib/ingest/profiles';
 import { computeSignals, combineFinalScore, routeCandidate, type Route } from '../src/lib/ingest/signals';
-import { buildSystemPrompt, buildEventDataContent } from '../src/lib/ingest/prompt';
-import { CLASSIFIER_MODEL, CLASSIFIER_MAX_TOKENS, PROMPT_VERSION, classifyEvent } from '../src/lib/ingest/classifier';
+import { INGEST_MODEL, PROMPT_VERSION, classifyEvent } from '../src/lib/ingest/classifier';
+
+/** $/MTok for the default INGEST_MODEL (gpt-5-nano), for the cost estimate in
+ *  the report. If INGEST_MODEL is overridden, update this (there's no public
+ *  pricing-lookup API), or treat the printed cost as approximate. */
+const PRICE_PER_MTOK = { in: 0.05, out: 0.4 };
 
 const FIXTURES_DIR = path.join(__dirname, 'fixtures');
 const FULL_FIXTURE_PATH = path.join(FIXTURES_DIR, 'ingest-eval.json');
@@ -428,7 +442,7 @@ function profileFor(themeKey: ThemeKey) {
   return DEFAULT_THEME_PROFILES[themeKey];
 }
 
-async function classifySync(client: Anthropic, examples: EvalExample[]): Promise<ScoredExample[]> {
+async function classifySync(client: OpenAI, examples: EvalExample[]): Promise<ScoredExample[]> {
   const out: ScoredExample[] = [];
   for (const example of examples) {
     const profile = profileFor(example.themeKey);
@@ -455,71 +469,6 @@ async function classifySync(client: Anthropic, examples: EvalExample[]): Promise
   return out;
 }
 
-async function classifyViaBatch(client: Anthropic, examples: EvalExample[]): Promise<ScoredExample[]> {
-  const requests = examples.map((example) => {
-    const profile = profileFor(example.themeKey);
-    const system = buildSystemPrompt(profile, { name: example.conference });
-    const userContent = buildEventDataContent(example.event);
-    return {
-      custom_id: example.id,
-      params: {
-        model: CLASSIFIER_MODEL,
-        max_tokens: CLASSIFIER_MAX_TOKENS,
-        temperature: 0,
-        system,
-        messages: [{ role: 'user' as const, content: userContent }],
-        output_config: { format: zodOutputFormat(ClassifierOutputSchema) },
-      },
-    };
-  });
-
-  console.log(`Submitting a batch of ${requests.length} request(s)...`);
-  const batch = await client.messages.batches.create({ requests });
-  console.log(`  batch ${batch.id}, polling until done (checks every 20s)...`);
-
-  let current = batch;
-  while (current.processing_status !== 'ended') {
-    await new Promise((r) => setTimeout(r, 20_000));
-    current = await client.messages.batches.retrieve(batch.id);
-    console.log(`  status=${current.processing_status} counts=${JSON.stringify(current.request_counts)}`);
-  }
-
-  const byId = new Map(examples.map((e) => [e.id, e]));
-  const out: ScoredExample[] = [];
-  for await (const result of await client.messages.batches.results(batch.id)) {
-    const example = byId.get(result.custom_id);
-    if (!example) continue;
-    if (result.result.type !== 'succeeded') {
-      out.push({ example, output: null, finalScore: null, route: null, error: result.result.type, inputTokens: 0, outputTokens: 0 });
-      continue;
-    }
-    const message = result.result.message;
-    const textBlock = message.content.find((b): b is Anthropic.TextBlock => b.type === 'text');
-    const profile = profileFor(example.themeKey);
-    try {
-      const parsed = ClassifierOutputSchema.parse(JSON.parse(textBlock?.text ?? ''));
-      const signals = computeSignals({
-        text: `${example.event.name} ${(example.event.hosts ?? []).join(' ')} ${example.event.organizer ?? ''} ${example.event.descriptionText ?? ''}`,
-        includeKeywords: profile.includeKeywords,
-        excludeKeywords: profile.excludeKeywords,
-      });
-      const finalScore = combineFinalScore(parsed.score, signals);
-      const route = routeCandidate({ isEvent: parsed.is_event, llmScore: parsed.score, signals, profile });
-      out.push({
-        example,
-        output: parsed,
-        finalScore,
-        route,
-        inputTokens: message.usage?.input_tokens ?? 0,
-        outputTokens: message.usage?.output_tokens ?? 0,
-      });
-    } catch (err) {
-      out.push({ example, output: null, finalScore: null, route: null, error: `parse: ${String(err)}`, inputTokens: 0, outputTokens: 0 });
-    }
-  }
-  return out;
-}
-
 function metricsAtThreshold(scored: ScoredExample[], threshold: number) {
   let tp = 0, fp = 0, fn = 0, tn = 0;
   for (const s of scored) {
@@ -536,7 +485,7 @@ function metricsAtThreshold(scored: ScoredExample[], threshold: number) {
   return { tp, fp, fn, tn, precision, recall };
 }
 
-function printReport(scored: ScoredExample[], usedBatch: boolean) {
+function printReport(scored: ScoredExample[]) {
   const errors = scored.filter((s) => s.error);
   const ok = scored.filter((s) => !s.error);
 
@@ -559,15 +508,46 @@ function printReport(scored: ScoredExample[], usedBatch: boolean) {
     console.log(`  ${route.padEnd(8)} on_theme=${row[0]}  off_theme=${row[1]}`);
   }
 
+  printWorstMisclassifications(ok, 5);
+
   const inputTokens = ok.reduce((sum, s) => sum + s.inputTokens, 0);
   const outputTokens = ok.reduce((sum, s) => sum + s.outputTokens, 0);
-  const rate = usedBatch ? { in: 0.5, out: 2.5 } : { in: 1, out: 5 }; // $/MTok, Haiku 4.5 (§12)
-  const cost = (inputTokens / 1e6) * rate.in + (outputTokens / 1e6) * rate.out;
-  console.log(`\nTokens: ${inputTokens} in / ${outputTokens} out. Estimated cost: $${cost.toFixed(4)} (${usedBatch ? 'batch' : 'sync'} pricing).`);
+  const cost = (inputTokens / 1e6) * PRICE_PER_MTOK.in + (outputTokens / 1e6) * PRICE_PER_MTOK.out;
+  console.log(
+    `\nTokens: ${inputTokens} in / ${outputTokens} out. Estimated cost: $${cost.toFixed(4)} ` +
+      `(${INGEST_MODEL} sync pricing, $${PRICE_PER_MTOK.in}/$${PRICE_PER_MTOK.out} per MTok).`
+  );
 
   if (errors.length > 0) {
     console.log(`\n${errors.length} error(s), e.g.:`);
     for (const e of errors.slice(0, 5)) console.log(`  [${e.example.id}] ${e.error}`);
+  }
+}
+
+/**
+ * The N examples where the final score was furthest from where the label
+ * says it should land — i.e. a confident wrong answer, not a borderline
+ * call near a threshold. For an off_theme example, "worst" means the
+ * highest final score (should be near 0); for on_theme, the lowest
+ * (should be near 100).
+ */
+function printWorstMisclassifications(ok: ScoredExample[], n: number) {
+  const withError = ok
+    .filter((s) => s.finalScore != null && s.output != null)
+    .map((s) => {
+      const idealScore = s.example.label === 'on_theme' ? 100 : 0;
+      const errorMagnitude = Math.abs(s.finalScore! - idealScore);
+      return { s, errorMagnitude };
+    })
+    .sort((a, b) => b.errorMagnitude - a.errorMagnitude)
+    .slice(0, n);
+
+  console.log(`\nWorst ${withError.length} misclassification(s) (by |final score - ideal for label|):`);
+  for (const { s, errorMagnitude } of withError) {
+    console.log(
+      `  [${s.example.id}] label=${s.example.label} final=${s.finalScore} (llm=${s.output!.score}, err=${errorMagnitude}) ` +
+        `route=${s.route} "${s.example.event.name}" (${s.example.conference}) — reason: ${s.output!.reason}`
+    );
   }
 }
 
@@ -587,10 +567,19 @@ async function main() {
     return;
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (args.batch) {
+    console.log(
+      '--batch is not supported: the OpenAI Batch API needs a separate file-upload workflow ' +
+        '(JSONL in, JSONL out, up to a 24h SLA) that is not worth it for this harness — see the ' +
+        'comment at the top of this file. Run without --batch.'
+    );
+    return;
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     console.log(
-      'ANTHROPIC_API_KEY is not set (checked process.env; also check .env.local if you use one). ' +
+      'OPENAI_API_KEY is not set (checked process.env; also check .env.local if you use one). ' +
         'Not making any API calls. Set the key and re-run to classify and get a precision/recall report.'
     );
     return;
@@ -607,12 +596,15 @@ async function main() {
   let examples: EvalExample[] = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
 
   if (args.profile) examples = examples.filter((e) => e.themeKey === args.profile);
-  if (args.limit) examples = examples.slice(0, args.limit);
-  console.log(`Classifying ${examples.length} example(s) with prompt_version=${PROMPT_VERSION}, model=${CLASSIFIER_MODEL}...`);
+  // Stratified, not a prefix slice — `build-fixture` writes all positives
+  // before any negatives, so slicing the first N would skew heavily
+  // positive at small limits.
+  if (args.limit) examples = stratifiedSample(examples, args.limit);
+  console.log(`Classifying ${examples.length} example(s) with prompt_version=${PROMPT_VERSION}, model=${INGEST_MODEL}...`);
 
-  const client = new Anthropic({ apiKey });
-  const scored = args.batch ? await classifyViaBatch(client, examples) : await classifySync(client, examples);
-  printReport(scored, args.batch);
+  const client = new OpenAI({ apiKey });
+  const scored = await classifySync(client, examples);
+  printReport(scored);
 }
 
 main().catch((err) => {
