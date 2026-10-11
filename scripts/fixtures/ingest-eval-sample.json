@@ -1,0 +1,965 @@
+[
+  {
+    "id": "hneg-101tsgi",
+    "conference": "Dutch Blockchain Week 2026",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "hard_negative",
+    "event": {
+      "name": "Sunrise Vinyasa Flow — All Levels Welcome",
+      "organizer": "Flow Yoga Collective",
+      "venue": "Lincoln Park",
+      "cost": "Free",
+      "platform": "meetup",
+      "descriptionText": "Join us for a free sunrise vinyasa class in the park. Bring your own mat. All levels welcome, no experience necessary. Coffee and tea after class."
+    }
+  },
+  {
+    "id": "hneg-104f8u",
+    "conference": "Dutch Blockchain Week 2026",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "hard_negative",
+    "event": {
+      "name": "Intro to Pottery Wheel Workshop",
+      "organizer": "Clay Studio Co-op",
+      "venue": "Clay Studio Co-op",
+      "cost": "$45",
+      "platform": "eventbrite",
+      "descriptionText": "Hands-on beginner pottery wheel workshop. All materials included, no experience necessary. Limited to 10 seats."
+    }
+  },
+  {
+    "id": "hneg-10f9pyg",
+    "conference": "Korea Blockchain Week",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "hard_negative",
+    "event": {
+      "name": "Downtown Food Truck Friday",
+      "organizer": "Downtown Business Association",
+      "venue": "Main Street Plaza",
+      "cost": "Free",
+      "platform": "generic",
+      "descriptionText": "Weekly food truck gathering in the plaza with live acoustic music. Family friendly, free admission."
+    }
+  },
+  {
+    "id": "hneg-10wrp9i",
+    "conference": "Coinfest Asia 2026",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "hard_negative",
+    "event": {
+      "name": "Gallery Opening: New Works on Paper",
+      "organizer": "Riverside Gallery",
+      "venue": "Riverside Gallery",
+      "cost": "Free",
+      "platform": "eventbrite",
+      "descriptionText": "Opening reception for our new exhibition of works on paper by local artists. Wine and light bites provided."
+    }
+  },
+  {
+    "id": "hneg-10xlzp3",
+    "conference": "Coinfest Asia 2026",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "hard_negative",
+    "event": {
+      "name": "Board Game Night",
+      "organizer": "Tabletop Social Club",
+      "venue": "The Game Room",
+      "cost": "Free",
+      "platform": "meetup",
+      "descriptionText": "Weekly board game night, bring a game or play one of ours. Snacks and drinks available for purchase."
+    }
+  },
+  {
+    "id": "hneg-110uee3",
+    "conference": "Paris Blockchain Week 2026",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "hard_negative",
+    "event": {
+      "name": "Open Mic Comedy Night",
+      "organizer": "Laugh Lounge",
+      "venue": "Laugh Lounge",
+      "cost": "$10",
+      "platform": "generic",
+      "descriptionText": "Weekly open mic comedy night. Sign up at the door, 5 minute sets. Two drink minimum."
+    }
+  },
+  {
+    "id": "hneg-11hcxdg",
+    "conference": "Bitcoin Vegas",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "hard_negative",
+    "event": {
+      "name": "Rooftop Salsa Social",
+      "organizer": "Latin Dance Co",
+      "venue": "Rooftop Lounge",
+      "cost": "$15",
+      "platform": "posh",
+      "descriptionText": "Weekly salsa social with a short beginner lesson followed by open dancing. No partner necessary."
+    }
+  },
+  {
+    "id": "hneg-11ocaa5",
+    "conference": "Coinfest Asia 2026",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "hard_negative",
+    "event": {
+      "name": "Open Mic Comedy Night",
+      "organizer": "Laugh Lounge",
+      "venue": "Laugh Lounge",
+      "cost": "$10",
+      "platform": "generic",
+      "descriptionText": "Weekly open mic comedy night. Sign up at the door, 5 minute sets. Two drink minimum."
+    }
+  },
+  {
+    "id": "hneg-1254xcu",
+    "conference": "Token 2049",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "hard_negative",
+    "event": {
+      "name": "Intro to Pottery Wheel Workshop",
+      "organizer": "Clay Studio Co-op",
+      "venue": "Clay Studio Co-op",
+      "cost": "$45",
+      "platform": "eventbrite",
+      "descriptionText": "Hands-on beginner pottery wheel workshop. All materials included, no experience necessary. Limited to 10 seats."
+    }
+  },
+  {
+    "id": "hneg-12hhf5j",
+    "conference": "Dutch Blockchain Week 2026",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "hard_negative",
+    "event": {
+      "name": "Gallery Opening: New Works on Paper",
+      "organizer": "Riverside Gallery",
+      "venue": "Riverside Gallery",
+      "cost": "Free",
+      "platform": "eventbrite",
+      "descriptionText": "Opening reception for our new exhibition of works on paper by local artists. Wine and light bites provided."
+    }
+  },
+  {
+    "id": "hneg-13km93c",
+    "conference": "Token 2049",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "hard_negative",
+    "event": {
+      "name": "Neighborhood Book Club: Fiction Pick of the Month",
+      "organizer": "Elm Street Library",
+      "venue": "Elm Street Library",
+      "cost": "Free",
+      "platform": "meetup",
+      "descriptionText": "Monthly book club discussion. This month's pick is a contemporary fiction novel. New members welcome."
+    }
+  },
+  {
+    "id": "hneg-144e6rm",
+    "conference": "Dutch Blockchain Week 2026",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "hard_negative",
+    "event": {
+      "name": "Rooftop Salsa Social",
+      "organizer": "Latin Dance Co",
+      "venue": "Rooftop Lounge",
+      "cost": "$15",
+      "platform": "posh",
+      "descriptionText": "Weekly salsa social with a short beginner lesson followed by open dancing. No partner necessary."
+    }
+  },
+  {
+    "id": "hneg-147fkm5",
+    "conference": "Token 2049",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "hard_negative",
+    "event": {
+      "name": "Photography Walk: Golden Hour Downtown",
+      "organizer": "Shutter Collective",
+      "venue": "Downtown Plaza",
+      "cost": "Free",
+      "platform": "meetup",
+      "descriptionText": "Casual photo walk around downtown during golden hour. Bring any camera, phones welcome. Beginners encouraged."
+    }
+  },
+  {
+    "id": "hneg-15p7idk",
+    "conference": "WebX",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "hard_negative",
+    "event": {
+      "name": "Open Mic Comedy Night",
+      "organizer": "Laugh Lounge",
+      "venue": "Laugh Lounge",
+      "cost": "$10",
+      "platform": "generic",
+      "descriptionText": "Weekly open mic comedy night. Sign up at the door, 5 minute sets. Two drink minimum."
+    }
+  },
+  {
+    "id": "hneg-16s4jq7",
+    "conference": "Canada Crypto Week",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "hard_negative",
+    "event": {
+      "name": "Board Game Night",
+      "organizer": "Tabletop Social Club",
+      "venue": "The Game Room",
+      "cost": "Free",
+      "platform": "meetup",
+      "descriptionText": "Weekly board game night, bring a game or play one of ours. Snacks and drinks available for purchase."
+    }
+  },
+  {
+    "id": "hneg-173zzcu",
+    "conference": "Coinfest Asia 2026",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "hard_negative",
+    "event": {
+      "name": "Photography Walk: Golden Hour Downtown",
+      "organizer": "Shutter Collective",
+      "venue": "Downtown Plaza",
+      "cost": "Free",
+      "platform": "meetup",
+      "descriptionText": "Casual photo walk around downtown during golden hour. Bring any camera, phones welcome. Beginners encouraged."
+    }
+  },
+  {
+    "id": "xneg-100966d",
+    "conference": "NFT NYC 2026",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "sheet_cross_theme",
+    "event": {
+      "name": "Learn How to Build Apps Using Lovable",
+      "hosts": [
+        "SJ Innovation"
+      ],
+      "calendarName": "New York Tech Week",
+      "organizer": "SJ Innovation",
+      "venue": "Queens",
+      "dateISO": "2026-06-03",
+      "startTime": "6:30p",
+      "cost": "Invite Only",
+      "platform": "generic",
+      "descriptionText": ""
+    }
+  },
+  {
+    "id": "xneg-100e7iu",
+    "conference": "WebX",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "sheet_cross_theme",
+    "event": {
+      "name": "KYOTO INNOVATORS NIGHT 2026",
+      "hosts": [
+        "tomomi goto"
+      ],
+      "calendarName": "IVS 2026",
+      "organizer": "tomomi goto",
+      "venue": "QUESTION 8F DAIDOKORO, 390-2 Shimomaruyachō, Nakagyo Ward, Kyoto, 604-8006, Japan",
+      "dateISO": "2026-07-03",
+      "startTime": "6:30p",
+      "cost": "¥5,000",
+      "platform": "generic",
+      "descriptionText": ""
+    }
+  },
+  {
+    "id": "xneg-100h295",
+    "conference": "New York Tech Week",
+    "themeKey": "tech",
+    "label": "off_theme",
+    "source": "sheet_cross_theme",
+    "event": {
+      "name": "온도랑 불타기 | Bullish with Ondo",
+      "hosts": [
+        "Ondo Finance"
+      ],
+      "calendarName": "Korea Blockchain Week",
+      "organizer": "Ondo Finance",
+      "venue": null,
+      "dateISO": "2026-09-29",
+      "startTime": "2:00p",
+      "cost": "Free",
+      "platform": "luma",
+      "descriptionText": "Ondo Finance is hosting a closed-door evening for serious perps traders in Seoul on September 29. This is not a conference panel. It is a private gathering and sharing of alpha, access, and institutional expertise, the kind of room you will not want to miss.. It’s the perfect way to kick off your KBW tour.\nThe evening opens with a direct session with the Ondo Perps leadership team, including our CEO and strategy leads. We’ll discuss product direction, what is coming next, and a real read on where the industry is heading. This is followed by top institutional experts, and closing set with a curated alpha session featuring high-signal investment theses from leading voices in CT.\nThis event is supported by Four Pillars as our research partner.\nWhat to Expect\n2:00 PM KST — Doors open & VIP Networking\n3:00 PM KST — Welcome from Ondo Finance\n3:10 PM KST — Ondo Perps Showcase\n3:25 PM KST — Surprise announcement!\n3:35 PM KST — Institutional Experts Session\n4:00 PM KST — Networking break\n4:15 PM KST — CT Alpha session with VVIP speakers\n5:00 PM KST — Networking reception\nJoin a Select Group\n→ Proprietary trading firms and funds with digital asset exposure\n→ OG CT traders moving serious size in the markets\n→ Top allocators and capital deployers\n→ VIP crypto and markets\n→ Ondo leadership\nBy invite only. Seats are limited. A confirmed RSVP is required to attend.\nLocation\nLion Super Club \n1F, 535 Dosan-daero, Gangnam-gu, Seoul 06011, South Korea  \n강남구 도산대로 535, 1F\n​About Ondo Finance\nOndo Finance is a blockchain-based platform focused on tokenizing real-world assets and bringing institutional-quality financial products onchain. By bridging traditional finance and decentralized infrastructure, Ondo aims to make capital markets more accessible, transparent, and efficient.\nBy providing the contact information required in this form, you agree to be contacted by the Ondo Finance in order for us to inform you about our products and services. For more information on our privacy practices or how to unsubscribe, please refer to our Privacy Policy.\nBy attending the event you acknowledge that the organizers may photograph and  record videos at the event and use them for promotional and marketing purposes, in any and all media, without further notice or compensation.\nhttps://ondo.finance/\nhttps://docs.ondo.finance/legal/privacy-policy\nhttps://stellar.org/privacy-policy"
+    }
+  },
+  {
+    "id": "xneg-100iyhi",
+    "conference": "IVS 2026",
+    "themeKey": "tech",
+    "label": "off_theme",
+    "source": "sheet_cross_theme",
+    "event": {
+      "name": "KBW Drink Mixer: Presented by Circle x Auros x BDACS x Mento",
+      "hosts": [
+        "Auros",
+        "BDACS",
+        "Circle",
+        "Mento Labs"
+      ],
+      "calendarName": "Korea Blockchain Week",
+      "organizer": "Auros Events",
+      "venue": null,
+      "dateISO": "2026-09-23",
+      "startTime": "6:00p",
+      "cost": "Free",
+      "platform": "luma",
+      "descriptionText": "🍸 Drinks Social with Circle, Auros, BDACS, and Mento\nJoin us for a relaxed social gathering during Korean Blockchain Week, where you can connect with fellow industry professionals in a warm and inviting setting. Sip on expertly crafted cocktails and enjoy gourmet canapés at one of Seoul’s premier hotel bars known for its elegant atmosphere and friendly vibe. See you there! \n💡 RSVP Details:\nThis event is strictly invite-only. Attendance is by invitation only, and each invite is non-transferable. Due to limited availability, registrations will undergo a review process, and confirmations will be sent to those whose attendance has been approved.\nWe expect a full house, so please RSVP at your earliest convenience. If you can no longer attend, make sure to cancel your reservation. Your RSVP and/or attendance constitutes your consent to receive email communications and photography for the hosts' marketing purposes.\nBy attending this event, you agree to be photographed and/or filmed, granting permission for your likeness to be used in promotional and marketing materials, and by registering, you consent to the use of the information you provide to contact you about this event and other marketing communications.\n​​About Auros\nAuros is a leading global market-making and algorithmic trading firm founded by seasoned industry veterans with over 20 years of experience. Auros executes billions in daily notional turnover, leveraging advanced liquidity solutions to stabilize markets and foster growth across the digital asset ecosystem.\nBeyond its trading expertise, Auros offers a suite of tailored services to support token projects throughout their lifecycle, including its distinctive Strategic Market Making service, DeFi and on-chain engineering solutions, bespoke OTC execution, and strategic investment support. These capabilities empower Auros' partners to confidently navigate the complexities from TGE to growth and beyond.\n​​For more information, visit auros.global or follow Auros on X and LinkedIn.\n​​About ​​Circle\nCircle (NYSE: CRCL) is a global financial technology firm that enables businesses of all sizes to harness the power of digital currencies and public blockchains for payments, commerce, and financial applications worldwide. Circle is building the world’s largest, most-widely used, stablecoin network, and issues, through its regulated affiliates, USDC and EURC stablecoins. Circle provides a comprehensive suite of financial and technology services that empower enterprises and developers to integrate stablecoins and blockchains into their products, services and business operations.\n​​About BDACS \nBDACS is a fully regulated digital asset custodian in Korea, delivering secure, compliant, and tailored prime custody services for institutional clients. Our robust infrastructure and strategic partnerships with leading firms across technology and digital finance enable seamless portfolio construction and management. As the digital asset landscape evolves, BDACS empowers institutions to scale with confidence and clarity.\n​​About Mento\nMento is the leading onchain FX and decentralized stablecoin platform, enabling the most efficient trading for multi-currency stablecoins at real-world FX rates through its novel fixed-price market maker (FPMM) pools. Built for both institutions and individuals, Mento powers real-world financial use cases such as cross-border payments, credit markets, currency hedging, and more through a growing portfolio of 15+ stablecoins. Mento can also support the integration of any currency stablecoin—native or third-party stablecoins—into its FX infrastructure.\nLearn more: mento.org | Follow Mento: @MentoLabs\nhttps://www.circle.com/\nhttps://www.auros.global/\nhttps://www.bdacs.co.kr/en\nhttps://www.mento.org/\nhttps://www.auros.global/\nhttps://auros.global\nhttps://x.com/auros_global\nhttps://www.linkedin.com/company/aurosglobal/\nhttps://www.circle.com/\nhttps://www.myriad.social/\nhttps://www.bdacs.co.kr/en\nhttps://www.myriad.social/\nhttps://www.mento.org/\nhttps://mento.org"
+    }
+  },
+  {
+    "id": "xneg-100jc90",
+    "conference": "Canada Crypto Week",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "sheet_cross_theme",
+    "event": {
+      "name": "Fast AI Sales - #NYTechWeek",
+      "hosts": [
+        "Egregora Global, Tech Week"
+      ],
+      "calendarName": "New York Tech Week",
+      "organizer": "Egregora Global, Tech Week",
+      "venue": "Tribeca, Tribeca, Manhattan, New York, NY",
+      "dateISO": "2026-06-04",
+      "startTime": "5:00p",
+      "cost": "Free",
+      "platform": "partiful",
+      "descriptionText": ""
+    }
+  },
+  {
+    "id": "xneg-100jnqk",
+    "conference": "Dutch Blockchain Week 2026",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "sheet_cross_theme",
+    "event": {
+      "name": "Pilates & Matcha",
+      "hosts": [
+        "The Ethereal"
+      ],
+      "calendarName": "New York Tech Week",
+      "organizer": "The Ethereal",
+      "venue": "ARTECHOUSE NYC 439 W 15th St, New York, NY 10011, USA",
+      "dateISO": "2026-06-07",
+      "startTime": "10:00a",
+      "cost": "50",
+      "platform": "luma",
+      "descriptionText": "We are returning to ARTECHOUSE NYC to transform the digital museum into an immersive sanctuary for a Pilates & Matcha experience on June 7th.\nDate & Time: Sunday, June 7 · 10:00 AM – 11:30 AM at ARTECHOUSE NYC\nCentered around movement, wellness, recovery, and community, Pilates & Matcha brings together creators, models, wellness enthusiasts, and lifestyle brands for a curated morning experience blending fitness, conscious living, and elevated brand discovery.\nThe Programming\n10:00 AM · Arrival + Content Capture + Wellness Gifting          Enjoy complimentary matcha lattes by Matcha Reserve, curated VIP gifting, and wellness takeaways.\n10:30 AM · Instructor-Led Mat Pilates by KZ Pilates\nA guided full-body Mat Pilates session focused on strength, mobility, posture, and recovery. Open to all levels. Mats will be provided for approved attendees.\n11:00 AM - 11:30 AM · Networking and Departure\nEnjoy complimentary matcha lattes, curated VIP gifting, and wellness takeaways before departure.\nPremium Wellness Partners\nAll approved attendees will receive curated VIP gift bags featuring skincare, beauty, wellness, and lifestyle products from partners including EMRA New York, Magic Science, Evo Drink, Kind Patches, and more.\nComplimentary Morning Matcha Lattes by Matcha Reserve.\nConnect with top creators, wellness professionals, models, and lifestyle brands from New York, Miami, Toronto, and Houston in a setting designed to inspire movement, connection, and mindful living.\nNo door tickets. If you have not received confirmation, please contact Katlyn at katlyn@the-ethereal.world or DM us on Instagram at @theetherealshow.\nhttps://www.instagram.com/theetherealshow/?utm_source=chatgpt.com"
+    }
+  },
+  {
+    "id": "xneg-100pgof",
+    "conference": "Paris Blockchain Week 2026",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "sheet_cross_theme",
+    "event": {
+      "name": "Salubrum Salon Dinner for Healthcare Investors - #NYTechWeek",
+      "hosts": [
+        "Coeus Collective Ventures, Tech Week"
+      ],
+      "calendarName": "New York Tech Week",
+      "organizer": "Coeus Collective Ventures, Tech Week",
+      "venue": "The Parlour Room, 70 W 36th St, New York, NY 10018",
+      "dateISO": "2026-06-04",
+      "startTime": "7:00p",
+      "cost": "Free",
+      "platform": "partiful",
+      "descriptionText": ""
+    }
+  },
+  {
+    "id": "xneg-100r5ub",
+    "conference": "New York Tech Week",
+    "themeKey": "tech",
+    "label": "off_theme",
+    "source": "sheet_cross_theme",
+    "event": {
+      "name": "Web3 & Crypto Nomikai / Web3・クリプト・飲み会 (By stealthfounders.com)",
+      "hosts": [
+        "Donald Murataj"
+      ],
+      "calendarName": "WebX",
+      "organizer": "Donald Murataj",
+      "venue": "皆川ビル, 〒150-0041 Tokyo, Shibuya, Jinnan, 1-chōme−22−１０",
+      "dateISO": "2026-07-09",
+      "startTime": "7:00p",
+      "cost": "Free",
+      "platform": "luma",
+      "descriptionText": "We are also excited to announce that we are partnering with Singapore Blockchain Week (SBW 2026), the world's first cross-border blockchain week, taking place November 13-17 across Singapore and the Johor-Singapore Special Economic Zone in Malaysia.　Singapore Blockchain Week（SBW 2026）とのパートナーシップも発表します。SBW 2026は、世界初のクロスボーダー型ブロックチェーンウィークで、11月13〜17日にシンガポールおよびジョホール・シンガポール特別経済区（マレーシア）にて開催されます。\nSBW 2026 brings together policymakers, financial institutions, venture capital, exchanges, infrastructure providers, and enterprise leaders to shape the next generation of cross-border finance and Web3 infrastructure in Southeast Asia. SBW has already been active across the region this year, co-hosting events at the National University of Singapore during SuperAI Week (https://luma.com/9vdktnrz) and partnering with OffChain Global during the Hong Kong Web3 Festival (https://luma.com/n58km1q8?tk=jYvKaV).　SBW 2026には、政策立案者、金融機関、ベンチャーキャピタル、取引所、インフラプロバイダー、企業リーダーが一堂に会し、東南アジアにおける次世代のクロスボーダー金融とWeb3インフラの未来を形作ります。SBWは今年すでに各地で精力的に活動しており、SuperAI Week中にシンガポール国立大学でのイベントを共催し（https://luma.com/9vdktnrz）、香港Web3 FestivalではOffChain Globalとも提携しています（https://luma.com/n58km1q8?tk=jYvKaV）。\nTo celebrate our partnership, we will be raffling off 2 free tickets to the SBW 2026 conference. If you are interested in entering the raffle, please send an email to contactstealthfounders@gmail.com. You can learn more about Singapore Blockchain Week here: https://luma.com/cvl6h0s0.　このパートナーシップを記念して、SBW 2026のチケット2枚が当たる抽選会を実施します。抽選への参加をご希望の方は、contactstealthfounders@gmail.com までメールをお送りください。Singapore Blockchain Weekの詳細はこちら：https://luma.com/cvl6h0s0。\nIf you work in DeFi, stablecoins, tokenization, NFT infrastructure, crypto exchanges, blockchain development, or anything related to the intersection of Web3 and digital assets, this night is for you. This is an unofficial side event to warm up for WebX 2026 (July 13-14, Tokyo International Forum), Asia's largest Web3 conference.　DeFi、ステーブルコイン、トークン化、NFTインフラ、暗号資産取引所、ブロックチェーン開発など、Web3とデジタルアセットの融合に関わっている方なら、この夜はあなたのためのイベントです。本イベントは、アジア最大級のWeb3カンファレンス「WebX 2026」（7月13〜14日、東京国際フォーラム）に向けたウォームアップを兼ねた非公式サイドイベントです。\nThe crypto and Web3 space in Japan is accelerating. Stablecoin regulation is opening new doors, institutional players are entering tokenized assets, and Layer 1 and Layer 2 ecosystems are scaling faster than ever. We are bringing together the people who are building and shaping the next generation of digital finance.　日本における暗号資産・Web3の動きは加速しています。ステーブルコイン規制が新たな扉を開き、機関投資家がトークン化資産に参入し、Layer 1・Layer 2エコシステムはかつてないスピードで拡大しています。次世代のデジタル金融を構築し、形作っている人たちが集まります。\nYou'll get the chance to meet:\nBlockchain and smart contract engineers\nCrypto exchange and custody operators\nDeFi protocol builders and tokenization specialists\nData analysts and researchers in on-chain analytics\nFounders, product managers, and operators in the Web3 space\n出会える人たち：\nブロックチェーン・スマートコントラクトエンジニア\n暗号資産取引所・カストディ事業者\nDeFiプロトコルビルダー・トークン化スペシャリスト\nオンチェーン分析のデータアナリスト・リサーチャー\nWeb3分野の起業家、プロダクトマネージャー、オペレーター\nNo presentations. No slides. Just good people sharing stories and chatting openly about what it's really like to build in Web3 and crypto today. No gatekeeping, no formal talks: just real conversations. Think of it as a pre-WebX warmup with the people you actually want to meet.　プレゼンなし。スライドなし。Web3・クリプトの世界で実際にビルドする中でのリアルな話を、気の合う人たちと自由に語り合うだけ。ゲートキーピングも、堅いトークもありません。ただの本音トークです。WebXの前に、本当に会いたい人たちと繋がるウォームアップの場です。\nIf you're building, deploying, investing, or thinking about creating something in the Web3 and crypto space, you'll fit right in.　Web3・クリプト分野で、作っている人、デプロイしている人、投資している人、これから何かを始めたいと考えている人なら、きっと馴染めるはずです。\nWe also have a Discord group for founders, engineers, operators, and builders in Tokyo and around the world if anyone wants to join: https://discord.gg/pUhaV9KKT5.　東京や世界中の起業家、エンジニア、オペレーター、ビルダー向けのDiscordコミュニティもあります。興味のある方はこちらから参加してください：https://discord.gg/pUhaV9KKT5。\nhttps://luma.com/9vdktnrz\nhttps://luma.com/n58km1q8?tk=jYvKaV\nhttps://luma.com/9vdktnrz）、香港Web3\nhttps://luma.com/n58km1q8?tk=jYvKaV）。\nmailto:contactstealthfounders@gmail.com\nhttps://luma.com/cvl6h0s0\nmailto:contactstealthfounders@gmail.com\nhttps://luma.com/cvl6h0s0。\nhttps://discord.gg/pUhaV9KKT5\nhttps://discord.gg/pUhaV9KKT5。"
+    }
+  },
+  {
+    "id": "xneg-100t57r",
+    "conference": "New York Tech Week",
+    "themeKey": "tech",
+    "label": "off_theme",
+    "source": "sheet_cross_theme",
+    "event": {
+      "name": "Proof of Lifestyle by Sophon",
+      "hosts": [
+        "Oskari",
+        "Seb",
+        "Miggy",
+        "moa agency",
+        "David K",
+        "Sophon Korea"
+      ],
+      "calendarName": "Korea Blockchain Week",
+      "organizer": "Korea Blockchain Week",
+      "venue": "LAYER27 레이어스튜디오27 26 Achasan-ro 11ga-gil, Seongdong-gu, Seoul, South Korea",
+      "dateISO": "2026-09-22",
+      "startTime": "12:00p",
+      "cost": "Free",
+      "platform": "luma",
+      "descriptionText": "Turn Your Data Into Your Currency\nFor decades, tech giants built trillion-dollar empires by monetizing your digital life - your clicks, preferences, and online identity became their goldmine. Sophon flips the script.\nWelcome to the Data Arcade, where your data unlocks everything. Share your digital lifestyle insights and watch them transform into real value: premium food, exclusive drinks, limited merch, and VIP experiences. This isn't just networking - it's Lifestyle Crypto in action.\nExperience firsthand how Sophon is building the future where you own and profit from your digital footprint. Whether you're a builder, investor, longtime believer, or crypto-curious, come see what happens when data becomes your personal asset class.\nHow it works: Bring your digital lifestyle. Prove your data. Unlock Sophon.\nJoin the Sophon team in the heart of Seoul for an evening where your online presence becomes your ticket to everything. Because the greatest wealth transfer in internet history shouldn't just flow to tech giants - it should flow to you.\nThe revolution starts with what you already have: your data.\n[Catering Brands]\nSeoul’s top chicken burger brand \"Rocka Doodle\"\nOne of Seoul’s top 3 bakery café brand \"Flink Coffee\"\nSophon joins forces with these 2 exclusive brands you won’t find anywhere else.\n📅 Date: 2025.09.22(MON) 12:00 - 18:00\n📍Location: Layer Studio 27, Seongsu\n​❗️By registering for this event, you acknowledge and agree that photos and videos taken during the event may be used by Sophon for promotional purposes (including social media, marketing materials, website content, etc.).\n데이터를 나의 자산으로! by. 소폰 \n그동안 테크 기업들은 우리의 디지털 흔적을 돈으로 바꾸며 수조 달러의 제국을 세웠습니다. 클릭, 취향, 온라인 정체성까지 전부 그들의 금광이 된 거죠.\n이제 Sophon이 판을 뒤집습니다.\n데이터 아케이드에 오신 걸 환영합니다.\n여기서는 여러분의 데이터가 모든 걸 열어주는 열쇠가 됩니다.\n당신의 디지털 라이프스타일을 공유해 보세요. 그 순간 프리미엄 음식, 특별한 음료, 한정 굿즈, VIP 경험으로 바뀝니다.\n이건 그냥 네트워킹이 아닙니다 – 바로 Lifestyle Crypto의 실현이에요.\nSophon은 여러분이 디지털 발자취를 직접 소유하고 수익을 얻는 미래를 만들고 있습니다.\n빌더, 투자자, 오랜 팬, 혹은 그냥 암호화폐가 궁금한 사람 누구든 환영합니다.\n데이터가 ‘나만의 자산’으로 변하는 순간을 직접 확인해 보세요.\n어떻게 하냐고요?\n👉 디지털 라이프스타일을 가져오세요.\n👉 데이터를 증명하세요.\n👉 그리고 Sophon을 통해 새로운 가치를 열어보세요.\n서울 성수 한복판에서 열리는 이번 이벤트에서, 여러분의 온라인 존재감이 모든 것의 티켓이 됩니다.\n인터넷 역사상 가장 큰 부의 이동, 이제 테크 기업이 아닌 당신에게 흘러갈 차례입니다.\n혁명은 이미 시작됐습니다. 그리고 그 시작은 바로 당신의 데이터입니다.\n[케이터링 제공 브랜드]\n서울 최고의 치킨버거 브랜드 \"롸카 두들(Rocka doodle)\"\n서울 3대 베이커리 카페 브랜드 \"플링크 커피(Flink coffee)\"\n다른 곳에서는 맛볼 수 없는 두 브랜드와 소폰이 함께합니다.\n📅 일정: 2025년 9월 22일(월) 12:00 - 18:00\n📍 장소: 레이어 스튜디오 27, 성수\n​❗️본 행사에 등록함으로써, 행사 중 촬영되는 사진과 영상이 소폰의 홍보 목적으로(소셜 미디어, 마케팅 자료, 웹사이트 콘텐츠 등) 사용될 수 있음을 인정하고 이에 동의하게 됩니다."
+    }
+  },
+  {
+    "id": "xneg-100unfu",
+    "conference": "Toronto Tech Week",
+    "themeKey": "tech",
+    "label": "off_theme",
+    "source": "sheet_cross_theme",
+    "event": {
+      "name": "K-INFRA: Building DePIN in Korea 🇰🇷",
+      "hosts": [
+        "\bSEA DePIN",
+        "Piggycell",
+        "OORT | Cloud for Decentralized AI"
+      ],
+      "calendarName": "Korea Blockchain Week",
+      "organizer": "Korea Blockchain Week",
+      "venue": "1445-14 1445-14 Seocho-dong, Seocho District, Seoul, South Korea",
+      "dateISO": "2026-09-24",
+      "startTime": "6:00p",
+      "cost": "Free",
+      "platform": "luma",
+      "descriptionText": "🗓Date: September 24, 2025\n⏰ Time: 18:00 – 21:00 (KST/GMT +9)\n📍Venue: \n16th Floor (The Hitejinro Building)\n1445-14 Seocho-dong, Seocho District, Seoul\n☎️ Contact: @jackieeth (Telegram)\nK-INFRA @ KBW brings together global DePIN builders and Korea’s Web3 ecosystem for an evening of panels, live demos, and business matchmaking.\nIn just 3 hours, we’ll cut through the hype to:\n✅ Show real deployment stats and operator economics\n✅ Share Korea-specific GTM insights from enterprises, operators, and ecosystem leaders\n✅ Match global DePIN projects with Korean buyers, hosts, and distributors ready to scale\nAttendees\nEnterprises & Buyers\nOperators\nDePIN Builders\nVCs & Partners\nActivities\n👉🏻Panel Discussions: curated insights on GTM, incentives, and reliability\n👉🏻Live Demonstrations: DePIN projects showcase their solutions with deployment stats\n👉🏻BD Desk: open all evening for enterprise pilots, operator hosts, and distributor matches\n👉🏻Networking Mixer: connect 1-on-1 with builders, buyers, and VCs\nAgenda\n6:00 – 6:15 PM | 🙌🏻 Welcome & Networking (check-in, refreshments)\n6:15 – 6:45 PM | Panel 1\n🎙Korea GTM, Minus the Myths\n6:45 – 7:15 PM | Panel 2\n🎙Token Incentives That Don’t Break Ops\n7:15 – 7:30 PM | ☕️ Short Break\n7:30 – 8:00 PM | 🎤 Keynotes\n8:00 – 8:30 PM | Panel 3\n🎙Deployment Proof That Enterprises Trust\n8:30 – 9:00 PM | 🥂Networking Mixer + BD Desk open for pilot scoping\nCo-hosts\nSEA DePIN – Growth & transformation agency accelerating DePIN adoption across APAC\nPiggycell – Korea’s leading DePIN for mobile power (13,000+ charging hubs, 100,000+ batteries)\nOORT – A decentralized cloud storage network designed for AI and big data, delivering secure, scalable, and cost-efficient infrastructure for Web3 and enterprise applications.\nSponsors\nWingbits – The world’s largest decentralized ADS-B flight-tracking network, providing real-time and historical aircraft data with cryptographic proof.\nHyra Network – A decentralized compute and data infrastructure network powering AI and Web3 with scalable, secure resources.\nCommunity Partners\nICP Korea - Driving Web3 adoption in Korea with the Internet Computer ecosystem, supporting builders and innovators across blockchain, infra, and AI.\nTiger Research - A leading Korea-based Web3 accelerator and research firm, bridging global projects with the Korean market through insights and partnerships.\nMedia Partners\nDePIN Hub - A media and research platform dedicated to Decentralized Physical Infrastructure Networks, offering ecosystem tracking, expert insights, and verification programs.\nFollowin - A fast-growing crypto news & community app, delivering real-time updates, research, and market analysis to millions of global Web3 users.\nContact\nFor further information and collaboration, please contact @Jackieeth via Telegram\nFollow us on X: https://x.com/SEADePIN\nhttps://images.lumacdn.com/editor-images/7h/1dac0409-ee72-4129-a34f-a4fed3be6d30.jpg\nhttps://images.lumacdn.com/editor-images/w3/a61cf491-d2a1-4ceb-807a-1cc5565ac676.png\nhttps://images.lumacdn.com/editor-images/60/be58401e-b86b-4fd9-a79e-66258e652392.png\nhttps://images.lumacdn.com/editor-images/px/3f859549-f726-41d7-b888-db94705fe864.png\nhttps://images.lumacdn.com/editor-images/a2/b4c4aed1-c333-44c2-944d-712390d10989.png\nhttps://images.lumacdn.com/editor-images/2l/4d19743b-61bc-434e-be3a-897ee1271059.png\nhttps://www.seadepin.xyz/\nhttps://www.piggycell.io/home\nhttps://www.oortech.com/\nhttps://wingbits.com/\nhttps://hyra.network/\nhttps://x.com/icphub_KR\nhttps://tiger-research.com/\nhttps://depinhub.io/\nhttps://followin.io/en\nhttps://t.me/jackieeth\nhttps://x.com/SEADePIN"
+    }
+  },
+  {
+    "id": "xneg-100zkdx",
+    "conference": "Canada Crypto Week",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "sheet_cross_theme",
+    "event": {
+      "name": "The Great AI Divide: U.S., China vs the rest #NYTechWeek",
+      "hosts": [
+        "Rest of World"
+      ],
+      "calendarName": "New York Tech Week",
+      "organizer": "Rest of World",
+      "venue": "Chelsea",
+      "dateISO": "2026-06-02",
+      "startTime": "3:00p",
+      "cost": "Free",
+      "platform": "partiful",
+      "descriptionText": ""
+    }
+  },
+  {
+    "id": "xneg-10109ne",
+    "conference": "Consensus Miami",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "sheet_cross_theme",
+    "event": {
+      "name": "Pride x TechWeek hosted by LGBT+ VC - #NYTechWeek",
+      "hosts": [
+        "LGBT+ VC"
+      ],
+      "calendarName": "New York Tech Week",
+      "organizer": "LGBT+ VC",
+      "venue": "Greenwich Village",
+      "dateISO": "2026-06-04",
+      "startTime": "7:00p",
+      "cost": "Free",
+      "platform": "partiful",
+      "descriptionText": ""
+    }
+  },
+  {
+    "id": "xneg-101461o",
+    "conference": "Bitcoin Vegas",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "sheet_cross_theme",
+    "event": {
+      "name": "Food Tech Coffee Chat: Tech that Keeps Humanity at the Table",
+      "hosts": [
+        "Letters from the Table"
+      ],
+      "calendarName": "New York Tech Week",
+      "organizer": "Letters from the Table",
+      "venue": "Tribeca",
+      "dateISO": "2026-06-05",
+      "startTime": "10:00a",
+      "cost": "Invite Only",
+      "platform": "generic",
+      "descriptionText": ""
+    }
+  },
+  {
+    "id": "xneg-10172gl",
+    "conference": "Token 2049",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "sheet_cross_theme",
+    "event": {
+      "name": "South Asians in Finance - #NYTechWeek",
+      "hosts": [
+        "ASAN, Tech Week"
+      ],
+      "calendarName": "New York Tech Week",
+      "organizer": "ASAN, Tech Week",
+      "venue": "New York, New York",
+      "dateISO": "2026-06-03",
+      "startTime": "6:30p",
+      "cost": "Free",
+      "platform": "partiful",
+      "descriptionText": ""
+    }
+  },
+  {
+    "id": "xneg-101dxhm",
+    "conference": "Canada Crypto Week",
+    "themeKey": "crypto",
+    "label": "off_theme",
+    "source": "sheet_cross_theme",
+    "event": {
+      "name": "Cracking Founder-Led Marketing - #NYTechWeek",
+      "hosts": [
+        "Founder-Led Marketing Community, Tech Week"
+      ],
+      "calendarName": "New York Tech Week",
+      "organizer": "Founder-Led Marketing Community, Tech Week",
+      "venue": "New York, NY, New York, NY",
+      "dateISO": "2026-06-01",
+      "startTime": "11:00a",
+      "cost": "Free",
+      "platform": "partiful",
+      "descriptionText": ""
+    }
+  },
+  {
+    "id": "xneg-101k4w6",
+    "conference": "New York Tech Week",
+    "themeKey": "tech",
+    "label": "off_theme",
+    "source": "sheet_cross_theme",
+    "event": {
+      "name": "The Liquidity Table <> Rayls VIP Dinner",
+      "hosts": [
+        "Rayls .",
+        "Tom Dickens",
+        "Cookie",
+        "Myosin.xyz"
+      ],
+      "calendarName": "Korea Blockchain Week",
+      "organizer": "Rayls",
+      "venue": null,
+      "dateISO": "2026-09-26",
+      "startTime": "7:00p",
+      "cost": "Free",
+      "platform": "luma",
+      "descriptionText": "Rayls Super VIP Dinner — Seoul\nNot your average dinner. This is where banks, builders, and degens crash the same table. 🍷⚡\nWe’re taking over Seoul during Korean Blockchain Week with a super-exclusive night of food, drinks & alpha.\n👔 TradFi heads, 🧑‍💻 DeFi OGs, 🦄 founders, and some surprise KOLs all in one room.\nNo panels, no pitches — just real conversations, unexpected collabs, and deals flowing faster than soju shots. 🥂\nExpect:\n✨ A handpicked guest list (quality > quantity)\n🍣 Seoul’s finest dinner & cocktails\n🚀 Private drops of what’s next for Rayls — the blockchain for banks\n👀 Alpha you won’t hear on stage\nIf you made it here, you already know: limited seats\n__________________________________\nRayls\nBuilt to bring $100T liquidity and 6B bank customers onchain. A scalable private and public blockchain for financial institutions and individuals with native compliance, governance controls, and quantum-safe privacy preservation. Trusted by JPMorgan Kinexys, Santander Brazil, Drex (Central Bank of Brazil), B3, Visa, BV, Bradesco, XP.\nhttp://www.rayls.com"
+    }
+  },
+  {
+    "id": "pos-1003x7f",
+    "conference": "New York Tech Week",
+    "themeKey": "tech",
+    "label": "on_theme",
+    "source": "sheet_own_tab",
+    "event": {
+      "name": "Photoreal VR for Archvis, Real Estate and Location-Based Entertainment - Day 2 - #NYTechWeek",
+      "hosts": [
+        "Agile Lens"
+      ],
+      "calendarName": "New York Tech Week",
+      "organizer": "Agile Lens",
+      "venue": "Dbox, 15 Park Row, FL 2, New York, NY 10038",
+      "dateISO": "2026-06-05",
+      "startTime": "10:00a",
+      "cost": "Free",
+      "platform": "partiful",
+      "descriptionText": ""
+    }
+  },
+  {
+    "id": "pos-1012tl7",
+    "conference": "New York Tech Week",
+    "themeKey": "tech",
+    "label": "on_theme",
+    "source": "sheet_own_tab",
+    "event": {
+      "name": "Young Innovators Showcase : Demo Day x AI Prompt Battle x Wellbeing Lab #NYTechWeek",
+      "hosts": [
+        "The Kijana Company, Tech Week"
+      ],
+      "calendarName": "New York Tech Week",
+      "organizer": "The Kijana Company, Tech Week",
+      "venue": "Manhattan, Manhattan, New York, NY",
+      "dateISO": "2026-06-06",
+      "startTime": "12:00p",
+      "cost": "Free",
+      "platform": "partiful",
+      "descriptionText": ""
+    }
+  },
+  {
+    "id": "pos-102rxf0",
+    "conference": "New York Tech Week",
+    "themeKey": "tech",
+    "label": "on_theme",
+    "source": "sheet_own_tab",
+    "event": {
+      "name": "FASHIONOLOGY SUMMIT - #NYTechWeek",
+      "hosts": [
+        "Fashionology"
+      ],
+      "calendarName": "New York Tech Week",
+      "organizer": "Fashionology",
+      "venue": "The Glasshouse, 660 12th Ave, FL 6, New York, NY 10019",
+      "dateISO": "2026-06-06",
+      "startTime": "12:00p",
+      "cost": "Free",
+      "platform": "partiful",
+      "descriptionText": ""
+    }
+  },
+  {
+    "id": "pos-102xbsf",
+    "conference": "Token 2049",
+    "themeKey": "crypto",
+    "label": "on_theme",
+    "source": "sheet_own_tab",
+    "event": {
+      "name": "Morning Circle: A Morning Gathering for the Mandarin-Speaking Web3 Community (Invite-Only), Hosted by Comma3 Ventures",
+      "hosts": [
+        "Comma3 Ventures",
+        "CryptoMiles",
+        "Ivan Li",
+        "Nicole",
+        "Denny Yang",
+        "Corrina Lee"
+      ],
+      "calendarName": "Token 2049",
+      "organizer": "Comma3 Ventures",
+      "venue": null,
+      "dateISO": "2026-10-08",
+      "startTime": "10:00a",
+      "cost": "Free",
+      "platform": "luma",
+      "descriptionText": "Morning Circle\nA Morning Gathering for the Mandarin-Speaking Web3 Community (Invite-Only)\n中文 Web3 社群的晨间小聚（邀请制）\nHosted by Comma3 Ventures\nIn partnership with Singchain Investment\nProduced by CryptoMiles\nOverview\nDuring TOKEN2049 week, the days run full with barely a moment to breathe. Morning Circle sets aside one unhurried morning within it — a small, invite-only brunch for the Mandarin-speaking Web3 community, hosted by Comma3 Ventures.\nIn a quiet, private space in Singapore, we bring together Mandarin-speaking creators, KOLs, and builders over good coffee and brunch, with no rush. We're keeping it small and invite-only, so the conversations go deep enough to turn the people you've been crossing paths with all week into ones you'll actually keep in touch with.\nWho It's For\nMandarin-speaking Web3 KOLs & content creators\nCommunity leaders & ecosystem partners\nFounders, investors & builders\n💧SUI Airdrop for Attendees\nEvery guest who joins Morning Circle receives a 300 SUI airdrop from the host. Check in on-site to claim — full details will be shared at the event.\nHighlights\nAn intimate, invite-only morning gathering\nBrunch & specialty coffee\nAn unhurried pace made for real conversation\nOn-site photography\n300 SUI for every attendee: an on-site airdrop from the hosts, claimed at the event.\nAgenda\n10:00 AM | Doors Open & Welcome Coffee\n10:15 AM | A Brief Hello from Comma3 Ventures\n10:15 AM – 12:00 PM | Brunch & Open Conversation\nAbout Comma3 Ventures\nComma3 Ventures is an influential player in the blockchain landscape, partnering with groundbreaking blockchain teams globally since 2017. More than just financial backers, they offer a wealth of resources from strategic VC connections to in-depth market insights, embodying their ethos: \"funds of the founders, by the founders, for the founders.\"\nWebsite | X (Twitter) | LinkedIn | Instagram | Threads | YouTube\nIn partnership with Singchain Investment\nProduced by CryptoMiles\nCryptoMiles is a Web3-focused marketing and event consulting agency dedicated to delivering immersive, high-impact blockchain industry experiences.\nNote:\n1. By invite only. \n2. Registration is subject to approval, and capacity is limited. 3. A confirmed Luma QR code is required for entry.\n4. The exact venue will be shared with approved guests only.\n5. 300 SUI airdrop: available to approved guests who check in on-site — one per attendee, while supplies last. A compatible Sui wallet is required; claiming takes place on-site or after the event, subject to eligibility and applicable local regulations.\n6. This event will be photographed. By attending, you consent to the host using images for event recap and promotion — let a staff member know on-site if you'd prefer not to be featured.\nOverview\nTOKEN2049 期间，大会週总是忙到没有喘息。Morning Circle 想在其中留一个从容的上午——一场仅限邀请的小型早午餐聚会，专为中文 Web3 社群而办，由 Comma3 Ventures 主办。\n在新加坡一处安静而私密的空间里，我们把中文圈的创作者、KOL 与建设者聚在一起，配上好咖啡与早午餐，不赶时间地聊。名额刻意不多、只邀不开放，就是希望大家能聊得够深，把这一週擦身而过的人，变成往后真的会联系的朋友。\nWho It's For\n中文 Web3 KOL 与内容创作者\n社群主理人与生态伙伴\n创办人、投资人与建设者\n💧SUI Airdrop for Attendees\n每位到场参加 Morning Circle 的朋友，均可领取 300 SUI 空投。现场完成报到即可 claim，详情将于活动现场公布。\nHighlights\n仅限邀请的小型早午餐聚会\n精品咖啡与轻食\n适合深聊的从容节奏\n现场摄影\n每位到场者 300 SUI： 现场发放的空投，到场即可领取。\nAgenda\n10:00｜入场与迎宾咖啡\n10:15｜Comma3 Ventures 致词问候\n10:15 – 12:00｜早午餐与自由交流\nAbout Comma3 Ventures\nComma3 Ventures 是区块链领域具影响力的参与者，自 2017 年起与全球突破性的区块链团队合作。我们不仅是资金提供者——更提供从策略性创投人脉到深度市场洞察的丰沛资源，体现我们的理念：「funds of the founders, by the founders, for the founders」。\nWebsite | X (Twitter) | LinkedIn | Instagram | Threads | YouTube\n特別合作夥伴 Singchain Investment\nProduced by CryptoMiles\nCryptoMiles 是一家专注 Web3 的营销与活动顾问公司，专注打造沉浸、有影响力的区块链行业体验。\nNote:\n1. 仅限邀请制。 \n2. 报名须经审核通过，名额有限。\n3. 入场须出示通过审核后的 Luma QR Code。\n4. 确切地点仅于报名通过后提供。\n5. 300 SUI 空投：仅限通过审核并于现场完成报到的朋友，每人限领一次、送完为止。领取需具备兼容的 Sui 钱包，于现场或活动后进行，并须符合资格与当地相关规定。\n6. 活动现场将拍摄。报名即表示同意主办方将影像用于活动回顾与宣传；若不希望入镜，请在现场告知工作人员。\nhttps://images.lumacdn.com/uploads/u6/e435332e-a27f-4680-8300-1a6d86e819bd.png\nhttps://images.lumacdn.com/uploads/tb/ba42dc1a-a903-43fe-b2f6-778791943c87.png\nhttps://comma3.co/?utm_source=luma\nhttps://comma3.co/?utm_source=luma\nhttps://x.com/comma3vc?utm_source=luma\nhttps://www.linkedin.com/company/comma3ventures/?utm_source=luma\nhttps://www.instagram.com/comma3_ventures?utm_source=luma\nhttps://www.threads.net/@comma3_ventures?utm_source=luma\nhttps://www.youtube.com/@Comma3Ventures/?utm_source=luma\nhttps://www.linkedin.com/company/singchain-capital-management-pte-ltd/home/\nhttps://www.instagram.com/cryptomiles.official/\nhttps://images.lumacdn.com/uploads/ud/d93e8f9c-d022-4e53-860d-e94c6b0858c0.png\nhttps://comma3.co/?utm_source=luma\nhttps://comma3.co/?utm_source=luma\nhttps://x.com/comma3vc?utm_source=luma\nhttps://www.linkedin.com/company/comma3ventures/?utm_source=luma\nhttps://www.instagram.com/comma3_ventures?utm_source=luma\nhttps://www.threads.net/@comma3_ventures?utm_source=luma\nhttps://www.youtube.com/@Comma3Ventures/?utm_source=luma\nhttps://www.linkedin.com/company/singchain-capital-management-pte-ltd/home/\nhttps://www.instagram.com/cryptomiles.official/"
+    }
+  },
+  {
+    "id": "pos-103as6s",
+    "conference": "Token 2049",
+    "themeKey": "crypto",
+    "label": "on_theme",
+    "source": "sheet_own_tab",
+    "event": {
+      "name": "Ami Capital: Five Iron Golf Event",
+      "hosts": [
+        "Tyler Bulakul",
+        "Charles de Carvalho",
+        "Seiji Liu"
+      ],
+      "calendarName": "Token 2049",
+      "organizer": "Tyler Bulakul",
+      "venue": null,
+      "dateISO": "2026-10-10",
+      "startTime": "12:00p",
+      "cost": "Free",
+      "platform": "luma",
+      "descriptionText": "Join Ami Capital for our Singapore F1 2026 event on Saturday October 10!\nRegistration required."
+    }
+  },
+  {
+    "id": "pos-103qkfv",
+    "conference": "New York Tech Week",
+    "themeKey": "tech",
+    "label": "on_theme",
+    "source": "sheet_own_tab",
+    "event": {
+      "name": "Focus, Flow, and Mental Wellbeing at NYC Tech Week - #NYTechWeek",
+      "hosts": [
+        "Katya Vinnikova, Tech Week, MENTA Series"
+      ],
+      "calendarName": "New York Tech Week",
+      "organizer": "Katya Vinnikova, Tech Week, MENTA Series",
+      "venue": "Chelsea, Chelsea, Manhattan, New York, NY",
+      "dateISO": "2026-06-03",
+      "startTime": "6:00p",
+      "cost": "Free",
+      "platform": "partiful",
+      "descriptionText": ""
+    }
+  },
+  {
+    "id": "pos-1042c7u",
+    "conference": "New York Tech Week",
+    "themeKey": "tech",
+    "label": "on_theme",
+    "source": "sheet_own_tab",
+    "event": {
+      "name": "BIPOC Founders & Funders - hosted by Black Tech Meetup - #NYTechWeek",
+      "hosts": [
+        "Black Tech Meetup"
+      ],
+      "calendarName": "New York Tech Week",
+      "organizer": "Black Tech Meetup",
+      "venue": "Flatiron",
+      "dateISO": "2026-06-02",
+      "startTime": "6:00p",
+      "cost": "Free",
+      "platform": "partiful",
+      "descriptionText": ""
+    }
+  },
+  {
+    "id": "pos-1045kmk",
+    "conference": "New York Tech Week",
+    "themeKey": "tech",
+    "label": "on_theme",
+    "source": "sheet_own_tab",
+    "event": {
+      "name": "Work Hard. Feel Good. How to Build a Tech Career Worth Keeping . Panel & Happy Hour - #NYTechWeek",
+      "hosts": [
+        "Kerri McHugh, Tech Week, Heidi Health"
+      ],
+      "calendarName": "New York Tech Week",
+      "organizer": "Kerri McHugh, Tech Week, Heidi Health",
+      "venue": "215 Park Ave S, New York, NY 10003",
+      "dateISO": "2026-06-03",
+      "startTime": "6:30p",
+      "cost": "Free",
+      "platform": "partiful",
+      "descriptionText": ""
+    }
+  },
+  {
+    "id": "pos-10584vz",
+    "conference": "New York Tech Week",
+    "themeKey": "tech",
+    "label": "on_theme",
+    "source": "sheet_own_tab",
+    "event": {
+      "name": "🏌️Lunch Time Tee-Off w/ Citizens Bank & Deel - #NYTechWeek",
+      "hosts": [
+        "Deel"
+      ],
+      "calendarName": "New York Tech Week",
+      "organizer": "Deel",
+      "venue": "Chelsea, Chelsea, Manhattan, New York, NY",
+      "dateISO": "2026-06-03",
+      "startTime": "12:00p",
+      "cost": "Free",
+      "platform": "partiful",
+      "descriptionText": ""
+    }
+  },
+  {
+    "id": "pos-105lk9s",
+    "conference": "Token 2049",
+    "themeKey": "crypto",
+    "label": "on_theme",
+    "source": "sheet_own_tab",
+    "event": {
+      "name": "Onchain Day | TOKEN2049 Singapore",
+      "hosts": [
+        "Marc Rose",
+        "Max Kaufman",
+        "Real Motion",
+        "Will G",
+        "Stellar Development Foundation",
+        "Algorand Foundation",
+        "CertiK",
+        "Flare",
+        "0G Foundation",
+        "Anchorage Digital",
+        "Benjamin",
+        "VG_ChainPatrol",
+        "Leo Vynnyk",
+        "Alsie Liu | Dune",
+        "Mia Adriaens",
+        "Kite AI",
+        "Mercuryo",
+        "Niro",
+        "Glenn Rothwell",
+        "Ashna",
+        "Jaro Popowic",
+        "Ellis Norman"
+      ],
+      "calendarName": "Token 2049",
+      "organizer": "Marc Rose",
+      "venue": "The Westin Singapore, 12 Marina Vw, Asia Square Tower 2, Singapore 018961",
+      "dateISO": "2026-10-06",
+      "startTime": "9:30a",
+      "cost": "Free",
+      "platform": "luma",
+      "descriptionText": "Join us at TOKEN2049 Singapore for Onchain Day.\nBuilt by Wrapped, hosted by MomentumX Global.\nBuilt for institutions, enterprises, and web3 teams driving onchain activity. Each edition explores key narratives like Payments, Stablecoins, Tokenization, RWAs, Privacy, and Enterprise Integration, connecting banks, exchanges, capital allocators and web2 brands with the protocols and infrastructure enabling real-world adoption. Onchain Day features talks, networking, and co-working.\nTitle Partner:\nStellar\nPresenting Partners:\nAlgorand | CertiK | Cowboy Labs | Flare | Ymax\nPartners:\n0G Labs | Anchorage Digital | Cap | ChainPatrol |\nCybrid | Dune | Ethereum Institutional | Kaio |\nKite AI | Mercuryo | MoralesHR | MultiChain Advisors |\nQuake AI | Solana\nMedia Partner:\nReal Motion\nAgenda:\n*** New for TOKEN2049 Singapore - Two Event Double Feature\nOur venue features two equal-sized events (Onchain Day & Multichain Day) with shared networking, designed to drive high-value collisions between the institutional and technical worlds while maintaining the focused atmosphere of each event.\nCheck out Multichain Day | TOKEN2049 Singapore 👇\nInterested in sponsoring Onchain Day or other Wrapped events? Reach out to us on TG @mrmarcrose\nPrevious Wrapped Events:\nhttps://www.wrapped.events/\nhttps://www.momentumx.global/\nhttps://x.com/StellarOrg\nhttps://x.com/AlgoFoundation?utm_source=luma\nhttps://x.com/CertiK\nhttps://x.com/usecowboy\nhttps://x.com/FlareNetworks\nhttps://x.com/Ymaxapp\nhttps://x.com/0G_labs\nhttps://x.com/Anchorage\nhttps://x.com/CapApp\nhttps://x.com/ChainPatrol\nhttps://x.com/cybrid_xyz\nhttps://x.com/dune\nhttps://x.com/ethereuminsti\nhttps://x.com/KAIO_xyz\nhttps://x.com/GoKiteAI\nhttps://x.com/Mercuryo_io\nhttps://moraleshr.com/\nhttps://x.com/Multichain\nhttps://x.com/_quakeai\nhttps://x.com/solana\nhttps://x.com/realmotioninc\nhttps://images.lumacdn.com/uploads/an/f124cc7b-b83f-4004-b6c2-0b6abbf66468.jpg\nhttps://images.lumacdn.com/uploads/9r/fac438d6-0aa9-4734-956c-a51dfadd4ac3.jpg\nhttps://images.lumacdn.com/uploads/b2/f99fe339-4144-4616-a2b2-5097068d05ba.jpg\nhttps://images.lumacdn.com/uploads/83/98f072e7-d77e-4c4d-b5c1-68fca77d142a.jpg\nhttps://images.lumacdn.com/uploads/sx/6ffe2a14-aed7-458f-833d-4772322e7642.jpg\nhttps://images.lumacdn.com/uploads/nm/c3f9b7b9-20e9-419c-8b46-247f7fe2ca6a.jpg\nhttps://images.lumacdn.com/uploads/x9/5bd1addf-5e19-4d3d-b76b-3516e430b4d4.jpg\nhttps://images.lumacdn.com/uploads/n1/8f2810ed-a62b-4236-81ae-8f1b91a4f1b7.jpg\nhttps://images.lumacdn.com/uploads/mv/7326666f-b743-429e-b3de-f0210458453b.jpg\nhttps://images.lumacdn.com/uploads/9m/49d2d61c-82da-4196-913d-752330bad572.jpg\nhttps://images.lumacdn.com/uploads/af/f0313a8d-2a04-4213-b457-71f477f7bc74.jpg"
+    }
+  },
+  {
+    "id": "pos-108e7gm",
+    "conference": "New York Tech Week",
+    "themeKey": "tech",
+    "label": "on_theme",
+    "source": "sheet_own_tab",
+    "event": {
+      "name": "Networking @ #NYTechWeek",
+      "hosts": [
+        "Clutch Talent (Recruiting Agency)"
+      ],
+      "calendarName": "New York Tech Week",
+      "organizer": "Clutch Talent (Recruiting Agency)",
+      "venue": "Virtual (NYC)",
+      "dateISO": "2026-06-07",
+      "startTime": "3:30p",
+      "cost": "Free",
+      "platform": "partiful",
+      "descriptionText": ""
+    }
+  },
+  {
+    "id": "pos-109tlu6",
+    "conference": "Korea Blockchain Week",
+    "themeKey": "crypto",
+    "label": "on_theme",
+    "source": "sheet_own_tab",
+    "event": {
+      "name": "KBBQ Dinner w/ Initia x Zellic",
+      "hosts": [
+        "Initia",
+        "Zellic"
+      ],
+      "calendarName": "Korea Blockchain Week",
+      "organizer": "Initia",
+      "venue": null,
+      "dateISO": "2026-09-25",
+      "startTime": "7:00p",
+      "cost": "Free",
+      "platform": "luma",
+      "descriptionText": "Join us for a cozy evening of sizzling KBBQ at Korea Blockchain Week! 🔥\nHosted by Initia and Zellic, this intimate dinner offers a break from the conference buzz- a relaxed setting to connect with fellow builders over great food and drinks.\n📌 On the menu\n- Korean BBQ with all the sides \n- Drinks to keep the conversations flowing \n- A cozy space to recharge and connect \n​Initia is a Layer 1 with a customizable appchain stack and unified product suite built for apps to truly own their users, revenue & UX.\n​Zellic is a security research firm with deep expertise in blockchain security and cryptography, led by the best white-hat professionals in the world. We’re the go-to choice for the leading teams and projects who refuse to compromise on their security.\nhttps://www.zellic.io/"
+    }
+  },
+  {
+    "id": "pos-10au7c2",
+    "conference": "Korea Blockchain Week",
+    "themeKey": "crypto",
+    "label": "on_theme",
+    "source": "sheet_own_tab",
+    "event": {
+      "name": "KBW peaqonaut gathering",
+      "hosts": [
+        "depinfluencer",
+        "vincent infra",
+        "andy lee",
+        "이기태"
+      ],
+      "calendarName": "Korea Blockchain Week",
+      "organizer": "Korea Blockchain Week",
+      "venue": null,
+      "dateISO": "2026-09-23",
+      "startTime": "5:00p",
+      "cost": "Free",
+      "platform": "luma",
+      "descriptionText": "peaq 사이드 이벤트 @ Korea Blockchain Week\n안녕하세요, peaq 사이드 이벤트를 개최합니다! (이벤트 시간 업데이트)\n이벤트가 오후 5시부터 7시로 업데이트되었습니다!\n글로벌 컴퓨터, 그리고 머신 이코노미(Machine Economy)를 이끄는 peaq에서 주최하는 특별한 사이드 이벤트에 여러분을 초대합니다.\n현재 AI, 에너지, 데이터 크라우드소싱, 모빌리티 등 20개 이상의 산업 전반에 걸쳐 50개 이상의 실제 활용 사례(DePINs) 를 보유한 peaq는 사람들이 현실 세계의 인프라와 상호작용하고 그로부터 혜택을 얻는 방식을 새롭게 정의하고 있습니다.\npeaq의 핵심에는 사람들이 자신이 창출하는 가치에서 직접 소유하고 수익을 얻을 수 있도록 합니다. 이는 AI와 자동화의 시대에서 자원을 분배하는 비전입니다.\n🌐 뜻을 같이하는 빌더, 창업자, 사상가들과 교류\n🤝 peaq와 그 생태계를 이끄는 사람들을 직접 만나기\n🔍 기계, 사람, 데이터의 상호작용 방식을 혁신하는 peaq의 비전 탐색\n빌더, 투자자, 혹은 단순한 호기심이 있으신 분이라도,\n머신 이코노미의 미래가 어떤 모습일지 직접 확인해 보세요.\npeaq Side Event @ Korea Blockchain Week\nJoin us for an exclusive side event hosted by peaq, the global computer powering the Machine Economy. With 50+ real-world applications (DePINs) across 20+ industries including AI, energy, data crowdsourcing, mobility, and more, peaq is redefining how people interact with and benefit from real-world infrastructure.\nAt the heart of peaq is a mission to empower people to own and earn from the value they help create: democratizing abundance in the Age of AI and automation.\n🌐 Connect with like-minded builders, founders, and thinkers\n🤝 Meet the people behind peaq and its ecosystem\n🔍 Discover how peaq is transforming the way machines, people, and data interact\nWhether you’re building, investing, or just curious, come find out what the future of the Machine Economy looks like."
+    }
+  },
+  {
+    "id": "pos-10c3h59",
+    "conference": "Paris Blockchain Week 2026",
+    "themeKey": "crypto",
+    "label": "on_theme",
+    "source": "sheet_own_tab",
+    "event": {
+      "name": "SATOSHI DINNER CLUB PARIS powered by WEEX & TRAVLS",
+      "hosts": [
+        "Gilles",
+        "Inna S",
+        "Gavin Vanderlooven"
+      ],
+      "calendarName": "Paris Blockchain Week 2026",
+      "organizer": "Gilles",
+      "venue": null,
+      "dateISO": "2026-04-15",
+      "startTime": "7:30p",
+      "cost": "Free",
+      "platform": "luma",
+      "descriptionText": "You are cordially invited to join an exclusive evening in Paris on April 15th powered by WEEX, TRAVLS, and CRYPTIC.\nSatoshi Dinner Club is an intimate, invite-only dinner bringing together a carefully selected group of high-level founders, leading VCs, traditional finance investors, and key figures from the crypto ecosystem.\n⚜️ 21 seats.\n⚜️ Personally curated.\n⚜️ Discreet and elegant atmosphere.\nThe purpose is simple: Bridging traditional finance and crypto in a setting designed for meaningful dialogue and long-term alignment.\nYour invitation is strictly personal and non-transferable.\nPlease treat your RSVP with the same seriousness as the evening itself. Given the extremely limited number of seats, we kindly ask you to confirm your attendance only if you are certain you can join.\nThe exact venue will be revealed exclusively to confirmed guests, closer to the date. We hold the privacy and discretion of our attendees in the highest regard.\n⚜️ SPONSORS ⚜️\nWEEX is a global crypto exchange built for spot and futures trading; fast, reliable, and accessible for both retail and professional traders.\nTRAVLS is a Web3 travel platform that lets you book flights, hotels and experiences and pay directly with crypto; no banks, no hidden fees, no borders. With a native loyalty token and physical card, TRAVLS bridges the gap between crypto and everyday life.\nCRYPTIC is a Web3 marketing agency that helps blockchain projects grow through community building, KOL marketing, GTM campaigns and media outreach; trusted by 200+ projects across the globe.\nhttps://www.weex.com/\nhttps://travls.io/\nhttps://crypticweb3.com/\nhttps://satoshidinnerclub.com/"
+    }
+  },
+  {
+    "id": "pos-10cqij7",
+    "conference": "Coinfest Asia 2026",
+    "themeKey": "crypto",
+    "label": "on_theme",
+    "source": "sheet_own_tab",
+    "event": {
+      "name": "CRYPTO TRADING WORKSHOP | On Fundamental, Technical, Sentiment, and Quantitative Analysis with Blockcircle | Coinfest 2026",
+      "hosts": [
+        "Agnes ONeill",
+        "Basel Ismail",
+        "Blockcircle Indonesia",
+        "Blockcircle",
+        "Fahad"
+      ],
+      "calendarName": "Coinfest Asia 2026",
+      "organizer": "Blockcircle",
+      "venue": null,
+      "dateISO": "2026-08-22",
+      "startTime": "12:00p",
+      "cost": "Free",
+      "platform": "luma",
+      "descriptionText": "Join us at our private villa during CoinFest Asia 2026 where we break down multi-asset trading strategies without the fluff. Come for the actionable market edge and stay for the relaxed pool vibes, cold drinks, and high-level networking.\nThia casual gathering brings together active traders and investors to evaluate live stock and crypto setups across Fundamentals, Technicals, Sentiment, and Quantitative data.\nCome as you are, bring your trading peers, and let’s break down the charts together.\nWhat You Learn:\nUnderstand what each analysis lens catches and how to combine them to avoid critical market blind spots.\nEvaluate company health and digital asset metrics together in one clean, unified view using fundamental scorecards.\nUse momentum scorecards across multiple timeframes to pinpoint your precise trade entries and exits.\nGauge current market regimes, global liquidity trends, and risk scorecards to effectively protect your trading capital.\nDiscover what a backtested quantitative strategy reveals that a simple price chart will never show you.\nGet direct feedback on your trade ideas and refine your setup alongside the Blockcircle team during a live Q&A.\nEvent Details:\nLocation: PRIVATE VIP VILLA\nDate: Saturday, 22 August 2025\nTime: 12.00 - 13.00 WITA\nCost: FREE (spots are strictly limited)\nNote: We are hosting 4 other exclusive workshops at this location on the same day at different times.\nWorkshop on How Smart Money Finds Opportunities Before Everyone with Blockcircle\nHow To Leverage Prediction Market Alpha to Track Whales with Blockcircle\nInstitutional (COMPANY ONLY): Follow Smart Money and Whales using Insider, Political, and Prediction Alpha\nInstitutional (COMPANY ONLY): Systematic Trading Strategy Design and Execution at Scale\nClick the Lu.ma link below, save your seat, and let’s go.\nhttps://images.lumacdn.com/uploads/jb/88b569f4-7962-4bf8-9490-4f8c2a5dc99f.jpg\nhttps://images.lumacdn.com/uploads/2a/aca69b4d-5def-4775-8803-0a2d25afeec7.jpg\nhttps://images.lumacdn.com/uploads/7n/01c861eb-ee0c-4e37-83ff-c2f391c0eaef.jpg\nhttps://luma.com/xd6n6ccs\nhttps://luma.com/vvypahv3\nhttps://luma.com/lodbl5d5\nhttps://luma.com/0zfdp3jc\nhttps://luma.com/hknvx0vs"
+    }
+  },
+  {
+    "id": "pos-10dm3u1",
+    "conference": "Korea Blockchain Week",
+    "themeKey": "crypto",
+    "label": "on_theme",
+    "source": "sheet_own_tab",
+    "event": {
+      "name": "EASYCON SEOUL 🇰🇷: On-Chain + Social Intelligence Workshop & Community Night",
+      "hosts": [
+        "CoinEasy"
+      ],
+      "calendarName": "Korea Blockchain Week",
+      "organizer": "CoinEasy",
+      "venue": "Cafe en Travel, 45 Gangnam-daero 102-gil, Gangnam District, Seoul, South Korea",
+      "dateISO": "2026-10-01",
+      "startTime": "5:30p",
+      "cost": "Free",
+      "platform": "luma",
+      "descriptionText": "EASYCON SEOUL 2026 🇰🇷\n온체인·소셜 인텔리전스 워크숍 & 커뮤니티 나이트\nOn-Chain + Social Intelligence Workshop & Community Night\n차트 너머의 인사이트, 피자 한 조각, 그리고 새로운 인연. 🍕\nFresh insights. A slice of pizza. New connections.\n10월 1일(목) · 17:30–21:30 KST · 앙트레블, 서울 강남\nOctober 1, 2026 · 5:30–9:30 PM KST · Cafe en Travel, Gangnam, Seoul\n요즘 시장은 어떤 이야기에 반응할까요? 온체인 데이터와 소셜 신호를 함께 보면 무엇이 달라질까요?\nEASYCON SEOUL에서 Santiment의 Suzanne Pace와 함께 데이터를 실제 리서치에 활용하는 방법을 살펴보세요. 패널 토크에서 서로 다른 관점을 나누고, Aomi Labs 워크숍과 dappOS의 짧은 제품 발표를 만나보세요. 세션 사이와 이후에는 피자와 음료를 즐기며 편하게 대화를 이어갑니다.\n프로젝트를 만드는 빌더, 시장을 읽는 트레이더와 리서처, Web3가 궁금한 분까지 모두 환영합니다. 혼자 오셔도 좋습니다. 질문 하나, 나누고 싶은 이야기 하나면 충분합니다.\nJoin Suzanne Pace, Institutional Director at Santiment, to explore how on-chain and social intelligence can inform your research. Hear different perspectives in our panel conversation, join an Aomi Labs workshop, and catch a concise dappOS product update. Keep the conversation going over pizza and drinks between sessions and throughout the evening.\nBuilders, traders, researchers, and Web3 newcomers are all welcome. Come with friends or come solo—there’s room for you at the table.\n🌐 Santiment 워크숍은 영어로 진행되며, 현장 안내와 Q&A에는 한국어 지원이 제공됩니다.\nThe Santiment workshop is in English, with Korean support for on-site guidance and Q&A.\n지금 참가 신청하기 · Register now\n🍕 이런 시간을 함께해요 | What to expect\n데이터로 넓히는 시야 · Fresh perspectives\nSantiment와 함께 온체인 활동과 소셜 내러티브를 리서치의 맥락으로 읽어봅니다.\nExplore on-chain activity and social narratives as context for research.\n직접 묻고 나누는 대화 · Space for questions\n모두가 참여할 수 있는 패널 토크와 Q&A에서 궁금했던 질문을 나누세요.\nBring your questions to an accessible panel conversation and Q&A.\n새로운 제품과 아이디어 · Products and ideas\nAomi Labs 워크숍과 dappOS 제품 업데이트를 통해 팀들의 관점을 만나보세요.\nMeet the teams through an Aomi Labs workshop and a dappOS product update.\n피자와 함께 이어지는 인연 · Pizza and people\n피자, 커피, 음료를 즐기며 빌더·트레이더·리서처·커뮤니티와 교류하세요.\nShare a slice and connect with people across Web3.\n📊 18:00–18:30 | Santiment workshop & open Q&A\nBeyond Price: The On-Chain and Social Metrics That Actually Drive Alpha in Digital Asset Markets\nSuzanne Pace — Institutional Director, Santiment\n가격이 움직이기 전후, 온체인 활동과 소셜 대화에서는 어떤 변화가 나타날까요? 데이터가 보여주는 것과 보여주지 못하는 것을 구분하고, 시장의 관심과 내러티브를 리서치의 맥락으로 읽는 방법을 살펴봅니다.\nExplore what on-chain and social data can—and cannot—tell us, and how to use activity, attention, and narratives as context for market research.\n💬 18:30–19:00 | Panel & open conversation\nBeyond the Chart · 차트 너머의 신호와 사람들\n사람들은 왜 새로운 Web3 제품을 사용하고, 무엇을 믿으며, 어떤 경험 때문에 다시 돌아올까요? 데이터·제품·커뮤니티를 연결해, 서로 다른 분야의 경험을 누구나 이해하기 쉬운 질문으로 나눕니다.\nWhat makes people try a Web3 product, trust it, and keep coming back? Our panel brings together perspectives on data, products, and communities through questions everyone can join in on.\n진행 · Moderator\nSuzanne Pace — Institutional Director, Santiment\n패널 · Speakers\nSarah Kwon — Head of Product Marketing & Communications, Babylon\nCecilia Zhang — Founder, Aomi Labs\nOlaf Kudin — Senior BD and Account Manager, 1inch\n🛠️ 19:25–19:50 | Aomi Labs workshop\nFrom Intent to Execution: how an execution harness turns AI into onchain action\nCecilia Zhang — Founder, Aomi Labs\n“내 ETH를 리밸런싱해줘”라는 요청이 실제 트랜잭션으로 완료되기까지 어떤 과정이 필요할까요? Aomi의 실행 하네스가 AI 에이전트의 체인 상태 조회, 포크 환경 시뮬레이션, 사용자 소유 지갑의 안전한 트랜잭션 실행을 어떻게 지원하는지 살펴봅니다.\nWhat actually happens between \"rebalance my ETH\" and a settled transaction, and how Aomi's execution harness lets any AI agent read chain state, simulate on a fork, and commit transactions safely to the user's own wallet.\n🚀 19:55–20:15 | dappOS presentation\nxBubble: Integration\nPeter Shin — Ecosystem Lead, dappOS\ndappOS의 “xBubble: Integration”을 소개하는 20분 단독 발표입니다. 발표 후에는 커뮤니티 테이블에서 대화를 이어갑니다.\nA 20-minute dappOS presentation, “xBubble: Integration,” followed by conversations at the community tables.\n🕒 프로그램 | Agenda\n모든 시간은 한국 표준시입니다. All times are KST.\n17:30 · 입장 · 커피와 인사 / Doors open · Coffee & introductions\n18:00–18:30 · Santiment 워크숍 및 Q&A / Workshop & open Q&A\n18:30–19:00 · 패널 토크 / Panel & open conversation\n19:00–19:25 · 피자와 네트워킹 / Pizza & networking\n19:25–19:50 · Aomi Labs 워크숍 / Aomi Labs workshop\n19:50–19:55 · 짧은 휴식과 세션 전환 / Short break & session change\n19:55–20:15 · dappOS 신제품·프로젝트 발표 / dappOS product update\n20:15–21:30 · 커뮤니티 테이블 · 자유 대화 / Community tables & open conversations\n21:30 · 행사 종료 / Event ends\nAomi Labs·dappOS 세션 시간이 확정되었습니다.\nAomi Labs and dappOS session times are confirmed.\n🤝 함께하는 팀 | Participating teams\nSponsored by Santiment\nParticipating projects: dappOS · Aomi Labs · Babylon · 1inch\nOur media partners 🗞️\nTokenpost\nKorea's #1 Crypto media outlet in South Korea since Feb 2017. specialises in blockchain technology and the digital asset ecosystem.\nBlockmedia\nA leading blockchain-focused media outlet in Korea, known for trusted local-market coverage and deep insight into the Korean Web3 ecosystem.\nCoinNess\nOne of Korea’s best-known crypto media and community platforms, bringing together real-time news, market data, press releases, and community discussion.\nMpost\nA global Web3 and AI media platform within the Cryptomeria Capital ecosystem and the team behind the Hack Seasons conference series.\nYellow Media\nYellow.com is an independent news site covering crypto, AI and digital finance. Five journalists, daily original reporting in 20 languages, read by over 500,000 people a month.\nMEET THE EASYBOY FRENS\nEASYCON의 귀여운 EasyBoy frens를 행사장 곳곳에서 만나보세요. 익숙한 얼굴도, 처음 만나는 새로운 fren도 모두 반갑게 환영합니다.\n🌏 세계를 돌아, 다시 서울에서 | From the global tour to Seoul\nEASYCON은 홍콩, 도쿄, 싱가포르, 파리 등 여러 도시에서 배움과 만남을 이어왔습니다. 이번에는 서울에서, 익숙한 얼굴과 새로운 인연을 한 테이블에서 만납니다.\nEASYCON has brought learning and conversation to cities including Hong Kong, Tokyo, Singapore, and Paris. This time, we’re coming together in Seoul—familiar faces and new connections, around the same table.\n📍 장소 | Venue\n앙트레블 · Cafe en Travel\n서울 강남구 강남대로102길 45\n45 Gangnam-daero 102-gil, Gangnam-gu, Seoul\n신논현역과 강남역 사이의 카페형 라운지입니다. 주차가 어려우므로 대중교통을 이용해 주세요. 상세 입구 안내는 행사 전 등록자에게 전달드립니다.\nJoin us in a café-style lounge between Sinnonhyeon and Gangnam stations. Please use public transport, as parking is limited. Entrance details will be shared with registered guests before the event.\n🎟️ 등록과 입장 | Registration & check-in\nLuma에서 등록한 뒤 행사 당일 티켓 QR 또는 이름으로 체크인하세요. Telegram 커뮤니티 참여는 선택이며 입장·세션·음식·네트워킹 이용에 영향을 주지 않습니다.\nRegister on Luma and check in using your ticket QR or name. Joining our Telegram community is optional and does not affect access to the event, sessions, food, or networking.\n🎟️ 내 EASYCON 참가 배지 받기\n오늘의 참여를 디지털 Passport에 남겨보세요.\n현장 QR을 스캔하고 Telegram ‘시작’을 누르면 참가 배지(Passport)와 참석 30 XP를 받을 수 있습니다.\nPassport를 저장·공유하고, 다음 EASYCON에서도 참여 이력을 다시 확인할 수 있어요.\n지갑 등록 없이 참여할 수 있습니다. Telegram 참여는 선택이며, 미참여해도 입장·워크숍·음식·네트워킹에는 영향이 없습니다. XP는 현금이나 확정된 USDC 보상을 뜻하지 않습니다.\nGet your EASYCON Passport\nScan the on-site event QR and tap Start in Telegram to receive your digital attendance badge and 30 attendance XP. Save or share your Passport and revisit your attendance history at future EASYCON events. No wallet is required. Participation is optional; XP is not cash or a guaranteed USDC reward.\nEASYCON COMMUNITY\n💬 EASYCON 커뮤니티 참여하기 https://t.me/coineasy_official\n🙌 서울에서 만나요 | Join us in Seoul\n배우고 싶은 주제 하나, 나누고 싶은 이야기 하나면 충분합니다.\nBring a question, an idea, or simply your curiosity.\n지금 참가 신청하기 → Register now\n본 행사는 교육 및 커뮤니티 교류를 위한 자리이며 투자 권유·자문이나 수익 보장을 제공하지 않습니다.\nThis event is for education and community conversation, not investment advice or a promise of returns.\nEASYCON Moments: Past Event Highlight 📸\nhttps://luma.com/EASYSeoul2026\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=1672/uploads/10/7bd2d886-ee24-4ef8-b3a9-9c11785a7778.png\nhttps://images.lumacdn.com/uploads/fx/ef656d6b-7fb5-4be2-98f8-a8e9547e1e30.png\nhttps://images.lumacdn.com/uploads/ca/7da1a9be-efe7-40d9-b66b-f8cebf60058a.png\nhttps://images.lumacdn.com/uploads/n4/800ad469-3deb-45be-9ad9-eee10840d374.png\nhttps://images.lumacdn.com/uploads/zu/afa8fb1f-8881-4317-aae4-9e0a582aaeb6.png\nhttps://t.co/Litxvu6uSn?utm_source=luma\nhttps://www.blockmedia.co.kr/?utm_source=luma\nhttps://coinness.com/?utm_source=luma\nhttps://mpost.io/?referrer=luma&utm_source=luma\nhttps://yellow.com/\nhttps://Yellow.com\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=2301/uploads/ev/44274288-1b31-466c-998d-8e9890594a97.png\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=1672/uploads/s5/a31ca95c-bf84-452b-a356-f51fb1a6128a.png\nhttps://t.me/coineasy_official\nhttps://luma.com/EASYSeoul2026\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=800,height=565.2173913043478/editor-images/x7/cd8dee14-2a9c-415c-98e7-d1d75dba126e.jpg\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=800,height=302.00387847446666/editor-images/f4/9cdc57a0-ff5b-42da-abba-da9014f21aa6.png\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=800,height=302.262443438914/editor-images/ye/3c307dd8-eea0-4ccd-96ad-45cbc476108b.png\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=800,height=302.3601681215648/editor-images/kp/c4b46f11-75d2-469c-bf87-c2fa0befeec4.png\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=800,height=302.0671834625323/editor-images/6b/008fdd22-f09c-483d-9a5e-cb07fdb0549f.png\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=800,height=302.0671834625323/editor-images/1p/dd1f886d-529e-406e-8f46-7fd76030b0bc.png\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=800,height=302.0671834625323/editor-images/ee/f2b870c9-befe-4e03-b2c0-85264167fc63.png\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=800,height=302.0671834625323/editor-images/x8/5672dfb4-5e64-43b6-88d5-e434bd957d0a.png\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=800,height=302.486277042299/editor-images/9l/5fc7a2fa-377c-4195-93df-9e3bcbd9b3fb.png\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=800,height=534.3187066974596/editor-images/bu/04adc7d7-7162-4adf-baa7-22946b4ba98f.png\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=800,height=501.6216216216216/editor-images/0a/90bd3341-e8a2-4472-9fe0-87cc1463d0d3.png\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=800,height=267.05940108001965/editor-images/j8/a80f9729-f953-488e-b04d-48315d921b53.png\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=800,height=533.8825952626158/editor-images/ad/e8310f44-cf66-47cb-abb5-dab89076dcdf.png\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=1760/editor-images/ar/9708c7b7-ac6f-44f0-adf0-e36afa38a1ce.png\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=800,height=533.3333333333334/editor-images/sc/9a802e4e-e3a0-48ab-82dc-e4a4c5769cb9.jpg\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=800,height=551.048951048951/editor-images/3a/98ecc9e5-39b6-4aff-9b20-449819b28a71\nhttps://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,dpr=2,quality=75,width=800,height=450/editor-images/qa/bb54d05d-e58e-4dba-a390-0523264e5917"
+    }
+  }
+]
