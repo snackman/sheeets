@@ -105,15 +105,28 @@ export function sheetDateShortFromISODate(isoDate: string): string {
 }
 
 /**
+ * Convert a 24h "HH:mm" string to "6:00 PM" — matches `format12Hour` in
+ * `DateTimePicker.tsx`. Pulled out of `sheetTime12Hour` (Phase 3,
+ * plans/event-ingestion.md §7) so discovery sources that only have a local
+ * 24h time string (no UTC instant to re-derive it from — e.g. a Telegram-
+ * discovered Eventbrite/Partiful/Meetup/Posh link's `EventResult.startTime24`,
+ * already computed by `event-extractors.ts` in the event's own guessed
+ * timezone) can reuse the exact same 12h formatting without a UTC instant.
+ */
+export function time12FromTime24(time24: string): string {
+  const [hoursStr, minutes] = time24.split(':');
+  if (!minutes) return '';
+  const hours = Number(hoursStr);
+  if (!Number.isFinite(hours)) return '';
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const h12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+  return `${h12}:${minutes} ${period}`;
+}
+
+/**
  * Format a UTC ISO instant as "6:00 PM" in the given timezone — matches
  * `format12Hour` in `DateTimePicker.tsx` applied to a 24h "HH:mm" string.
  */
 export function sheetTime12Hour(isoInstant: string, timezone: string): string {
-  const time24 = formatTime24(isoInstant, timezone); // "HH:mm"
-  const [hoursStr, minutes] = time24.split(':');
-  if (!minutes) return '';
-  const hours = Number(hoursStr);
-  const period = hours >= 12 ? 'PM' : 'AM';
-  const h12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-  return `${h12}:${minutes} ${period}`;
+  return time12FromTime24(formatTime24(isoInstant, timezone));
 }

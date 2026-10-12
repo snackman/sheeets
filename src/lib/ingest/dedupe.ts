@@ -196,3 +196,68 @@ export function fuzzyMatch(a: FuzzyMatchable, b: FuzzyMatchable, conferenceName?
   }
   return { kind: 'possible_duplicate', score: sim };
 }
+
+/* ------------------------------------------------------------------ */
+/* Phase 3: shared dedupe-against-sheet-and-candidates (§5.2)           */
+/* ------------------------------------------------------------------ */
+
+export interface DedupeCandidatePool {
+  id: string;
+  canonical_key: string;
+  event: FuzzyMatchable & { link: string };
+}
+
+export interface DedupeSheetEvent extends FuzzyMatchable {
+  id: string;
+  link: string;
+}
+
+/**
+ * Link match (exact), then fuzzy match, against the sheet and against other
+ * in-flight candidates — the same two-step dedupe `pipeline.ts`'s Luma iCal
+ * loop runs inline, factored out so Phase 3's discovery sources (Telegram,
+ * host submissions) can reuse it without duplicating the logic a third
+ * time. `excludeCandidateId` keeps a candidate from matching itself when
+ * re-processing an existing row.
+ */
+export function matchAgainstSheetAndCandidates(
+  event: Pick<NormalizedEvent, 'link' | 'dateISO' | 'startTime' | 'address' | 'lat' | 'lng' | 'name'>,
+  opts: {
+    linkIndex: SheetLinkIndex;
+    sheetEvents: DedupeSheetEvent[];
+    otherCandidates: DedupeCandidatePool[];
+    conferenceName?: string;
+    excludeCandidateId?: string | null;
+  }
+): { duplicateOf: string | null; possibleDuplicateOf: string | null } {
+  const sheetMatch = findSheetMatchByLink(opts.linkIndex, event);
+  let duplicateOf: string | null = sheetMatch?.id ?? null;
+  let possibleDuplicateOf: string | null = null;
+
+  if (!duplicateOf) {
+    for (const se of opts.sheetEvents) {
+      if (se.dateISO !== event.dateISO) continue;
+      const fm = fuzzyMatch(event, se, opts.conferenceName);
+      if (fm?.kind === 'duplicate') {
+        duplicateOf = se.id;
+        break;
+      }
+      if (fm?.kind === 'possible_duplicate') possibleDuplicateOf = se.id;
+    }
+  }
+
+  if (!duplicateOf) {
+    for (const oc of opts.otherCandidates) {
+      if (opts.excludeCandidateId && oc.id === opts.excludeCandidateId) continue;
+      if (oc.event.dateISO !== event.dateISO) continue;
+      const fm = fuzzyMatch(event, oc.event, opts.conferenceName);
+      if (fm?.kind === 'duplicate') {
+        duplicateOf = oc.id;
+        break;
+      }
+      if (fm?.kind === 'possible_duplicate' && !possibleDuplicateOf) possibleDuplicateOf = oc.id;
+    }
+  }
+
+  return { duplicateOf, possibleDuplicateOf };
+}

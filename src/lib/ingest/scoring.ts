@@ -23,6 +23,8 @@ export interface ScoreCandidateOptions {
   isBlockedHost: boolean;
   isLearnedBlockedHost?: boolean;
   sponsorMatch?: string | null;
+  /** Phase 3: see `SignalInput.isVerifiedSubmitter`. */
+  isVerifiedSubmitter?: boolean;
   includeKeywords: string[];
   excludeKeywords: string[];
   possibleDuplicate?: boolean;
@@ -62,6 +64,7 @@ export async function scoreCandidate(opts: ScoreCandidateOptions): Promise<Score
     isBlockedHost: opts.isBlockedHost,
     isLearnedBlockedHost: opts.isLearnedBlockedHost,
     sponsorMatch: opts.sponsorMatch,
+    isVerifiedSubmitter: opts.isVerifiedSubmitter,
     text,
     includeKeywords: opts.includeKeywords,
     excludeKeywords: opts.excludeKeywords,

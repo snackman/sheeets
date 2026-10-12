@@ -377,12 +377,15 @@ export const IngestProfileUpsertSchema = z.object({
   enabled: z.boolean().optional(),
 });
 
-/** Schema for POST /api/admin/ingest/config (add a Luma calendar source) */
+/** Schema for POST /api/admin/ingest/config (add a Luma calendar or
+ *  Telegram channel source — Phase 3 added `telegram_channel`). */
 export const IngestSourceCreateSchema = z.object({
   password: z.string(),
   conference: z.string().min(1),
-  kind: z.literal('luma_ical'),
-  input: z.string().min(1, 'A Luma calendar URL or id is required'),
+  kind: z.enum(['luma_ical', 'telegram_channel']),
+  /** Luma: a `luma.com/<slug>` calendar URL or raw `cal-…` id. Telegram: a
+   *  handle, `@handle`, or `t.me/<handle>` URL. */
+  input: z.string().min(1, 'A Luma calendar URL/id or Telegram channel handle is required'),
   label: z.string().max(200).optional(),
   trust: z.enum(['curated', 'host', 'discovery']).optional(),
 });
@@ -400,6 +403,27 @@ export const IngestSourceUpdateSchema = z.object({
 export const IngestSourceDeleteSchema = z.object({
   password: z.string(),
   id: z.string().uuid(),
+});
+
+// ---------------------------------------------------------------------------
+// Host submission page (plans/event-ingestion.md, Phase 3 §3.5)
+// ---------------------------------------------------------------------------
+
+/** Schema for POST /api/host/submissions — a public (no admin password)
+ *  endpoint, so validation here is the first anti-abuse layer: a real
+ *  http(s) URL and a non-empty conference name. The ALLOWLIST check
+ *  (Luma/Partiful/Eventbrite/Meetup/Posh only) happens after parsing,
+ *  in the route itself, so the rejection message can be specific
+ *  ("not a supported event platform" vs. "not a URL"). Rate limiting is a
+ *  separate, IP-based layer, also in the route (not expressible in zod). */
+export const HostSubmissionSchema = z.object({
+  conference: z.string().min(1, 'Conference is required').max(200),
+  url: z.string().trim().min(1, 'An event link is required').max(2000),
+  note: z.string().trim().max(500).optional(),
+  /** Cloudflare Turnstile response token, when the page has it configured
+   *  (`NEXT_PUBLIC_TURNSTILE_SITE_KEY` set). Optional because Turnstile is
+   *  best-effort here — see the route's doc comment. */
+  turnstileToken: z.string().max(4000).optional(),
 });
 
 /** Schema for POST /api/admin/claims/[id] */

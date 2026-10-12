@@ -4,8 +4,9 @@
 // later phases (Telegram/X links, sponsor pages) can reuse it.
 import { createHash } from 'node:crypto';
 import { formatCost } from '../event-format';
-import { sheetDateShort, sheetDateShortFromISODate, sheetTime12Hour } from '../event-format';
+import { sheetDateShort, sheetDateShortFromISODate, sheetTime12Hour, time12FromTime24 } from '../event-format';
 import { extractMirrorText, normalizeHandle, type LumaEventPayload } from '../luma';
+import type { EventResult, Platform } from '../event-extractors';
 import type { VEvent } from './ical';
 import type { NormalizedEvent } from './types';
 
@@ -30,6 +31,40 @@ export interface NormalizeLumaOptions {
   /** Fallback slug parsed from the iCal DESCRIPTION stub, used only to build
    *  a canonical link when enrichment didn't return one. */
   fallbackSlug?: string | null;
+}
+
+/** Address text from a Luma event detail payload's `geo_address_json` /
+ *  `geo_address_info` fields — same extraction `parseLuma`
+ *  (`event-extractors.ts`) does for the `/api/fetch-event` route, pulled out
+ *  here so the Phase 3 discovered-Luma-link normalizer (below) doesn't
+ *  duplicate it. These fields aren't on the narrow `LumaEventPayload.event`
+ *  type (only what Phase 1b's enrichment needed), so this takes a loosely
+ *  typed subset rather than widening that interface. */
+function addressFromLumaGeoFields(event: {
+  geo_address_json?: string | Record<string, unknown> | null;
+  geo_address_info?: string | Record<string, unknown> | null;
+}): string {
+  const parseMaybeJson = (v: string | Record<string, unknown> | null | undefined): Record<string, unknown> | null => {
+    if (!v) return null;
+    if (typeof v === 'string') {
+      try {
+        return JSON.parse(v);
+      } catch {
+        return null;
+      }
+    }
+    return v;
+  };
+  const json = parseMaybeJson(event.geo_address_json);
+  if (json) {
+    const addr = (json.full_address as string) || (json.address as string) || '';
+    if (addr) return addr;
+  }
+  const info = parseMaybeJson(event.geo_address_info);
+  if (info) {
+    return (info.full_address as string) || (info.city_state as string) || (info.city as string) || '';
+  }
+  return '';
 }
 
 function priceCentsFromTicketTypes(payload: LumaEventPayload): number | null {
@@ -101,5 +136,184 @@ export function normalizeLumaEvent(opts: NormalizeLumaOptions): NormalizedEvent 
     descriptionText,
     imageUrl: null,
     platform: 'luma',
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Phase 3: discovered links (Telegram, host submissions, descriptions of  */
+/* curated events — plans/event-ingestion.md §3.2/§7 "Discovered Luma      */
+/* links"). Unlike the Luma iCal path above, there is no VEVENT — the only  */
+/* inputs are a URL and, for Luma, a full `fetchLumaEvent` payload.        */
+/* ------------------------------------------------------------------ */
+
+/** The subset of a full Luma event-detail payload (`GET api.lu.ma/event/get`
+ *  or `/url`) this normalizer reads. Not part of the narrow `LumaEventPayload`
+ *  type (which only covers what Phase 1b's iCal-enrichment needed) — a
+ *  discovered Luma link has no iCal VEVENT to supply `start_at`/`end_at`/
+ *  `timezone`/address at all, so this normalizer must read them straight off
+ *  the detail payload instead. */
+interface LumaEventDetailFields {
+  api_id?: string;
+  name?: string;
+  start_at?: string;
+  end_at?: string | null;
+  timezone?: string;
+  ticket_price_cents?: number | null;
+  geo_address_json?: string | Record<string, unknown> | null;
+  geo_address_info?: string | Record<string, unknown> | null;
+}
+
+export interface NormalizeDiscoveredLumaOptions {
+  /** Full payload from `fetchLumaEvent({slug|apiId})`. */
+  payload: LumaEventPayload;
+  /** The link this was discovered as (used only if the payload itself
+   *  doesn't resolve to a stable `evt-` api id). */
+  fallbackLink: string;
+}
+
+/**
+ * Normalize a Luma event discovered as a bare link (Telegram, a curated
+ * event's description, a host submission) — enriched through the SAME
+ * `fetchLumaEvent`/rate limiter every other Luma lookup uses (§3.2: "goes
+ * through the same `fetchLumaEvent` enricher under the same rate limits").
+ *
+ * No iCal GEO is available here, so `lat`/`lng` are always null and
+ * `isOnline` is conservatively false (never true) — callers run the same
+ * Mapbox geocoding fallback (`filters.ts#geocodeAddressCached`) the Luma
+ * iCal path uses when GEO is missing, and a still-unresolved address falls
+ * through to the `no_geo` filter outcome (caps the route at review, never
+ * silently treated as an online event that only needs `allow_online`).
+ *
+ * Returns null if the payload doesn't look like a real, dated event (no
+ * name, or no `start_at`) — callers should treat that the same as "fetch/
+ * enrichment failed" and not create a candidate at all.
+ */
+export function normalizeDiscoveredLumaEvent(opts: NormalizeDiscoveredLumaOptions): NormalizedEvent | null {
+  const { payload, fallbackLink } = opts;
+  const detail = (payload.event ?? {}) as LumaEventDetailFields;
+  const name = (detail.name || '').trim();
+  if (!name || !detail.start_at) return null;
+
+  const timezone = detail.timezone || 'UTC';
+  const startDate = new Date(detail.start_at);
+  if (isNaN(startDate.getTime())) return null;
+  const startAt = startDate.toISOString();
+  const endDate = detail.end_at ? new Date(detail.end_at) : null;
+  const endAt = endDate && !isNaN(endDate.getTime()) ? endDate.toISOString() : null;
+
+  const dateISO = formatDateISOInTimezone(startAt, timezone);
+  const sheetDate = sheetDateShort(startAt, timezone);
+  const startTime = sheetTime12Hour(startAt, timezone);
+  const endTime = endAt ? sheetTime12Hour(endAt, timezone) : '';
+
+  const hosts = (payload.hosts ?? [])
+    .filter((h) => h && typeof h.api_id === 'string')
+    .map((h) => ({
+      apiId: h.api_id,
+      name: h.name || h.username || h.api_id,
+      username: h.username ?? null,
+      twitter: normalizeHandle(h.twitter_handle),
+    }));
+  const organizer = hosts[0]?.name || '';
+
+  const descriptionText = (payload.description_mirror ? extractMirrorText(payload.description_mirror) : '').slice(0, 4000);
+  const priceCents = typeof detail.ticket_price_cents === 'number' ? detail.ticket_price_cents : priceCentsFromTicketTypes(payload);
+  const cost = priceCents !== null ? formatCost(priceCents) : 'Free';
+
+  const apiId = detail.api_id || payload.api_id || null;
+  const link = apiId ? `https://luma.com/event/${apiId}` : fallbackLink;
+  const address = addressFromLumaGeoFields(detail);
+
+  return {
+    name,
+    startAt,
+    endAt,
+    timezone,
+    dateISO,
+    sheetDate,
+    startTime,
+    endTime,
+    address,
+    lat: null,
+    lng: null,
+    isOnline: false,
+    organizer,
+    hosts,
+    calendar: null,
+    cost,
+    link,
+    descriptionText,
+    imageUrl: null,
+    platform: 'luma',
+  };
+}
+
+/** "YYYY-MM-DD" for a UTC instant, in `timezone` — same conversion
+ *  `sheetDateShort` uses internally, exposed here because the discovered-
+ *  link normalizer needs the raw ISO date (for `dateISO`/date-window
+ *  filtering), not just the sheet's short display string. */
+function formatDateISOInTimezone(isoInstant: string, timezone: string): string {
+  const d = new Date(isoInstant);
+  return d.toLocaleDateString('en-CA', { timeZone: timezone });
+}
+
+export interface NormalizeExtractedOptions {
+  platform: Platform;
+  /** Output of `parseEventbrite`/`parsePartiful`/`parseMeetup`/`parsePosh`
+   *  (`event-extractors.ts`) — already-localized date/time strings, not a
+   *  raw UTC instant (those extractors resolve a guessed/declared timezone
+   *  internally and never return it). */
+  result: EventResult;
+}
+
+/**
+ * Normalize a non-Luma discovered link (Partiful/Eventbrite/Meetup/Posh)
+ * using the SAME extractors `/api/fetch-event` already uses — moved to
+ * `event-extractors.ts` in Phase 1a precisely so the ingestion pipeline
+ * could reuse them (§3.2: "Non-Luma links ... go through the moved
+ * fetch-event extractors").
+ *
+ * `startAt`/`endAt` are approximated as the UTC-literal reading of the
+ * already-localized wall-clock time, because `EventResult` only exposes
+ * `dateISO`/`startTime24` (already converted to the event's own guessed
+ * timezone) — not a UTC instant or the timezone name itself. This can skew
+ * `startAt` by the event's UTC offset, which only matters for the
+ * is-this-past ordering check; `dateISO` (what date-window filtering keys
+ * on) is exact. Documented limitation, acceptable for a discovery source.
+ *
+ * Returns null if the extractor didn't find a name or a date (nothing to
+ * place on a calendar).
+ */
+export function normalizeExtractedEvent(opts: NormalizeExtractedOptions): NormalizedEvent | null {
+  const { platform, result } = opts;
+  if (!result.name || !result.dateISO) return null;
+
+  const sheetDate = sheetDateShortFromISODate(result.dateISO);
+  const startTime = result.startTime24 ? time12FromTime24(result.startTime24) : '';
+  const endTime = result.endTime24 ? time12FromTime24(result.endTime24) : '';
+  const startAt = `${result.dateISO}T${result.startTime24 || '00:00'}:00.000Z`;
+  const endAt = result.endTime24 ? `${result.dateISO}T${result.endTime24}:00.000Z` : null;
+
+  return {
+    name: result.name,
+    startAt,
+    endAt,
+    timezone: 'UTC',
+    dateISO: result.dateISO,
+    sheetDate,
+    startTime,
+    endTime,
+    address: result.address || '',
+    lat: null,
+    lng: null,
+    isOnline: false,
+    organizer: result.organizer || '',
+    hosts: [],
+    calendar: null,
+    cost: result.cost || '',
+    link: result.link,
+    descriptionText: '',
+    imageUrl: null,
+    platform,
   };
 }

@@ -213,7 +213,10 @@ function parseOgMeta(html: string): OgMeta {
   return result;
 }
 
-function decodeHtmlEntities(str: string): string {
+/** Exported for reuse by Telegram message-text extraction (Phase 3,
+ *  plans/event-ingestion.md §3.4) — the same small set of HTML entities
+ *  shows up in `t.me/s/<channel>` message text as in these platforms' OG tags. */
+export function decodeHtmlEntities(str: string): string {
   return str
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')

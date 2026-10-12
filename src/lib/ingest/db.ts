@@ -158,18 +158,108 @@ export async function getSource(id: string): Promise<IngestSourceRow | null> {
   return (data as IngestSourceRow) ?? null;
 }
 
-/** Enabled sources due to run, oldest `last_run_at` first (nulls first = never run). */
-export async function listDueSources(kind?: SourceKind): Promise<IngestSourceRow[]> {
+/** Enabled sources due to run, oldest `last_run_at` first (nulls first = never run).
+ *  `kind` accepts one kind or several (Phase 3: the cron polls BOTH
+ *  `luma_ical` and `telegram_channel`; `host_submission` sources are
+ *  passive — fed by `POST /api/host/submissions`, never polled — so they're
+ *  simply never passed here). */
+export async function listDueSources(kind?: SourceKind | SourceKind[]): Promise<IngestSourceRow[]> {
   const supabase = getIngestSupabase();
   let query = supabase
     .from('ingest_sources')
     .select('*')
     .eq('enabled', true)
     .order('last_run_at', { ascending: true, nullsFirst: true });
-  if (kind) query = query.eq('kind', kind);
+  if (Array.isArray(kind)) query = query.in('kind', kind);
+  else if (kind) query = query.eq('kind', kind);
   const { data, error } = await query;
   if (error) throw new Error(`Failed to list due ingest sources: ${error.message}`);
   return (data as IngestSourceRow[]) ?? [];
+}
+
+/**
+ * Get (or lazily create) the single passive `host_submission` source for a
+ * conference (Phase 3, §7: "Phase 3: ... /api/host/sources"). Unlike every
+ * other source kind, this one isn't added through the admin Config UI — it
+ * exists purely so host-submitted candidates have a real `ingest_sources`
+ * row to point `source_id` at (so it shows up, and can be disabled, in the
+ * admin Config/Queue UI like any other source). Always `trust: 'discovery'`
+ * — host submissions are never auto-published (§10 item 4), and this is
+ * never changed by anything else, unlike a Luma/Telegram source's trust,
+ * which an admin can set.
+ */
+export async function getOrCreateHostSubmissionSource(conference: string): Promise<IngestSourceRow> {
+  const supabase = getIngestSupabase();
+  const { data: existing, error: findError } = await supabase
+    .from('ingest_sources')
+    .select('*')
+    .eq('conference', conference)
+    .eq('kind', 'host_submission')
+    .maybeSingle();
+  if (findError) throw new Error(`Failed to load host-submission source: ${findError.message}`);
+  if (existing) return existing as IngestSourceRow;
+
+  // Plain insert, not an upsert — `ingest_sources_unique` is a functional
+  // index (keyed on `coalesce(config->>'calendar_api_id', '')`/`handle`,
+  // not a plain column), and PostgREST's `onConflict` upsert param only
+  // matches a target by its literal column list, not an arbitrary
+  // expression. A concurrent double-create (two requests racing to be the
+  // first submission for a brand-new conference) is handled the same way
+  // the host-claims route handles its own unique-index race: insert, and on
+  // a unique-violation re-select the row that won (review finding pattern
+  // from #177's `event_claims` POST handler).
+  const { data: created, error: insertError } = await supabase
+    .from('ingest_sources')
+    .insert({
+      conference,
+      kind: 'host_submission' as SourceKind,
+      label: 'Host submissions',
+      config: {},
+      trust: 'discovery' as const,
+      added_by: 'system',
+    })
+    .select('*')
+    .single();
+  if (insertError) {
+    if ((insertError as { code?: string }).code === '23505') {
+      const { data: winner, error: refetchError } = await supabase
+        .from('ingest_sources')
+        .select('*')
+        .eq('conference', conference)
+        .eq('kind', 'host_submission')
+        .maybeSingle();
+      if (!refetchError && winner) return winner as IngestSourceRow;
+    }
+    throw new Error(`Failed to create host-submission source: ${insertError.message}`);
+  }
+  return created as IngestSourceRow;
+}
+
+/* ------------------------------------------------------------------ */
+/* Phase 3: public host-submission anti-abuse rate limiting (§10)      */
+/* ------------------------------------------------------------------ */
+
+/** Record one submission attempt (success or failure — this runs BEFORE
+ *  validation so a flood of invalid requests still counts against the
+ *  limit, not just valid ones). `ipHash` is a SHA-256 of the client IP;
+ *  the raw IP is never stored. */
+export async function recordSubmissionAttempt(ipHash: string, conference: string | null): Promise<void> {
+  const supabase = getIngestSupabase();
+  const { error } = await supabase.from('ingest_submission_attempts').insert({ ip_hash: ipHash, conference });
+  if (error) throw new Error(`Failed to record submission attempt: ${error.message}`);
+}
+
+/** Count of attempts from `ipHash` in the last `windowMs` — the rate-limit check. */
+export async function countRecentSubmissionAttempts(ipHash: string, windowMs: number): Promise<number> {
+  const supabase = getIngestSupabase();
+  const since = new Date(Date.now() - windowMs).toISOString();
+  const { count, error } = await supabase
+    .from('ingest_submission_attempts')
+    .select('id', { count: 'exact', head: true })
+    .eq('ip_hash', ipHash)
+    .gte('created_at', since);
+  if (error) throw new Error(`Failed to count submission attempts: ${error.message}`);
+  return count ?? 0;
 }
 
 export async function createSource(row: {

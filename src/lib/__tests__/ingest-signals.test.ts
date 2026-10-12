@@ -19,6 +19,19 @@ describe('computeSignals', () => {
     expect(r.capRouteAtReview).toBe(false);
   });
 
+  it('scores a Phase 3 verified-submitter signal (+10), independent of isTrustedHost', () => {
+    const r = computeSignals({
+      isVerifiedSubmitter: true,
+      text: 'Some random host submission',
+      includeKeywords: [],
+      excludeKeywords: [],
+    });
+    expect(r.breakdown.verified_submitter).toBe(10);
+    expect(r.total).toBe(10);
+    expect(r.hardReject).toBe(false);
+    expect(r.capRouteAtReview).toBe(false);
+  });
+
   it('matches include keywords on word boundaries and caps at +15', () => {
     const r = computeSignals({
       text: 'A DeFi and NFT and DAO party with crypto vibes',

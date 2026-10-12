@@ -32,7 +32,13 @@ export async function GET(req: Request) {
 
   const reaped = await reapStaleRunningRuns();
 
-  const [sources, tabs] = await Promise.all([listDueSources('luma_ical'), getAllConferenceTabs()]);
+  // Phase 3: poll both curated Luma calendars and configured Telegram
+  // channels. `host_submission` sources are intentionally excluded — they
+  // are passive (fed by `POST /api/host/submissions`), never polled.
+  const [sources, tabs] = await Promise.all([
+    listDueSources(['luma_ical', 'telegram_channel']),
+    getAllConferenceTabs(),
+  ]);
   const todayISO = new Date().toISOString().slice(0, 10);
 
   const results: { sourceId: string; conference: string; status: string; skippedReason?: string }[] = [];

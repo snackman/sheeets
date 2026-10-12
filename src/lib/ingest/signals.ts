@@ -23,6 +23,16 @@ export interface SignalInput {
   /** A known sponsor name (from `event_sponsors`) appears in the
    *  host/organizer identity fields. */
   sponsorMatch?: string | null;
+  /** Phase 3 (§3.5/§7, host submission page): the person who SUBMITTED this
+   *  link has previously proven control of a Luma host account
+   *  (`verified_luma_hosts`) — weaker evidence than `isTrustedHost` (which
+   *  requires THIS event's own hosts list to include a verified id: a
+   *  verified host could submit someone else's event, or a non-Luma link
+   *  with no host list at all), but still a real trust signal an anonymous
+   *  submission doesn't have. Host-submission sources are always
+   *  `discovery` trust, so this never lifts a candidate past the review
+   *  cap — it only nudges `final_score` within the queue. */
+  isVerifiedSubmitter?: boolean;
   /** Text to match include/exclude keywords against: name + hosts + description. */
   text: string;
   includeKeywords: string[];
@@ -51,6 +61,10 @@ const INCLUDE_KEYWORD_CAP = 15;
 const TRUSTED_CALENDAR_POINTS = 15;
 const TRUSTED_HOST_POINTS = 20;
 const SPONSOR_MATCH_POINTS = 10;
+/** Phase 3 — see `SignalInput.isVerifiedSubmitter`. Same weight as a sponsor
+ *  match: real evidence, but deliberately well short of `TRUSTED_HOST_POINTS`
+ *  (which is about THIS event's hosts, not the submitter). */
+const VERIFIED_SUBMITTER_POINTS = 10;
 const EXCLUDE_KEYWORD_POINTS = -40;
 const BLOCKED_HOST_POINTS = -40;
 /** Softer than the explicit block's -40 (review finding, MEDIUM item 6) —
@@ -84,6 +98,9 @@ export function computeSignals(input: SignalInput): SignalResult {
   }
   if (input.sponsorMatch) {
     breakdown[`sponsor:${input.sponsorMatch}`] = SPONSOR_MATCH_POINTS;
+  }
+  if (input.isVerifiedSubmitter) {
+    breakdown['verified_submitter'] = VERIFIED_SUBMITTER_POINTS;
   }
 
   const matchedIncludes = input.includeKeywords.filter((kw) => matchesKeyword(input.text, kw));
