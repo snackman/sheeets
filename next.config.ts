@@ -22,6 +22,12 @@ const csp = [
     'https://cdn.jsdelivr.net',
     // Vercel toolbar / analytics on preview deployments
     'https://vercel.live',
+    // Cloudflare Turnstile widget script (Phase 3 host-submission page,
+    // `SubmitSourceForm.tsx` — re-review finding F). Loaded even when
+    // `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is unset in THIS environment, since
+    // CSP is a static, build-time header, not conditional on runtime env
+    // vars, and Snax may set the key later without a code change.
+    'https://challenges.cloudflare.com',
   ].join(' '),
   [
     "connect-src 'self'",
@@ -40,6 +46,9 @@ const csp = [
     'https://cdn.jsdelivr.net',
     'https://vercel.live',
     'wss://ws-us3.pusher.com',
+    // Cloudflare Turnstile (re-review finding F): the widget script makes
+    // its own XHR/fetch calls back to challenges.cloudflare.com.
+    'https://challenges.cloudflare.com',
   ].join(' '),
   "img-src 'self' data: blob: https:",
   "style-src 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com",
@@ -51,6 +60,9 @@ const csp = [
     'https://*.luma.com',
     'https://accounts.google.com',
     'https://vercel.live',
+    // Cloudflare Turnstile renders its challenge in an iframe
+    // (re-review finding F).
+    'https://challenges.cloudflare.com',
   ].join(' '),
   "worker-src 'self' blob:",
   "child-src 'self' blob:",

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
 process.env.OPENAI_API_KEY = 'test-key';
@@ -36,18 +36,22 @@ const {
   countConferenceRecentSubmissionAttemptsMock,
   recordSubmissionAttemptMock,
   recordSubmissionAttemptCostMock,
+  markSubmissionAttemptRejectedMock,
   getOrCreateHostSubmissionSourceMock,
   getProfileMock,
   getCandidateByKeyMock,
   upsertCandidateMock,
   updateCandidateMock,
   checkMonthlyBudgetMock,
+  lumaLimiterExhaustedRef,
 } = vi.hoisted(() => ({
   countRecentSubmissionAttemptsMock: vi.fn(async (_ipHash: string, _windowMs: number) => 1),
   countGlobalRecentSubmissionAttemptsMock: vi.fn(async (_windowMs: number) => 1),
   countConferenceRecentSubmissionAttemptsMock: vi.fn(async (_conference: string, _windowMs: number) => 1),
   recordSubmissionAttemptMock: vi.fn(async (_ipHash: string, _conference: string | null) => 'attempt-1'),
   recordSubmissionAttemptCostMock: vi.fn(async (_attemptId: string, _usage: { costUsd: number; inputTokens: number; outputTokens: number }) => {}),
+  markSubmissionAttemptRejectedMock: vi.fn(async (_attemptId: string) => {}),
+  lumaLimiterExhaustedRef: { value: false },
   getOrCreateHostSubmissionSourceMock: vi.fn(async (conference: string) => ({
     id: 'source-1',
     conference,
@@ -110,6 +114,7 @@ vi.mock('@/lib/ingest/db', () => ({
   listRecentCandidatesForDedupe: vi.fn(async () => []),
   recordSubmissionAttempt: recordSubmissionAttemptMock,
   recordSubmissionAttemptCost: recordSubmissionAttemptCostMock,
+  markSubmissionAttemptRejected: markSubmissionAttemptRejectedMock,
   countRecentSubmissionAttempts: countRecentSubmissionAttemptsMock,
   countGlobalRecentSubmissionAttempts: countGlobalRecentSubmissionAttemptsMock,
   countConferenceRecentSubmissionAttempts: countConferenceRecentSubmissionAttemptsMock,
@@ -154,7 +159,14 @@ vi.mock('@/lib/ingest/discover', () => ({
 }));
 
 vi.mock('@/lib/ingest/enrich', () => ({
-  HourlyWindowLumaLimiter: class {},
+  HourlyWindowLumaLimiter: class {
+    get exhausted() {
+      return lumaLimiterExhaustedRef.value;
+    }
+    async enrich() {
+      return null;
+    }
+  },
 }));
 
 import { POST } from '../../app/api/host/submissions/route';
@@ -180,6 +192,7 @@ beforeEach(() => {
   checkMonthlyBudgetMock.mockResolvedValue({ spentUsd: 0, capUsd: 20, exceeded: false });
   getCandidateByKeyMock.mockResolvedValue(null);
   processDiscoveredLinkMock.mockResolvedValue({ kind: 'invalid' });
+  lumaLimiterExhaustedRef.value = false;
 });
 
 describe('POST /api/host/submissions — validation', () => {
@@ -236,7 +249,7 @@ describe('POST /api/host/submissions — rate limiting', () => {
     expect(countRecentSubmissionAttemptsMock).toHaveBeenCalled();
   });
 
-  it('returns 429 once the per-IP short-window cap is exceeded (count includes the just-recorded attempt, so `> max` is the right comparison)', async () => {
+  it('returns 429 once the per-IP short-window cap is exceeded (count includes the just-recorded attempt, so `> max` is the right comparison), and marks the attempt rejected WITHOUT ever querying the global/conference ceilings (re-review finding A)', async () => {
     countRecentSubmissionAttemptsMock.mockImplementation(async (_ipHash: string, windowMs: number) =>
       windowMs <= 15 * 60 * 1000 ? 6 : 1
     );
@@ -244,7 +257,13 @@ describe('POST /api/host/submissions — rate limiting', () => {
     expect(res.status).toBe(429);
     // The attempt is still recorded (it happens BEFORE the count check).
     expect(recordSubmissionAttemptMock).toHaveBeenCalledTimes(1);
+    expect(markSubmissionAttemptRejectedMock).toHaveBeenCalledWith('attempt-1');
     expect(processDiscoveredLinkMock).not.toHaveBeenCalled();
+    // Short-circuited BEFORE the global/conference ceilings are even
+    // queried — a per-IP-rejected request should never need to touch
+    // (let alone consume) the shared budget other IPs/conferences rely on.
+    expect(countGlobalRecentSubmissionAttemptsMock).not.toHaveBeenCalled();
+    expect(countConferenceRecentSubmissionAttemptsMock).not.toHaveBeenCalled();
   });
 
   it('returns 429 once the per-IP daily cap is exceeded even if the short window is fine', async () => {
@@ -253,18 +272,43 @@ describe('POST /api/host/submissions — rate limiting', () => {
     );
     const res = await POST(postRequest(VALID_BODY));
     expect(res.status).toBe(429);
+    expect(markSubmissionAttemptRejectedMock).toHaveBeenCalledWith('attempt-1');
   });
 
-  it('returns 429 once the GLOBAL hourly ceiling is exceeded, even with a fresh IP', async () => {
+  it('returns 429 once the GLOBAL hourly ceiling is exceeded, even with a fresh IP, and marks that attempt rejected too', async () => {
     countGlobalRecentSubmissionAttemptsMock.mockResolvedValueOnce(61);
     const res = await POST(postRequest(VALID_BODY));
     expect(res.status).toBe(429);
+    expect(markSubmissionAttemptRejectedMock).toHaveBeenCalledWith('attempt-1');
   });
 
   it('returns 429 once the per-conference daily ceiling is exceeded', async () => {
     countConferenceRecentSubmissionAttemptsMock.mockResolvedValueOnce(101);
     const res = await POST(postRequest(VALID_BODY));
     expect(res.status).toBe(429);
+    expect(markSubmissionAttemptRejectedMock).toHaveBeenCalledWith('attempt-1');
+  });
+
+  it('one IP flooding past its own per-IP limit cannot 429 a DIFFERENT, well-behaved IP (re-review finding A — the whole point of excluding rejected rows from the global/conference counts)', async () => {
+    // IP A: over its own per-IP limit — rejected, never even reaches the
+    // global/conference check (asserted above). In the real DB, this
+    // attempt is marked `rejected` and `countGlobalRecentSubmissionAttempts`
+    // excludes it (covered at the db.ts level in ingest-db-phase3.test.ts);
+    // here we simulate that exclusion directly via the mock, since IP A's
+    // flood never even calls the global-count function in this request.
+    countRecentSubmissionAttemptsMock.mockResolvedValueOnce(999).mockResolvedValueOnce(999);
+    recordSubmissionAttemptMock.mockResolvedValueOnce('attempt-ip-a');
+    const resA = await POST(postRequest({ conference: 'ETHDenver', url: 'https://lu.ma/abc' }, { 'x-real-ip': '198.51.100.1' }));
+    expect(resA.status).toBe(429);
+    expect(countGlobalRecentSubmissionAttemptsMock).not.toHaveBeenCalled();
+
+    // IP B: well within its own per-IP limit, and the global count (which
+    // in production excludes IP A's rejected flood) is low — succeeds.
+    countRecentSubmissionAttemptsMock.mockResolvedValueOnce(1).mockResolvedValueOnce(1);
+    countGlobalRecentSubmissionAttemptsMock.mockResolvedValueOnce(2);
+    recordSubmissionAttemptMock.mockResolvedValueOnce('attempt-ip-b');
+    const resB = await POST(postRequest({ conference: 'ETHDenver', url: 'https://lu.ma/abc' }, { 'x-real-ip': '198.51.100.2' }));
+    expect(resB.status).not.toBe(429);
   });
 
   it('hashes the IP rather than storing it raw', async () => {
@@ -332,6 +376,63 @@ describe('POST /api/host/submissions — rate limiting', () => {
     await POST(postRequest(VALID_BODY, { 'x-real-ip': '2001:db8:9999:0000::1' }));
     const second = recordSubmissionAttemptMock.mock.calls[0]?.[0];
     expect(second).not.toBe(first);
+  });
+});
+
+describe('POST /api/host/submissions — Turnstile runs before any DB write (re-review finding A)', () => {
+  const originalSecret = process.env.TURNSTILE_SECRET_KEY;
+  const originalSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    process.env.TURNSTILE_SECRET_KEY = 'test-secret';
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = 'test-site-key';
+    fetchSpy = vi.spyOn(global, 'fetch');
+  });
+
+  afterEach(() => {
+    // `process.env.X = undefined` would coerce to the STRING "undefined"
+    // (still truthy!), not actually unset it — delete when there was
+    // nothing there originally.
+    if (originalSecret === undefined) delete process.env.TURNSTILE_SECRET_KEY;
+    else process.env.TURNSTILE_SECRET_KEY = originalSecret;
+    if (originalSiteKey === undefined) delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    else process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = originalSiteKey;
+    fetchSpy.mockRestore();
+  });
+
+  it('never inserts an attempt row when Turnstile verification fails', async () => {
+    fetchSpy.mockResolvedValue(new Response(JSON.stringify({ success: false }), { status: 200 }));
+    const res = await POST(postRequest({ ...VALID_BODY, turnstileToken: 'bad-token' }));
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toMatch(/captcha/i);
+    expect(recordSubmissionAttemptMock).not.toHaveBeenCalled();
+  });
+
+  it('proceeds to record the attempt when Turnstile verification succeeds', async () => {
+    fetchSpy.mockResolvedValue(new Response(JSON.stringify({ success: true }), { status: 200 }));
+    await POST(postRequest({ ...VALID_BODY, turnstileToken: 'good-token' }));
+    expect(recordSubmissionAttemptMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('POST /api/host/submissions — honest message when the shared Luma budget is exhausted (re-review finding E)', () => {
+  it('returns 429 for a Luma link without calling processDiscoveredLink, instead of a misleading "thanks" message', async () => {
+    lumaLimiterExhaustedRef.value = true;
+    const res = await POST(postRequest({ conference: 'ETHDenver', url: 'https://lu.ma/discovered-mixer' }));
+    expect(res.status).toBe(429);
+    const json = await res.json();
+    expect(json.error).toMatch(/luma/i);
+    expect(processDiscoveredLinkMock).not.toHaveBeenCalled();
+  });
+
+  it('does NOT block a non-Luma link when the Luma limiter is exhausted', async () => {
+    lumaLimiterExhaustedRef.value = true;
+    processDiscoveredLinkMock.mockResolvedValueOnce({ kind: 'invalid' });
+    const res = await POST(postRequest({ conference: 'ETHDenver', url: 'https://partiful.com/e/abc123' }));
+    expect(res.status).not.toBe(429);
+    expect(processDiscoveredLinkMock).toHaveBeenCalledTimes(1);
   });
 });
 

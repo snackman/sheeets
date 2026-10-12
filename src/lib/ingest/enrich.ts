@@ -95,11 +95,27 @@ export class HourlyWindowLumaLimiter implements EnrichLimiter {
     this.inner = new LumaEnrichmentLimiter(maxPerHour, minIntervalMs);
   }
 
-  async enrich(ref: EnrichRef): Promise<LumaEventPayload | null> {
+  private maybeResetWindow(): void {
     if (Date.now() - this.windowStartedAt > HourlyWindowLumaLimiter.WINDOW_MS) {
       this.inner = new LumaEnrichmentLimiter(this.maxPerHour, this.minIntervalMs);
       this.windowStartedAt = Date.now();
     }
+  }
+
+  /** True once this (rolling) hour's shared budget is used up. Re-review
+   *  finding E: callers (the host-submissions route) check this BEFORE
+   *  attempting to process a Luma link, so they can return an honest
+   *  "try again later" instead of silently falling through to
+   *  `processDiscoveredLink`'s generic enrichment-failure handling, which
+   *  would otherwise surface as a cheerful "thanks, we'll review this" —
+   *  true for most failures, but not for "we didn't even look." */
+  get exhausted(): boolean {
+    this.maybeResetWindow();
+    return this.inner.exhausted;
+  }
+
+  async enrich(ref: EnrichRef): Promise<LumaEventPayload | null> {
+    this.maybeResetWindow();
     return this.inner.enrich(ref);
   }
 }

@@ -126,82 +126,95 @@ export function SubmitSourceForm({ conferenceTabs }: Props) {
     if (window.turnstile && turnstileWidgetIdRef.current) window.turnstile.reset(turnstileWidgetIdRef.current);
   }
 
-  if (status === 'done') {
-    return (
-      <div className="rounded-xl border border-[var(--theme-border-primary)] bg-[color:rgba(255,255,255,0.03)] p-6 flex items-start gap-3">
-        <Check className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
-        <div>
-          <p className="text-[var(--theme-text-primary)] font-medium">Submitted</p>
-          <p className="text-sm text-[var(--theme-text-secondary)] mt-1">{message}</p>
-          <button
-            onClick={submitAnother}
-            className="mt-4 text-sm text-[var(--theme-accent-link)] hover:underline cursor-pointer"
-          >
-            Submit another
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+  // Re-review finding D: the Turnstile container used to live ONLY inside
+  // the "form" branch of a `status === 'done' ? ... : ...` two-return
+  // structure, so switching to 'done' unmounted it, and "Submit another"
+  // (back to 'idle') mounted a BRAND-NEW div the initial mount effect
+  // never re-ran for (that effect's deps never change) — leaving the
+  // button permanently disabled (no token) on a second submission. Fixed
+  // by rendering the container UNCONDITIONALLY, in one single return, so
+  // it's the exact same DOM node — and the exact same live Turnstile
+  // widget — throughout the component's whole lifetime; only its
+  // visibility toggles. `submitAnother`'s existing `window.turnstile.reset(...)`
+  // call now actually resets a widget that's still attached to the page.
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm text-[var(--theme-text-secondary)] mb-1.5" htmlFor="submit-source-conference">
-          Conference
-        </label>
-        <select
-          id="submit-source-conference"
-          value={conference}
-          onChange={(e) => setConference(e.target.value)}
-          className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg px-3 py-2 text-sm text-[var(--theme-text-primary)] focus:border-[var(--theme-accent)] focus:outline-none"
-        >
-          {conferenceTabs.map((t) => (
-            <option key={t.slug} value={t.name}>{t.name}</option>
-          ))}
-        </select>
+    <div className="space-y-4">
+      <div className={TURNSTILE_SITE_KEY ? (status === 'done' ? 'hidden' : undefined) : 'hidden'}>
+        <div ref={turnstileContainerRef} />
       </div>
 
-      <div>
-        <label className="block text-sm text-[var(--theme-text-secondary)] mb-1.5" htmlFor="submit-source-url">
-          Event link
-        </label>
-        <div className="relative">
-          <LinkIcon className="w-4 h-4 text-[var(--theme-text-secondary)] absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            id="submit-source-url"
-            type="url"
-            required
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://lu.ma/your-event"
-            className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg pl-9 pr-3 py-2 text-sm text-[var(--theme-text-primary)] focus:border-[var(--theme-accent)] focus:outline-none"
-          />
+      {status === 'done' ? (
+        <div className="rounded-xl border border-[var(--theme-border-primary)] bg-[color:rgba(255,255,255,0.03)] p-6 flex items-start gap-3">
+          <Check className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-[var(--theme-text-primary)] font-medium">Submitted</p>
+            <p className="text-sm text-[var(--theme-text-secondary)] mt-1">{message}</p>
+            <button
+              onClick={submitAnother}
+              className="mt-4 text-sm text-[var(--theme-accent-link)] hover:underline cursor-pointer"
+            >
+              Submit another
+            </button>
+          </div>
         </div>
-        <p className="text-xs text-[var(--theme-text-secondary)] mt-1.5">
-          Luma, Partiful, Eventbrite, Meetup, or Posh links only.
-        </p>
-      </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm text-[var(--theme-text-secondary)] mb-1.5" htmlFor="submit-source-conference">
+              Conference
+            </label>
+            <select
+              id="submit-source-conference"
+              value={conference}
+              onChange={(e) => setConference(e.target.value)}
+              className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg px-3 py-2 text-sm text-[var(--theme-text-primary)] focus:border-[var(--theme-accent)] focus:outline-none"
+            >
+              {conferenceTabs.map((t) => (
+                <option key={t.slug} value={t.name}>{t.name}</option>
+              ))}
+            </select>
+          </div>
 
-      {TURNSTILE_SITE_KEY && <div ref={turnstileContainerRef} />}
+          <div>
+            <label className="block text-sm text-[var(--theme-text-secondary)] mb-1.5" htmlFor="submit-source-url">
+              Event link
+            </label>
+            <div className="relative">
+              <LinkIcon className="w-4 h-4 text-[var(--theme-text-secondary)] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                id="submit-source-url"
+                type="url"
+                required
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://lu.ma/your-event"
+                className="w-full bg-[var(--theme-bg-primary)] border border-[var(--theme-border-primary)] rounded-lg pl-9 pr-3 py-2 text-sm text-[var(--theme-text-primary)] focus:border-[var(--theme-accent)] focus:outline-none"
+              />
+            </div>
+            <p className="text-xs text-[var(--theme-text-secondary)] mt-1.5">
+              Luma, Partiful, Eventbrite, Meetup, or Posh links only.
+            </p>
+          </div>
 
-      {message && status === 'error' && (
-        <p className="text-sm text-red-400">{message}</p>
+          {message && status === 'error' && (
+            <p className="text-sm text-red-400">{message}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={status === 'submitting' || !url.trim() || !conference || (!!TURNSTILE_SITE_KEY && !turnstileToken)}
+            className="w-full bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)] rounded-lg px-4 py-2.5 text-sm font-medium cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {status === 'submitting' ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" /> Submitting…
+              </>
+            ) : (
+              'Submit for review'
+            )}
+          </button>
+        </form>
       )}
-
-      <button
-        type="submit"
-        disabled={status === 'submitting' || !url.trim() || !conference || (!!TURNSTILE_SITE_KEY && !turnstileToken)}
-        className="w-full bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)] rounded-lg px-4 py-2.5 text-sm font-medium cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
-      >
-        {status === 'submitting' ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" /> Submitting…
-          </>
-        ) : (
-          'Submit for review'
-        )}
-      </button>
-    </form>
+    </div>
   );
 }

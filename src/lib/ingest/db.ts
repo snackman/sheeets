@@ -282,7 +282,11 @@ export async function recordSubmissionAttemptCost(
 /** Count of attempts from `ipHash` in the last `windowMs` — the per-IP
  *  rate-limit check. Includes the just-inserted current attempt (see
  *  `recordSubmissionAttempt`'s doc comment), so callers compare with `>`,
- *  not `>=`. */
+ *  not `>=`. Deliberately NOT filtered on `rejected` — unlike the global/
+ *  per-conference counts below, a per-IP-rejected attempt SHOULD keep
+ *  counting against that same IP's future windows (that's the point: it
+ *  stays rate-limited), it's only other IPs/conferences that must not be
+ *  penalized by it (re-review finding A). */
 export async function countRecentSubmissionAttempts(ipHash: string, windowMs: number): Promise<number> {
   const supabase = getIngestSupabase();
   const since = new Date(Date.now() - windowMs).toISOString();
@@ -295,15 +299,26 @@ export async function countRecentSubmissionAttempts(ipHash: string, windowMs: nu
   return count ?? 0;
 }
 
-/** Global (every IP) attempt count in the last `windowMs` — the overall
- *  ceiling (review finding, HIGH item 2) that stops a botnet spreading one
- *  attempt per IP from ever adding up to an unbounded flood of LLM calls. */
+/**
+ * Global (every IP) attempt count in the last `windowMs` — the overall
+ * ceiling (review finding, HIGH item 2) that stops a botnet spreading one
+ * attempt per IP from ever adding up to an unbounded flood of LLM calls.
+ *
+ * Filters `rejected = false` (re-review finding A): a request already
+ * rejected by its OWN per-IP limit (the only way a row can be `rejected`
+ * today — a captcha failure is checked BEFORE any row is inserted at all)
+ * must not ALSO count against this shared, cross-IP ceiling — otherwise
+ * one IP that blows through its own per-IP limit keeps consuming global
+ * budget and starts 429-ing every OTHER IP too, which is a DoS a single
+ * bad actor could trigger instead of only hurting themselves.
+ */
 export async function countGlobalRecentSubmissionAttempts(windowMs: number): Promise<number> {
   const supabase = getIngestSupabase();
   const since = new Date(Date.now() - windowMs).toISOString();
   const { count, error } = await supabase
     .from('ingest_submission_attempts')
     .select('id', { count: 'exact', head: true })
+    .eq('rejected', false)
     .gte('created_at', since);
   if (error) throw new Error(`Failed to count global submission attempts: ${error.message}`);
   return count ?? 0;
@@ -311,7 +326,11 @@ export async function countGlobalRecentSubmissionAttempts(windowMs: number): Pro
 
 /** Per-conference attempt count in the last `windowMs` — stops one
  *  conference's submission form being hammered from many different IPs
- *  (review finding, HIGH item 2). */
+ *  (review finding, HIGH item 2). Filters `rejected = false`, same
+ *  rationale as `countGlobalRecentSubmissionAttempts` above (re-review
+ *  finding A) — a flood against ONE conference that's already being
+ *  turned away by the per-IP limit must not also use up this
+ *  conference's shared daily budget for every other submitter. */
 export async function countConferenceRecentSubmissionAttempts(conference: string, windowMs: number): Promise<number> {
   const supabase = getIngestSupabase();
   const since = new Date(Date.now() - windowMs).toISOString();
@@ -319,9 +338,19 @@ export async function countConferenceRecentSubmissionAttempts(conference: string
     .from('ingest_submission_attempts')
     .select('id', { count: 'exact', head: true })
     .eq('conference', conference)
+    .eq('rejected', false)
     .gte('created_at', since);
   if (error) throw new Error(`Failed to count conference submission attempts: ${error.message}`);
   return count ?? 0;
+}
+
+/** Mark an attempt as `rejected` — called when ITS OWN per-IP (or, after
+ *  that, global/per-conference) check fails, so the global/per-conference
+ *  counts above exclude it from here on (re-review finding A). */
+export async function markSubmissionAttemptRejected(attemptId: string): Promise<void> {
+  const supabase = getIngestSupabase();
+  const { error } = await supabase.from('ingest_submission_attempts').update({ rejected: true }).eq('id', attemptId);
+  if (error) throw new Error(`Failed to mark submission attempt rejected: ${error.message}`);
 }
 
 export async function createSource(row: {
@@ -648,23 +677,66 @@ export async function listRuns(opts: { conference?: string; limit?: number } = {
   return (data as IngestRunRow[]) ?? [];
 }
 
-/** Sum of `est_cost_usd` across runs started this calendar month (UTC), for the budget cap. */
+/**
+ * Postgres/PostgREST error codes meaning "the thing I queried doesn't
+ * exist (yet)" — a missing table/view (42P01), a missing column (42703),
+ * or PostgREST's own "not in the schema cache" code for either (PGRST205),
+ * plus the two ways PostgREST reports a MISSING RPC FUNCTION (PGRST202 is
+ * its own code for that; some gateway/pooler configurations instead let
+ * the underlying `42883 undefined_function` through). All five mean the
+ * same thing here: this migration (or this specific statement within it)
+ * hasn't been applied yet (re-review finding C).
+ */
+const MISSING_RELATION_ERROR_CODES = new Set(['42P01', '42703', 'PGRST205', 'PGRST202', '42883']);
+
+function isMissingRelationError(error: { code?: string } | null | undefined): boolean {
+  return !!error?.code && MISSING_RELATION_ERROR_CODES.has(error.code);
+}
+
+/**
+ * Sum `ingest_runs.est_cost_usd` + `ingest_submission_attempts.cost_usd`
+ * for the current calendar month (UTC) — the monthly LLM budget cap
+ * (`budget.ts#checkMonthlyBudget`), checked by EVERY candidate source
+ * including the Phase 1b/2 Luma-iCal pipeline that's already live in
+ * production today.
+ *
+ * Re-review finding B: sums in SQL via `get_monthly_ingest_cost_usd` (one
+ * row back, correct no matter how many underlying rows exist), not by
+ * pulling rows client-side and reducing — the old version silently
+ * truncated at PostgREST's default 1000-row page once either table passed
+ * that many rows in a month.
+ *
+ * Re-review finding C: if that RPC isn't available yet (this exact
+ * migration hasn't been applied — a real possibility right after this PR
+ * deploys, since the Luma-iCal pipeline's budget check must not depend on
+ * a Phase 3 migration it has nothing else to do with), falls back to the
+ * previous per-table queries. Within that fallback, a missing-relation
+ * error from the `ingest_runs` half is a REAL problem and still throws
+ * (that table has existed since Phase 1b); the SAME error from the
+ * `ingest_submission_attempts` half is treated as $0 instead, since that
+ * table is brand new in this PR and its absence must never break the
+ * already-live cron's budget check.
+ */
 export async function monthlyLlmCostUsd(): Promise<number> {
   const supabase = getIngestSupabase();
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+
+  const { data: rpcTotal, error: rpcError } = await supabase.rpc('get_monthly_ingest_cost_usd', { p_month_start: monthStart });
+  if (!rpcError) return Number(rpcTotal ?? 0);
+  if (!isMissingRelationError(rpcError)) throw new Error(`Failed to sum monthly ingest cost: ${rpcError.message}`);
+
   const [{ data: runs, error: runsError }, { data: submissions, error: submissionsError }] = await Promise.all([
     supabase.from('ingest_runs').select('est_cost_usd').gte('started_at', monthStart),
-    // Phase 3 (review finding, MEDIUM item 7): submission classification
-    // cost is aggregated on `ingest_submission_attempts` rather than one
-    // `ingest_runs` row per public request — it must still count toward
-    // the SAME monthly budget cap, or the cap check in `route.ts` would be
-    // comparing against an incomplete total.
     supabase.from('ingest_submission_attempts').select('cost_usd').gte('created_at', monthStart),
   ]);
   if (runsError) throw new Error(`Failed to sum monthly ingest cost: ${runsError.message}`);
-  if (submissionsError) throw new Error(`Failed to sum monthly submission cost: ${submissionsError.message}`);
   const runsCost = (runs ?? []).reduce((sum, r) => sum + Number((r as { est_cost_usd: number }).est_cost_usd || 0), 0);
+
+  if (submissionsError) {
+    if (!isMissingRelationError(submissionsError)) throw new Error(`Failed to sum monthly submission cost: ${submissionsError.message}`);
+    return runsCost; // ingest_submission_attempts doesn't exist yet — treat as $0, never break the cron.
+  }
   const submissionsCost = (submissions ?? []).reduce((sum, r) => sum + Number((r as { cost_usd: number }).cost_usd || 0), 0);
   return runsCost + submissionsCost;
 }

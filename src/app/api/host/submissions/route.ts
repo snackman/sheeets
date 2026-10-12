@@ -7,21 +7,31 @@
 // the sheet, never auto-published (§10 item 4). The pre-existing
 // `/api/submit-event` flow is unchanged.
 //
-// Anti-abuse (§Phase 3 constraints, hardened per PR #181 review):
-//  1. Rate limiting, several layers (all against `ingest_submission_attempts`):
-//     per-IP (two windows), a GLOBAL hourly ceiling, and a per-conference
-//     daily ceiling. The attempt row is inserted BEFORE counting (not
-//     after), closing most of the count-then-insert race a concurrent
-//     request would otherwise have.
+// Anti-abuse (§Phase 3 constraints, hardened per PR #181 review and
+// re-review):
+//  0. Cloudflare Turnstile is verified FIRST, before anything else touches
+//     the database — enforced only when BOTH `TURNSTILE_SECRET_KEY`
+//     (server) and `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (client, read by
+//     `SubmitSourceForm.tsx`, which renders the real widget) are set; if
+//     either is missing, Turnstile is skipped entirely (a half-configured
+//     pair would otherwise be a silent total outage, since the client
+//     could never produce a token with no site key to render against). A
+//     captcha failure never creates an `ingest_submission_attempts` row.
+//  1. Rate limiting, several layers, all against `ingest_submission_attempts`:
+//     per-IP (two windows), then — ONLY if the per-IP check passes — a
+//     GLOBAL hourly ceiling and a per-conference daily ceiling. The
+//     attempt row is inserted BEFORE counting (not after), closing most
+//     of the count-then-insert race a concurrent request would otherwise
+//     have. A request rejected by the per-IP check is marked `rejected`
+//     and EXCLUDED from the global/per-conference counts (re-review
+//     finding A), so one IP flooding past its own limit can't also 429
+//     every other IP/conference.
 //  2. URL validation: allowlisted event platforms only (Luma, Partiful,
 //     Eventbrite, Meetup, Posh) — `isAllowlistedEventLink`.
-//  3. Cloudflare Turnstile: enforced only when BOTH `TURNSTILE_SECRET_KEY`
-//     (server) and `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (client, read by
-//     `SubmitSourceForm.tsx`, which renders the real widget) are set — if
-//     either is missing, Turnstile is skipped entirely rather than
-//     rejecting every request outright (a half-configured pair would
-//     otherwise be a silent total outage, since the client could never
-//     produce a token with no site key to render against).
+//  3. A shared, hourly-capped Luma enrichment budget (`HourlyWindowLumaLimiter`)
+//     — if it's exhausted and the link is a Luma one, this says so
+//     honestly (429) rather than silently falling through to a generic
+//     "thanks, we'll review this."
 //  4. The monthly LLM budget cap (`checkMonthlyBudget`) is checked before
 //     classifying, same as every other candidate source.
 import { NextRequest, NextResponse } from 'next/server';
@@ -33,7 +43,7 @@ import { parseBody, HostSubmissionSchema } from '@/lib/api-validation';
 import { getBearerToken } from '@/lib/server-auth';
 import { fetchEvents } from '@/lib/fetch-events';
 import { normalizeEventLink } from '@/lib/luma';
-import { isAllowlistedEventLink } from '@/lib/ingest/allowlist';
+import { isAllowlistedEventLink, allowlistedPlatformFor } from '@/lib/ingest/allowlist';
 import { checkMonthlyBudget } from '@/lib/ingest/budget';
 import {
   getProfile,
@@ -45,6 +55,7 @@ import {
   listRecentCandidatesForDedupe,
   recordSubmissionAttempt,
   recordSubmissionAttemptCost,
+  markSubmissionAttemptRejected,
   countRecentSubmissionAttempts,
   countGlobalRecentSubmissionAttempts,
   countConferenceRecentSubmissionAttempts,
@@ -136,23 +147,24 @@ function bucketIp(ip: string): string {
 /**
  * Best-effort client IP (review finding, HIGH item 2: "prefer request.ip /
  * x-real-ip / Vercel's header over the first XFF entry"). Priority:
- *  1. `request.ip` — populated by some Next.js/Vercel runtimes directly;
- *     read defensively since this `NextRequest` type doesn't declare it.
- *  2. `x-real-ip` — Vercel's edge sets this to the real client IP itself
+ *  1. `x-real-ip` — Vercel's edge sets this to the real client IP itself
  *     (not client-suppliable: Vercel overwrites it), so it's trustworthy.
- *  3. `x-vercel-forwarded-for` — Vercel's own forwarded-for header, same
+ *  2. `x-vercel-forwarded-for` — Vercel's own forwarded-for header, same
  *     trust level as `x-real-ip`.
- *  4. The FIRST entry of the generic `x-forwarded-for` chain — kept only
+ *  3. The FIRST entry of the generic `x-forwarded-for` chain — kept only
  *     as a last-resort fallback for non-Vercel environments (e.g. local
  *     dev behind a bare reverse proxy). This is the LEAST trustworthy
  *     option: unless something in front of this function is known to
  *     always APPEND to (never pass through) this header, a client can
  *     simply send its own `X-Forwarded-For: 1.2.3.4` and have it end up
  *     first. Only used when none of the above are present.
+ *
+ * (Re-review finding E: dropped the `request.ip` check this previously
+ * had first — `NextRequest` in this Next.js version never actually
+ * populates that property, including on Vercel, so it was dead code that
+ * could never fire; `x-real-ip` is the real equivalent Vercel provides.)
  */
 function getClientIp(req: NextRequest): string {
-  const reqIp = (req as unknown as { ip?: string }).ip;
-  if (reqIp) return reqIp;
   const realIp = req.headers.get('x-real-ip');
   if (realIp) return realIp.trim();
   const vercelFwd = req.headers.get('x-vercel-forwarded-for');
@@ -199,40 +211,75 @@ export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
   const ipHash = hashBucket(bucketIp(ip));
 
-  // Rate limit BEFORE any real work. The attempt is recorded FIRST, then
-  // every count below (which includes this just-inserted row) is compared
-  // with `>` rather than `>=` (review finding, HIGH item 2 — insert-then-
-  // count instead of count-then-insert closes most of the race two
-  // concurrent requests from the same IP would otherwise have, and also
-  // means a flood of deliberately-invalid requests still counts against
-  // the limit, not just valid ones).
+  // Re-review finding A: verify Turnstile BEFORE inserting an attempt row
+  // at all — a captcha-failing flood should never even create a ledger
+  // row, let alone one that could inflate the global/per-conference
+  // counts below. (When Turnstile isn't configured, `verifyTurnstile`
+  // always returns true, so this is a no-op in that case.)
+  if (!(await verifyTurnstile(body.turnstileToken, ip))) {
+    return NextResponse.json({ error: 'Captcha verification failed. Please try again.' }, { status: 400, headers: NO_STORE });
+  }
+
+  // The attempt is recorded BEFORE counting, so every count below (which
+  // includes this just-inserted row) is compared with `>` rather than
+  // `>=` (review finding, HIGH item 2 — insert-then-count instead of
+  // count-then-insert closes most of the race two concurrent requests
+  // from the same IP would otherwise have, and also means a flood of
+  // deliberately-invalid requests still counts against the PER-IP limit,
+  // not just valid ones).
   const attemptId = await recordSubmissionAttempt(ipHash, body.conference || null);
-  const [recentShort, recentDay, recentGlobal, recentConference] = await Promise.all([
+
+  // Per-IP check FIRST, and on its own — separate from the global/
+  // per-conference check below (re-review finding A). If THIS IP is over
+  // its own limit, mark the attempt rejected and stop here: never even
+  // query (let alone let this attempt count toward) the global/per-
+  // conference ceilings, which exist to protect OTHER IPs/conferences
+  // from someone else's flood, not to also punish everyone else for THIS
+  // IP's own violation.
+  const [recentShort, recentDay] = await Promise.all([
     countRecentSubmissionAttempts(ipHash, RATE_LIMIT_SHORT_WINDOW_MS),
     countRecentSubmissionAttempts(ipHash, RATE_LIMIT_DAY_WINDOW_MS),
+  ]);
+  if (recentShort > RATE_LIMIT_SHORT_MAX || recentDay > RATE_LIMIT_DAY_MAX) {
+    await markSubmissionAttemptRejected(attemptId);
+    return NextResponse.json(
+      { error: 'Too many submissions from this network. Please try again later.' },
+      { status: 429, headers: NO_STORE }
+    );
+  }
+
+  // Global and per-conference ceilings — these queries filter out rows
+  // already marked `rejected` (db.ts), so a different IP's rejected flood
+  // can't 429 this request.
+  const [recentGlobal, recentConference] = await Promise.all([
     countGlobalRecentSubmissionAttempts(GLOBAL_HOURLY_WINDOW_MS),
     body.conference ? countConferenceRecentSubmissionAttempts(body.conference, CONFERENCE_DAILY_WINDOW_MS) : Promise.resolve(0),
   ]);
-  if (
-    recentShort > RATE_LIMIT_SHORT_MAX ||
-    recentDay > RATE_LIMIT_DAY_MAX ||
-    recentGlobal > GLOBAL_HOURLY_MAX ||
-    recentConference > CONFERENCE_DAILY_MAX
-  ) {
+  if (recentGlobal > GLOBAL_HOURLY_MAX || recentConference > CONFERENCE_DAILY_MAX) {
+    await markSubmissionAttemptRejected(attemptId);
     return NextResponse.json(
       { error: 'Too many submissions right now. Please try again later.' },
       { status: 429, headers: NO_STORE }
     );
   }
 
-  if (!(await verifyTurnstile(body.turnstileToken, ip))) {
-    return NextResponse.json({ error: 'Captcha verification failed. Please try again.' }, { status: 400, headers: NO_STORE });
-  }
-
   if (!isAllowlistedEventLink(body.url)) {
     return NextResponse.json(
       { error: "That link isn't from a supported event platform (Luma, Partiful, Eventbrite, Meetup, or Posh)." },
       { status: 400, headers: NO_STORE }
+    );
+  }
+
+  // Re-review finding E: if this is a Luma link and the shared enrichment
+  // budget for this hour is already used up, say so honestly — falling
+  // through to `processDiscoveredLink` would just surface as an
+  // enrichment failure (an `error`/`unchanged` outcome) that the success
+  // path below would otherwise report back as a cheerful "thanks, we'll
+  // review this," which isn't true if we never even looked.
+  if (allowlistedPlatformFor(body.url) === 'luma' && sharedSubmissionLumaLimiter.exhausted) {
+    return NextResponse.json(
+      { error: "We're rate-limited on Luma lookups right now — please try again in a few minutes." },
+      { status: 429, headers: NO_STORE }
     );
   }
 
