@@ -5,6 +5,31 @@ import { getCachedLumaApiId, setCachedLumaApiId } from './db';
 import { haversineKm } from './geo';
 import type { NormalizedEvent } from './types';
 
+export type SlugResolver = (slug: string) => Promise<string | null>;
+
+/**
+ * Default slug->api-id resolver, used when the caller doesn't inject one
+ * (standalone scripts, tests). Paced at 1 request/sec — the SAME policy as
+ * event enrichment (§3.1), because every Luma lookup must respect it, not
+ * only the ones that happen to go through a particular caller's limiter
+ * (review finding, MEDIUM item 7). `pipeline.ts` instead injects a
+ * `resolveSlug` backed by its own `LumaEnrichmentLimiter` instance, so
+ * slug resolution and event enrichment share one limiter's clock and
+ * per-run budget rather than racing two independent 1/sec limiters.
+ */
+let lastDefaultResolveAt = 0;
+async function defaultResolveSlug(slug: string): Promise<string | null> {
+  const wait = lastDefaultResolveAt ? Math.max(0, lastDefaultResolveAt + 1000 - Date.now()) : 0;
+  if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+  lastDefaultResolveAt = Date.now();
+  try {
+    const payload = await fetchLumaEvent({ slug });
+    return payload.event?.api_id ?? payload.api_id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Canonical key for a normalized event (§5.2 item 1). Luma links already
  *  collapse to `luma:<slug-or-evt-id>` via `normalizeEventLink`'s #177 fix;
  *  everything else is host+path. */
@@ -26,13 +51,17 @@ export interface SheetLinkIndex {
 /**
  * Build a lookup from normalized link key to sheet event, resolving Luma
  * vanity-slug links to their stable api id (cached in `ingest_link_cache`,
- * at most `maxResolutions` live lookups per run — §5.2 item 2).
+ * at most `maxResolutions` live lookups per run — §5.2 item 2). Pass
+ * `resolveSlug` to share a caller's own rate limiter/budget (pipeline.ts
+ * does, for its enrichment limiter); otherwise a self-paced 1/sec default
+ * is used so this is never un-rate-limited (review finding, MEDIUM item 7).
  */
 export async function buildSheetLinkIndex(
   sheetEvents: SheetLinkEntry[],
-  opts: { maxResolutions?: number } = {}
+  opts: { maxResolutions?: number; resolveSlug?: SlugResolver } = {}
 ): Promise<SheetLinkIndex> {
   const maxResolutions = opts.maxResolutions ?? 50;
+  const resolveSlug = opts.resolveSlug ?? defaultResolveSlug;
   const byKey = new Map<string, SheetLinkEntry>();
   let resolutions = 0;
 
@@ -48,17 +77,23 @@ export async function buildSheetLinkIndex(
     const slug = getValidLumaSlug(ev.link);
     if (!slug) continue;
 
+    // Tri-state: `undefined` = never looked up (go resolve it); `null` =
+    // looked up before, confirmed no api id (a cached miss — don't retry
+    // it every run); a string = resolved. Collapsing these (as the
+    // original version did) meant a confirmed miss burned a rate-limited
+    // request on every single run forever (review finding, MEDIUM item 7).
     let apiId = await getCachedLumaApiId(key);
-    if (apiId === null && resolutions < maxResolutions) {
-      resolutions++;
-      try {
-        const payload = await fetchLumaEvent({ slug });
-        apiId = payload.event?.api_id ?? payload.api_id ?? null;
-      } catch {
-        // Not found / upstream error: cache the miss so we don't retry every run.
+    if (apiId === undefined) {
+      if (resolutions < maxResolutions) {
+        resolutions++;
+        apiId = await resolveSlug(slug);
+        await setCachedLumaApiId(key, apiId);
+      } else {
+        // Out of this run's resolution budget — leave uncached so a later
+        // run (which may have more budget) retries it, rather than caching
+        // a miss we never actually looked up.
         apiId = null;
       }
-      await setCachedLumaApiId(key, apiId);
     }
     if (apiId) {
       const altKey = `luma:${apiId.toLowerCase()}`;

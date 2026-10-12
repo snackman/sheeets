@@ -7,6 +7,7 @@
 // (`startDate - 30 days` through `endDate`) so off-season runs are nearly
 // free even if triggered manually.
 import { NextResponse } from 'next/server';
+import { isCronSecret } from '@/lib/admin-auth';
 import { getAllConferenceTabs } from '@/lib/get-conferences';
 import { listDueSources, reapStaleRunningRuns } from '@/lib/ingest/db';
 import { runSource } from '@/lib/ingest/pipeline';
@@ -25,8 +26,7 @@ function isInActiveWindow(startDate: string, endDate: string, todayISO: string):
 }
 
 export async function GET(req: Request) {
-  const authHeader = req.headers.get('authorization');
-  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isCronSecret(req.headers.get('authorization'))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

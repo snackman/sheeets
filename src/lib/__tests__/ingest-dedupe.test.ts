@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Tri-state, matching the real `getCachedLumaApiId` (MEDIUM item 7):
+// `undefined` = never looked up, `null` = looked up, confirmed no id.
 const cacheStore = new Map<string, string | null>();
 
 vi.mock('../ingest/db', () => ({
-  getCachedLumaApiId: vi.fn(async (key: string) => (cacheStore.has(key) ? cacheStore.get(key)! : null)),
+  getCachedLumaApiId: vi.fn(async (key: string) => (cacheStore.has(key) ? cacheStore.get(key)! : undefined)),
   setCachedLumaApiId: vi.fn(async (key: string, apiId: string | null) => {
     cacheStore.set(key, apiId);
   }),
@@ -85,6 +87,34 @@ describe('buildSheetLinkIndex', () => {
   it('returns no match for an unrelated link', async () => {
     const index = await buildSheetLinkIndex([{ id: 'evt-1', link: 'https://luma.com/event/evt-ABC123DEF456' }]);
     expect(findSheetMatchByLink(index, { link: 'https://luma.com/some-other-event' })).toBeNull();
+  });
+
+  it('never re-fetches a CONFIRMED miss (cached null) — only a never-looked-up (undefined) slug burns a lookup (MEDIUM item 7)', async () => {
+    const { fetchLumaEvent } = await import('../luma-server');
+    // Pre-seed the cache with a confirmed miss for this slug.
+    cacheStore.set('luma:no-such-slug', null);
+    const index = await buildSheetLinkIndex([{ id: 'evt-3', link: 'https://luma.com/no-such-slug' }]);
+    expect(fetchLumaEvent).not.toHaveBeenCalled();
+    // Still matches by its own raw key even with no resolved alt key.
+    expect(findSheetMatchByLink(index, { link: 'https://luma.com/no-such-slug' })?.id).toBe('evt-3');
+  });
+
+  it('uses an injected resolveSlug instead of the default fetchLumaEvent path, so a caller can share its own rate limiter (MEDIUM item 7)', async () => {
+    const { fetchLumaEvent } = await import('../luma-server');
+    const resolveSlug = vi.fn(async (slug: string) => (slug === 'ethcc-mixer' ? 'evt-INJECTED999' : null));
+    const index = await buildSheetLinkIndex([{ id: 'evt-4', link: 'https://luma.com/ethcc-mixer' }], { resolveSlug });
+    expect(resolveSlug).toHaveBeenCalledWith('ethcc-mixer');
+    expect(fetchLumaEvent).not.toHaveBeenCalled();
+    expect(findSheetMatchByLink(index, { link: 'https://luma.com/event/evt-INJECTED999' })?.id).toBe('evt-4');
+  });
+
+  it('respects maxResolutions: 0 by never resolving a slug (admin hot-path usage)', async () => {
+    const { fetchLumaEvent } = await import('../luma-server');
+    const index = await buildSheetLinkIndex([{ id: 'evt-5', link: 'https://luma.com/ethcc-mixer' }], { maxResolutions: 0 });
+    expect(fetchLumaEvent).not.toHaveBeenCalled();
+    // The raw key still matches; only the resolved alt key is unavailable.
+    expect(findSheetMatchByLink(index, { link: 'https://luma.com/ethcc-mixer' })?.id).toBe('evt-5');
+    expect(findSheetMatchByLink(index, { link: 'https://luma.com/event/evt-ABC123DEF456' })).toBeNull();
   });
 });
 

@@ -74,6 +74,11 @@ export default function IngestQueue({ allConferenceTabs, password }: Props) {
 
   const runAction = useCallback(
     async (ids: string[], action: string, extra?: { reason?: string; note?: string; edits?: Record<string, unknown> }) => {
+      // In-flight guard: never fire the same (or any) action while one is
+      // already running — a double 'a' press or a double-click must not
+      // send a second request for a candidate that's already mid-approve
+      // (review finding, HIGH item 3).
+      if (actionLoading) return;
       setActionLoading(ids.join(','));
       try {
         const res = await fetch('/api/admin/ingest/queue', {
@@ -82,13 +87,33 @@ export default function IngestQueue({ allConferenceTabs, password }: Props) {
           body: JSON.stringify({ password, action, ids, ...extra }),
         });
         const json = await res.json();
-        if (json.success) {
-          setCandidates((prev) => prev.filter((c) => !ids.includes(c.id)));
-          setSelected(new Set());
+        const results: { id: string; ok: boolean; error?: string }[] = json.results ?? [];
+        const okIds = results.filter((r) => r.ok).map((r) => r.id);
+        const failures = results.filter((r) => !r.ok);
+
+        // Remove whatever actually succeeded, even on a partial failure —
+        // the old all-or-nothing `json.success` check left successfully
+        // approved/rejected items sitting in the list looking untouched
+        // (review finding, HIGH item 3).
+        if (okIds.length > 0) {
+          setCandidates((prev) => prev.filter((c) => !okIds.includes(c.id)));
+          setSelected((prev) => {
+            const next = new Set(prev);
+            for (const id of okIds) next.delete(id);
+            return next;
+          });
+        }
+
+        if (!json.success || failures.length > 0) {
+          const message =
+            json.error ||
+            failures.map((f) => `${f.id}: ${f.error}`).join('\n') ||
+            'Unknown error';
+          alert(`Failed:\n${message}`);
+        }
+        if (failures.length === 0) {
           setPendingReject(null);
           setEditingId(null);
-        } else {
-          alert(`Failed: ${json.error || (json.results ?? []).find((r: { ok: boolean }) => !r.ok)?.error || 'Unknown error'}`);
         }
       } catch (err) {
         alert(`Error: ${err instanceof Error ? err.message : 'Unknown'}`);
@@ -96,7 +121,7 @@ export default function IngestQueue({ allConferenceTabs, password }: Props) {
         setActionLoading(null);
       }
     },
-    [password]
+    [password, actionLoading]
   );
 
   const toggleSelect = (id: string) => {
@@ -123,18 +148,24 @@ export default function IngestQueue({ allConferenceTabs, password }: Props) {
         setActiveId(candidates[Math.max(0, activeIndex - 1)]?.id ?? candidates[0].id);
       } else if (e.key === 'a' && activeId) {
         e.preventDefault();
+        // In-flight guard + only from the Queued filter (review finding,
+        // HIGH item 3) — approving from another filter (e.g. "All") risks
+        // approving something that isn't actually in an approvable status.
+        if (actionLoading || statusFilter !== 'queued') return;
         runAction([activeId], 'approve');
       } else if (e.key === 'r' && activeId) {
         e.preventDefault();
+        if (actionLoading) return;
         runAction([activeId], 'reject', { reason: 'off_theme' });
       } else if (e.key === 'e' && activeId) {
         e.preventDefault();
+        if (actionLoading) return;
         setEditingId(activeId);
       }
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [candidates, activeIndex, activeId, runAction]);
+  }, [candidates, activeIndex, activeId, runAction, actionLoading, statusFilter]);
 
   const selectedIds = Array.from(selected);
 
@@ -172,13 +203,18 @@ export default function IngestQueue({ allConferenceTabs, password }: Props) {
       {selectedIds.length > 0 && (
         <div className="flex items-center gap-2 bg-stone-900 border border-stone-700 rounded-lg px-3 py-2">
           <span className="text-sm text-stone-300">{selectedIds.length} selected</span>
-          <button
-            onClick={() => runAction(selectedIds, 'approve')}
-            disabled={actionLoading !== null}
-            className="text-xs bg-green-600 hover:bg-green-700 text-white rounded-md px-2.5 py-1 cursor-pointer disabled:opacity-50"
-          >
-            Approve selected
-          </button>
+          {/* Approve only from the Queued filter (review finding, HIGH item
+              3) — every other filter can contain statuses that aren't
+              actually approvable server-side. */}
+          {statusFilter === 'queued' && (
+            <button
+              onClick={() => runAction(selectedIds, 'approve')}
+              disabled={actionLoading !== null}
+              className="text-xs bg-green-600 hover:bg-green-700 text-white rounded-md px-2.5 py-1 cursor-pointer disabled:opacity-50"
+            >
+              Approve selected
+            </button>
+          )}
           <button
             onClick={() => runAction(selectedIds, 'reject', { reason: 'off_theme' })}
             disabled={actionLoading !== null}
@@ -274,25 +310,36 @@ export default function IngestQueue({ allConferenceTabs, password }: Props) {
                 <div className="flex gap-1.5 shrink-0">
                   {['queued', 'auto_rejected', 'error', 'pending_classify'].includes(c.status) && (
                     <>
-                      <button
-                        onClick={() => runAction([c.id], 'approve')}
-                        disabled={isActioning}
-                        title="Approve"
-                        className="bg-green-600 hover:bg-green-700 text-white rounded-lg p-2 cursor-pointer disabled:opacity-50"
-                      >
-                        {isActioning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                      </button>
-                      <button
-                        onClick={() => setEditingId(isEditing ? null : c.id)}
-                        title="Edit & approve"
-                        className="bg-stone-700 hover:bg-stone-600 text-white rounded-lg px-2 py-2 text-xs cursor-pointer"
-                      >
-                        Edit
-                      </button>
+                      {/* Approve (and edit-then-approve) only from the Queued
+                          filter (review finding, HIGH item 3) — viewing
+                          "Error"/"Auto-rejected"/"All" shouldn't offer a
+                          one-click approve on something that needed a closer
+                          look to get there. */}
+                      {statusFilter === 'queued' && (
+                        <>
+                          <button
+                            onClick={() => runAction([c.id], 'approve')}
+                            disabled={isActioning}
+                            title="Approve"
+                            className="bg-green-600 hover:bg-green-700 text-white rounded-lg p-2 cursor-pointer disabled:opacity-50"
+                          >
+                            {isActioning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => setEditingId(isEditing ? null : c.id)}
+                            disabled={isActioning}
+                            title="Edit & approve"
+                            className="bg-stone-700 hover:bg-stone-600 text-white rounded-lg px-2 py-2 text-xs cursor-pointer disabled:opacity-50"
+                          >
+                            Edit
+                          </button>
+                        </>
+                      )}
                       <button
                         onClick={() => setPendingReject(isPendingReject ? null : c.id)}
+                        disabled={isActioning}
                         title="Reject"
-                        className="bg-red-600 hover:bg-red-700 text-white rounded-lg p-2 cursor-pointer"
+                        className="bg-red-600 hover:bg-red-700 text-white rounded-lg p-2 cursor-pointer disabled:opacity-50"
                       >
                         <X className="w-4 h-4" />
                       </button>

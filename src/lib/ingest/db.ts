@@ -3,6 +3,7 @@
 // every function here must run server-side with SUPABASE_SERVICE_ROLE_KEY.
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { getDefaultProfile } from './profiles';
+import { FINAL_CANDIDATE_STATUSES } from './types';
 import type {
   CandidateRoute,
   CandidateStatus,
@@ -193,6 +194,7 @@ export async function insertCandidate(row: {
   source_ref: string | null;
   event: NormalizedEvent;
   content_hash: string;
+  ical_hash?: string | null;
   status: CandidateStatus;
 }): Promise<IngestCandidateRow> {
   const supabase = getIngestSupabase();
@@ -207,17 +209,81 @@ export async function updateCandidate(id: string, patch: Record<string, unknown>
   if (error) throw new Error(`Failed to update candidate: ${error.message}`);
 }
 
-/** Idempotent upsert keyed on (conference, canonical_key) — the pipeline's
- *  main write path (§5 "upsert candidate (idempotent)"). */
+/** Fields that only describe the raw ingested snapshot — safe to refresh on
+ *  a re-ingest even when the candidate already has a final/admin-owned
+ *  status. Everything else (status, review fields, publish fields, score…)
+ *  is decision state and must never be clobbered by a re-ingest (review
+ *  finding, CRITICAL item 2). */
+const SNAPSHOT_ONLY_FIELDS = [
+  'conference', 'canonical_key', 'alt_keys', 'source_id', 'source_kind',
+  'sources', 'source_ref', 'event', 'content_hash', 'ical_hash', 'last_seen_at',
+] as const;
+
+/**
+ * Idempotent upsert keyed on (conference, canonical_key) — the pipeline's
+ * main write path (§5 "upsert candidate (idempotent)").
+ *
+ * Guards against a re-ingest overwriting an admin decision or a publish
+ * outcome (CRITICAL item 2): if the existing row's status is final
+ * (`FINAL_CANDIDATE_STATUSES` — approved/auto_published/rejected/
+ * unpublished/unpublished_external), only the raw snapshot fields are
+ * written; `status` and every decision/publish field are left exactly as
+ * they are. This also means a previously-published candidate can never be
+ * re-marked `duplicate` of its own now-live sheet row, and an unpublished
+ * candidate can never be silently re-queued or re-published by a later run.
+ */
 export async function upsertCandidate(row: Record<string, unknown> & { conference: string; canonical_key: string }): Promise<IngestCandidateRow> {
   const supabase = getIngestSupabase();
+
+  const { data: existing, error: existingError } = await supabase
+    .from('ingest_candidates')
+    .select('status')
+    .eq('conference', row.conference)
+    .eq('canonical_key', row.canonical_key)
+    .maybeSingle();
+  if (existingError) throw new Error(`Failed to check existing candidate: ${existingError.message}`);
+
+  let payload: Record<string, unknown> = { ...row, last_seen_at: new Date().toISOString() };
+  if (existing && FINAL_CANDIDATE_STATUSES.includes(existing.status as CandidateStatus)) {
+    payload = Object.fromEntries(
+      Object.entries(payload).filter(([key]) => (SNAPSHOT_ONLY_FIELDS as readonly string[]).includes(key))
+    );
+  }
+
   const { data, error } = await supabase
     .from('ingest_candidates')
-    .upsert({ ...row, last_seen_at: new Date().toISOString() }, { onConflict: 'conference,canonical_key' })
+    .upsert(payload, { onConflict: 'conference,canonical_key' })
     .select('*')
     .single();
   if (error) throw new Error(`Failed to upsert candidate: ${error.message}`);
   return data as IngestCandidateRow;
+}
+
+/**
+ * Atomically transition a candidate's status, but ONLY if its current
+ * status is one of `fromStatuses` — acts as a lock so two concurrent
+ * requests for the same id (a double-click, a retried request) can't both
+ * "win" (review finding, HIGH item 3). Returns the updated row, or `null`
+ * if the candidate wasn't in an eligible status (already handled, or never
+ * eligible) — callers must treat `null` as "do nothing further", never
+ * retry the side effect (e.g. a sheet insert).
+ */
+export async function claimCandidateStatus(
+  id: string,
+  fromStatuses: readonly CandidateStatus[],
+  toStatus: CandidateStatus,
+  extra: Record<string, unknown> = {}
+): Promise<IngestCandidateRow | null> {
+  const supabase = getIngestSupabase();
+  const { data, error } = await supabase
+    .from('ingest_candidates')
+    .update({ status: toStatus, ...extra })
+    .eq('id', id)
+    .in('status', fromStatuses as CandidateStatus[])
+    .select('*')
+    .maybeSingle();
+  if (error) throw new Error(`Failed to claim candidate status: ${error.message}`);
+  return (data as IngestCandidateRow) ?? null;
 }
 
 export async function listCandidates(opts: {
@@ -322,6 +388,35 @@ export async function reapStaleRunningRuns(olderThanMs = 10 * 60 * 1000): Promis
   return (data ?? []).length;
 }
 
+/**
+ * Record a one-off LLM cost (a manual "Re-score" from the queue, or a dry
+ * run) as its own `ingest_runs` row so it counts toward the monthly budget
+ * cap, which just sums `est_cost_usd` across the month (review findings,
+ * MEDIUM items 4 and 5 — rescore/dry-run cost wasn't counted before).
+ * `counts` can carry a marker like `{ dry_run: 1 }` for the Log tab.
+ */
+export async function recordAdhocCost(row: {
+  conference: string;
+  trigger: RunTrigger;
+  sourceId?: string | null;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+  counts?: RunCounts;
+  status?: RunStatus;
+  error?: string | null;
+}): Promise<void> {
+  const run = await createRun({ source_id: row.sourceId ?? null, conference: row.conference, trigger: row.trigger });
+  await finishRun(run.id, {
+    status: row.status ?? 'ok',
+    counts: row.counts ?? {},
+    llm_input_tokens: row.inputTokens,
+    llm_output_tokens: row.outputTokens,
+    est_cost_usd: row.costUsd,
+    error: row.error ?? null,
+  });
+}
+
 export async function listRuns(opts: { conference?: string; limit?: number } = {}): Promise<IngestRunRow[]> {
   const supabase = getIngestSupabase();
   let query = supabase.from('ingest_runs').select('*').order('started_at', { ascending: false }).limit(opts.limit ?? 100);
@@ -356,6 +451,8 @@ export async function insertLabel(row: {
   example: Record<string, unknown>;
   model_score?: number | null;
   model_route?: CandidateRoute | null;
+  /** See `IngestLabelRow.excluded_from_fewshot`. Defaults false. */
+  excluded_from_fewshot?: boolean;
 }): Promise<IngestLabelRow | null> {
   const supabase = getIngestSupabase();
   // Upsert on (candidate_id, source): re-approving/re-rejecting the same
@@ -374,11 +471,21 @@ export async function insertLabel(row: {
 /* Luma slug -> api id cache (§5.2)                                    */
 /* ------------------------------------------------------------------ */
 
-export async function getCachedLumaApiId(linkKey: string): Promise<string | null> {
+/**
+ * Tri-state: `undefined` means no cache row exists at all (never looked
+ * up — go resolve it); `null` means a row exists and the lookup confirmed
+ * no api id (a cached miss — don't burn another rate-limited request on
+ * it); a string is the resolved api id. Collapsing "never looked up" and
+ * "looked up, found nothing" into the same `null` (as the original version
+ * did) meant a confirmed miss was retried on every single run forever
+ * (review finding, MEDIUM item 7).
+ */
+export async function getCachedLumaApiId(linkKey: string): Promise<string | null | undefined> {
   const supabase = getIngestSupabase();
   const { data, error } = await supabase.from('ingest_link_cache').select('luma_api_id').eq('link_key', linkKey).maybeSingle();
   if (error) throw new Error(`Failed to read link cache: ${error.message}`);
-  return (data?.luma_api_id as string | null) ?? null;
+  if (!data) return undefined;
+  return (data.luma_api_id as string | null) ?? null;
 }
 
 export async function setCachedLumaApiId(linkKey: string, apiId: string | null): Promise<void> {

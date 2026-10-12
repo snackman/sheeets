@@ -181,6 +181,37 @@ export type CandidateStatus =
 
 export type CandidateRoute = 'publish' | 'review' | 'reject';
 
+/**
+ * Statuses that represent a final, admin- or publish-owned decision. A
+ * re-ingest of the same feed (or a stray pipeline write) must never change
+ * the `status` of a candidate in one of these — only its `event` snapshot
+ * may be refreshed (review finding, CRITICAL item 2). Enforced in
+ * `db.ts`'s `upsertCandidate` and short-circuited early in the pipeline.
+ */
+export const FINAL_CANDIDATE_STATUSES: readonly CandidateStatus[] = [
+  'approved',
+  'auto_published',
+  'rejected',
+  'unpublished',
+  'unpublished_external',
+];
+
+/** Statuses a candidate must be in for approve/rescore/unpublish to act on
+ *  it. Anything not in here is either already decided (final) or mid-flight
+ *  in a way that shouldn't be approved/rescored (review findings, HIGH
+ *  items 3 and 4). */
+export const APPROVABLE_CANDIDATE_STATUSES: readonly CandidateStatus[] = [
+  'queued',
+  'auto_rejected',
+  'error',
+  'pending_classify',
+];
+
+/** Statuses excluded from the pre-enrichment "unchanged, skip" shortcut even
+ *  when the iCal-stub hash matches — they need to be retried, not treated
+ *  as settled (review finding, MEDIUM item 6). */
+export const RETRY_ON_UNCHANGED_STATUSES: readonly CandidateStatus[] = ['error', 'pending_classify'];
+
 /** One source that surfaced a candidate (§6 `sources` jsonb array). */
 export interface CandidateSourceRef {
   source_id: string | null;
@@ -230,6 +261,8 @@ export interface IngestCandidateRow {
   source_ref: string | null;
   event: NormalizedEvent;
   content_hash: string;
+  /** Hash of the iCal-only fields, checked BEFORE enrichment (CRITICAL item 1). */
+  ical_hash: string | null;
   status: CandidateStatus;
   filter_reason: string | null;
   duplicate_of: string | null;
@@ -269,6 +302,9 @@ export interface RunCounts {
   past?: number;
   new?: number;
   unchanged?: number;
+  /** Already final (approved/auto_published/rejected/unpublished…) —
+   *  snapshot refreshed, but dedupe/filter/classify/publish all skipped. */
+  skipped_final?: number;
   enriched?: number;
   duplicates?: number;
   filtered?: number;
@@ -277,6 +313,9 @@ export interface RunCounts {
   queued?: number;
   rejected?: number;
   errors?: number;
+  /** Marker (1) so the Log tab/`ingest_runs` can tell a dry run apart from
+   *  a real run without a dedicated column. */
+  dry_run?: number;
 }
 
 /** `ingest_runs` row. */
@@ -310,6 +349,11 @@ export interface IngestLabelRow {
   example: Record<string, unknown>;
   model_score: number | null;
   model_route: CandidateRoute | string | null;
+  /** True for weak/noisy signals (e.g. a curator deleting a published row —
+   *  could mean off-theme, duplicate, or just "not needed anymore") that
+   *  are kept for audit but must not feed the Phase 2 few-shot selector
+   *  (review finding, MEDIUM item 8). */
+  excluded_from_fewshot: boolean;
   created_at: string;
 }
 

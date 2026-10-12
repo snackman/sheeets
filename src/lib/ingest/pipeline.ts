@@ -33,10 +33,31 @@ import { checkMonthlyBudget } from './budget';
 import { estimateCostUsd } from './pricing';
 import { toEventRow, ThrottledSheetPublisher } from './publish';
 import { reconcileConference } from './reconcile';
-import type { CandidateStatus, IngestProfileRow, NormalizedEvent, RunCounts, RunTrigger, TrustedHostEntry } from './types';
+import { ClassifierError } from './classifier';
+import {
+  FINAL_CANDIDATE_STATUSES,
+  RETRY_ON_UNCHANGED_STATUSES,
+  type CandidateStatus,
+  type IngestProfileRow,
+  type NormalizedEvent,
+  type RunCounts,
+  type RunTrigger,
+  type TrustedHostEntry,
+} from './types';
 
 function bump(counts: RunCounts, key: keyof RunCounts, by = 1) {
   counts[key] = (counts[key] ?? 0) + by;
+}
+
+/** Lightweight in-run representative of a candidate, for intra-run dedupe
+ *  (review finding, LOW "dedupe within a single run"). Real candidates get
+ *  their DB id; dry-run previews (which never get one) use the canonical
+ *  key as a stand-in — fine, since this is only compared by identity/key,
+ *  never persisted. */
+interface InRunCandidate {
+  id: string;
+  canonical_key: string;
+  event: NormalizedEvent;
 }
 
 /** True if a host/organizer is in a profile's trusted/blocked list, by id or name. */
@@ -80,16 +101,28 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
   const source = await getSource(sourceId);
   if (!source) throw new Error(`Ingest source ${sourceId} not found.`);
 
-  if (!opts.dryRun && (await hasRecentRunningRun(sourceId))) {
+  // The overlap guard applies to dry runs too (review finding, MEDIUM item
+  // 5) — a dry run still does real, rate-limited Luma calls and real LLM
+  // calls, so it must not race a concurrent real (or dry) run on the same
+  // source.
+  if (await hasRecentRunningRun(sourceId)) {
     const run = await createRun({ source_id: sourceId, conference: source.conference, trigger: opts.trigger });
-    await finishRun(run.id, { status: 'skipped', counts: {} });
+    await finishRun(run.id, { status: 'skipped', counts: opts.dryRun ? { dry_run: 1 } : {} });
     return { runId: run.id, status: 'skipped', counts: {} };
   }
 
-  const run = opts.dryRun ? null : await createRun({ source_id: sourceId, conference: source.conference, trigger: opts.trigger });
+  // Always create a real `ingest_runs` row, including for dry runs, so its
+  // cost counts toward the monthly budget cap (which just sums
+  // `est_cost_usd` across the month) and so the overlap guard above has a
+  // `running` row to find (review finding, MEDIUM item 5). `last_run_at`/
+  // `last_status` on the SOURCE are intentionally left untouched for dry
+  // runs — those drive cron scheduling order and shouldn't reflect a
+  // preview that wrote nothing to the ledger.
+  const run = await createRun({ source_id: sourceId, conference: source.conference, trigger: opts.trigger });
   const counts: RunCounts = {
     fetched: 0, past: 0, new: 0, unchanged: 0, enriched: 0, duplicates: 0,
     filtered: 0, classified: 0, published: 0, queued: 0, rejected: 0, errors: 0,
+    ...(opts.dryRun ? { dry_run: 1 } : {}),
   };
   let llmInputTokens = 0;
   let llmOutputTokens = 0;
@@ -102,11 +135,9 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
 
     const profile = await getProfile(source.conference);
     if (!profile || !profile.enabled) {
-      if (run) {
-        await updateSource(sourceId, { last_run_at: new Date().toISOString(), last_status: 'skipped' });
-        await finishRun(run.id, { status: 'skipped', counts, error: 'No enabled ingest profile for this conference.' });
-      }
-      return { runId: run?.id ?? null, status: 'skipped', counts };
+      if (!opts.dryRun) await updateSource(sourceId, { last_run_at: new Date().toISOString(), last_status: 'skipped' });
+      await finishRun(run.id, { status: 'skipped', counts, error: 'No enabled ingest profile for this conference.' });
+      return { runId: run.id, status: 'skipped', counts };
     }
 
     const allTabs = await getAllConferenceTabs();
@@ -118,31 +149,27 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
     llmOutputTokens = result.llmOutputTokens;
     costUsd = result.costUsd;
 
-    if (run) {
-      await updateSource(sourceId, { last_run_at: new Date().toISOString(), last_status: 'ok', last_error: null });
-      await finishRun(run.id, {
-        status: result.hitDeadline ? 'partial' : 'ok',
-        counts,
-        llm_input_tokens: llmInputTokens,
-        llm_output_tokens: llmOutputTokens,
-        est_cost_usd: costUsd,
-      });
-    }
-    return { runId: run?.id ?? null, status: result.hitDeadline ? 'partial' : 'ok', counts, previews: result.previews };
+    if (!opts.dryRun) await updateSource(sourceId, { last_run_at: new Date().toISOString(), last_status: 'ok', last_error: null });
+    await finishRun(run.id, {
+      status: result.hitDeadline ? 'partial' : 'ok',
+      counts,
+      llm_input_tokens: llmInputTokens,
+      llm_output_tokens: llmOutputTokens,
+      est_cost_usd: costUsd,
+    });
+    return { runId: run.id, status: result.hitDeadline ? 'partial' : 'ok', counts, previews: result.previews };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    if (run) {
-      await updateSource(sourceId, { last_run_at: new Date().toISOString(), last_status: 'error', last_error: message });
-      await finishRun(run.id, {
-        status: 'error',
-        counts,
-        llm_input_tokens: llmInputTokens,
-        llm_output_tokens: llmOutputTokens,
-        est_cost_usd: costUsd,
-        error: message,
-      });
-    }
-    return { runId: run?.id ?? null, status: 'error', counts, error: message };
+    if (!opts.dryRun) await updateSource(sourceId, { last_run_at: new Date().toISOString(), last_status: 'error', last_error: message });
+    await finishRun(run.id, {
+      status: 'error',
+      counts,
+      llm_input_tokens: llmInputTokens,
+      llm_output_tokens: llmOutputTokens,
+      est_cost_usd: costUsd,
+      error: message,
+    });
+    return { runId: run.id, status: 'error', counts, error: message };
   }
 }
 
@@ -189,7 +216,16 @@ async function processSource(args: {
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
 
+  // One limiter for BOTH event enrichment and Luma slug->api-id resolution
+  // (used by buildSheetLinkIndex below) — every Luma lookup this run goes
+  // through it, so they share one 1-request/sec clock and one per-run
+  // budget rather than two independent limiters racing each other (review
+  // finding, MEDIUM item 7).
   const enrichLimiter = new LumaEnrichmentLimiter(100, 1000);
+  const resolveSlugViaLimiter = async (slug: string): Promise<string | null> => {
+    const payload = await enrichLimiter.enrich({ slug });
+    return payload?.event?.api_id ?? payload?.api_id ?? null;
+  };
   const themeProfile = profileRowToThemeProfile(profile);
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const supabase = getIngestSupabase();
@@ -197,9 +233,17 @@ async function processSource(args: {
   const sheetEvents = await fetchEvents(undefined, [tab]);
   const linkIndex = await buildSheetLinkIndex(
     sheetEvents.map((e) => ({ id: e.id, link: e.link })),
-    { maxResolutions: 50 }
+    { maxResolutions: 50, resolveSlug: resolveSlugViaLimiter }
   );
-  const otherCandidates = await listRecentCandidatesForDedupe(source.conference);
+  // Mutable: appended to as this run processes its own candidates, so two
+  // near-duplicate events later in the SAME feed still dedupe against each
+  // other, not just against candidates from before this run started
+  // (review finding, LOW "dedupe within a single run").
+  const otherCandidates: InRunCandidate[] = (await listRecentCandidatesForDedupe(source.conference)).map((c) => ({
+    id: c.id,
+    canonical_key: c.canonical_key,
+    event: c.event,
+  }));
 
   // "Trusted host" signal includes hosts with >= 2 prior events already in
   // this conference's sheet (§5.4), approximated by organizer name frequency.
@@ -221,9 +265,13 @@ async function processSource(args: {
   const startDate = tab.dates[0];
   const endDate = tab.dates[tab.dates.length - 1];
 
+  let hitDeadline = false;
+
+  try {
   for (const { vevent, apiId, slug } of icalCandidates) {
     if (Date.now() > deadline) {
-      return { llmInputTokens: totalInputTokens, llmOutputTokens: totalOutputTokens, costUsd: runningCostUsd, hitDeadline: true };
+      hitDeadline = true;
+      break;
     }
 
     const startAt = vevent.dtstartIsDateOnly ? `${vevent.dtstart}T00:00:00.000Z` : vevent.dtstart;
@@ -242,17 +290,53 @@ async function processSource(args: {
     const calendarRef = { apiId: calendarApiId, name: source.label || source.conference };
     const existing = await getCandidateByKey(source.conference, canonicalKey);
 
-    // Change detection BEFORE enrichment (§5 "unchanged? touch last_seen_at,
-    // stop"): a stub NormalizedEvent built from iCal fields alone (no
-    // network call) is hashed and compared to the stored hash. Luma's
-    // DESCRIPTION stub includes the host list as text, so a host or
-    // name/date change is caught; a change to only the long-form Luma
-    // description (not reflected in the iCal stub) is not — a known
-    // limitation of iCal-only change detection, acceptable at this volume.
+    // The iCal-only stub (no network call) is used BOTH for change
+    // detection below AND as the "refresh" payload for a final-status
+    // candidate (next block) — computing it up front keeps both paths
+    // cheap and consistent.
     const stub = normalizeLumaEvent({ vevent, timezone: tab.timezone, enrichment: null, calendar: calendarRef, fallbackSlug: slug });
     const stubHash = computeContentHash(stub);
 
-    if (existing && existing.content_hash === stubHash && existing.status !== 'error') {
+    // A candidate already in a final/admin-owned state (approved,
+    // auto_published, rejected, unpublished, unpublished_external) is
+    // never re-processed: no dedupe, no filters, no (re-)classification,
+    // no (re-)publish. Only its raw snapshot is refreshed. This is what
+    // stops a re-ingest from re-marking a published candidate as a
+    // "duplicate" of its own now-live sheet row, or from ever re-publishing
+    // something an admin unpublished (review finding, CRITICAL item 2).
+    if (existing && FINAL_CANDIDATE_STATUSES.includes(existing.status)) {
+      if (!dryRun) {
+        await upsertCandidate({
+          conference: source.conference,
+          canonical_key: canonicalKey,
+          alt_keys: slug ? [`luma:${slug.toLowerCase()}`] : [],
+          source_id: source.id,
+          source_kind: source.kind,
+          sources: [{ source_id: source.id, kind: source.kind, ref: vevent.uid, seen_at: new Date().toISOString() }],
+          source_ref: vevent.uid,
+          event: stub,
+          content_hash: stubHash,
+          ical_hash: stubHash,
+        });
+      }
+      bump(counts, 'skipped_final');
+      continue;
+    }
+
+    // Change detection BEFORE enrichment (§5 "unchanged? touch last_seen_at,
+    // stop"): the iCal-stub hash (computed above) is compared against the
+    // SAME kind of hash stored from the last run (`ical_hash`) — not
+    // against `content_hash` (the full, possibly-enriched hash), which can
+    // never match a pre-enrichment stub and would make every run reprocess
+    // every candidate from scratch (review finding, CRITICAL item 1).
+    // Luma's DESCRIPTION stub includes the host list as text, so a host or
+    // name/date change is caught; a change to only the long-form Luma
+    // description (not reflected in the iCal stub) is not — a known
+    // limitation of iCal-only change detection, acceptable at this volume.
+    // `error`/`pending_classify` are excluded even on a hash match — they
+    // need to be retried, not treated as settled (review finding, MEDIUM
+    // item 6).
+    if (existing && existing.ical_hash === stubHash && !RETRY_ON_UNCHANGED_STATUSES.includes(existing.status)) {
       if (!dryRun) await updateCandidate(existing.id, { last_seen_at: new Date().toISOString() });
       bump(counts, 'unchanged');
       continue;
@@ -286,6 +370,7 @@ async function processSource(args: {
       source_ref: vevent.uid,
       event: normalized,
       content_hash: contentHash,
+      ical_hash: stubHash,
     };
 
     // 1. Dedupe against the sheet (link, then fuzzy) and other candidates.
@@ -316,6 +401,12 @@ async function processSource(args: {
         if (fm?.kind === 'possible_duplicate' && !possibleDuplicateOf) possibleDuplicateOf = oc.id;
       }
     }
+
+    // Added to the in-run dedupe pool now that we've checked this candidate
+    // against everything added so far — so a LATER event in the same feed
+    // can still match against it, without this candidate matching itself
+    // (review finding, LOW "dedupe within a single run").
+    otherCandidates.push({ id: existing?.id ?? canonicalKey, canonical_key: canonicalKey, event: normalized });
 
     if (duplicateOf) {
       bump(counts, 'duplicates');
@@ -383,8 +474,18 @@ async function processSource(args: {
         publishThreshold: profile.publish_threshold,
         reviewThreshold: profile.review_threshold,
       });
-    } catch {
+    } catch (err) {
       bump(counts, 'errors');
+      // A schema-validation failure still bills tokens (OpenAI returned a
+      // completion, it just didn't parse) — count that cost even though
+      // the call "failed" (review finding, MEDIUM item 5). A request-level
+      // failure (network/5xx) never got a completion, so there's nothing
+      // to add there, and ClassifierError.usage is undefined.
+      if (err instanceof ClassifierError && err.usage) {
+        totalInputTokens += err.usage.inputTokens;
+        totalOutputTokens += err.usage.outputTokens;
+        runningCostUsd += estimateCostUsd(err.usage.model, err.usage.inputTokens, err.usage.outputTokens);
+      }
       await persist({
         ...baseRow,
         status: 'error' as CandidateStatus,
@@ -417,6 +518,11 @@ async function processSource(args: {
         publishedAt = new Date().toISOString();
         sheetChanged = true;
         bump(counts, 'published');
+        // Reflect the new row in the link index immediately, so a later
+        // event in this same feed that duplicates it (by link) is caught
+        // by the sheet-match dedupe check, not re-published too (review
+        // finding, LOW "dedupe within a single run").
+        linkIndex.byKey.set(canonicalKey, { id: canonicalKey, link: normalized.link });
       } catch {
         status = 'queued';
         bump(counts, 'queued');
@@ -448,9 +554,20 @@ async function processSource(args: {
       possible_duplicate_of: possibleDuplicateOf,
     });
   }
+  } finally {
+    // Always runs, even if something above threw uncaught — a publish
+    // that already happened must not leave the public read path (cached
+    // `fetchEventsCached`) stale just because a later candidate in the
+    // same run blew up (review finding, LOW "invalidateEventsCache in a
+    // finally block").
+    if (sheetChanged) invalidateEventsCache();
+  }
 
-  if (sheetChanged) invalidateEventsCache();
-  if (!dryRun) await reconcileConference(tab, profile.theme_key);
+  if (hitDeadline) {
+    return { llmInputTokens: totalInputTokens, llmOutputTokens: totalOutputTokens, costUsd: runningCostUsd, hitDeadline: true };
+  }
+
+  if (!dryRun) await reconcileConference(tab, profile.theme_key, sheetEvents, linkIndex);
 
   return {
     llmInputTokens: totalInputTokens,

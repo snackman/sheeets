@@ -1,0 +1,262 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { NextRequest } from 'next/server';
+
+process.env.ADMIN_PASSWORD = 'queue-test-password';
+process.env.OPENAI_API_KEY = 'test-key';
+vi.mock('openai', () => ({ default: class FakeOpenAI {} }));
+
+function baseCandidate(overrides: Record<string, unknown> = {}) {
+  return {
+    id: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+    conference: 'Test Conf',
+    status: 'queued',
+    event: {
+      name: 'ETH Builders Mixer',
+      sheetDate: 'Mar 10',
+      startTime: '6:00 PM',
+      endTime: '9:00 PM',
+      organizer: 'Alice',
+      address: '',
+      cost: 'Free',
+      link: 'https://luma.com/event/evt-abc123def456',
+      hosts: [{ name: 'Alice' }],
+      dateISO: '2027-03-10',
+      calendar: null,
+      platform: 'luma',
+      descriptionText: '',
+      lat: 43.5528,
+      lng: 7.0174,
+    },
+    llm_tags: ['ETH'],
+    llm_score: 90,
+    route: 'publish',
+    possible_duplicate_of: null,
+    classify_attempts: 0,
+    review_note: null,
+    reviewed_at: null,
+    reviewed_by: null,
+    ...overrides,
+  };
+}
+
+const getCandidateMock = vi.fn();
+const claimCandidateStatusMock = vi.fn();
+const updateCandidateMock = vi.fn();
+const insertLabelMock = vi.fn();
+const getProfileMock = vi.fn();
+const upsertProfileMock = vi.fn();
+const listCandidatesMock = vi.fn();
+const recordAdhocCostMock = vi.fn();
+const profileRowToThemeProfileMock = vi.fn((..._args: unknown[]) => ({
+  themeKey: 'crypto', themeName: 'Crypto', themeDescription: '', includeKeywords: [], excludeKeywords: [], publishThreshold: 85, reviewThreshold: 40,
+}));
+
+vi.mock('@/lib/ingest/db', () => ({
+  listCandidates: (...a: unknown[]) => listCandidatesMock(...a),
+  getCandidate: (...a: unknown[]) => getCandidateMock(...a),
+  claimCandidateStatus: (...a: unknown[]) => claimCandidateStatusMock(...a),
+  updateCandidate: (...a: unknown[]) => updateCandidateMock(...a),
+  recordAdhocCost: (...a: unknown[]) => recordAdhocCostMock(...a),
+  insertLabel: (...a: unknown[]) => insertLabelMock(...a),
+  getProfile: (...a: unknown[]) => getProfileMock(...a),
+  upsertProfile: (...a: unknown[]) => upsertProfileMock(...a),
+  profileRowToThemeProfile: (...a: unknown[]) => profileRowToThemeProfileMock(...a),
+}));
+
+vi.mock('@/lib/get-conferences', () => ({
+  getAllConferenceTabs: vi.fn(async () => [
+    { gid: 1, name: 'Test Conf', slug: 'test', timezone: 'UTC', dates: ['2027-03-10'], center: { lat: 43.5528, lng: 7.0174 } },
+  ]),
+}));
+
+const fetchEventsMock = vi.fn(async (..._args: unknown[]) => [] as { id: string; link: string }[]);
+vi.mock('@/lib/fetch-events', () => ({
+  fetchEvents: (...a: unknown[]) => fetchEventsMock(...a),
+  generateEventId: vi.fn((conference: string, date: string, time: string, name: string) => `evt-generated-${name.length}`),
+}));
+
+const insertEventRowSortedMock = vi.fn(async (..._args: unknown[]) => 5);
+const readRangeMock = vi.fn(async (..._args: unknown[]) => [] as string[][]);
+const deleteSheetRowMock = vi.fn(async (..._args: unknown[]) => {});
+vi.mock('@/lib/google-sheets', () => ({
+  getSheetTitle: vi.fn(async () => 'Sheet Tab'),
+  insertEventRowSorted: (...a: unknown[]) => insertEventRowSortedMock(...a),
+  deleteSheetRow: (...a: unknown[]) => deleteSheetRowMock(...a),
+  readRange: (...a: unknown[]) => readRangeMock(...a),
+}));
+
+vi.mock('@/lib/fetch-events-cached', () => ({
+  invalidateEventsCache: vi.fn(),
+}));
+
+const checkMonthlyBudgetMock = vi.fn(async () => ({ spentUsd: 0, capUsd: 20, exceeded: false }));
+vi.mock('@/lib/ingest/budget', () => ({
+  checkMonthlyBudget: () => checkMonthlyBudgetMock(),
+}));
+
+const scoreCandidateMock = vi.fn(async (..._args: unknown[]) => ({
+  classifier: { output: { theme_score: 60, reason: 'ok', suggested_tags: [], flags: [], is_event: true, data_quality: 'sufficient' }, inputTokens: 50, outputTokens: 10, model: 'gpt-5-mini', promptVersion: '1a-v2-openai' },
+  signals: { breakdown: {} },
+  finalScore: 60,
+  route: 'review',
+  shadowRoute: 'review',
+}));
+vi.mock('@/lib/ingest/scoring', () => ({
+  scoreCandidate: (...a: unknown[]) => scoreCandidateMock(...a),
+}));
+
+import { POST } from '../../app/api/admin/ingest/queue/route';
+
+function postRequest(body: unknown) {
+  return new NextRequest('http://localhost/api/admin/ingest/queue', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+beforeEach(() => {
+  getCandidateMock.mockReset();
+  claimCandidateStatusMock.mockReset();
+  updateCandidateMock.mockReset();
+  insertLabelMock.mockReset();
+  getProfileMock.mockReset().mockResolvedValue({ theme_key: 'crypto', trusted_hosts: [], blocked_hosts: [], include_keywords: [], exclude_keywords: [], publish_threshold: 85, review_threshold: 40 });
+  upsertProfileMock.mockReset();
+  listCandidatesMock.mockReset();
+  recordAdhocCostMock.mockReset();
+  fetchEventsMock.mockReset().mockResolvedValue([]);
+  insertEventRowSortedMock.mockReset().mockResolvedValue(5);
+  readRangeMock.mockReset().mockResolvedValue([]);
+  deleteSheetRowMock.mockReset();
+  checkMonthlyBudgetMock.mockReset().mockResolvedValue({ spentUsd: 0, capUsd: 20, exceeded: false });
+  scoreCandidateMock.mockClear();
+});
+
+describe('POST /api/admin/ingest/queue: approve (HIGH item 3)', () => {
+  it('rejects a bulk approve over the cap before touching any candidate', async () => {
+    const ids = Array.from({ length: 41 }, (_, i) => `00000000-0000-0000-0000-${String(i).padStart(12, '0')}`);
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'approve', ids }));
+    expect(res.status).toBe(400);
+    expect(getCandidateMock).not.toHaveBeenCalled();
+  });
+
+  it('never publishes when the atomic claim fails (candidate already handled concurrently)', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate());
+    claimCandidateStatusMock.mockResolvedValue(null); // the lock: someone else already claimed it
+
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'approve', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+    expect(json.results[0].ok).toBe(false);
+    expect(json.results[0].error).toMatch(/not approvable/);
+    expect(insertEventRowSortedMock).not.toHaveBeenCalled();
+  });
+
+  it('publishes when the claim succeeds', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate());
+    claimCandidateStatusMock.mockResolvedValue(baseCandidate({ status: 'approved' }));
+
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'approve', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+    expect(json.results[0].ok).toBe(true);
+    expect(insertEventRowSortedMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips inserting a sheet row (reuses the existing one) when the link is already in the sheet', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate());
+    claimCandidateStatusMock.mockResolvedValue(baseCandidate({ status: 'approved' }));
+    // The event's link is already present in the sheet.
+    fetchEventsMock.mockResolvedValue([{ id: 'evt-already-there', link: 'https://luma.com/event/evt-abc123def456' }]);
+
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'approve', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+    expect(json.results[0].ok).toBe(true);
+    expect(insertEventRowSortedMock).not.toHaveBeenCalled();
+    expect(updateCandidateMock).toHaveBeenCalledWith('3fa85f64-5717-4562-b3fc-2c963f66afa6', expect.objectContaining({ published_event_id: 'evt-already-there' }));
+  });
+
+  it('rolls back the claim to the original status when the publish fails', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate({ status: 'queued' }));
+    claimCandidateStatusMock.mockResolvedValue(baseCandidate({ status: 'approved' }));
+    insertEventRowSortedMock.mockRejectedValue(new Error('Sheets API exploded'));
+
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'approve', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+    expect(json.results[0].ok).toBe(false);
+    expect(updateCandidateMock).toHaveBeenCalledWith('3fa85f64-5717-4562-b3fc-2c963f66afa6', expect.objectContaining({ status: 'queued' }));
+  });
+});
+
+describe('POST /api/admin/ingest/queue: rescore (HIGH item 4)', () => {
+  it('refuses to rescore a finalized candidate', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate({ status: 'approved' }));
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'rescore', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+    expect(json.results[0].ok).toBe(false);
+    expect(json.results[0].error).toMatch(/finalized/);
+    expect(scoreCandidateMock).not.toHaveBeenCalled();
+  });
+
+  it('refuses to rescore when the monthly budget is already exceeded', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate({ status: 'queued' }));
+    checkMonthlyBudgetMock.mockResolvedValue({ spentUsd: 25, capUsd: 20, exceeded: true });
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'rescore', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+    expect(json.results[0].ok).toBe(false);
+    expect(json.results[0].error).toMatch(/budget/i);
+    expect(scoreCandidateMock).not.toHaveBeenCalled();
+  });
+
+  it('records the rescore cost against the budget ledger', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate({ status: 'queued' }));
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'rescore', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+    expect(json.results[0].ok).toBe(true);
+    expect(recordAdhocCostMock).toHaveBeenCalledWith(
+      expect.objectContaining({ conference: 'Test Conf', inputTokens: 50, outputTokens: 10 })
+    );
+  });
+});
+
+describe('POST /api/admin/ingest/queue: unpublish (HIGH item 9)', () => {
+  it('refuses when the candidate is not actually published', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate({ status: 'queued' }));
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'unpublish', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+    expect(json.results[0].ok).toBe(false);
+    expect(json.results[0].error).toMatch(/not published/);
+    expect(claimCandidateStatusMock).not.toHaveBeenCalled();
+  });
+
+  it('refuses when the candidate has no resolvable link', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate({ status: 'approved', event: { ...baseCandidate().event, link: '' } }));
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'unpublish', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+    expect(json.results[0].ok).toBe(false);
+    expect(json.results[0].error).toMatch(/no resolvable link/);
+  });
+
+  it('never deletes a blank row even if it matches by link with an empty name', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate({ status: 'approved' }));
+    claimCandidateStatusMock.mockResolvedValue(baseCandidate({ status: 'unpublished' }));
+    // A row with the right link but a BLANK name must never be deleted.
+    readRangeMock.mockResolvedValue([
+      ['Mar 10', '6:00 PM', '', '', '', '', '', '', 'https://luma.com/event/evt-abc123def456', '', '', ''],
+    ]);
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'unpublish', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+    expect(json.results[0].ok).toBe(true);
+    expect(deleteSheetRowMock).not.toHaveBeenCalled();
+  });
+
+  it('deletes the row only when both link AND name match', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate({ status: 'approved' }));
+    claimCandidateStatusMock.mockResolvedValue(baseCandidate({ status: 'unpublished' }));
+    readRangeMock.mockResolvedValue([
+      ['Mar 10', '6:00 PM', '', 'Alice', 'ETH Builders Mixer', '', '', '', 'https://luma.com/event/evt-abc123def456', '', '', ''],
+    ]);
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'unpublish', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+    expect(json.results[0].ok).toBe(true);
+    expect(deleteSheetRowMock).toHaveBeenCalledWith(1, 0);
+  });
+});

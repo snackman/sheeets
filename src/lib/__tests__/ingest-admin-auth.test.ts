@@ -4,11 +4,14 @@ import { GET as queueGet, POST as queuePost } from '../../app/api/admin/ingest/q
 import { GET as configGet, PUT as configPut } from '../../app/api/admin/ingest/config/route';
 import { POST as runPost } from '../../app/api/admin/ingest/run/route';
 import { GET as runsGet } from '../../app/api/admin/ingest/runs/route';
+import { GET as cronGet } from '../../app/api/cron/ingest/route';
 
 const TEST_PASSWORD = 'ingest-test-admin-password';
+const TEST_CRON_SECRET = 'ingest-test-cron-secret';
 
 beforeAll(() => {
   process.env.ADMIN_PASSWORD = TEST_PASSWORD;
+  process.env.CRON_SECRET = TEST_CRON_SECRET;
 });
 
 function jsonRequest(url: string, body: unknown, method = 'POST'): NextRequest {
@@ -82,5 +85,15 @@ describe('admin ingest API auth', () => {
   it('GET /api/admin/ingest/runs accepts the right password', async () => {
     const res = await runsGet(new NextRequest(`http://localhost/api/admin/ingest/runs?password=${TEST_PASSWORD}`));
     expect(res.status).not.toBe(401);
+  });
+
+  it('GET /api/cron/ingest rejects a missing Authorization header', async () => {
+    const res = await cronGet(new Request('http://localhost/api/cron/ingest'));
+    expect(res.status).toBe(401);
+  });
+
+  it('GET /api/cron/ingest rejects the wrong secret', async () => {
+    const res = await cronGet(new Request('http://localhost/api/cron/ingest', { headers: { authorization: 'Bearer wrong' } }));
+    expect(res.status).toBe(401);
   });
 });

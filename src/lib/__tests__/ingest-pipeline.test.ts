@@ -1,0 +1,305 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// `new OpenAI(...)` validates an api key is present AND refuses to
+// construct under jsdom (vitest's test environment) as a browser-safety
+// check — `scoreCandidate` is mocked below and never actually uses this
+// client, so a trivial stand-in avoids both without `dangerouslyAllowBrowser`.
+process.env.OPENAI_API_KEY = 'test-key';
+vi.mock('openai', () => ({ default: class FakeOpenAI {} }));
+
+// ---------------------------------------------------------------------------
+// In-memory candidate store, standing in for Supabase so `runSource` can be
+// exercised end-to-end (including a real second run over the same feed)
+// without a database.
+// ---------------------------------------------------------------------------
+interface FakeRow {
+  conference: string;
+  canonical_key: string;
+  status: string;
+  ical_hash?: string | null;
+  content_hash?: string;
+  classify_attempts?: number;
+  [key: string]: unknown;
+}
+
+let candidateStore: Map<string, FakeRow>;
+let runRows: { id: string; status: string }[];
+let runningGuard: boolean;
+
+function keyFor(conference: string, canonicalKey: string) {
+  return `${conference}::${canonicalKey}`;
+}
+
+vi.mock('../ingest/db', () => ({
+  getSource: vi.fn(async () => ({
+    id: 'src-1',
+    conference: 'Test Conf',
+    kind: 'luma_ical',
+    label: 'Test Calendar',
+    config: { calendar_api_id: 'cal-TEST1234' },
+    trust: 'curated',
+    enabled: true,
+  })),
+  getProfile: vi.fn(async () => ({
+    conference: 'Test Conf',
+    theme_key: 'crypto',
+    theme_description: 'Crypto stuff',
+    include_keywords: [],
+    exclude_keywords: [],
+    trusted_hosts: [],
+    blocked_hosts: [],
+    publish_threshold: 85,
+    review_threshold: 40,
+    auto_publish_enabled: false,
+    radius_km: 1000,
+    window_pre_days: 30,
+    window_post_days: 30,
+    allow_online: true,
+    max_llm_calls_per_run: 150,
+    max_publish_per_run: 25,
+    enabled: true,
+  })),
+  getCandidateByKey: vi.fn(async (conference: string, canonicalKey: string) => candidateStore.get(keyFor(conference, canonicalKey)) ?? null),
+  upsertCandidate: vi.fn(async (row: FakeRow) => {
+    const k = keyFor(row.conference, row.canonical_key);
+    const existing = candidateStore.get(k);
+    const merged = { ...existing, ...row, status: row.status ?? existing?.status ?? 'new' };
+    candidateStore.set(k, merged);
+    return merged;
+  }),
+  updateCandidate: vi.fn(async (id: string, patch: Record<string, unknown>) => {
+    for (const [k, v] of candidateStore) {
+      if (v.canonical_key === id || k === id) candidateStore.set(k, { ...v, ...patch });
+    }
+  }),
+  listRecentCandidatesForDedupe: vi.fn(async () => []),
+  createRun: vi.fn(async () => {
+    const run = { id: `run-${runRows.length + 1}`, status: 'running' };
+    runRows.push(run);
+    return run;
+  }),
+  finishRun: vi.fn(async (id: string, patch: { status: string }) => {
+    const run = runRows.find((r) => r.id === id);
+    if (run) run.status = patch.status;
+  }),
+  hasRecentRunningRun: vi.fn(async () => runningGuard),
+  updateSource: vi.fn(async () => {}),
+  profileRowToThemeProfile: vi.fn((row: { theme_key: string; theme_description: string; include_keywords: string[]; exclude_keywords: string[]; publish_threshold: number; review_threshold: number }) => ({
+    themeKey: row.theme_key,
+    themeName: 'Crypto / Web3',
+    themeDescription: row.theme_description,
+    includeKeywords: row.include_keywords,
+    excludeKeywords: row.exclude_keywords,
+    publishThreshold: row.publish_threshold,
+    reviewThreshold: row.review_threshold,
+  })),
+  getIngestSupabase: vi.fn(() => ({
+    from: () => ({
+      select: () => ({
+        is: () => Promise.resolve({ data: [] }),
+      }),
+    }),
+  })),
+}));
+
+vi.mock('../ingest/budget', () => ({
+  checkMonthlyBudget: vi.fn(async () => ({ spentUsd: 0, capUsd: 20, exceeded: false })),
+}));
+
+vi.mock('../get-conferences', () => ({
+  getAllConferenceTabs: vi.fn(async () => [
+    {
+      gid: 1,
+      name: 'Test Conf',
+      slug: 'test-conf',
+      timezone: 'UTC',
+      dates: ['2027-03-10'],
+      center: { lat: 43.5528, lng: 7.0174 },
+    },
+  ]),
+}));
+
+vi.mock('../fetch-events', () => ({
+  fetchEvents: vi.fn(async () => []),
+}));
+
+vi.mock('../google-sheets', () => ({
+  getSheetTitle: vi.fn(async () => 'Test Sheet Tab'),
+  insertEventRowSorted: vi.fn(async () => 1),
+}));
+
+vi.mock('../fetch-events-cached', () => ({
+  invalidateEventsCache: vi.fn(),
+}));
+
+const fetchLumaEventMock = vi.fn(async (..._args: unknown[]) => ({
+  api_id: 'evt-ABC123DEF456',
+  event: { api_id: 'evt-ABC123DEF456', name: 'ETH Builders Mixer' },
+  hosts: [{ api_id: 'usr-1', name: 'Alice' }],
+  description_mirror: null,
+}));
+vi.mock('../luma-server', () => ({
+  fetchLumaEvent: (...args: unknown[]) => fetchLumaEventMock(...args),
+  LumaFetchError: class LumaFetchError extends Error {},
+}));
+
+vi.mock('../ingest/sources/luma-ical', () => ({
+  fetchLumaIcalFeed: vi.fn(async () => [
+    {
+      uid: 'evt-ABC123DEF456@events.lu.ma',
+      summary: 'ETH Builders Mixer',
+      description: 'Get up-to-date information at: https://luma.com/ethcc-mixer\n\nHosted by Alice',
+      dtstart: '2027-03-10T18:00:00.000Z',
+      dtstartIsDateOnly: false,
+      dtend: '2027-03-10T21:00:00.000Z',
+      location: 'https://luma.com/event/evt-ABC123DEF456',
+      geo: { lat: 43.5528, lng: 7.0174 },
+      sequence: 0,
+      status: 'CONFIRMED',
+      dtstamp: '2027-03-01T00:00:00.000Z',
+    },
+  ]),
+  toIcalCandidates: vi.fn((events: { uid: string; description: string }[]) =>
+    events.map((vevent) => ({ vevent, apiId: 'evt-ABC123DEF456', slug: 'ethcc-mixer' }))
+  ),
+}));
+
+const scoreCandidateMock = vi.fn(async (..._args: unknown[]) => ({
+  classifier: {
+    output: { theme_score: 50, reason: 'ok', suggested_tags: [], flags: [], is_event: true, data_quality: 'sufficient' },
+    injectionDetected: false,
+    inputTokens: 100,
+    outputTokens: 20,
+    model: 'gpt-5-mini',
+    promptVersion: '1a-v2-openai',
+  },
+  signals: { breakdown: {}, total: 0, hardReject: false, capRouteAtReview: false },
+  finalScore: 50,
+  route: 'review' as const,
+  shadowRoute: 'review' as const,
+}));
+vi.mock('../ingest/scoring', () => ({
+  scoreCandidate: (...args: unknown[]) => scoreCandidateMock(...args),
+}));
+
+vi.mock('../ingest/reconcile', () => ({
+  reconcileConference: vi.fn(async () => ({ checked: 0, linked: 0, unpublishedExternal: 0, skipped: true })),
+}));
+
+import { runSource } from '../ingest/pipeline';
+
+beforeEach(() => {
+  candidateStore = new Map();
+  runRows = [];
+  runningGuard = false;
+  fetchLumaEventMock.mockClear();
+  scoreCandidateMock.mockClear();
+});
+
+describe('runSource: change detection (CRITICAL item 1 — ical_hash vs content_hash)', () => {
+  it('a second run over the same unchanged feed gives `unchanged`, with 0 enrichment calls and 0 LLM calls', async () => {
+    const first = await runSource('src-1', { trigger: 'manual' });
+    expect(first.status).toBe('ok');
+    expect(first.counts.new).toBe(1);
+    expect(fetchLumaEventMock).toHaveBeenCalledTimes(1); // enrichment on the new candidate
+    expect(scoreCandidateMock).toHaveBeenCalledTimes(1);
+
+    fetchLumaEventMock.mockClear();
+    scoreCandidateMock.mockClear();
+
+    const second = await runSource('src-1', { trigger: 'manual' });
+    expect(second.status).toBe('ok');
+    expect(second.counts.unchanged).toBe(1);
+    expect(second.counts.new ?? 0).toBe(0);
+    // The bug (CRITICAL item 1): comparing the pre-enrichment stub hash
+    // against the post-enrichment content_hash meant this NEVER matched,
+    // so every run re-enriched and re-classified from scratch.
+    expect(fetchLumaEventMock).not.toHaveBeenCalled();
+    expect(scoreCandidateMock).not.toHaveBeenCalled();
+  });
+
+  it('stores a non-null ical_hash on the persisted candidate', async () => {
+    await runSource('src-1', { trigger: 'manual' });
+    const row = candidateStore.get('Test Conf::luma:evt-abc123def456');
+    expect(row?.ical_hash).toBeTruthy();
+  });
+});
+
+describe('runSource: final-status protection (CRITICAL item 2)', () => {
+  it('never re-processes (or touches status on) an already-approved candidate', async () => {
+    candidateStore.set('Test Conf::luma:evt-abc123def456', {
+      conference: 'Test Conf',
+      canonical_key: 'luma:evt-abc123def456',
+      status: 'approved',
+      ical_hash: 'stale-hash-from-a-previous-run',
+      published_event_id: 'evt-xyz',
+    });
+
+    const result = await runSource('src-1', { trigger: 'manual' });
+    expect(result.status).toBe('ok');
+    expect(result.counts.skipped_final).toBe(1);
+    expect(fetchLumaEventMock).not.toHaveBeenCalled();
+    expect(scoreCandidateMock).not.toHaveBeenCalled();
+
+    const row = candidateStore.get('Test Conf::luma:evt-abc123def456');
+    expect(row?.status).toBe('approved'); // never changed
+    expect(row?.published_event_id).toBe('evt-xyz'); // never touched
+  });
+
+  it('never re-processes an unpublished candidate (never resurrects it)', async () => {
+    candidateStore.set('Test Conf::luma:evt-abc123def456', {
+      conference: 'Test Conf',
+      canonical_key: 'luma:evt-abc123def456',
+      status: 'unpublished',
+      ical_hash: 'stale-hash',
+    });
+
+    const result = await runSource('src-1', { trigger: 'manual' });
+    expect(result.counts.skipped_final).toBe(1);
+    expect(candidateStore.get('Test Conf::luma:evt-abc123def456')?.status).toBe('unpublished');
+  });
+});
+
+describe('runSource: retry statuses excluded from the unchanged shortcut (MEDIUM item 6)', () => {
+  it('retries a candidate stuck in pending_classify even when the hash matches', async () => {
+    // Run once to compute the real ical_hash for this feed, then force the
+    // status to pending_classify with that same hash.
+    await runSource('src-1', { trigger: 'manual' });
+    const key = 'Test Conf::luma:evt-abc123def456';
+    const row = candidateStore.get(key)!;
+    candidateStore.set(key, { ...row, status: 'pending_classify' });
+
+    fetchLumaEventMock.mockClear();
+    scoreCandidateMock.mockClear();
+
+    const result = await runSource('src-1', { trigger: 'manual' });
+    expect(result.counts.unchanged ?? 0).toBe(0);
+    expect(result.counts.new).toBe(1); // retried, not short-circuited
+    expect(scoreCandidateMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('runSource: dry run (MEDIUM item 5)', () => {
+  it('writes no candidates, but still creates a real run row and respects the overlap guard', async () => {
+    const result = await runSource('src-1', { trigger: 'manual', dryRun: true });
+    expect(result.status).toBe('ok');
+    expect(candidateStore.size).toBe(0); // nothing persisted
+    expect(result.previews?.length).toBe(1);
+    expect(runRows.length).toBe(1); // a real ingest_runs row was created
+    expect(runRows[0].status).toBe('ok');
+  });
+
+  it('is skipped by the overlap guard just like a real run', async () => {
+    runningGuard = true;
+    const result = await runSource('src-1', { trigger: 'manual', dryRun: true });
+    expect(result.status).toBe('skipped');
+  });
+});
+
+describe('runSource: overlap guard (applies regardless of dryRun)', () => {
+  it('skips a real run too when one is already running', async () => {
+    runningGuard = true;
+    const result = await runSource('src-1', { trigger: 'manual' });
+    expect(result.status).toBe('skipped');
+  });
+});

@@ -64,8 +64,13 @@ create table if not exists public.ingest_sources (
   last_error text,
   created_at timestamptz not null default now()
 );
+-- NULL-safe: two sources of the same kind with no calendar_api_id/handle set
+-- (e.g. two future kinds that key on neither) must not silently collide —
+-- coalesce to '' so NULL vs NULL is treated as equal, not "distinct" (review
+-- finding, LOW item 2).
+drop index if exists ingest_sources_unique;
 create unique index if not exists ingest_sources_unique on public.ingest_sources (
-  conference, kind, (config->>'calendar_api_id'), (config->>'handle')
+  conference, kind, coalesce(config->>'calendar_api_id', ''), coalesce(config->>'handle', '')
 );
 create index if not exists ingest_sources_conference on public.ingest_sources (conference, enabled);
 
@@ -112,6 +117,17 @@ create table if not exists public.ingest_candidates (
   last_seen_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+-- Hash of the iCal-only fields (name/description-stub/date), checked BEFORE
+-- enrichment to decide "unchanged, skip enrichment+classify". Kept separate
+-- from content_hash (computed from the full, possibly-enriched event) so the
+-- pre-enrichment check never compares against a post-enrichment value — the
+-- bug it fixes (review finding, CRITICAL item 1): comparing the stub hash
+-- against the stored enriched-content hash could never match on a second
+-- run, so every run reprocessed every candidate from scratch. `alter table
+-- add column if not exists` (not inline in create table) so this is picked
+-- up even if the table already exists from an earlier apply of this file.
+alter table public.ingest_candidates add column if not exists ical_hash text;
+
 create unique index if not exists ingest_candidates_key on public.ingest_candidates (conference, canonical_key);
 create index if not exists ingest_candidates_alt_keys on public.ingest_candidates using gin (alt_keys);
 create index if not exists ingest_candidates_queue on public.ingest_candidates (conference, status, final_score desc);
@@ -152,6 +168,14 @@ create table if not exists public.ingest_labels (
 );
 create unique index if not exists ingest_labels_one_per_candidate on public.ingest_labels (candidate_id, source) where candidate_id is not null;
 create index if not exists ingest_labels_theme on public.ingest_labels (theme_key, label, created_at desc);
+
+-- A curator deleting a published row from the sheet is a weak, noisy signal
+-- (could be "off-theme", or "duplicate", or "we don't need this anymore"
+-- after the event already happened) — too unreliable to train the few-shot
+-- selector on by default (review finding, MEDIUM item 8). Kept in the
+-- ledger for audit, but excluded from few-shot retrieval unless an admin
+-- reviews and relabels it.
+alter table public.ingest_labels add column if not exists excluded_from_fewshot boolean not null default false;
 
 -- Luma slug -> api id cache (dedupe against sheet links that are still slug-form).
 create table if not exists public.ingest_link_cache (

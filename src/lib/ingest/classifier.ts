@@ -43,7 +43,16 @@ export const CLASSIFIER_MAX_TOKENS = 1200;
 export const PROMPT_VERSION = '1a-v2-openai';
 
 export class ClassifierError extends Error {
-  constructor(message: string, public readonly cause?: unknown) {
+  constructor(
+    message: string,
+    public readonly cause?: unknown,
+    /** Token usage, when OpenAI actually returned a completion before the
+     *  failure (e.g. a schema-validation failure still bills tokens) — a
+     *  request-level failure (network/5xx) never got a completion, so this
+     *  is undefined there, and $0 is correct. Callers should add this to
+     *  their cost tally even on failure (review finding, MEDIUM item 5). */
+    public readonly usage?: { inputTokens: number; outputTokens: number; model: string }
+  ) {
     super(message);
     this.name = 'ClassifierError';
   }
@@ -107,7 +116,11 @@ export async function classifyEvent(opts: ClassifyOptions): Promise<ClassifyResu
 
   const message = completion.choices[0]?.message;
   if (!message || message.parsed == null) {
-    throw new ClassifierError('Classifier returned output that failed schema validation.');
+    throw new ClassifierError('Classifier returned output that failed schema validation.', undefined, {
+      inputTokens: completion.usage?.prompt_tokens ?? 0,
+      outputTokens: completion.usage?.completion_tokens ?? 0,
+      model,
+    });
   }
 
   let output = message.parsed;
