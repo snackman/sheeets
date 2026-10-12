@@ -24,7 +24,7 @@ import { allowlistedPlatformFor, type Platform } from './allowlist';
 import { normalizeDiscoveredLumaEvent, normalizeExtractedEvent, computeContentHash } from './normalize';
 import { matchAgainstSheetAndCandidates, type SheetLinkIndex, type DedupeSheetEvent, type DedupeCandidatePool } from './dedupe';
 import { dateWindowFilter, geoFilter, geocodeAddressCached } from './filters';
-import { LumaEnrichmentLimiter } from './enrich';
+import type { EnrichLimiter } from './enrich';
 import { scoreCandidate } from './scoring';
 import { ClassifierError } from './classifier';
 import { hostListMatches } from './hosts';
@@ -33,6 +33,7 @@ import { learnedHostSignalMatches, type LearnedHostSignals } from './learning';
 import { estimateCostUsd } from './pricing';
 import { RETRY_ON_UNCHANGED_STATUSES, FINAL_CANDIDATE_STATUSES } from './types';
 import type {
+  CandidateSourceRef,
   IngestCandidateRow,
   IngestProfileRow,
   NormalizedEvent,
@@ -135,7 +136,7 @@ export interface DiscoveredLinkContext {
   /** Message permalink (Telegram) or null (a direct host submission has no
    *  separate "post" to link back to beyond the submitted URL itself). */
   sourceRef: string | null;
-  enrichLimiter: LumaEnrichmentLimiter;
+  enrichLimiter: EnrichLimiter;
   linkFetchLimiter: PacedLinkLimiter;
   linkIndex: SheetLinkIndex;
   sheetEvents: DedupeSheetEvent[];
@@ -170,7 +171,44 @@ export type DiscoveredLinkOutcome =
   | { kind: 'invalid' }
   | { kind: 'skipped_final' }
   | { kind: 'unchanged'; existingId: string }
+  | { kind: 'protected'; existingId: string; sources: CandidateSourceRef[] }
   | { kind: 'row'; row: DiscoveredLinkRow; classified: boolean; inputTokens: number; outputTokens: number; costUsd: number };
+
+/** Baseline trust rank by `source_kind` — used ONLY to decide whether an
+ *  incoming discovery-trust link may touch (reclassify, or worse,
+ *  overwrite) an EXISTING candidate a DIFFERENT source already created
+ *  (review finding, MEDIUM item 4). This is a heuristic, not the real
+ *  per-source `trust` column (which lives on `ingest_sources`, can vary
+ *  per row, and isn't stored on the candidate itself): `luma_ical` is
+ *  ranked as POSSIBLY curated/host trust, since that's the overwhelmingly
+ *  common case (a `luma_ical` source is only ever `discovery` trust when
+ *  auto-publish was already on for the conference at the moment it was
+ *  added — see the config route) — erring toward "protect" for an
+ *  ambiguous case is the safe direction. Every kind that's ALWAYS
+ *  discovery trust ranks the same as 'discovery' itself, so two discovery
+ *  sources (e.g. two different Telegram channels, or a resubmission of the
+ *  same host-submitted link) can still freely dedupe/update each other's
+ *  candidates exactly as before. */
+const SOURCE_KIND_TRUST_FLOOR: Partial<Record<SourceKind, SourceTrust>> = {
+  luma_ical: 'curated',
+};
+const TRUST_RANK: Record<SourceTrust, number> = { discovery: 1, host: 2, curated: 3 };
+
+function existingOutranksIncoming(existingSourceKind: SourceKind, incomingTrust: SourceTrust): boolean {
+  const existingFloor = SOURCE_KIND_TRUST_FLOOR[existingSourceKind] ?? 'discovery';
+  return TRUST_RANK[existingFloor] > TRUST_RANK[incomingTrust];
+}
+
+/** Append this run's source ref to an existing candidate's `sources` array,
+ *  deduped by (source_id, ref) — used only for the `'protected'` outcome,
+ *  where nothing else about the existing row may change. */
+function mergeSourceRef(
+  existingSources: CandidateSourceRef[],
+  next: CandidateSourceRef
+): CandidateSourceRef[] {
+  const alreadyHas = existingSources.some((s) => s.source_id === next.source_id && s.ref === next.ref);
+  return alreadyHas ? existingSources : [...existingSources, next];
+}
 
 /**
  * Process one already-allowlisted URL end to end (enrich/extract ->
@@ -193,6 +231,23 @@ export async function processDiscoveredLink(
 
   if (existing && FINAL_CANDIDATE_STATUSES.includes(existing.status)) {
     return { kind: 'skipped_final' };
+  }
+
+  // Review finding, MEDIUM item 4: a lower-trust discovery source (this
+  // module only ever runs for `discovery`-trust sources today) must never
+  // reclassify — let alone overwrite `event`/`source_kind`/`source_id`/
+  // `status` on — a candidate a HIGHER-trust source already created and
+  // decided on (most concretely: a public submission that happens to
+  // resolve to the same canonical key as a curated calendar's
+  // `auto_rejected` candidate must never "revive" it). Only append this
+  // source's ref and bump `last_seen_at`; nothing else about the existing
+  // row changes.
+  if (existing && existingOutranksIncoming(existing.source_kind, ctx.sourceTrust)) {
+    return {
+      kind: 'protected',
+      existingId: existing.id,
+      sources: mergeSourceRef(existing.sources, { source_id: ctx.sourceId, kind: ctx.sourceKind, ref: ctx.sourceRef, seen_at: new Date().toISOString() }),
+    };
   }
 
   const platform = allowlistedPlatformFor(url);
@@ -241,10 +296,19 @@ export async function processDiscoveredLink(
   const sources = [{ source_id: ctx.sourceId, kind: ctx.sourceKind, ref: ctx.sourceRef, seen_at: new Date().toISOString() }];
 
   if (!normalized) {
-    // Enrichment/extraction failed (rate-limited, 404, unparseable page) —
-    // record it as an error so an admin can see it in the Log/Queue rather
-    // than it silently vanishing, same as the Luma iCal path's classify
-    // failure handling.
+    // Review finding, MEDIUM item 3: enrichment/extraction failing (rate-
+    // limited, 404, unparseable page — all likely TRANSIENT) must never
+    // overwrite an existing candidate's last-good snapshot with a blank
+    // "error" placeholder. Same guard as the non-Luma budget-exhausted
+    // branch above: if there's an existing (non-final, non-protected —
+    // already ruled out above) candidate, just leave it exactly as-is.
+    if (existing) {
+      return { kind: 'unchanged', existingId: existing.id };
+    }
+    // No existing candidate at all — nothing to protect. Record the
+    // failure as a fresh `error` row so an admin can see it tried in the
+    // Log/Queue rather than it silently vanishing, same as the Luma iCal
+    // path's classify failure handling.
     return {
       kind: 'row',
       row: {
@@ -274,7 +338,7 @@ export async function processDiscoveredLink(
         } as NormalizedEvent,
         content_hash: `error:${canonicalKey}`,
         status: 'error',
-        classify_attempts: (existing?.classify_attempts ?? 0) + 1,
+        classify_attempts: 1,
       },
       classified: false,
       inputTokens: 0,
@@ -307,6 +371,16 @@ export async function processDiscoveredLink(
     event: normalized,
     content_hash: contentHash,
     status: 'new',
+    // Review finding, MEDIUM item 4 (second half): explicit nulls here,
+    // not omitted, so every branch below that doesn't override them
+    // CLEARS a stale value from a PREVIOUS run instead of silently
+    // leaving it — `upsertCandidate`'s non-final update only sets the
+    // columns present in the patch, so a key that's simply absent from
+    // the object leaves whatever was already in that column untouched
+    // (e.g. a candidate that was `duplicate_of: 'evt-123'` last run and is
+    // `queued` this run must not still show `duplicate_of: 'evt-123'`).
+    duplicate_of: null,
+    filter_reason: null,
   };
 
   const startDate = ctx.tab.dates[0];

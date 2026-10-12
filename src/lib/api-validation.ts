@@ -419,10 +419,15 @@ export const IngestSourceDeleteSchema = z.object({
 export const HostSubmissionSchema = z.object({
   conference: z.string().min(1, 'Conference is required').max(200),
   url: z.string().trim().min(1, 'An event link is required').max(2000),
-  note: z.string().trim().max(500).optional(),
-  /** Cloudflare Turnstile response token, when the page has it configured
-   *  (`NEXT_PUBLIC_TURNSTILE_SITE_KEY` set). Optional because Turnstile is
-   *  best-effort here — see the route's doc comment. */
+  // Review finding, LOW item 7: no `note` field — nothing in
+  // `ingest_candidates` or the submission-attempts ledger has anywhere to
+  // store a free-text note today, and `SubmitSourceForm.tsx` never
+  // collected one, so it was dead weight in the schema. Add it back (with
+  // real storage) if the form grows a note field later.
+  /** Cloudflare Turnstile response token, sent only when the page has it
+   *  configured (`NEXT_PUBLIC_TURNSTILE_SITE_KEY` set — see
+   *  `SubmitSourceForm.tsx`). The server only enforces it when both the
+   *  site key and `TURNSTILE_SECRET_KEY` are configured. */
   turnstileToken: z.string().max(4000).optional(),
 });
 

@@ -821,6 +821,15 @@ async function processTelegramSource(args: {
         if (!dryRun) await updateCandidate(outcome.existingId, { last_seen_at: new Date().toISOString() });
         continue;
       }
+      if (outcome.kind === 'protected') {
+        // Review finding, MEDIUM item 4: a higher-trust candidate (most
+        // likely a curated Luma-calendar candidate this Telegram link
+        // also happens to resolve to) — append our source ref, bump
+        // `last_seen_at`, and touch nothing else.
+        bump(counts, 'skipped_final');
+        if (!dryRun) await updateCandidate(outcome.existingId, { sources: outcome.sources, last_seen_at: new Date().toISOString() });
+        continue;
+      }
 
       // outcome.kind === 'row'
       bump(counts, 'new');

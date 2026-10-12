@@ -7,18 +7,26 @@
 // the sheet, never auto-published (§10 item 4). The pre-existing
 // `/api/submit-event` flow is unchanged.
 //
-// Anti-abuse (§Phase 3 constraints):
-//  1. Rate limiting per IP (`ingest_submission_attempts`, hashed IPs).
+// Anti-abuse (§Phase 3 constraints, hardened per PR #181 review):
+//  1. Rate limiting, several layers (all against `ingest_submission_attempts`):
+//     per-IP (two windows), a GLOBAL hourly ceiling, and a per-conference
+//     daily ceiling. The attempt row is inserted BEFORE counting (not
+//     after), closing most of the count-then-insert race a concurrent
+//     request would otherwise have.
 //  2. URL validation: allowlisted event platforms only (Luma, Partiful,
 //     Eventbrite, Meetup, Posh) — `isAllowlistedEventLink`.
-//  3. Cloudflare Turnstile, BEST-EFFORT: only enforced when
-//     `TURNSTILE_SECRET_KEY` is set. The repo has no existing captcha and
-//     no Turnstile site/secret key provisioned yet (see the PR
-//     description's env-var list) — rate limiting + the platform allowlist
-//     are the two anti-abuse layers that are always on; Turnstile is
-//     additive once Snax provisions a Cloudflare Turnstile widget.
+//  3. Cloudflare Turnstile: enforced only when BOTH `TURNSTILE_SECRET_KEY`
+//     (server) and `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (client, read by
+//     `SubmitSourceForm.tsx`, which renders the real widget) are set — if
+//     either is missing, Turnstile is skipped entirely rather than
+//     rejecting every request outright (a half-configured pair would
+//     otherwise be a silent total outage, since the client could never
+//     produce a token with no site key to render against).
+//  4. The monthly LLM budget cap (`checkMonthlyBudget`) is checked before
+//     classifying, same as every other candidate source.
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'node:crypto';
+import net from 'node:net';
 import OpenAI from 'openai';
 import { getConferenceTabs } from '@/lib/get-conferences';
 import { parseBody, HostSubmissionSchema } from '@/lib/api-validation';
@@ -26,6 +34,7 @@ import { getBearerToken } from '@/lib/server-auth';
 import { fetchEvents } from '@/lib/fetch-events';
 import { normalizeEventLink } from '@/lib/luma';
 import { isAllowlistedEventLink } from '@/lib/ingest/allowlist';
+import { checkMonthlyBudget } from '@/lib/ingest/budget';
 import {
   getProfile,
   profileRowToThemeProfile,
@@ -34,15 +43,17 @@ import {
   upsertCandidate,
   updateCandidate,
   listRecentCandidatesForDedupe,
-  recordAdhocCost,
   recordSubmissionAttempt,
+  recordSubmissionAttemptCost,
   countRecentSubmissionAttempts,
+  countGlobalRecentSubmissionAttempts,
+  countConferenceRecentSubmissionAttempts,
   getIngestSupabase,
 } from '@/lib/ingest/db';
 import { buildSheetLinkIndex, type DedupeCandidatePool } from '@/lib/ingest/dedupe';
 import { getSponsorNamesForConference } from '@/lib/ingest/sponsors';
 import { loadLearningContext } from '@/lib/ingest/learning';
-import { LumaEnrichmentLimiter } from '@/lib/ingest/enrich';
+import { HourlyWindowLumaLimiter } from '@/lib/ingest/enrich';
 import { processDiscoveredLink, PacedLinkLimiter, buildHostSignalComputer } from '@/lib/ingest/discover';
 
 export const runtime = 'nodejs';
@@ -51,38 +62,120 @@ export const maxDuration = 60;
 
 const NO_STORE = { 'Cache-Control': 'private, no-store' };
 
-/** Two windows, same spirit as `CLAIM_LIMITS` (#177): a tight short window
- *  stops a fast script, a looser daily cap stops someone grinding it out
- *  by hand over a day. Deliberately conservative — the median legitimate
- *  host submits once, maybe twice if they typo the link. */
+/** Two per-IP windows, same spirit as `CLAIM_LIMITS` (#177): a tight short
+ *  window stops a fast script, a looser daily cap stops someone grinding
+ *  it out by hand over a day. Deliberately conservative — the median
+ *  legitimate host submits once, maybe twice if they typo the link. */
 const RATE_LIMIT_SHORT_WINDOW_MS = 15 * 60 * 1000;
 const RATE_LIMIT_SHORT_MAX = 5;
 const RATE_LIMIT_DAY_WINDOW_MS = 24 * 60 * 60 * 1000;
 const RATE_LIMIT_DAY_MAX = 15;
 
-function hashIp(ip: string): string {
-  return createHash('sha256').update(ip).digest('hex');
+/** Global (every IP combined) and per-conference ceilings (review finding,
+ *  HIGH item 2) — the per-IP limits above don't stop a botnet spreading
+ *  one attempt per IP, or many different people hammering one
+ *  conference's form. Both are deliberately generous relative to real
+ *  traffic (a conference's whole run of side events is low hundreds at
+ *  most) so they only bite during an actual abuse burst. */
+const GLOBAL_HOURLY_WINDOW_MS = 60 * 60 * 1000;
+const GLOBAL_HOURLY_MAX = 60;
+const CONFERENCE_DAILY_WINDOW_MS = 24 * 60 * 60 * 1000;
+const CONFERENCE_DAILY_MAX = 100;
+
+/**
+ * Shared, module-level (review finding, HIGH item 2 "share a module-level
+ * Luma limiter") — one `HourlyWindowLumaLimiter` instance for every
+ * request this server instance handles, so N concurrent submissions can't
+ * each get their own fresh Luma enrichment budget. Capped to roughly match
+ * `GLOBAL_HOURLY_MAX` (at most one Luma enrichment per submission).
+ */
+const sharedSubmissionLumaLimiter = new HourlyWindowLumaLimiter(GLOBAL_HOURLY_MAX, 1000);
+
+function hashBucket(bucket: string): string {
+  return createHash('sha256').update(bucket).digest('hex');
 }
 
-/** Best-effort client IP from the headers Vercel/most proxies set.
- *  `x-forwarded-for` can be a comma-separated chain; the first entry is
- *  the original client. Falls back to a constant so a request with no
- *  such header at all (e.g. local dev) still gets ITS OWN consistent
- *  rate-limit bucket rather than every such request sharing one. */
+/** Expand a (possibly `::`-compressed) IPv6 address into its 8 hex groups,
+ *  or null if it doesn't parse as one. Zone ids (`%eth0`) are stripped
+ *  first. Doesn't bother resolving an IPv4-mapped tail (`::ffff:1.2.3.4`)
+ *  into a single group — fine for rate-limit BUCKETING (not a security
+ *  boundary like `safe-fetch.ts`'s IP classification), since that still
+ *  produces a stable, consistent key for the same address. */
+function expandIPv6Groups(ip: string): string[] | null {
+  const addr = ip.split('%')[0];
+  const parts = addr.split('::');
+  if (parts.length > 2) return null;
+  const head = parts[0] ? parts[0].split(':').filter(Boolean) : [];
+  const tail = parts.length === 2 && parts[1] ? parts[1].split(':').filter(Boolean) : [];
+  let groups: string[];
+  if (parts.length === 2) {
+    const fill = 8 - head.length - tail.length;
+    if (fill < 0) return null;
+    groups = [...head, ...Array(fill).fill('0'), ...tail];
+  } else {
+    groups = head;
+  }
+  return groups.length === 8 ? groups : null;
+}
+
+/** Bucket a client IP for rate-limit purposes (review finding, HIGH item
+ *  2): an IPv4 address is used as-is, but an IPv6 address is reduced to
+ *  its /64 prefix first — a single residential/mobile customer is
+ *  typically handed a whole /64 (or larger) and can cycle through
+ *  addresses within it per-request, so limiting by the FULL address would
+ *  be trivially bypassable. Returns the ORIGINAL ip unchanged if it
+ *  doesn't parse as IPv4/IPv6 at all (e.g. the 'unknown' sentinel). */
+function bucketIp(ip: string): string {
+  if (net.isIP(ip) === 6) {
+    const groups = expandIPv6Groups(ip);
+    if (groups) return `v6:${groups.slice(0, 4).join(':')}::/64`;
+  }
+  return ip;
+}
+
+/**
+ * Best-effort client IP (review finding, HIGH item 2: "prefer request.ip /
+ * x-real-ip / Vercel's header over the first XFF entry"). Priority:
+ *  1. `request.ip` — populated by some Next.js/Vercel runtimes directly;
+ *     read defensively since this `NextRequest` type doesn't declare it.
+ *  2. `x-real-ip` — Vercel's edge sets this to the real client IP itself
+ *     (not client-suppliable: Vercel overwrites it), so it's trustworthy.
+ *  3. `x-vercel-forwarded-for` — Vercel's own forwarded-for header, same
+ *     trust level as `x-real-ip`.
+ *  4. The FIRST entry of the generic `x-forwarded-for` chain — kept only
+ *     as a last-resort fallback for non-Vercel environments (e.g. local
+ *     dev behind a bare reverse proxy). This is the LEAST trustworthy
+ *     option: unless something in front of this function is known to
+ *     always APPEND to (never pass through) this header, a client can
+ *     simply send its own `X-Forwarded-For: 1.2.3.4` and have it end up
+ *     first. Only used when none of the above are present.
+ */
 function getClientIp(req: NextRequest): string {
+  const reqIp = (req as unknown as { ip?: string }).ip;
+  if (reqIp) return reqIp;
+  const realIp = req.headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
+  const vercelFwd = req.headers.get('x-vercel-forwarded-for');
+  if (vercelFwd) {
+    const first = vercelFwd.split(',')[0]?.trim();
+    if (first) return first;
+  }
   const fwd = req.headers.get('x-forwarded-for');
   if (fwd) {
     const first = fwd.split(',')[0]?.trim();
     if (first) return first;
   }
-  const real = req.headers.get('x-real-ip');
-  if (real) return real.trim();
   return 'unknown';
 }
 
 async function verifyTurnstile(token: string | undefined, ip: string): Promise<boolean> {
   const secret = process.env.TURNSTILE_SECRET_KEY;
-  if (!secret) return true; // not configured — best-effort layer, see file doc comment
+  // Review finding, MEDIUM item 5: only enforce Turnstile when BOTH halves
+  // of the pair are configured. A secret with no site key would mean the
+  // client-side widget (`SubmitSourceForm.tsx`) never renders at all — so
+  // every request would be rejected forever, a silent total outage from a
+  // half-finished config rather than "Turnstile is just off".
+  if (!secret || !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) return true;
   if (!token) return false;
   try {
     const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
@@ -104,23 +197,33 @@ export async function POST(req: NextRequest) {
   if (parseError) return parseError;
 
   const ip = getClientIp(req);
-  const ipHash = hashIp(ip);
+  const ipHash = hashBucket(bucketIp(ip));
 
-  // Rate limit BEFORE any real work, and record the attempt regardless of
-  // what happens next (valid or not) — a flood of deliberately-invalid
-  // requests must count against the limit too, or the limit is trivially
-  // bypassed by never sending a valid one.
-  const [recentShort, recentDay] = await Promise.all([
+  // Rate limit BEFORE any real work. The attempt is recorded FIRST, then
+  // every count below (which includes this just-inserted row) is compared
+  // with `>` rather than `>=` (review finding, HIGH item 2 — insert-then-
+  // count instead of count-then-insert closes most of the race two
+  // concurrent requests from the same IP would otherwise have, and also
+  // means a flood of deliberately-invalid requests still counts against
+  // the limit, not just valid ones).
+  const attemptId = await recordSubmissionAttempt(ipHash, body.conference || null);
+  const [recentShort, recentDay, recentGlobal, recentConference] = await Promise.all([
     countRecentSubmissionAttempts(ipHash, RATE_LIMIT_SHORT_WINDOW_MS),
     countRecentSubmissionAttempts(ipHash, RATE_LIMIT_DAY_WINDOW_MS),
+    countGlobalRecentSubmissionAttempts(GLOBAL_HOURLY_WINDOW_MS),
+    body.conference ? countConferenceRecentSubmissionAttempts(body.conference, CONFERENCE_DAILY_WINDOW_MS) : Promise.resolve(0),
   ]);
-  if (recentShort >= RATE_LIMIT_SHORT_MAX || recentDay >= RATE_LIMIT_DAY_MAX) {
+  if (
+    recentShort > RATE_LIMIT_SHORT_MAX ||
+    recentDay > RATE_LIMIT_DAY_MAX ||
+    recentGlobal > GLOBAL_HOURLY_MAX ||
+    recentConference > CONFERENCE_DAILY_MAX
+  ) {
     return NextResponse.json(
-      { error: 'Too many submissions from this network. Please try again later.' },
+      { error: 'Too many submissions right now. Please try again later.' },
       { status: 429, headers: NO_STORE }
     );
   }
-  await recordSubmissionAttempt(ipHash, body.conference || null);
 
   if (!(await verifyTurnstile(body.turnstileToken, ip))) {
     return NextResponse.json({ error: 'Captcha verification failed. Please try again.' }, { status: 400, headers: NO_STORE });
@@ -220,6 +323,12 @@ export async function POST(req: NextRequest) {
   const sponsorNames = await getSponsorNamesForConference(body.conference);
   const computeHostSignals = buildHostSignalComputer({ profile, verifiedHostIds, organizerCounts, learnedHosts });
 
+  // Review finding, HIGH item 2: the monthly LLM budget cap applies here
+  // too, same as every other candidate source — a flood of submissions
+  // (even within the rate limits above) must not blow through the cap
+  // silently.
+  const budget = await checkMonthlyBudget();
+
   const outcome = await processDiscoveredLink(body.url, existing, {
     conference: body.conference,
     tab,
@@ -231,7 +340,7 @@ export async function POST(req: NextRequest) {
     sourceKind: 'host_submission',
     sourceTrust: 'discovery',
     sourceRef: null,
-    enrichLimiter: new LumaEnrichmentLimiter(5, 1000),
+    enrichLimiter: sharedSubmissionLumaLimiter,
     linkFetchLimiter: new PacedLinkLimiter(5, 500),
     linkIndex,
     sheetEvents,
@@ -240,7 +349,7 @@ export async function POST(req: NextRequest) {
     sponsorNames,
     computeHostSignals,
     isVerifiedSubmitter,
-    canClassify: () => true, // one submission, one classification — the monthly cap is a pipeline-run concern, not worth a DB round trip here
+    canClassify: () => !budget.exceeded,
   });
 
   if (outcome.kind === 'invalid') {
@@ -260,16 +369,28 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (outcome.kind === 'protected') {
+    // Review finding, MEDIUM item 4: this URL resolves to a candidate a
+    // higher-trust source (most likely a curated Luma calendar) already
+    // created — a public submission must never reclassify it, let alone
+    // revive an `auto_rejected` one. Append our source ref and move on.
+    await updateCandidate(outcome.existingId, { sources: outcome.sources, last_seen_at: new Date().toISOString() });
+    return NextResponse.json(
+      { success: true, status: 'duplicate', message: 'This event has already been submitted and is in review.' },
+      { headers: NO_STORE }
+    );
+  }
+
   await upsertCandidate(outcome.row);
-  if (outcome.classified) {
-    await recordAdhocCost({
-      conference: body.conference,
-      trigger: 'manual',
-      sourceId: source.id,
+  // Review finding, HIGH item 2: record cost whenever there IS cost, not
+  // only when classification succeeded — a `ClassifierError` with usage
+  // (the model returned a completion that just failed schema validation)
+  // still bills tokens and must still count toward the monthly cap.
+  if (outcome.inputTokens > 0 || outcome.outputTokens > 0) {
+    await recordSubmissionAttemptCost(attemptId, {
+      costUsd: outcome.costUsd,
       inputTokens: outcome.inputTokens,
       outputTokens: outcome.outputTokens,
-      costUsd: outcome.costUsd,
-      counts: { classified: 1 },
     });
   }
 

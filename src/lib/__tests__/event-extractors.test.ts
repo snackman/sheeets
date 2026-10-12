@@ -37,6 +37,53 @@ describe('detectPlatform', () => {
     expect(detectPlatform('https://example.com/e/x')).toBeNull();
     expect(detectPlatform('not a url')).toBeNull();
   });
+
+  it('detects every Eventbrite ccTLD, with and without www.', () => {
+    const ccTlds = [
+      'com', 'co.uk', 'ca', 'com.au', 'de', 'fr', 'es', 'ie', 'nl', 'it',
+      'com.br', 'com.mx', 'sg', 'hk', 'co.nz', 'ch', 'at', 'be', 'pt', 'se', 'dk', 'fi', 'pl',
+    ];
+    for (const tld of ccTlds) {
+      expect(detectPlatform(`https://eventbrite.${tld}/e/x`)).toBe('eventbrite');
+      expect(detectPlatform(`https://www.eventbrite.${tld}/e/x`)).toBe('eventbrite');
+    }
+  });
+
+  // Review finding, HIGH item 1: `host.startsWith('eventbrite.')` also
+  // matched `eventbrite.attacker.com` — any host an attacker controls that
+  // merely BEGINS with the literal string "eventbrite.". Fixed with an
+  // exact-match allowlist (`EVENTBRITE_HOSTS`). These cover the same class
+  // of prefix/suffix tricks against every platform, not just Eventbrite.
+  describe('rejects lookalike/attacker-controlled hosts (prefix and suffix tricks) for every platform', () => {
+    const lookalikes = [
+      // Eventbrite: the original vulnerability — a subdomain of an
+      // attacker's own domain that starts with "eventbrite.".
+      'https://eventbrite.attacker.com/e/x',
+      'https://eventbrite.evil.com/e/x',
+      // Suffix trick: attacker's host ends with a real Eventbrite ccTLD
+      // string but isn't actually that domain.
+      'https://notitreallyeventbrite.com/e/x',
+      'https://eventbrite.com.evil.com/e/x',
+      // Luma
+      'https://notluma.com/event/evt-ABC123',
+      'https://lu.ma.evil.com/phish',
+      'https://evilluma.com/abc',
+      // Partiful
+      'https://notpartiful.com/e/x',
+      'https://partiful.com.evil.com/e/x',
+      // Meetup
+      'https://notmeetup.com/g/x',
+      'https://meetup.com.evil.com/g/x',
+      // Posh
+      'https://notposh.vip/e/x',
+      'https://posh.vip.evil.com/e/x',
+    ];
+    for (const url of lookalikes) {
+      it(url, () => {
+        expect(detectPlatform(url)).toBeNull();
+      });
+    }
+  });
 });
 
 describe('parseEventbrite', () => {

@@ -32,16 +32,22 @@ function makeFakeSupabase() {
 // exactly this "Cannot access '...' before initialization" error).
 const {
   countRecentSubmissionAttemptsMock,
+  countGlobalRecentSubmissionAttemptsMock,
+  countConferenceRecentSubmissionAttemptsMock,
   recordSubmissionAttemptMock,
+  recordSubmissionAttemptCostMock,
   getOrCreateHostSubmissionSourceMock,
   getProfileMock,
   getCandidateByKeyMock,
   upsertCandidateMock,
   updateCandidateMock,
-  recordAdhocCostMock,
+  checkMonthlyBudgetMock,
 } = vi.hoisted(() => ({
-  countRecentSubmissionAttemptsMock: vi.fn(async (_ipHash: string, _windowMs: number) => 0),
-  recordSubmissionAttemptMock: vi.fn(async (_ipHash: string, _conference: string | null) => {}),
+  countRecentSubmissionAttemptsMock: vi.fn(async (_ipHash: string, _windowMs: number) => 1),
+  countGlobalRecentSubmissionAttemptsMock: vi.fn(async (_windowMs: number) => 1),
+  countConferenceRecentSubmissionAttemptsMock: vi.fn(async (_conference: string, _windowMs: number) => 1),
+  recordSubmissionAttemptMock: vi.fn(async (_ipHash: string, _conference: string | null) => 'attempt-1'),
+  recordSubmissionAttemptCostMock: vi.fn(async (_attemptId: string, _usage: { costUsd: number; inputTokens: number; outputTokens: number }) => {}),
   getOrCreateHostSubmissionSourceMock: vi.fn(async (conference: string) => ({
     id: 'source-1',
     conference,
@@ -83,7 +89,7 @@ const {
   getCandidateByKeyMock: vi.fn(async () => null as Record<string, unknown> | null),
   upsertCandidateMock: vi.fn(async (row: unknown) => row),
   updateCandidateMock: vi.fn(async (_id: string, _patch: Record<string, unknown>) => {}),
-  recordAdhocCostMock: vi.fn(async () => {}),
+  checkMonthlyBudgetMock: vi.fn(async () => ({ spentUsd: 0, capUsd: 20, exceeded: false })),
 }));
 
 vi.mock('@/lib/ingest/db', () => ({
@@ -102,10 +108,16 @@ vi.mock('@/lib/ingest/db', () => ({
   upsertCandidate: upsertCandidateMock,
   updateCandidate: updateCandidateMock,
   listRecentCandidatesForDedupe: vi.fn(async () => []),
-  recordAdhocCost: recordAdhocCostMock,
   recordSubmissionAttempt: recordSubmissionAttemptMock,
+  recordSubmissionAttemptCost: recordSubmissionAttemptCostMock,
   countRecentSubmissionAttempts: countRecentSubmissionAttemptsMock,
+  countGlobalRecentSubmissionAttempts: countGlobalRecentSubmissionAttemptsMock,
+  countConferenceRecentSubmissionAttempts: countConferenceRecentSubmissionAttemptsMock,
   getIngestSupabase: () => makeFakeSupabase(),
+}));
+
+vi.mock('@/lib/ingest/budget', () => ({
+  checkMonthlyBudget: checkMonthlyBudgetMock,
 }));
 
 vi.mock('@/lib/get-conferences', () => ({
@@ -142,15 +154,15 @@ vi.mock('@/lib/ingest/discover', () => ({
 }));
 
 vi.mock('@/lib/ingest/enrich', () => ({
-  LumaEnrichmentLimiter: class {},
+  HourlyWindowLumaLimiter: class {},
 }));
 
 import { POST } from '../../app/api/host/submissions/route';
 
-function postRequest(body: unknown) {
+function postRequest(body: unknown, headers: Record<string, string> = { 'x-forwarded-for': '203.0.113.7' }) {
   return new NextRequest('http://localhost/api/host/submissions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-forwarded-for': '203.0.113.7' },
+    headers: { 'Content-Type': 'application/json', ...headers },
     body: JSON.stringify(body),
   });
 }
@@ -159,7 +171,13 @@ const VALID_BODY = { conference: 'ETHDenver', url: 'https://lu.ma/discovered-mix
 
 beforeEach(() => {
   vi.clearAllMocks();
-  countRecentSubmissionAttemptsMock.mockResolvedValue(0);
+  // Defaults: well within every rate limit (the route compares with `>`,
+  // so 1 is "the request we're about to make is the only/first one").
+  countRecentSubmissionAttemptsMock.mockResolvedValue(1);
+  countGlobalRecentSubmissionAttemptsMock.mockResolvedValue(1);
+  countConferenceRecentSubmissionAttemptsMock.mockResolvedValue(1);
+  recordSubmissionAttemptMock.mockResolvedValue('attempt-1');
+  checkMonthlyBudgetMock.mockResolvedValue({ spentUsd: 0, capUsd: 20, exceeded: false });
   getCandidateByKeyMock.mockResolvedValue(null);
   processDiscoveredLinkMock.mockResolvedValue({ kind: 'invalid' });
 });
@@ -207,24 +225,44 @@ describe('POST /api/host/submissions — validation', () => {
   });
 });
 
-describe('POST /api/host/submissions — rate limiting (per IP)', () => {
-  it('records an attempt for every request, even an invalid one', async () => {
+describe('POST /api/host/submissions — rate limiting', () => {
+  it('records an attempt for every request, even an invalid one, BEFORE counting (review finding, HIGH item 2)', async () => {
     await POST(postRequest({ conference: 'ETHDenver', url: 'not-a-url' }));
     expect(recordSubmissionAttemptMock).toHaveBeenCalledTimes(1);
+    // The count calls happen only after the insert — assert call order via
+    // mock invocation order timestamps isn't available, so we instead
+    // assert both were called (ordering is enforced by the `await` chain
+    // in the route itself; see the next test for a case that depends on it).
+    expect(countRecentSubmissionAttemptsMock).toHaveBeenCalled();
   });
 
-  it('returns 429 once the short-window cap is hit, without calling processDiscoveredLink', async () => {
-    countRecentSubmissionAttemptsMock.mockResolvedValueOnce(5); // short window
-    countRecentSubmissionAttemptsMock.mockResolvedValueOnce(5); // day window
+  it('returns 429 once the per-IP short-window cap is exceeded (count includes the just-recorded attempt, so `> max` is the right comparison)', async () => {
+    countRecentSubmissionAttemptsMock.mockImplementation(async (_ipHash: string, windowMs: number) =>
+      windowMs <= 15 * 60 * 1000 ? 6 : 1
+    );
     const res = await POST(postRequest(VALID_BODY));
     expect(res.status).toBe(429);
-    expect(recordSubmissionAttemptMock).not.toHaveBeenCalled();
+    // The attempt is still recorded (it happens BEFORE the count check).
+    expect(recordSubmissionAttemptMock).toHaveBeenCalledTimes(1);
     expect(processDiscoveredLinkMock).not.toHaveBeenCalled();
   });
 
-  it('returns 429 once the daily cap is hit even if the short window is fine', async () => {
-    countRecentSubmissionAttemptsMock.mockResolvedValueOnce(1); // short window
-    countRecentSubmissionAttemptsMock.mockResolvedValueOnce(15); // day window
+  it('returns 429 once the per-IP daily cap is exceeded even if the short window is fine', async () => {
+    countRecentSubmissionAttemptsMock.mockImplementation(async (_ipHash: string, windowMs: number) =>
+      windowMs <= 15 * 60 * 1000 ? 1 : 16
+    );
+    const res = await POST(postRequest(VALID_BODY));
+    expect(res.status).toBe(429);
+  });
+
+  it('returns 429 once the GLOBAL hourly ceiling is exceeded, even with a fresh IP', async () => {
+    countGlobalRecentSubmissionAttemptsMock.mockResolvedValueOnce(61);
+    const res = await POST(postRequest(VALID_BODY));
+    expect(res.status).toBe(429);
+  });
+
+  it('returns 429 once the per-conference daily ceiling is exceeded', async () => {
+    countConferenceRecentSubmissionAttemptsMock.mockResolvedValueOnce(101);
     const res = await POST(postRequest(VALID_BODY));
     expect(res.status).toBe(429);
   });
@@ -235,6 +273,116 @@ describe('POST /api/host/submissions — rate limiting (per IP)', () => {
     expect(ipHashArg).not.toBe('203.0.113.7');
     expect(typeof ipHashArg).toBe('string');
     expect((ipHashArg as string).length).toBe(64); // sha256 hex
+  });
+
+  it('prefers x-real-ip over the (spoofable) first x-forwarded-for entry (review finding, HIGH item 2)', async () => {
+    await POST(postRequest(VALID_BODY, { 'x-real-ip': '203.0.113.99', 'x-forwarded-for': '1.2.3.4' }));
+    const hashA = recordSubmissionAttemptMock.mock.calls[0]?.[0];
+
+    vi.clearAllMocks();
+    countRecentSubmissionAttemptsMock.mockResolvedValue(1);
+    countGlobalRecentSubmissionAttemptsMock.mockResolvedValue(1);
+    countConferenceRecentSubmissionAttemptsMock.mockResolvedValue(1);
+    recordSubmissionAttemptMock.mockResolvedValue('attempt-2');
+    getCandidateByKeyMock.mockResolvedValue(null);
+    processDiscoveredLinkMock.mockResolvedValue({ kind: 'invalid' });
+
+    // SAME x-real-ip, but a DIFFERENT (attacker-controlled) first XFF
+    // entry. If the route used the XFF entry, these two hashes would
+    // differ; since it prefers x-real-ip, they must be identical.
+    await POST(postRequest(VALID_BODY, { 'x-real-ip': '203.0.113.99', 'x-forwarded-for': '9.9.9.9' }));
+    const hashB = recordSubmissionAttemptMock.mock.calls[0]?.[0];
+    expect(hashB).toBe(hashA);
+  });
+
+  it('falls back to the first x-forwarded-for entry when no x-real-ip is present', async () => {
+    await POST(postRequest(VALID_BODY, { 'x-forwarded-for': '203.0.113.7, 10.0.0.1' }));
+    expect(recordSubmissionAttemptMock).toHaveBeenCalled();
+  });
+
+  it('buckets two IPv6 addresses in the same /64 to the SAME hash', async () => {
+    await POST(postRequest(VALID_BODY, { 'x-real-ip': '2001:db8:1234:5678:aaaa:bbbb:cccc:0001' }));
+    const first = recordSubmissionAttemptMock.mock.calls[0]?.[0];
+
+    vi.clearAllMocks();
+    countRecentSubmissionAttemptsMock.mockResolvedValue(1);
+    countGlobalRecentSubmissionAttemptsMock.mockResolvedValue(1);
+    countConferenceRecentSubmissionAttemptsMock.mockResolvedValue(1);
+    recordSubmissionAttemptMock.mockResolvedValue('attempt-2');
+    getCandidateByKeyMock.mockResolvedValue(null);
+    processDiscoveredLinkMock.mockResolvedValue({ kind: 'invalid' });
+
+    await POST(postRequest(VALID_BODY, { 'x-real-ip': '2001:db8:1234:5678:1111:2222:3333:4444' }));
+    const second = recordSubmissionAttemptMock.mock.calls[0]?.[0];
+    expect(second).toBe(first);
+  });
+
+  it('buckets two IPv6 addresses in DIFFERENT /64s to DIFFERENT hashes', async () => {
+    await POST(postRequest(VALID_BODY, { 'x-real-ip': '2001:db8:1234:5678::1' }));
+    const first = recordSubmissionAttemptMock.mock.calls[0]?.[0];
+
+    vi.clearAllMocks();
+    countRecentSubmissionAttemptsMock.mockResolvedValue(1);
+    countGlobalRecentSubmissionAttemptsMock.mockResolvedValue(1);
+    countConferenceRecentSubmissionAttemptsMock.mockResolvedValue(1);
+    recordSubmissionAttemptMock.mockResolvedValue('attempt-2');
+    getCandidateByKeyMock.mockResolvedValue(null);
+    processDiscoveredLinkMock.mockResolvedValue({ kind: 'invalid' });
+
+    await POST(postRequest(VALID_BODY, { 'x-real-ip': '2001:db8:9999:0000::1' }));
+    const second = recordSubmissionAttemptMock.mock.calls[0]?.[0];
+    expect(second).not.toBe(first);
+  });
+});
+
+describe('POST /api/host/submissions — the monthly LLM budget cap applies (review finding, HIGH item 2)', () => {
+  it('wires canClassify() to the monthly budget check', async () => {
+    checkMonthlyBudgetMock.mockResolvedValueOnce({ spentUsd: 25, capUsd: 20, exceeded: true });
+    processDiscoveredLinkMock.mockResolvedValueOnce({
+      kind: 'row',
+      row: { conference: 'ETHDenver', canonical_key: 'luma:discovered-mixer', status: 'queued', event: { name: 'X' } },
+      classified: false,
+      inputTokens: 0,
+      outputTokens: 0,
+      costUsd: 0,
+    });
+    await POST(postRequest(VALID_BODY));
+    const ctxArg = processDiscoveredLinkMock.mock.calls[0][2];
+    expect(ctxArg.canClassify()).toBe(false);
+  });
+
+  it('canClassify() is true when the budget has room', async () => {
+    checkMonthlyBudgetMock.mockResolvedValueOnce({ spentUsd: 1, capUsd: 20, exceeded: false });
+    processDiscoveredLinkMock.mockResolvedValueOnce({ kind: 'invalid' });
+    await POST(postRequest(VALID_BODY));
+    const ctxArg = processDiscoveredLinkMock.mock.calls[0][2];
+    expect(ctxArg.canClassify()).toBe(true);
+  });
+
+  it('records cost even when the outcome was NOT classified, as long as there is billed usage (a ClassifierError with usage)', async () => {
+    processDiscoveredLinkMock.mockResolvedValueOnce({
+      kind: 'row',
+      row: { conference: 'ETHDenver', canonical_key: 'luma:discovered-mixer', status: 'error', event: { name: 'X' } },
+      classified: false,
+      inputTokens: 42,
+      outputTokens: 7,
+      costUsd: 0.0005,
+    });
+    await POST(postRequest(VALID_BODY));
+    expect(recordSubmissionAttemptCostMock).toHaveBeenCalledWith('attempt-1', { costUsd: 0.0005, inputTokens: 42, outputTokens: 7 });
+  });
+
+  it('does NOT record cost when there was no usage at all (e.g. filtered out before classifying)', async () => {
+    processDiscoveredLinkMock.mockResolvedValueOnce({
+      kind: 'row',
+      row: { conference: 'ETHDenver', canonical_key: 'luma:discovered-mixer', status: 'filtered_out', event: { name: 'X' } },
+      classified: false,
+      inputTokens: 0,
+      outputTokens: 0,
+      costUsd: 0,
+    });
+    await POST(postRequest(VALID_BODY));
+    expect(recordSubmissionAttemptCostMock).not.toHaveBeenCalled();
   });
 });
 
@@ -269,7 +417,7 @@ describe('POST /api/host/submissions — never auto-publishes, always discovery 
     const json = await res.json();
     expect(json.status).toBe('queued');
     expect(upsertCandidateMock).toHaveBeenCalledTimes(1);
-    expect(recordAdhocCostMock).toHaveBeenCalledTimes(1);
+    expect(recordSubmissionAttemptCostMock).toHaveBeenCalledTimes(1);
   });
 
   it('reports a "rejected" status when the engine auto-rejects (never "approved"/"auto_published")', async () => {
@@ -300,5 +448,16 @@ describe('POST /api/host/submissions — never auto-publishes, always discovery 
     processDiscoveredLinkMock.mockResolvedValueOnce({ kind: 'invalid' });
     const res = await POST(postRequest(VALID_BODY));
     expect(res.status).toBe(400);
+  });
+
+  it('a "protected" outcome (the link already belongs to a higher-trust candidate — review finding, MEDIUM item 4) only merges sources, never upserts a fresh row', async () => {
+    getCandidateByKeyMock.mockResolvedValueOnce({ id: 'cand-curated', status: 'auto_rejected', canonical_key: 'luma:discovered-mixer', classify_attempts: 1, source_kind: 'luma_ical', sources: [] } as unknown as Awaited<ReturnType<typeof getCandidateByKeyMock>>);
+    const mergedSources = [{ source_id: 'source-1', kind: 'host_submission', ref: null, seen_at: new Date().toISOString() }];
+    processDiscoveredLinkMock.mockResolvedValueOnce({ kind: 'protected', existingId: 'cand-curated', sources: mergedSources });
+    const res = await POST(postRequest(VALID_BODY));
+    const json = await res.json();
+    expect(json.status).toBe('duplicate');
+    expect(upsertCandidateMock).not.toHaveBeenCalled();
+    expect(updateCandidateMock).toHaveBeenCalledWith('cand-curated', { sources: mergedSources, last_seen_at: expect.any(String) });
   });
 });

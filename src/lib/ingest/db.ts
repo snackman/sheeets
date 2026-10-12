@@ -239,17 +239,50 @@ export async function getOrCreateHostSubmissionSource(conference: string): Promi
 /* Phase 3: public host-submission anti-abuse rate limiting (§10)      */
 /* ------------------------------------------------------------------ */
 
-/** Record one submission attempt (success or failure — this runs BEFORE
- *  validation so a flood of invalid requests still counts against the
- *  limit, not just valid ones). `ipHash` is a SHA-256 of the client IP;
- *  the raw IP is never stored. */
-export async function recordSubmissionAttempt(ipHash: string, conference: string | null): Promise<void> {
+/**
+ * Record one submission attempt and return its row id — the row is
+ * inserted BEFORE any count-based rate-limit check (review finding, HIGH
+ * item 2: inserting first and then counting, rather than counting then
+ * inserting, closes most of the TOCTOU race two concurrent requests from
+ * the same IP would otherwise have — the second request's count query
+ * will see the first request's just-inserted row, because it's already
+ * committed by the time it runs). This also means a flood of deliberately-
+ * invalid requests still counts against the limit, not just valid ones.
+ * `ipHash` is a SHA-256 of the client IP (IPv6 bucketed to its /64 prefix
+ * first — see `route.ts#bucketIp`); the raw IP is never stored.
+ */
+export async function recordSubmissionAttempt(ipHash: string, conference: string | null): Promise<string> {
   const supabase = getIngestSupabase();
-  const { error } = await supabase.from('ingest_submission_attempts').insert({ ip_hash: ipHash, conference });
+  const { data, error } = await supabase
+    .from('ingest_submission_attempts')
+    .insert({ ip_hash: ipHash, conference })
+    .select('id')
+    .single();
   if (error) throw new Error(`Failed to record submission attempt: ${error.message}`);
+  return (data as { id: string }).id;
 }
 
-/** Count of attempts from `ipHash` in the last `windowMs` — the rate-limit check. */
+/** Record this submission's LLM cost/token usage against its own attempt
+ *  row (review finding, MEDIUM item 7 — aggregated here instead of a
+ *  per-submission `ingest_runs` row) so `monthlyLlmCostUsd` below counts
+ *  it toward the budget cap. Called even on a `ClassifierError` that still
+ *  billed tokens (a schema-validation failure still gets a completion). */
+export async function recordSubmissionAttemptCost(
+  attemptId: string,
+  usage: { costUsd: number; inputTokens: number; outputTokens: number }
+): Promise<void> {
+  const supabase = getIngestSupabase();
+  const { error } = await supabase
+    .from('ingest_submission_attempts')
+    .update({ cost_usd: usage.costUsd, input_tokens: usage.inputTokens, output_tokens: usage.outputTokens })
+    .eq('id', attemptId);
+  if (error) throw new Error(`Failed to record submission attempt cost: ${error.message}`);
+}
+
+/** Count of attempts from `ipHash` in the last `windowMs` — the per-IP
+ *  rate-limit check. Includes the just-inserted current attempt (see
+ *  `recordSubmissionAttempt`'s doc comment), so callers compare with `>`,
+ *  not `>=`. */
 export async function countRecentSubmissionAttempts(ipHash: string, windowMs: number): Promise<number> {
   const supabase = getIngestSupabase();
   const since = new Date(Date.now() - windowMs).toISOString();
@@ -259,6 +292,35 @@ export async function countRecentSubmissionAttempts(ipHash: string, windowMs: nu
     .eq('ip_hash', ipHash)
     .gte('created_at', since);
   if (error) throw new Error(`Failed to count submission attempts: ${error.message}`);
+  return count ?? 0;
+}
+
+/** Global (every IP) attempt count in the last `windowMs` — the overall
+ *  ceiling (review finding, HIGH item 2) that stops a botnet spreading one
+ *  attempt per IP from ever adding up to an unbounded flood of LLM calls. */
+export async function countGlobalRecentSubmissionAttempts(windowMs: number): Promise<number> {
+  const supabase = getIngestSupabase();
+  const since = new Date(Date.now() - windowMs).toISOString();
+  const { count, error } = await supabase
+    .from('ingest_submission_attempts')
+    .select('id', { count: 'exact', head: true })
+    .gte('created_at', since);
+  if (error) throw new Error(`Failed to count global submission attempts: ${error.message}`);
+  return count ?? 0;
+}
+
+/** Per-conference attempt count in the last `windowMs` — stops one
+ *  conference's submission form being hammered from many different IPs
+ *  (review finding, HIGH item 2). */
+export async function countConferenceRecentSubmissionAttempts(conference: string, windowMs: number): Promise<number> {
+  const supabase = getIngestSupabase();
+  const since = new Date(Date.now() - windowMs).toISOString();
+  const { count, error } = await supabase
+    .from('ingest_submission_attempts')
+    .select('id', { count: 'exact', head: true })
+    .eq('conference', conference)
+    .gte('created_at', since);
+  if (error) throw new Error(`Failed to count conference submission attempts: ${error.message}`);
   return count ?? 0;
 }
 
@@ -591,9 +653,20 @@ export async function monthlyLlmCostUsd(): Promise<number> {
   const supabase = getIngestSupabase();
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-  const { data, error } = await supabase.from('ingest_runs').select('est_cost_usd').gte('started_at', monthStart);
-  if (error) throw new Error(`Failed to sum monthly ingest cost: ${error.message}`);
-  return (data ?? []).reduce((sum, r) => sum + Number((r as { est_cost_usd: number }).est_cost_usd || 0), 0);
+  const [{ data: runs, error: runsError }, { data: submissions, error: submissionsError }] = await Promise.all([
+    supabase.from('ingest_runs').select('est_cost_usd').gte('started_at', monthStart),
+    // Phase 3 (review finding, MEDIUM item 7): submission classification
+    // cost is aggregated on `ingest_submission_attempts` rather than one
+    // `ingest_runs` row per public request — it must still count toward
+    // the SAME monthly budget cap, or the cap check in `route.ts` would be
+    // comparing against an incomplete total.
+    supabase.from('ingest_submission_attempts').select('cost_usd').gte('created_at', monthStart),
+  ]);
+  if (runsError) throw new Error(`Failed to sum monthly ingest cost: ${runsError.message}`);
+  if (submissionsError) throw new Error(`Failed to sum monthly submission cost: ${submissionsError.message}`);
+  const runsCost = (runs ?? []).reduce((sum, r) => sum + Number((r as { est_cost_usd: number }).est_cost_usd || 0), 0);
+  const submissionsCost = (submissions ?? []).reduce((sum, r) => sum + Number((r as { cost_usd: number }).cost_usd || 0), 0);
+  return runsCost + submissionsCost;
 }
 
 /* ------------------------------------------------------------------ */

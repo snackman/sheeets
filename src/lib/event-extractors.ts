@@ -13,13 +13,48 @@ export class UserFacingError extends Error {}
 
 export type Platform = 'luma' | 'eventbrite' | 'partiful' | 'meetup' | 'posh';
 
+/**
+ * Exact Eventbrite hosts (plus `www.`, stripped below before matching) —
+ * NOT `host.startsWith('eventbrite.')`, which also matched
+ * `eventbrite.attacker.com` (review finding, HIGH item 1: any attacker-
+ * controlled subdomain of a form that happens to start with the literal
+ * string "eventbrite." passed). Eventbrite's known country-code TLDs,
+ * current as of this writing — add to this list rather than loosening the
+ * match if Eventbrite launches a new one.
+ */
+const EVENTBRITE_HOSTS = new Set([
+  'eventbrite.com',
+  'eventbrite.co.uk',
+  'eventbrite.ca',
+  'eventbrite.com.au',
+  'eventbrite.de',
+  'eventbrite.fr',
+  'eventbrite.es',
+  'eventbrite.ie',
+  'eventbrite.nl',
+  'eventbrite.it',
+  'eventbrite.com.br',
+  'eventbrite.com.mx',
+  'eventbrite.sg',
+  'eventbrite.hk',
+  'eventbrite.co.nz',
+  'eventbrite.ch',
+  'eventbrite.at',
+  'eventbrite.be',
+  'eventbrite.pt',
+  'eventbrite.se',
+  'eventbrite.dk',
+  'eventbrite.fi',
+  'eventbrite.pl',
+]);
+
 export function detectPlatform(url: string): Platform | null {
   try {
     const u = new URL(url);
-    const host = u.hostname.replace(/^www\./, '');
+    const host = u.hostname.toLowerCase().replace(/^www\./, '');
 
     if (host === 'lu.ma' || host === 'luma.com') return 'luma';
-    if (host.startsWith('eventbrite.')) return 'eventbrite';
+    if (EVENTBRITE_HOSTS.has(host)) return 'eventbrite';
     if (host === 'partiful.com') return 'partiful';
     if (host === 'meetup.com') return 'meetup';
     if (host === 'posh.vip') return 'posh';
