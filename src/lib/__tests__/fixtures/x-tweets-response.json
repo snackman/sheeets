@@ -1,0 +1,36 @@
+{
+  "data": [
+    {
+      "id": "1800000000000000003",
+      "text": "Don't miss our rooftop mixer tonight! Details and RSVP: https://t.co/abc123",
+      "entities": {
+        "urls": [
+          { "url": "https://t.co/abc123", "expanded_url": "https://lu.ma/eth-rooftop-mixer" }
+        ]
+      }
+    },
+    {
+      "id": "1800000000000000002",
+      "text": "Side event alert — join us for drinks: https://t.co/def456",
+      "entities": {
+        "urls": [
+          { "url": "https://t.co/def456", "expanded_url": "https://partiful.com/e/sidequest987" }
+        ]
+      }
+    },
+    {
+      "id": "1800000000000000001",
+      "text": "Check out our new blog post: https://t.co/ghi789",
+      "entities": {
+        "urls": [
+          { "url": "https://t.co/ghi789", "expanded_url": "https://example-blog.com/post/42" }
+        ]
+      }
+    }
+  ],
+  "meta": {
+    "newest_id": "1800000000000000003",
+    "oldest_id": "1800000000000000001",
+    "result_count": 3
+  }
+}

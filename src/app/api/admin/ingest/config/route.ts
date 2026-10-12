@@ -20,12 +20,48 @@ import {
   updateSource,
   deleteSource,
   getSource,
+  recordAdhocXCost,
 } from '@/lib/ingest/db';
 import { resolveLumaCalendar, fetchLumaIcalFeed, toIcalCandidates } from '@/lib/ingest/sources/luma-ical';
 import { normalizeTelegramHandle } from '@/lib/ingest/sources/telegram';
+import { normalizeXHandle, resolveXUser, isXConfigured, X_USER_READ_COST_USD } from '@/lib/ingest/sources/x';
+import { isMeetupConfigured } from '@/lib/ingest/sources/meetup';
+import { checkMonthlyXBudget } from '@/lib/ingest/budget';
 import { isPastEvent } from '@/lib/ingest/filters';
 import { evaluateAutoPublishEnableGate } from '@/lib/ingest/gate';
 import type { IngestProfileRow, TrustedHostEntry } from '@/lib/ingest/types';
+
+/** Parse the sponsor_pages "Add" input (one URL per line or comma-separated)
+ *  into a deduped list of validated http(s) URLs (§Phase 4 item 2). */
+function parseSponsorPageUrls(input: string): string[] {
+  const seen = new Set<string>();
+  for (const raw of input.split(/[\n,]+/)) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    try {
+      const u = new URL(trimmed);
+      if (u.protocol === 'http:' || u.protocol === 'https:') seen.add(u.href);
+    } catch {
+      // Not a valid URL — skip it rather than failing the whole request;
+      // if NOTHING parses, the caller below returns a 400.
+    }
+  }
+  return Array.from(seen);
+}
+
+/** Admin-facing "is this source kind usable right now" map (§9.1 item 4:
+ *  "Each source type shows whether it's configured") — purely env-var based,
+ *  so the Config UI can show a "not configured"/"requires Meetup Pro"
+ *  banner even before any source of that kind exists yet. */
+function sourceAvailability() {
+  return {
+    luma_ical: true,
+    telegram_channel: true,
+    x_account: isXConfigured(),
+    meetup_search: isMeetupConfigured(),
+    sponsor_pages: true,
+  };
+}
 
 /** True if `next` contains any keyword not already in `existing`
  *  (case-insensitive) — used to tell "only removed items" (safe, always
@@ -86,7 +122,7 @@ export async function GET(req: NextRequest) {
       // enforcement; this is just so the UI doesn't have to guess.
       conference ? evaluateAutoPublishEnableGate(conference) : Promise.resolve(null),
     ]);
-    return NextResponse.json({ profiles, sources, gate });
+    return NextResponse.json({ profiles, sources, gate, sourceAvailability: sourceAvailability() });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed to load config' }, { status: 500 });
   }
@@ -238,6 +274,94 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ source });
     }
 
+    // Phase 4 item 1 (§3.7/§10 item 4): an `x_account` source is ALWAYS
+    // discovery trust, same posture as `telegram_channel` above — never
+    // auto-published, independent of whatever `auto_publish_enabled` is
+    // for this conference. Disabled unless `X_BEARER_TOKEN` is set (resolve
+    // the handle NOW, at add-time, so a typo or an unconfigured token
+    // surfaces immediately rather than silently producing a source that
+    // can never run).
+    if (kind === 'x_account') {
+      const handle = normalizeXHandle(input);
+      if (!handle) {
+        return NextResponse.json({ error: 'Invalid X handle. Use a handle, @handle, or x.com/<handle> link.' }, { status: 400 });
+      }
+      if (!isXConfigured()) {
+        return NextResponse.json({ error: 'X is not configured (X_BEARER_TOKEN is not set).' }, { status: 400 });
+      }
+      // Re-review item 9: `resolveXUser` is a billable "User: Read"
+      // ($0.01) — check the SAME monthly X-spend cap a run checks (§3.7)
+      // BEFORE spending it, not just after, and count it once spent.
+      const xBudget = await checkMonthlyXBudget();
+      if (xBudget.exceeded) {
+        return NextResponse.json(
+          { error: `X's monthly budget is exceeded ($${xBudget.spentUsd.toFixed(2)} / $${xBudget.capUsd.toFixed(2)}) — cannot resolve a new account until next month, or raise INGEST_X_MONTHLY_USD_CAP.` },
+          { status: 400 }
+        );
+      }
+      let resolved;
+      try {
+        resolved = await resolveXUser(handle);
+      } catch (err) {
+        return NextResponse.json({ error: err instanceof Error ? err.message : 'Could not resolve that X account.' }, { status: 400 });
+      }
+      await recordAdhocXCost(conference, X_USER_READ_COST_USD);
+      const source = await createSource({
+        conference,
+        kind,
+        label: label || `@${resolved.username}`,
+        config: { handle: resolved.username, userId: resolved.id },
+        trust: 'discovery',
+        added_by: 'admin',
+      });
+      return NextResponse.json({ source });
+    }
+
+    // Phase 4 item 3 (§3.3/§10 item 4): a `meetup_search` source is ALWAYS
+    // discovery trust. Disabled unless Meetup OAuth credentials are set —
+    // adding one when they aren't is allowed (so Snax can prepare the
+    // search ahead of getting Pro), but the pipeline/cron skip it cleanly
+    // ("requires Meetup Pro") until they are.
+    if (kind === 'meetup_search') {
+      const query = input.trim();
+      if (!query) {
+        return NextResponse.json({ error: 'A search query is required.' }, { status: 400 });
+      }
+      const source = await createSource({
+        conference,
+        kind,
+        label: label || query,
+        config: { query },
+        trust: 'discovery',
+        added_by: 'admin',
+      });
+      return NextResponse.json({ source, warning: isMeetupConfigured() ? undefined : 'Meetup is not configured yet (requires Meetup Pro OAuth credentials) — this source will be skipped until it is.' });
+    }
+
+    // Phase 4 item 2 (§3.6/§10 item 4): a `sponsor_pages` source is ALWAYS
+    // discovery trust. No credentials needed — accepts one or more URLs,
+    // one per line or comma-separated, or an EMPTY input to discover pages
+    // from this conference's own sponsors' websites at run time instead
+    // (`sources/sponsor-pages.ts#resolveSponsorPageUrls`).
+    if (kind === 'sponsor_pages') {
+      const urls = parseSponsorPageUrls(input);
+      if (urls.length === 0 && input.trim() !== '*') {
+        return NextResponse.json(
+          { error: 'Enter one or more event-page URLs (one per line), or "*" to discover pages from this conference\'s sponsors automatically.' },
+          { status: 400 }
+        );
+      }
+      const source = await createSource({
+        conference,
+        kind,
+        label: label || (urls.length > 0 ? `${urls.length} sponsor page(s)` : 'Discovered from sponsors'),
+        config: { urls },
+        trust: 'discovery',
+        added_by: 'admin',
+      });
+      return NextResponse.json({ source });
+    }
+
     const profile = await getProfile(conference);
     // Review finding, MEDIUM item 2a: a brand-new source has no track
     // record of its own. If auto-publish is already on for this
@@ -276,11 +400,13 @@ export async function PATCH(req: NextRequest) {
     if (patch.trust !== undefined) {
       const source = await getSource(id);
 
-      // Phase 3 (§10 item 4): a `telegram_channel` or `host_submission`
-      // source is ALWAYS `discovery` — this is the one case the PUT/POST
-      // "no changing trust while auto-publish is on" guard below doesn't
-      // cover, because it needs to hold even while auto-publish is OFF.
-      if (source && (source.kind === 'telegram_channel' || source.kind === 'host_submission') && patch.trust !== 'discovery') {
+      // Phase 3/4 (§10 item 4): a `telegram_channel`, `host_submission`,
+      // `x_account`, `meetup_search` or `sponsor_pages` source is ALWAYS
+      // `discovery` — this is the one case the PUT/POST "no changing trust
+      // while auto-publish is on" guard below doesn't cover, because it
+      // needs to hold even while auto-publish is OFF.
+      const ALWAYS_DISCOVERY_KINDS = ['telegram_channel', 'host_submission', 'x_account', 'meetup_search', 'sponsor_pages'];
+      if (source && ALWAYS_DISCOVERY_KINDS.includes(source.kind) && patch.trust !== 'discovery') {
         return NextResponse.json(
           { error: `A ${source.kind} source is always discovery trust and can never auto-publish (plan §10).` },
           { status: 400 }

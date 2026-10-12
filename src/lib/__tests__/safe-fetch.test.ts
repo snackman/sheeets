@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { isBlockedIp, parsePublicHttpUrl, safeFetch } from '../safe-fetch';
+import { isBlockedIp, parsePublicHttpUrl, safeFetch, stripHeaderCI, stripCrossOriginAuthHeaders, shouldDowngradeToGet } from '../safe-fetch';
 
 describe('isBlockedIp', () => {
   it.each([
@@ -71,5 +71,65 @@ describe('safeFetch', () => {
     await expect(safeFetch('http://localhost:1/')).rejects.toThrow(
       /private or reserved/
     );
+  });
+});
+
+// Re-review item 3: redirect header-stripping / method-downgrade logic.
+// `safeFetch` deliberately refuses loopback connections (the whole point
+// of the SSRF guard above), so these can't be exercised end-to-end against
+// a real local HTTP server — the redirect-handling rules are pure
+// functions precisely so they're testable directly instead.
+describe('stripHeaderCI', () => {
+  it('removes a header case-insensitively without mutating the input', () => {
+    const headers = { Authorization: 'Bearer x', 'Content-Type': 'application/json' };
+    const stripped = stripHeaderCI(headers, 'authorization');
+    expect(stripped).toEqual({ 'Content-Type': 'application/json' });
+    expect(headers).toEqual({ Authorization: 'Bearer x', 'Content-Type': 'application/json' }); // original untouched
+  });
+
+  it('is a no-op when the header is absent', () => {
+    expect(stripHeaderCI({ Accept: 'text/html' }, 'Authorization')).toEqual({ Accept: 'text/html' });
+  });
+});
+
+describe('stripCrossOriginAuthHeaders (re-review item 3)', () => {
+  it('strips Authorization and Cookie on a cross-origin redirect', () => {
+    const headers = { Authorization: 'Bearer secret', Cookie: 'session=abc', Accept: 'application/json' };
+    const result = stripCrossOriginAuthHeaders(headers, 'https://api.x.com', 'https://evil.example.com');
+    expect(result).toEqual({ Accept: 'application/json' });
+  });
+
+  it('keeps Authorization and Cookie on a same-origin redirect', () => {
+    const headers = { Authorization: 'Bearer secret', Cookie: 'session=abc' };
+    const result = stripCrossOriginAuthHeaders(headers, 'https://api.x.com', 'https://api.x.com');
+    expect(result).toEqual(headers);
+  });
+
+  it('strips on a scheme-only change to the same host (still a different origin)', () => {
+    const headers = { Authorization: 'Bearer secret' };
+    const result = stripCrossOriginAuthHeaders(headers, 'http://example.com', 'https://example.com');
+    expect(result).toEqual({});
+  });
+});
+
+describe('shouldDowngradeToGet (re-review item 3)', () => {
+  it('always downgrades on a 303, regardless of method', () => {
+    expect(shouldDowngradeToGet(303, 'POST')).toBe(true);
+    expect(shouldDowngradeToGet(303, 'GET')).toBe(true);
+  });
+
+  it('downgrades a POST on 301 or 302', () => {
+    expect(shouldDowngradeToGet(301, 'POST')).toBe(true);
+    expect(shouldDowngradeToGet(302, 'POST')).toBe(true);
+  });
+
+  it('does not downgrade a GET on 301 or 302 (nothing to downgrade)', () => {
+    expect(shouldDowngradeToGet(301, 'GET')).toBe(false);
+    expect(shouldDowngradeToGet(302, 'GET')).toBe(false);
+  });
+
+  it('does not downgrade on other redirect statuses (e.g. 307/308, which preserve method/body by design)', () => {
+    expect(shouldDowngradeToGet(307, 'POST')).toBe(false);
+    expect(shouldDowngradeToGet(308, 'POST')).toBe(false);
   });
 });

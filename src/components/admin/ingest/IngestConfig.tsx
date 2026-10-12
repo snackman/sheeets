@@ -4,19 +4,30 @@ import { useState, useEffect, useCallback } from 'react';
 import { Loader2, Plus, Play, Trash2 } from 'lucide-react';
 import type { TabConfig } from '@/lib/conferences';
 import { inputClass, btnPrimary } from '../styles';
-import type { IngestProfileClient, IngestSourceClient, IngestGateClient } from './types';
+import type { IngestProfileClient, IngestSourceClient, IngestGateClient, IngestSourceAvailabilityClient } from './types';
 
 interface Props {
   allConferenceTabs: TabConfig[];
   password: string;
 }
 
-/** Human-readable labels for `ingest_sources.kind` (Phase 3 adds Telegram
- *  channels and the passive host-submission intake — §9.1/§9.3). */
+/** Human-readable labels for `ingest_sources.kind` (Phase 3 added Telegram
+ *  channels and the passive host-submission intake; Phase 4 added X
+ *  accounts, Meetup searches and sponsor event pages — §9.1/§9.3). */
 const SOURCE_KIND_LABELS: Record<string, string> = {
   luma_ical: 'Luma calendar',
   telegram_channel: 'Telegram',
   host_submission: 'Host submission',
+  x_account: 'X account',
+  meetup_search: 'Meetup search',
+  sponsor_pages: 'Sponsor pages',
+};
+
+/** Why a source kind that needs credentials is shown as unavailable (§9.1
+ *  item 4: "Each source type shows whether it's configured"). */
+const UNAVAILABLE_REASON: Record<string, string> = {
+  x_account: 'not configured — set X_BEARER_TOKEN',
+  meetup_search: 'requires Meetup Pro — set MEETUP_CLIENT_ID/MEETUP_CLIENT_SECRET/MEETUP_REFRESH_TOKEN',
 };
 
 const THEME_PRESETS = [
@@ -34,12 +45,16 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
   const [profile, setProfile] = useState<IngestProfileClient | null>(null);
   const [sources, setSources] = useState<IngestSourceClient[]>([]);
   const [gate, setGate] = useState<IngestGateClient | null>(null);
+  const [availability, setAvailability] = useState<IngestSourceAvailabilityClient | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [newThemeKey, setNewThemeKey] = useState('crypto');
   const [calendarInput, setCalendarInput] = useState('');
   const [telegramInput, setTelegramInput] = useState('');
+  const [xInput, setXInput] = useState('');
+  const [meetupInput, setMeetupInput] = useState('');
+  const [sponsorPagesInput, setSponsorPagesInput] = useState('');
   const [resolving, setResolving] = useState(false);
   const [resolvePreview, setResolvePreview] = useState<{ apiId: string; name: string | null; upcomingCount: number | null } | null>(null);
   const [runningSourceId, setRunningSourceId] = useState<string | null>(null);
@@ -55,6 +70,7 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
       setProfile(found ?? null);
       setSources(json.sources ?? []);
       setGate(json.gate ?? null);
+      setAvailability(json.sourceAvailability ?? null);
     } catch (err) {
       setMessage(`Error: ${err instanceof Error ? err.message : 'Failed to load'}`);
     } finally {
@@ -152,6 +168,33 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
       const json = await res.json();
       if (json.source) {
         setTelegramInput('');
+        await load();
+      } else {
+        setMessage(`Error: ${json.error}`);
+      }
+    } catch (err) {
+      setMessage(`Error: ${err instanceof Error ? err.message : 'Failed'}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  /** Shared "add a discovery-trust source" flow for X/Meetup/sponsor pages
+   *  (Phase 4) — always discovery trust, enforced server-side too, so
+   *  there's no `trust` field to pass, same as `addTelegramSource`. */
+  async function addSimpleSource(kind: 'x_account' | 'meetup_search' | 'sponsor_pages', input: string, onSuccess: () => void) {
+    if (!input.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/admin/ingest/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, conference, kind, input: input.trim() }),
+      });
+      const json = await res.json();
+      if (json.source) {
+        onSuccess();
+        if (json.warning) setMessage(json.warning);
         await load();
       } else {
         setMessage(`Error: ${json.error}`);
@@ -384,6 +427,74 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
             </button>
           </div>
 
+          {/* Phase 4 item 1 (§3.7/§9.1): X accounts. Always discovery
+              trust. Disabled unless X_BEARER_TOKEN is set — shown as a
+              "not configured" badge rather than hiding the control, so
+              Snax can see what's missing. */}
+          <div className="flex gap-2 items-center">
+            <input
+              className={`${inputClass} flex-1`}
+              placeholder="X account: handle, @handle, or x.com/<handle>"
+              value={xInput}
+              onChange={(e) => setXInput(e.target.value)}
+            />
+            <button
+              onClick={() => addSimpleSource('x_account', xInput, () => setXInput(''))}
+              disabled={saving || !xInput.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 text-sm cursor-pointer disabled:opacity-50 flex items-center gap-1"
+            >
+              <Plus className="w-4 h-4" /> Add account
+            </button>
+            {availability && !availability.x_account && (
+              <span className="text-[10px] uppercase tracking-wide bg-amber-900/60 text-amber-300 px-1.5 py-0.5 rounded whitespace-nowrap">
+                not configured
+              </span>
+            )}
+          </div>
+
+          {/* Phase 4 item 3 (§3.3/§9.1): Meetup search. Always discovery
+              trust. Disabled unless Meetup OAuth credentials are set. */}
+          <div className="flex gap-2 items-center">
+            <input
+              className={`${inputClass} flex-1`}
+              placeholder="Meetup search: topic keyword (e.g. defi, ai builders)"
+              value={meetupInput}
+              onChange={(e) => setMeetupInput(e.target.value)}
+            />
+            <button
+              onClick={() => addSimpleSource('meetup_search', meetupInput, () => setMeetupInput(''))}
+              disabled={saving || !meetupInput.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 text-sm cursor-pointer disabled:opacity-50 flex items-center gap-1"
+            >
+              <Plus className="w-4 h-4" /> Add search
+            </button>
+            {availability && !availability.meetup_search && (
+              <span className="text-[10px] uppercase tracking-wide bg-amber-900/60 text-amber-300 px-1.5 py-0.5 rounded whitespace-nowrap">
+                requires Meetup Pro
+              </span>
+            )}
+          </div>
+
+          {/* Phase 4 item 2 (§3.6/§9.1): sponsor event pages. Always
+              discovery trust. Needs no credentials — one or more URLs
+              (one per line), or "*" to discover pages from this
+              conference's sponsors' own websites automatically. */}
+          <div className="flex gap-2 items-start">
+            <textarea
+              className={`${inputClass} flex-1 h-16`}
+              placeholder={'Sponsor event pages: one URL per line, or "*" to discover from sponsors'}
+              value={sponsorPagesInput}
+              onChange={(e) => setSponsorPagesInput(e.target.value)}
+            />
+            <button
+              onClick={() => addSimpleSource('sponsor_pages', sponsorPagesInput, () => setSponsorPagesInput(''))}
+              disabled={saving || !sponsorPagesInput.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 text-sm cursor-pointer disabled:opacity-50 flex items-center gap-1 self-start"
+            >
+              <Plus className="w-4 h-4" /> Add pages
+            </button>
+          </div>
+
           {runResult && <p className="text-xs text-amber-300">{runResult}</p>}
 
           <div className="space-y-2">
@@ -404,6 +515,9 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
                     {s.enabled ? 'enabled' : 'disabled'}
                     {s.last_run_at && ` · last run ${new Date(s.last_run_at).toLocaleString()}`}
                     {s.last_status && ` (${s.last_status})`}
+                    {availability && availability[s.kind as keyof IngestSourceAvailabilityClient] === false && (
+                      <span className="text-amber-400"> · {UNAVAILABLE_REASON[s.kind] ?? 'not configured'}</span>
+                    )}
                   </div>
                 </div>
                 {s.kind !== 'host_submission' && (

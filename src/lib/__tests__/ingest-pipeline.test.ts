@@ -220,6 +220,7 @@ vi.mock('../ingest/reconcile', () => ({
 }));
 
 import { runSource } from '../ingest/pipeline';
+import { finishRun as finishRunMocked, upsertCandidate as upsertCandidateMocked } from '../ingest/db';
 
 beforeEach(() => {
   candidateStore = new Map();
@@ -487,5 +488,55 @@ describe('runSource: kill switch wiring (review finding, HIGH item 2 / LOW item 
     expect(result.counts.published).toBe(1);
     expect(result.counts.queued).toBe(1);
     expect(getRecentAutoPublishOutcomesMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('runSource: persists LLM cost already spent when a LATER candidate throws uncaught (re-review: "persist LLM cost on a thrown batch")', () => {
+  it('records the first candidate\'s classify cost on the run row even though persisting the second candidate crashes the run', async () => {
+    // Two distinct events; the first classifies and persists fine, the
+    // second's persist (upsertCandidate) throws uncaught - this must not
+    // lose track of the cost ALREADY spent classifying the first one.
+    fetchLumaIcalFeedMock.mockResolvedValue([
+      DEFAULT_VEVENT,
+      { ...DEFAULT_VEVENT, uid: 'evt-SECOND0000000@events.lu.ma', location: 'https://luma.com/event/evt-SECOND0000000' },
+    ]);
+    fetchLumaEventMock
+      .mockImplementationOnce(async () => ({
+        api_id: 'evt-ABC123DEF456',
+        event: { api_id: 'evt-ABC123DEF456', name: 'ETH Builders Mixer' },
+        hosts: [{ api_id: 'usr-1', name: 'Alice' }],
+        description_mirror: null,
+      }))
+      .mockImplementationOnce(async () => ({
+        api_id: 'evt-SECOND0000000',
+        event: { api_id: 'evt-SECOND0000000', name: 'A Totally Different Second Mixer' },
+        hosts: [{ api_id: 'usr-2', name: 'Bob' }],
+        description_mirror: null,
+      }));
+
+    vi.mocked(upsertCandidateMocked)
+      .mockImplementationOnce(async (row: unknown) => {
+        const r = row as FakeRow;
+        const k = keyFor(r.conference, r.canonical_key);
+        const merged = { ...candidateStore.get(k), ...r, status: r.status ?? 'new' };
+        candidateStore.set(k, merged);
+        return merged as never;
+      })
+      .mockImplementationOnce(async () => {
+        throw new Error('simulated DB failure persisting the second candidate');
+      });
+
+    const result = await runSource('src-1', { trigger: 'manual' });
+
+    expect(result.status).toBe('error');
+    const errorFinishCall = vi.mocked(finishRunMocked).mock.calls.find(([, patch]) => (patch as { status: string }).status === 'error');
+    expect(errorFinishCall).toBeTruthy();
+    const patch = errorFinishCall![1] as { est_cost_usd: number; llm_input_tokens: number; llm_output_tokens: number };
+    // scoreCandidateMock's default fixture bills 100/20 tokens per call -
+    // the FIRST event's classify succeeded, so this must be > 0, not the
+    // $0/0-tokens a lost accumulator would report.
+    expect(patch.llm_input_tokens).toBeGreaterThan(0);
+    expect(patch.llm_output_tokens).toBeGreaterThan(0);
+    expect(patch.est_cost_usd).toBeGreaterThan(0);
   });
 });

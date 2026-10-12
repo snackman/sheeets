@@ -9,10 +9,11 @@ import {
   getPrecisionRows,
   getRecentAutoPublishOutcomes,
   getCandidateVolumeBySource,
+  getRunCostBySourceKind,
   listRecentLabelMismatches,
   getProfile,
 } from '@/lib/ingest/db';
-import { checkMonthlyBudget } from '@/lib/ingest/budget';
+import { checkMonthlyBudget, checkMonthlyXBudget } from '@/lib/ingest/budget';
 import {
   evaluateGate,
   summarizeShadowSample,
@@ -42,14 +43,18 @@ export async function GET(req: NextRequest) {
     // finding, HIGH item 2).
     const profile = await getProfile(conference);
 
-    const [precisionRows, liveOutcomes, volumeBySource, budget, mismatches] = await Promise.all([
+    const [precisionRows, liveOutcomes, volumeBySource, costByKind, budget, xBudget, mismatches] = await Promise.all([
       getPrecisionRows(conference),
       getRecentAutoPublishOutcomes(conference, {
         limit: AUTO_PUBLISH_MIN_SAMPLE_SIZE,
         sinceIso: profile?.auto_publish_enabled_at ?? null,
       }),
       getCandidateVolumeBySource(conference),
+      // Phase 4 (§9.1 item 4 / §11): "break out volume and cost per source
+      // type" — [] if the Phase 4 migration hasn't been applied yet.
+      getRunCostBySourceKind(conference),
       checkMonthlyBudget(),
+      checkMonthlyXBudget(),
       listRecentLabelMismatches(conference, 10),
     ]);
 
@@ -65,7 +70,9 @@ export async function GET(req: NextRequest) {
       live,
       review,
       volumeBySource,
+      costByKind,
       budget,
+      xBudget,
       falsePositives: mismatches.falsePositives,
       falseNegatives: mismatches.falseNegatives,
       profile,
