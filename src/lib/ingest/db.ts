@@ -775,17 +775,20 @@ export async function monthlyXCostUsd(): Promise<number> {
 
 /**
  * Best-effort record of an `x_account` run's X API spend onto its own
- * `ingest_runs` row, as a SEPARATE update after `finishRun` (not folded
- * into `finishRun`'s own patch) — `finishRun`'s signature/behavior must
- * stay exactly as it is for every other source kind (Luma iCal, Telegram,
- * sponsor pages, Meetup — none of which set `x_posts_read`/`x_cost_usd`),
- * so a run whose caller never calls this function is byte-for-byte what
- * it was before this PR. Swallows a missing-column/table error (the
- * 20261014120000 migration not applied yet) instead of throwing — same
- * "degrade gracefully" posture as `monthlyXCostUsd` above, and the ONLY
- * caller is Phase 4's `processXSource`, which itself can't run without an
- * admin having added an `x_account` source (itself gated on
- * `X_BEARER_TOKEN`), so this is never on the already-live cron's path.
+ * `ingest_runs` row, as a SEPARATE update (not folded into `finishRun`'s
+ * own patch) — `finishRun`'s signature/behavior must stay exactly as it is
+ * for every other source kind (Luma iCal, Telegram, sponsor pages, Meetup
+ * — none of which set `x_posts_read`/`x_cost_usd`), so a run whose caller
+ * never calls this function is byte-for-byte what it was before this PR.
+ * Re-review item 2: called by `pipeline.ts#processXSource` itself, in a
+ * `finally` right after the paid read(s), which may run BEFORE (not
+ * necessarily after) `finishRun` — the row already exists (created by
+ * `createRun` before any of this), so the ORDER relative to `finishRun`
+ * doesn't matter, only that this fires even if everything after the read
+ * throws. Swallows a missing-column/table error (the 20261014120000
+ * migration not applied yet) instead of throwing — same "degrade
+ * gracefully" posture as `monthlyXCostUsd` above. Also used by
+ * `recordAdhocXCost` below for the one-time handle-resolution lookup.
  */
 export async function recordRunXCost(runId: string, usage: { xPostsRead: number; xCostUsd: number }): Promise<void> {
   if (usage.xPostsRead <= 0 && usage.xCostUsd <= 0) return;
@@ -798,6 +801,21 @@ export async function recordRunXCost(runId: string, usage: { xPostsRead: number;
     if (isMissingRelationError(error)) return;
     throw new Error(`Failed to record X run cost: ${error.message}`);
   }
+}
+
+/**
+ * Re-review item 9: the admin config route's one-time `resolveXUser` call
+ * (a "User: Read", $0.01) spends real X API budget too, outside any
+ * `x_account` source run — this records it as its own tiny `ingest_runs`
+ * row (trigger `'manual'`, no `source_id`) so it counts toward
+ * `monthlyXCostUsd`/`checkMonthlyXBudget` exactly like a real run's reads
+ * do, via the same `recordRunXCost` path above.
+ */
+export async function recordAdhocXCost(conference: string, costUsd: number): Promise<void> {
+  if (costUsd <= 0) return;
+  const run = await createRun({ source_id: null, conference, trigger: 'manual' });
+  await finishRun(run.id, { status: 'ok', counts: {} });
+  await recordRunXCost(run.id, { xPostsRead: 0, xCostUsd: costUsd });
 }
 
 /** Per-`source_kind` run volume + cost (LLM $ and X $ separately) for the

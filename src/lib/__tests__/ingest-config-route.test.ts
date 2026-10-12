@@ -32,6 +32,7 @@ const seedProfileRowMock = vi.fn((conference: string, themeKey: string) => ({
   auto_publish_enabled_at: null,
 }));
 
+const recordAdhocXCostMock = vi.fn(async (..._args: unknown[]) => {});
 vi.mock('@/lib/ingest/db', () => ({
   listProfiles: vi.fn(async () => []),
   listSources: vi.fn(async () => []),
@@ -43,6 +44,7 @@ vi.mock('@/lib/ingest/db', () => ({
   updateSource: (...a: unknown[]) => updateSourceMock(...a),
   deleteSource: vi.fn(async () => {}),
   getSource: (...a: unknown[]) => getSourceMock(...a),
+  recordAdhocXCost: (...a: unknown[]) => recordAdhocXCostMock(...a),
 }));
 
 const evaluateAutoPublishEnableGateMock = vi.fn();
@@ -69,11 +71,17 @@ vi.mock('@/lib/ingest/sources/x', () => ({
     return /^[A-Za-z0-9_]{1,15}$/.test(raw) ? raw : null;
   },
   resolveXUser: (handle: string) => resolveXUserMock(handle),
+  X_USER_READ_COST_USD: 0.01,
 }));
 
 const isMeetupConfiguredMock = vi.fn(() => false);
 vi.mock('@/lib/ingest/sources/meetup', () => ({
   isMeetupConfigured: () => isMeetupConfiguredMock(),
+}));
+
+const checkMonthlyXBudgetMock = vi.fn(async () => ({ spentUsd: 0, capUsd: 15, exceeded: false }));
+vi.mock('@/lib/ingest/budget', () => ({
+  checkMonthlyXBudget: () => checkMonthlyXBudgetMock(),
 }));
 
 import { PUT, PATCH, POST, GET } from '../../app/api/admin/ingest/config/route';
@@ -463,6 +471,8 @@ describe('POST /api/admin/ingest/config: Phase 4 source kinds (§3.6/§3.7/§3.3
     isXConfiguredMock.mockReset().mockReturnValue(true);
     resolveXUserMock.mockClear();
     isMeetupConfiguredMock.mockReset().mockReturnValue(false);
+    checkMonthlyXBudgetMock.mockReset().mockResolvedValue({ spentUsd: 0, capUsd: 15, exceeded: false });
+    recordAdhocXCostMock.mockClear();
   });
 
   it('x_account: normalizes the handle, resolves the user id, and forces discovery trust', async () => {
@@ -489,6 +499,31 @@ describe('POST /api/admin/ingest/config: Phase 4 source kinds (§3.6/§3.7/§3.3
     expect(res.status).toBe(400);
     expect(json.error).toMatch(/not configured/i);
     expect(resolveXUserMock).not.toHaveBeenCalled();
+  });
+
+  // Re-review item 9: resolveXUser is a billable "User: Read" - check the
+  // monthly X budget before spending it, and record it once spent.
+  it('x_account: rejects when the monthly X budget is already exceeded, without calling resolveXUser', async () => {
+    checkMonthlyXBudgetMock.mockResolvedValue({ spentUsd: 15, capUsd: 15, exceeded: true });
+    const res = await POST(postRequest({ password: 'config-test-password', conference: 'Test Conf', kind: 'x_account', input: 'ethsideevents' }));
+    const json = await res.json();
+    expect(res.status).toBe(400);
+    expect(json.error).toMatch(/budget/i);
+    expect(resolveXUserMock).not.toHaveBeenCalled();
+    expect(recordAdhocXCostMock).not.toHaveBeenCalled();
+  });
+
+  it('x_account: records the $0.01 "User: Read" cost once the lookup succeeds', async () => {
+    const res = await POST(postRequest({ password: 'config-test-password', conference: 'Test Conf', kind: 'x_account', input: 'ethsideevents' }));
+    expect(res.status).toBe(200);
+    expect(recordAdhocXCostMock).toHaveBeenCalledWith('Test Conf', 0.01);
+  });
+
+  it('x_account: does not record cost when resolveXUser fails', async () => {
+    resolveXUserMock.mockRejectedValueOnce(new Error('X account not found.'));
+    const res = await POST(postRequest({ password: 'config-test-password', conference: 'Test Conf', kind: 'x_account', input: 'ethsideevents' }));
+    expect(res.status).toBe(400);
+    expect(recordAdhocXCostMock).not.toHaveBeenCalled();
   });
 
   it('meetup_search: creates a discovery-trust source from a free-text query, with a "requires Meetup Pro" warning when unconfigured', async () => {

@@ -24,11 +24,17 @@
 --   - A widened `ingest_sources_unique` index so the new source kinds get
 --     the same "don't let an admin silently create a duplicate" idempotency
 --     Luma calendars/Telegram channels already have, keyed on the config
---     field each new kind actually varies by (listId for an X list,
---     calendar/handle already covered, query text for a Meetup search,
---     the literal url list for sponsor pages) — every EXISTING kind's
---     discriminator columns are untouched, so this changes nothing about
---     which existing rows collide.
+--     field each new kind actually varies by (calendar/handle already
+--     covered, query text for a Meetup search, an md5 hash of the url list
+--     for sponsor pages) — every EXISTING kind's discriminator columns are
+--     untouched, so this changes nothing about which existing rows
+--     collide. (Re-review cleanup: this originally also included a
+--     `listId` column for an X "list" source kind that Phase 4 doesn't
+--     implement — see the PR's "known scope trims" — so it's been dropped
+--     before this migration ever shipped to prod; and the url-list column
+--     is hashed with md5(), not stored as raw text, so an admin pasting a
+--     very long list of sponsor-page URLs can never produce an index tuple
+--     that trips Postgres's btree row-size limit.)
 --   - `ingest_run_cost_by_source_kind` view: run count + LLM/X cost per
 --     source_kind, for the admin Precision tab's volume/cost-per-source-type
 --     breakdown (db.ts#getRunCostBySourceKind).
@@ -63,18 +69,25 @@ revoke execute on function public.get_monthly_ingest_x_cost_usd(timestamptz) fro
 grant execute on function public.get_monthly_ingest_x_cost_usd(timestamptz) to service_role;
 
 -- Widen the source-dedupe index (originally from 20261011120000) to cover
--- the three new source kinds' own discriminator fields. `coalesce(...,'')`
--- on each, same NULL-safety rationale as the original two columns — two
--- sources of a new kind that both happen to have no value in the relevant
--- field must not silently collide with each other either.
+-- the two new source kinds that need a discriminator (`meetup_search`'s
+-- query text, `sponsor_pages`'s url list). `coalesce(...,'')` on each, same
+-- NULL-safety rationale as the original two columns — two sources of a new
+-- kind that both happen to have no value in the relevant field must not
+-- silently collide with each other either. `md5(config->>'urls')` (not the
+-- raw url-list text) bounds that column to a fixed 32 characters
+-- regardless of how many/how long an admin's sponsor-page URLs are, so a
+-- large list can never make this index tuple trip Postgres's btree
+-- row-size limit — two sources collide here iff their url lists are
+-- byte-for-byte identical, which is exactly the idempotency this index is
+-- for. (No `listId` column: Phase 4 doesn't implement X "list" sources —
+-- see the PR's "known scope trims" — so there's nothing to key on yet.)
 drop index if exists ingest_sources_unique;
 create unique index if not exists ingest_sources_unique on public.ingest_sources (
   conference, kind,
   coalesce(config->>'calendar_api_id', ''),
   coalesce(config->>'handle', ''),
-  coalesce(config->>'listId', ''),
   coalesce(config->>'query', ''),
-  coalesce(config->>'urls', '')
+  coalesce(md5(config->>'urls'), '')
 );
 
 -- ------------------------------------------------------------

@@ -20,11 +20,13 @@ import {
   updateSource,
   deleteSource,
   getSource,
+  recordAdhocXCost,
 } from '@/lib/ingest/db';
 import { resolveLumaCalendar, fetchLumaIcalFeed, toIcalCandidates } from '@/lib/ingest/sources/luma-ical';
 import { normalizeTelegramHandle } from '@/lib/ingest/sources/telegram';
-import { normalizeXHandle, resolveXUser, isXConfigured } from '@/lib/ingest/sources/x';
+import { normalizeXHandle, resolveXUser, isXConfigured, X_USER_READ_COST_USD } from '@/lib/ingest/sources/x';
 import { isMeetupConfigured } from '@/lib/ingest/sources/meetup';
+import { checkMonthlyXBudget } from '@/lib/ingest/budget';
 import { isPastEvent } from '@/lib/ingest/filters';
 import { evaluateAutoPublishEnableGate } from '@/lib/ingest/gate';
 import type { IngestProfileRow, TrustedHostEntry } from '@/lib/ingest/types';
@@ -287,12 +289,23 @@ export async function POST(req: NextRequest) {
       if (!isXConfigured()) {
         return NextResponse.json({ error: 'X is not configured (X_BEARER_TOKEN is not set).' }, { status: 400 });
       }
+      // Re-review item 9: `resolveXUser` is a billable "User: Read"
+      // ($0.01) — check the SAME monthly X-spend cap a run checks (§3.7)
+      // BEFORE spending it, not just after, and count it once spent.
+      const xBudget = await checkMonthlyXBudget();
+      if (xBudget.exceeded) {
+        return NextResponse.json(
+          { error: `X's monthly budget is exceeded ($${xBudget.spentUsd.toFixed(2)} / $${xBudget.capUsd.toFixed(2)}) — cannot resolve a new account until next month, or raise INGEST_X_MONTHLY_USD_CAP.` },
+          { status: 400 }
+        );
+      }
       let resolved;
       try {
         resolved = await resolveXUser(handle);
       } catch (err) {
         return NextResponse.json({ error: err instanceof Error ? err.message : 'Could not resolve that X account.' }, { status: 400 });
       }
+      await recordAdhocXCost(conference, X_USER_READ_COST_USD);
       const source = await createSource({
         conference,
         kind,

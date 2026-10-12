@@ -10,29 +10,43 @@
 // 'not configured' in admin") — `isXConfigured()` is the single switch every
 // caller (the cron/pipeline, the admin config route) checks.
 //
-// Cost: X's pay-per-use pricing is $0.005 per "Posts: Read" resource
-// (docs.x.com pricing, verified in the plan's §3.7/§12). A run reads AT MOST
-// `MAX_RESULTS_PER_ACCOUNT_PER_RUN` posts per account per run (one API call,
-// no pagination), so the per-account-per-run cost is bounded and
-// predictable — `MAX_RESULTS_PER_ACCOUNT_PER_RUN * X_POST_READ_COST_USD`.
+// Cost: X's pay-per-use pricing is $0.005 per "Posts: Read" resource and
+// $0.01 per "User: Read" resource (docs.x.com pricing, verified in the
+// plan's §3.7/§12). A run paginates up to `X_MAX_PAGES_PER_RUN` pages of
+// `MAX_RESULTS_PER_ACCOUNT_PER_RUN` posts each per account per run (re-review
+// item 5), so the per-account-per-run cost is bounded and predictable —
+// `X_MAX_PAGES_PER_RUN * MAX_RESULTS_PER_ACCOUNT_PER_RUN * X_POST_READ_COST_USD`.
 // `pipeline.ts` additionally checks the dedicated monthly X-spend cap
-// (`budget.ts#checkXMonthlyBudget`, `INGEST_X_MONTHLY_USD_CAP`) BEFORE making
-// this call at all, and records the actual cost (posts read, not links
-// found) as this run's `ingest_runs.est_cost_usd` so it counts toward both
-// that cap and the general ingest-cost total (`get_monthly_ingest_cost_usd`
-// already sums every `ingest_runs` row regardless of kind).
+// (`budget.ts#checkMonthlyXBudget`, `INGEST_X_MONTHLY_USD_CAP`) BEFORE making
+// any of these calls, and records the actual cost (posts actually read, not
+// links found) onto this run's OWN `ingest_runs.x_cost_usd`/`x_posts_read`
+// columns — kept STRICTLY SEPARATE from `est_cost_usd` (the LLM classifier
+// cost) and from the general `INGEST_MONTHLY_LLM_USD_CAP`/
+// `get_monthly_ingest_cost_usd` total, per `budget.ts`'s own doc comment
+// (re-review item: this paragraph previously, incorrectly, claimed X cost
+// rolled into `est_cost_usd` and the LLM total — it never has).
 import { safeFetch, SafeFetchError } from '../../safe-fetch';
 
 export class XFetchError extends Error {}
 
 /** $0.005 per "Posts: Read" resource (docs.x.com/x-api/getting-started/pricing). */
 export const X_POST_READ_COST_USD = 0.005;
+/** $0.01 per "User: Read" resource — the one-time handle->id lookup
+ *  (`resolveXUser`) done when an admin adds an account. Counted toward the
+ *  X budget by the config route (plan re-review item 9). */
+export const X_USER_READ_COST_USD = 0.01;
 
-/** One API call per account per run, capped at this many results — bounds
- *  the per-account-per-run spend to `10 * $0.005 = $0.05` regardless of how
- *  often an account posts. X's `tweets` endpoint requires `max_results` in
+/** Page size for one `GET .../tweets` call — bounds a single call's cost to
+ *  `10 * $0.005 = $0.05`. X's `tweets` endpoint requires `max_results` in
  *  [5, 100]. */
 export const MAX_RESULTS_PER_ACCOUNT_PER_RUN = 10;
+/** Re-review item 5: paginate via `pagination_token` up to this many pages
+ *  per account per run (so <= `X_MAX_PAGES_PER_RUN * MAX_RESULTS_PER_ACCOUNT_PER_RUN`
+ *  posts/run/account, bounding the per-run spend to a small, predictable
+ *  amount regardless of how prolific an account is) rather than one page
+ *  forever. `pipeline.ts#processXSource` owns the pagination loop and the
+ *  "don't advance since_id past unread posts when capped" rule. */
+export const X_MAX_PAGES_PER_RUN = 3;
 
 export function isXConfigured(): boolean {
   return !!process.env.X_BEARER_TOKEN;
@@ -80,11 +94,17 @@ export interface ResolvedXUser {
  */
 export async function resolveXUser(handle: string): Promise<ResolvedXUser> {
   if (!isValidXHandle(handle)) throw new XFetchError(`Invalid X handle: ${handle}`);
+  // maxRedirects: 0 (re-review item 3) — this is a fixed, internal API
+  // endpoint we construct ourselves, never a user-supplied URL; X's REST
+  // API doesn't redirect for authenticated calls, so any redirect here is
+  // unexpected and we'd rather fail loudly than silently follow it (which
+  // would also hand our Bearer token to wherever `Location` points, before
+  // `safeFetch`'s re-review-item-3 cross-origin header stripping existed).
   const res = await safeFetch(`https://api.x.com/2/users/by/username/${encodeURIComponent(handle)}`, {
     headers: bearerHeaders(),
     timeoutMs: X_TIMEOUT_MS,
     maxBytes: X_MAX_BYTES,
-    maxRedirects: 2,
+    maxRedirects: 0,
   });
   if (!res.ok) throw new XFetchError(`X returned ${res.status} resolving @${handle}.`);
   let json: { data?: { id?: string; username?: string; name?: string }; errors?: unknown };
@@ -112,8 +132,16 @@ export interface XPostsPage {
   /** The API's own `meta.newest_id` — the cursor to persist as this
    *  source's `since_id` for next run (§Phase 4 item 1: "Use since_id
    *  cursors so each post is read only once"). Null when the response had
-   *  no posts (nothing new — the existing cursor stays as-is). */
+   *  no posts (nothing new — the existing cursor stays as-is). On a
+   *  paginated call (re-review item 5), this is still the newest id of
+   *  THIS page, not the whole query — `pipeline.ts` only ever uses the
+   *  FIRST page's `newestId` as the new cursor, since pages are returned
+   *  newest-first. */
   newestId: string | null;
+  /** The API's own `meta.next_token` — pass back as `paginationToken` to
+   *  fetch the next (older, still newer-than-`since_id`) page in the same
+   *  query. Null/undefined when there are no more pages. */
+  nextToken: string | null;
   /** Number of posts actually returned — the billable "Posts: Read" count,
    *  used to compute this call's cost (`resultCount * X_POST_READ_COST_USD`),
    *  independent of how many (if any) contained a link. */
@@ -136,7 +164,7 @@ interface XApiTweet {
  *  function (no fetch) so it can be unit-tested against a saved fixture. */
 export function parseXTweetsResponse(json: {
   data?: XApiTweet[];
-  meta?: { newest_id?: string; result_count?: number };
+  meta?: { newest_id?: string; next_token?: string; result_count?: number };
 }): XPostsPage {
   const data = json.data ?? [];
   const posts: XPost[] = data.map((t) => {
@@ -149,19 +177,26 @@ export function parseXTweetsResponse(json: {
   return {
     posts,
     newestId: json.meta?.newest_id ?? (posts.length > 0 ? posts[0].id : null),
+    nextToken: json.meta?.next_token ?? null,
     resultCount: typeof json.meta?.result_count === 'number' ? json.meta.result_count : posts.length,
   };
 }
 
 /**
- * Fetch one page of a user's recent posts (one API call, no pagination —
- * see the cost-bounding doc comment above). `sinceId`, when set, is passed
- * through so a post already read in a prior run is never billed/read again
- * (§Phase 4 item 1's since_id requirement); X returns only posts newer than
- * it. Excludes retweets and replies — we only care about the account's own
- * original posts.
+ * Fetch one PAGE of a user's recent posts (one API call). `sinceId`, when
+ * set, is passed through so a post already read in a prior run is never
+ * billed/read again (§Phase 4 item 1's since_id requirement); X returns
+ * only posts newer than it. `paginationToken` (re-review item 5), when set,
+ * continues the SAME query at the next (older, still newer-than-`sinceId`)
+ * page via X's own `pagination_token` param — the caller
+ * (`pipeline.ts#processXSource`) owns looping this up to `X_MAX_PAGES_PER_RUN`
+ * times. Excludes retweets and replies — we only care about the account's
+ * own original posts.
  */
-export async function fetchXUserPosts(userId: string, opts: { sinceId?: string | null; maxResults?: number } = {}): Promise<XPostsPage> {
+export async function fetchXUserPosts(
+  userId: string,
+  opts: { sinceId?: string | null; maxResults?: number; paginationToken?: string } = {}
+): Promise<XPostsPage> {
   const maxResults = Math.min(100, Math.max(5, opts.maxResults ?? MAX_RESULTS_PER_ACCOUNT_PER_RUN));
   const params = new URLSearchParams({
     max_results: String(maxResults),
@@ -169,14 +204,16 @@ export async function fetchXUserPosts(userId: string, opts: { sinceId?: string |
     exclude: 'retweets,replies',
   });
   if (opts.sinceId) params.set('since_id', opts.sinceId);
+  if (opts.paginationToken) params.set('pagination_token', opts.paginationToken);
 
   let res;
   try {
+    // maxRedirects: 0 — see the doc comment on `resolveXUser`'s call above.
     res = await safeFetch(`https://api.x.com/2/users/${encodeURIComponent(userId)}/tweets?${params.toString()}`, {
       headers: bearerHeaders(),
       timeoutMs: X_TIMEOUT_MS,
       maxBytes: X_MAX_BYTES,
-      maxRedirects: 2,
+      maxRedirects: 0,
     });
   } catch (err) {
     if (err instanceof SafeFetchError) throw new XFetchError(err.message);
@@ -184,7 +221,7 @@ export async function fetchXUserPosts(userId: string, opts: { sinceId?: string |
   }
   if (!res.ok) throw new XFetchError(`X returned ${res.status} fetching posts for user ${userId}.`);
 
-  let json: { data?: XApiTweet[]; meta?: { newest_id?: string; result_count?: number } };
+  let json: { data?: XApiTweet[]; meta?: { newest_id?: string; next_token?: string; result_count?: number } };
   try {
     json = JSON.parse(res.text);
   } catch {

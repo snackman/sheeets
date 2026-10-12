@@ -266,6 +266,36 @@ export function parsePublicHttpUrl(raw: string): URL {
 // Fetch
 // ---------------------------------------------------------------------------
 
+/** Remove a header by name, case-insensitively, without mutating the input
+ *  — returns a new object. Exported so redirect-handling behavior
+ *  (re-review item 3) is directly unit-testable. */
+export function stripHeaderCI(headers: Record<string, string>, name: string): Record<string, string> {
+  const lower = name.toLowerCase();
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(headers)) {
+    if (k.toLowerCase() !== lower) out[k] = v;
+  }
+  return out;
+}
+
+/** Re-review item 3: strip `Authorization`/`Cookie` from `headers` when a
+ *  redirect crosses to a DIFFERENT origin (scheme+host+port) than the one
+ *  the caller actually supplied credentials for — a same-origin redirect
+ *  (e.g. http -> https on the identical host, or a path-only redirect)
+ *  keeps them, since that's still "the site we trusted with them." */
+export function stripCrossOriginAuthHeaders(headers: Record<string, string>, currentOrigin: string, nextOrigin: string): Record<string, string> {
+  if (currentOrigin === nextOrigin) return headers;
+  return stripHeaderCI(stripHeaderCI(headers, 'Authorization'), 'Cookie');
+}
+
+/** Re-review item 3: true when a redirect must demote the request to a
+ *  bodyless GET — always for a 303 (that's its defined meaning), and for
+ *  a 301/302 only when the ORIGINAL request was a POST (a GET redirected
+ *  by 301/302 has no body to drop and no method to downgrade). */
+export function shouldDowngradeToGet(status: number, method: 'GET' | 'POST'): boolean {
+  return status === 303 || ((status === 301 || status === 302) && method === 'POST');
+}
+
 function requestOnce(
   u: URL,
   headers: Record<string, string>,
@@ -351,11 +381,20 @@ export async function safeFetch(
   };
 
   let current = parsePublicHttpUrl(rawUrl);
+  // Mutable per-hop state (re-review item 3) — a redirect can change the
+  // method/body (a 303, or a 301/302 demoting a POST to GET, same as curl
+  // and every browser actually do despite the spec technically allowing a
+  // 301/302 to preserve the method) and must drop credentials on a
+  // cross-origin hop, so these can no longer stay the original call's
+  // fixed `const`s for the whole loop.
+  let hopMethod = method;
+  let hopBody = body;
+  let hopHeaders: Record<string, string> = { ...reqHeaders };
 
   for (let hop = 0; hop <= maxRedirects; hop++) {
     let res: http.IncomingMessage;
     try {
-      res = await requestOnce(current, reqHeaders, signal, method, body);
+      res = await requestOnce(current, hopHeaders, signal, hopMethod, hopBody);
     } catch (err) {
       if (err instanceof SafeFetchError) throw err;
       if (signal.aborted) throw new SafeFetchError('Request timed out.');
@@ -372,7 +411,30 @@ export async function safeFetch(
       } catch {
         throw new SafeFetchError('Invalid redirect.');
       }
-      current = parsePublicHttpUrl(next);
+      const nextUrl = parsePublicHttpUrl(next);
+
+      // Re-review item 3: never forward auth/session headers to a
+      // DIFFERENT origin than the one the caller actually gave us
+      // credentials for — a malicious or compromised redirect target
+      // must not be able to harvest an `Authorization`/`Cookie` header
+      // this way. And: a 303 always demotes to GET with no body (that's
+      // what 303 means); a 301/302 technically permits preserving the
+      // method, but every real client (curl, browsers) demotes a POST to
+      // GET on 301/302 too, and so do we — a server replying 301/302 to a
+      // POST is overwhelmingly signaling "go fetch this (different)
+      // resource," not "re-POST your payload somewhere else." Both rules
+      // are pure functions (`stripCrossOriginAuthHeaders`/
+      // `shouldDowngradeToGet`) precisely so they're unit-testable without
+      // a real socket — `safeFetch` refuses loopback connections by
+      // design, so a real local HTTP server can't exercise this loop.
+      hopHeaders = stripCrossOriginAuthHeaders(hopHeaders, current.origin, nextUrl.origin);
+      if (shouldDowngradeToGet(status, hopMethod)) {
+        hopMethod = 'GET';
+        hopBody = undefined;
+        hopHeaders = stripHeaderCI(stripHeaderCI(hopHeaders, 'Content-Length'), 'Content-Type');
+      }
+
+      current = nextUrl;
       continue;
     }
 

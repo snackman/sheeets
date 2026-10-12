@@ -95,7 +95,14 @@ describe('parseXTweetsResponse (fixture: x-tweets-response.json)', () => {
     const page = parseXTweetsResponse({});
     expect(page.posts).toEqual([]);
     expect(page.newestId).toBeNull();
+    expect(page.nextToken).toBeNull();
     expect(page.resultCount).toBe(0);
+  });
+
+  it('captures meta.next_token for pagination, null when absent (re-review item 5)', async () => {
+    const { parseXTweetsResponse } = await import('../ingest/sources/x');
+    expect(parseXTweetsResponse(fixture).nextToken).toBeNull(); // the fixture's single-page response has none
+    expect(parseXTweetsResponse({ data: [], meta: { next_token: 'abc123' } }).nextToken).toBe('abc123');
   });
 });
 
@@ -146,11 +153,65 @@ describe('fetchXUserPosts / resolveXUser: since_id cursor + cost, via a mocked s
     expect(requestedUrls[0]).not.toContain('since_id');
   });
 
-  it('computes cost as resultCount * X_POST_READ_COST_USD ($0.005/post, plan §12)', async () => {
-    const { X_POST_READ_COST_USD } = await import('../ingest/sources/x');
-    expect(X_POST_READ_COST_USD).toBeCloseTo(0.005, 6);
-    // 3 posts in the fixture -> $0.015, matching how pipeline.ts#processXSource computes xCostUsd.
-    expect(3 * X_POST_READ_COST_USD).toBeCloseTo(0.015, 6);
+  it('passes pagination_token through when continuing a paginated query (re-review item 5)', async () => {
+    const requestedUrls: string[] = [];
+    vi.doMock('../safe-fetch', () => ({
+      safeFetch: vi.fn(async (url: string) => {
+        requestedUrls.push(url);
+        return { ok: true, status: 200, url, headers: {}, text: JSON.stringify(fixture) };
+      }),
+      SafeFetchError: class SafeFetchError extends Error {},
+    }));
+    const { fetchXUserPosts } = await import('../ingest/sources/x');
+    await fetchXUserPosts('999', { sinceId: '111', paginationToken: 'page-2-token' });
+    expect(requestedUrls[0]).toContain('pagination_token=page-2-token');
+    expect(requestedUrls[0]).toContain('since_id=111');
+  });
+
+  it('omits pagination_token on the first page of a query', async () => {
+    const requestedUrls: string[] = [];
+    vi.doMock('../safe-fetch', () => ({
+      safeFetch: vi.fn(async (url: string) => {
+        requestedUrls.push(url);
+        return { ok: true, status: 200, url, headers: {}, text: JSON.stringify(fixture) };
+      }),
+      SafeFetchError: class SafeFetchError extends Error {},
+    }));
+    const { fetchXUserPosts } = await import('../ingest/sources/x');
+    await fetchXUserPosts('999', { sinceId: '111' });
+    expect(requestedUrls[0]).not.toContain('pagination_token');
+  });
+
+  it('requests with maxRedirects: 0 (re-review item 3 - a redirect from X is unexpected and must not be silently followed)', async () => {
+    let capturedOpts: { maxRedirects?: number } | undefined;
+    vi.doMock('../safe-fetch', () => ({
+      safeFetch: vi.fn(async (url: string, opts: { maxRedirects?: number }) => {
+        capturedOpts = opts;
+        return { ok: true, status: 200, url, headers: {}, text: JSON.stringify(fixture) };
+      }),
+      SafeFetchError: class SafeFetchError extends Error {},
+    }));
+    const { fetchXUserPosts } = await import('../ingest/sources/x');
+    await fetchXUserPosts('999', {});
+    expect(capturedOpts?.maxRedirects).toBe(0);
+  });
+
+  it('computes cost as resultCount * X_POST_READ_COST_USD ($0.005/post, plan §12) - a REAL fetch, not arithmetic (re-review cleanup: replaces a tautological test)', async () => {
+    vi.doMock('../safe-fetch', () => ({
+      safeFetch: vi.fn(async (url: string) => ({ ok: true, status: 200, url, headers: {}, text: JSON.stringify(fixture) })),
+      SafeFetchError: class SafeFetchError extends Error {},
+    }));
+    const { fetchXUserPosts, X_POST_READ_COST_USD } = await import('../ingest/sources/x');
+    const page = await fetchXUserPosts('999', {});
+    // The fixture's own resultCount (3) drives the cost, not a hand-picked number.
+    const costUsd = page.resultCount * X_POST_READ_COST_USD;
+    expect(page.resultCount).toBe(3);
+    expect(costUsd).toBeCloseTo(0.015, 6);
+  });
+
+  it('X_USER_READ_COST_USD is $0.01/lookup (plan §12 "User: Read")', async () => {
+    const { X_USER_READ_COST_USD } = await import('../ingest/sources/x');
+    expect(X_USER_READ_COST_USD).toBeCloseTo(0.01, 6);
   });
 
   it('resolveXUser throws a clear error when the account is not found', async () => {

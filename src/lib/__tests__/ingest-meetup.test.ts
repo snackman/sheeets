@@ -127,4 +127,68 @@ describe('searchMeetupEvents: token refresh + GraphQL POST, via a mocked safeFet
       searchMeetupEvents({ query: 'ai', lat: 0, lon: 0, radiusMi: 10, startDateISO: '2026-01-01', endDateISO: '2026-01-02' })
     ).rejects.toThrow(MeetupFetchError);
   });
+
+  // Re-review item 6: a GraphQL `errors` array (possible schema drift) is
+  // now a run error, not a silent "found nothing" - and it's logged.
+  it('treats a GraphQL errors array as a thrown, logged error (not an empty result)', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.doMock('../safe-fetch', () => ({
+      safeFetch: vi.fn(async (url: string) => {
+        if (url.includes('oauth2/access')) {
+          return { ok: true, status: 200, url, headers: {}, text: JSON.stringify({ access_token: 'fresh-token', expires_in: 3600 }) };
+        }
+        return { ok: true, status: 200, url, headers: {}, text: JSON.stringify({ errors: [{ message: 'Unknown argument "radius"' }] }) };
+      }),
+      SafeFetchError: class SafeFetchError extends Error {},
+    }));
+    const { searchMeetupEvents, MeetupFetchError, _resetMeetupTokenCacheForTests } = await import('../ingest/sources/meetup');
+    _resetMeetupTokenCacheForTests();
+    await expect(
+      searchMeetupEvents({ query: 'defi', lat: 0, lon: 0, radiusMi: 10, startDateISO: '2026-01-01', endDateISO: '2026-01-02' })
+    ).rejects.toThrow(MeetupFetchError);
+    expect(consoleErrorSpy).toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('treats invalid JSON as a thrown, logged error (not an empty result)', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.doMock('../safe-fetch', () => ({
+      safeFetch: vi.fn(async (url: string) => {
+        if (url.includes('oauth2/access')) {
+          return { ok: true, status: 200, url, headers: {}, text: JSON.stringify({ access_token: 'fresh-token', expires_in: 3600 }) };
+        }
+        return { ok: true, status: 200, url, headers: {}, text: 'not json at all' };
+      }),
+      SafeFetchError: class SafeFetchError extends Error {},
+    }));
+    const { searchMeetupEvents, MeetupFetchError, _resetMeetupTokenCacheForTests } = await import('../ingest/sources/meetup');
+    _resetMeetupTokenCacheForTests();
+    await expect(
+      searchMeetupEvents({ query: 'defi', lat: 0, lon: 0, radiusMi: 10, startDateISO: '2026-01-01', endDateISO: '2026-01-02' })
+    ).rejects.toThrow(MeetupFetchError);
+    expect(consoleErrorSpy).toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  // Re-review item 6: radiusMi is clamped and passed through as-is
+  // (miles, no conversion) - renamed from the misleading `radiusKm` local.
+  it('passes radiusMi through (clamped to [1,100]) as the GraphQL filter.radius, unconverted', async () => {
+    const calls: { url: string; options: Record<string, unknown> }[] = [];
+    vi.doMock('../safe-fetch', () => ({
+      safeFetch: vi.fn(async (url: string, options: Record<string, unknown>) => {
+        calls.push({ url, options });
+        if (url.includes('oauth2/access')) {
+          return { ok: true, status: 200, url, headers: {}, text: JSON.stringify({ access_token: 'fresh-token', expires_in: 3600 }) };
+        }
+        return { ok: true, status: 200, url, headers: {}, text: JSON.stringify(fixture) };
+      }),
+      SafeFetchError: class SafeFetchError extends Error {},
+    }));
+    const { searchMeetupEvents, _resetMeetupTokenCacheForTests } = await import('../ingest/sources/meetup');
+    _resetMeetupTokenCacheForTests();
+    await searchMeetupEvents({ query: 'defi', lat: 0, lon: 0, radiusMi: 250, startDateISO: '2026-01-01', endDateISO: '2026-01-02' });
+    const graphqlCall = calls.find((c) => c.url.includes('gql-ext'))!;
+    const body = JSON.parse(graphqlCall.options.body as string);
+    expect(body.variables.filter.radius).toBe(100); // clamped to the max, miles unconverted
+  });
 });

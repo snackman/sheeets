@@ -1,0 +1,468 @@
+// Pipeline-level tests for the Phase 4 source processors (X, Meetup,
+// sponsor pages) — added per re-review item 1 (HIGH): "LLM cost from the
+// X, Meetup and sponsor-pages runs is thrown away." These exercise
+// `runSource` end-to-end (same black-box approach as `ingest-pipeline.test.ts`
+// uses for the Luma path), mocking `processDiscoveredLink` directly so the
+// REAL `runDiscoveredLinksBatch`/`canClassify` wiring inside `pipeline.ts`
+// is what's under test — not a re-implementation of the classifier.
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+process.env.OPENAI_API_KEY = 'test-key';
+vi.mock('openai', () => ({ default: class FakeOpenAI {} }));
+
+interface FakeRunRow {
+  id: string;
+  status: string;
+  counts?: unknown;
+  llm_input_tokens?: number;
+  llm_output_tokens?: number;
+  est_cost_usd?: number;
+  x_posts_read?: number;
+  x_cost_usd?: number;
+  error?: string | null;
+}
+
+let runRows: FakeRunRow[];
+let sourceRows: Map<string, { id: string; conference: string; kind: string; label: string; config: Record<string, unknown>; trust: string; enabled: boolean; cursor: Record<string, unknown> }>;
+let updateSourceCalls: { id: string; patch: Record<string, unknown> }[];
+let recordRunXCostCalls: { runId: string; usage: { xPostsRead: number; xCostUsd: number } }[];
+
+const defaultProfile = {
+  conference: 'Test Conf',
+  theme_key: 'crypto',
+  theme_description: 'Crypto stuff',
+  include_keywords: [],
+  exclude_keywords: [],
+  trusted_hosts: [],
+  blocked_hosts: [],
+  publish_threshold: 85,
+  review_threshold: 40,
+  auto_publish_enabled: false,
+  radius_km: 40,
+  window_pre_days: 3,
+  window_post_days: 1,
+  allow_online: true,
+  max_llm_calls_per_run: 150,
+  max_publish_per_run: 25,
+  enabled: true,
+  auto_publish_killed_at: null as string | null,
+  auto_publish_kill_reason: null as string | null,
+  auto_publish_enabled_at: null as string | null,
+};
+
+const checkMonthlyBudgetMock = vi.fn(async () => ({ spentUsd: 0, capUsd: 20, exceeded: false }));
+const checkMonthlyXBudgetMock = vi.fn(async () => ({ spentUsd: 0, capUsd: 15, exceeded: false }));
+vi.mock('../ingest/budget', () => ({
+  checkMonthlyBudget: () => checkMonthlyBudgetMock(),
+  checkMonthlyXBudget: () => checkMonthlyXBudgetMock(),
+}));
+
+vi.mock('../ingest/db', () => ({
+  getSource: vi.fn(async (id: string) => sourceRows.get(id) ?? null),
+  getProfile: vi.fn(async () => defaultProfile),
+  getCandidateByKey: vi.fn(async () => null),
+  upsertCandidate: vi.fn(async (row: Record<string, unknown>) => row),
+  updateCandidate: vi.fn(async () => {}),
+  listRecentCandidatesForDedupe: vi.fn(async () => []),
+  createRun: vi.fn(async () => {
+    const run: FakeRunRow = { id: `run-${runRows.length + 1}`, status: 'running' };
+    runRows.push(run);
+    return run;
+  }),
+  finishRun: vi.fn(async (id: string, patch: Partial<FakeRunRow>) => {
+    const run = runRows.find((r) => r.id === id);
+    if (run) Object.assign(run, patch);
+  }),
+  hasRecentRunningRun: vi.fn(async () => false),
+  updateSource: vi.fn(async (id: string, patch: Record<string, unknown>) => {
+    updateSourceCalls.push({ id, patch });
+    const row = sourceRows.get(id);
+    if (row) Object.assign(row, patch);
+  }),
+  profileRowToThemeProfile: vi.fn((row: typeof defaultProfile) => ({
+    themeKey: row.theme_key,
+    themeName: 'Crypto / Web3',
+    themeDescription: row.theme_description,
+    includeKeywords: row.include_keywords,
+    excludeKeywords: row.exclude_keywords,
+    publishThreshold: row.publish_threshold,
+    reviewThreshold: row.review_threshold,
+  })),
+  getIngestSupabase: vi.fn(() => ({
+    from: () => ({
+      select: () => ({
+        is: () => Promise.resolve({ data: [] }),
+        eq: () => Promise.resolve({ data: [], error: null }),
+      }),
+    }),
+  })),
+  listLabelsForFewShot: vi.fn(async () => []),
+  listLabelsForHostSignals: vi.fn(async () => []),
+  getRecentAutoPublishOutcomes: vi.fn(async () => []),
+  getPrecisionRows: vi.fn(async () => []),
+  upsertProfile: vi.fn(async () => ({})),
+  updateProfilePatch: vi.fn(async () => ({})),
+  recordRunXCost: vi.fn(async (runId: string, usage: { xPostsRead: number; xCostUsd: number }) => {
+    recordRunXCostCalls.push({ runId, usage });
+    const run = runRows.find((r) => r.id === runId);
+    if (run) {
+      run.x_posts_read = usage.xPostsRead;
+      run.x_cost_usd = usage.xCostUsd;
+    }
+  }),
+}));
+
+vi.mock('../get-conferences', () => ({
+  getAllConferenceTabs: vi.fn(async () => [
+    {
+      gid: 1,
+      name: 'Test Conf',
+      slug: 'test-conf',
+      timezone: 'UTC',
+      dates: ['2027-03-10', '2027-03-11'],
+      center: { lat: 43.5528, lng: 7.0174 },
+    },
+  ]),
+}));
+
+vi.mock('../fetch-events', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../fetch-events')>();
+  return {
+    fetchEvents: vi.fn(async () => []),
+    generateEventId: actual.generateEventId,
+  };
+});
+
+vi.mock('../google-sheets', () => ({
+  getSheetTitle: vi.fn(async () => 'Test Sheet Tab'),
+  insertEventRowSorted: vi.fn(async () => 1),
+}));
+
+vi.mock('../fetch-events-cached', () => ({
+  invalidateEventsCache: vi.fn(),
+}));
+
+vi.mock('../ingest/reconcile', () => ({
+  reconcileConference: vi.fn(async () => ({ checked: 0, linked: 0, unpublishedExternal: 0, skipped: true })),
+}));
+
+// A controllable `processDiscoveredLink` so these tests exercise the REAL
+// `runDiscoveredLinksBatch`/`canClassify` budget wiring in `pipeline.ts`
+// (re-review item 1) without needing the full classifier stack.
+let processDiscoveredLinkCalls: { url: string; canClassify: boolean }[];
+let costPerClassifiedCall = 5; // deliberately large so a small cap trips quickly
+const processDiscoveredLinkMock = vi.fn(
+  async (url: string, _existing: unknown, ctx: { canClassify: () => boolean; conference: string; sourceKind: string }) => {
+    const canClassify = ctx.canClassify();
+    processDiscoveredLinkCalls.push({ url, canClassify });
+    if (!canClassify) {
+      return {
+        kind: 'row' as const,
+        row: {
+          conference: ctx.conference,
+          canonical_key: url,
+          alt_keys: [],
+          source_id: null,
+          source_kind: ctx.sourceKind,
+          sources: [],
+          source_ref: null,
+          event: { name: url, link: url, dateISO: '2027-03-10' },
+          content_hash: `h-${url}`,
+          status: 'pending_classify' as const,
+        },
+        classified: false,
+        inputTokens: 0,
+        outputTokens: 0,
+        costUsd: 0,
+      };
+    }
+    return {
+      kind: 'row' as const,
+      row: {
+        conference: ctx.conference,
+        canonical_key: url,
+        alt_keys: [],
+        source_id: null,
+        source_kind: ctx.sourceKind,
+        sources: [],
+        source_ref: null,
+        event: { name: url, link: url, dateISO: '2027-03-10' },
+        content_hash: `h-${url}`,
+        status: 'queued' as const,
+      },
+      classified: true,
+      inputTokens: 100,
+      outputTokens: 20,
+      costUsd: costPerClassifiedCall,
+    };
+  }
+);
+vi.mock('../ingest/discover', () => ({
+  processDiscoveredLink: (...args: unknown[]) => (processDiscoveredLinkMock as (...a: unknown[]) => unknown)(...args),
+  PacedLinkLimiter: class PacedLinkLimiter {},
+  buildHostSignalComputer: vi.fn(() => () => ({ isTrustedHost: false, isBlockedHost: false })),
+}));
+
+const fetchXUserPostsMock = vi.fn();
+const isXConfiguredMock = vi.fn(() => true);
+vi.mock('../ingest/sources/x', () => ({
+  isXConfigured: () => isXConfiguredMock(),
+  fetchXUserPosts: (...a: unknown[]) => fetchXUserPostsMock(...a),
+  X_POST_READ_COST_USD: 0.005,
+  MAX_RESULTS_PER_ACCOUNT_PER_RUN: 10,
+  X_MAX_PAGES_PER_RUN: 3,
+}));
+
+const searchMeetupEventsMock = vi.fn();
+const isMeetupConfiguredMock = vi.fn(() => true);
+vi.mock('../ingest/sources/meetup', () => ({
+  isMeetupConfigured: () => isMeetupConfiguredMock(),
+  searchMeetupEvents: (...a: unknown[]) => searchMeetupEventsMock(...a),
+}));
+
+const resolveSponsorPageUrlsMock = vi.fn();
+const fetchSponsorPageLinksMock = vi.fn();
+vi.mock('../ingest/sources/sponsor-pages', () => ({
+  resolveSponsorPageUrls: (...a: unknown[]) => resolveSponsorPageUrlsMock(...a),
+  fetchSponsorPageLinks: (...a: unknown[]) => fetchSponsorPageLinksMock(...a),
+  createRobotsCache: vi.fn(() => new Map()),
+  SPONSOR_PAGE_WORST_CASE_MS: 16_500,
+}));
+
+import { runSource } from '../ingest/pipeline';
+
+function makeXSource(cursor: Record<string, unknown> = {}) {
+  sourceRows.set('src-x', {
+    id: 'src-x',
+    conference: 'Test Conf',
+    kind: 'x_account',
+    label: '@test',
+    config: { handle: 'test', userId: 'uid-1' },
+    trust: 'discovery',
+    enabled: true,
+    cursor,
+  });
+}
+
+function makeMeetupSource() {
+  sourceRows.set('src-meetup', {
+    id: 'src-meetup',
+    conference: 'Test Conf',
+    kind: 'meetup_search',
+    label: 'defi',
+    config: { query: 'defi' },
+    trust: 'discovery',
+    enabled: true,
+    cursor: {},
+  });
+}
+
+function makeSponsorPagesSource(cursor: Record<string, unknown> = {}) {
+  sourceRows.set('src-sponsor', {
+    id: 'src-sponsor',
+    conference: 'Test Conf',
+    kind: 'sponsor_pages',
+    label: 'sponsors',
+    config: { urls: [] },
+    trust: 'discovery',
+    enabled: true,
+    cursor,
+  });
+}
+
+function onePage(ids: string[], links: string[][], opts: { nextToken?: string | null } = {}) {
+  return {
+    posts: ids.map((id, i) => ({ id, text: '', links: links[i] ?? [] })),
+    newestId: ids[0] ?? null,
+    nextToken: opts.nextToken ?? null,
+    resultCount: ids.length,
+  };
+}
+
+beforeEach(() => {
+  runRows = [];
+  sourceRows = new Map();
+  updateSourceCalls = [];
+  recordRunXCostCalls = [];
+  processDiscoveredLinkCalls = [];
+  costPerClassifiedCall = 5;
+  checkMonthlyBudgetMock.mockReset().mockResolvedValue({ spentUsd: 0, capUsd: 20, exceeded: false });
+  checkMonthlyXBudgetMock.mockReset().mockResolvedValue({ spentUsd: 0, capUsd: 15, exceeded: false });
+  processDiscoveredLinkMock.mockClear();
+  fetchXUserPostsMock.mockReset();
+  isXConfiguredMock.mockReset().mockReturnValue(true);
+  searchMeetupEventsMock.mockReset();
+  isMeetupConfiguredMock.mockReset().mockReturnValue(true);
+  resolveSponsorPageUrlsMock.mockReset();
+  fetchSponsorPageLinksMock.mockReset();
+});
+
+describe('runSource(x_account): cost accounting (re-review item 1, HIGH) and cursor/cost durability (item 2, MEDIUM)', () => {
+  it('surfaces the REAL classified cost/tokens on the run row, not hardcoded 0 (HIGH item 1)', async () => {
+    makeXSource();
+    fetchXUserPostsMock.mockResolvedValueOnce(onePage(['p1', 'p2'], [['https://lu.ma/e1'], ['https://lu.ma/e2']]));
+
+    const result = await runSource('src-x', { trigger: 'cron' });
+
+    expect(result.status).toBe('ok');
+    const run = runRows.find((r) => r.id === result.runId)!;
+    // Both links classified at $5 each -> $10 total, 100/20 tokens each -> 200/40.
+    expect(run.est_cost_usd).toBe(10);
+    expect(run.llm_input_tokens).toBe(200);
+    expect(run.llm_output_tokens).toBe(40);
+  });
+
+  it('the monthly LLM cap stops further classification mid-batch, and only classified calls count toward cost (HIGH item 1)', async () => {
+    makeXSource();
+    checkMonthlyBudgetMock.mockResolvedValue({ spentUsd: 0, capUsd: 8, exceeded: false }); // trips after 2 calls at $5
+    fetchXUserPostsMock.mockResolvedValueOnce(
+      onePage(['p1', 'p2', 'p3'], [['https://lu.ma/e1'], ['https://lu.ma/e2'], ['https://lu.ma/e3']])
+    );
+
+    const result = await runSource('src-x', { trigger: 'cron' });
+
+    const run = runRows.find((r) => r.id === result.runId)!;
+    expect(processDiscoveredLinkCalls).toHaveLength(3);
+    expect(processDiscoveredLinkCalls.filter((c) => c.canClassify)).toHaveLength(2); // cap trips after 2
+    expect(processDiscoveredLinkCalls[2].canClassify).toBe(false);
+    expect(run.est_cost_usd).toBe(10); // only the 2 classified calls' cost
+  });
+
+  it('records X spend via recordRunXCost even when link processing throws afterward (MEDIUM item 2)', async () => {
+    makeXSource();
+    fetchXUserPostsMock.mockResolvedValueOnce(onePage(['p1', 'p2'], [['https://lu.ma/e1'], ['https://lu.ma/e2']]));
+    processDiscoveredLinkMock.mockRejectedValueOnce(new Error('boom'));
+
+    const result = await runSource('src-x', { trigger: 'cron' });
+
+    expect(result.status).toBe('error');
+    // The paid read (2 posts) still gets recorded, even though processing
+    // the links it produced failed afterward.
+    expect(recordRunXCostCalls).toHaveLength(1);
+    expect(recordRunXCostCalls[0].usage).toEqual({ xPostsRead: 2, xCostUsd: 0.01 });
+  });
+
+  it('advances since_id to the first page\'s newestId once the batch is fully processed, not capped (MEDIUM item 2)', async () => {
+    makeXSource({ since_id: 'old-cursor' });
+    fetchXUserPostsMock.mockResolvedValueOnce(onePage(['p-newest', 'p-older'], [['https://lu.ma/e1'], []]));
+
+    await runSource('src-x', { trigger: 'cron' });
+
+    const cursorUpdate = updateSourceCalls.find((c) => c.id === 'src-x' && 'cursor' in c.patch);
+    expect(cursorUpdate?.patch).toEqual({ cursor: { since_id: 'p-newest' } });
+  });
+
+  it('does NOT advance since_id when the per-run page cap is hit (MEDIUM item 2: never skip unread posts)', async () => {
+    makeXSource({ since_id: 'old-cursor' });
+    // 3 full pages (the X_MAX_PAGES_PER_RUN cap), each with a nextToken ->
+    // more pages exist beyond what this run read.
+    fetchXUserPostsMock
+      .mockResolvedValueOnce(onePage(Array.from({ length: 10 }, (_, i) => `p1-${i}`), [], { nextToken: 't2' }))
+      .mockResolvedValueOnce(onePage(Array.from({ length: 10 }, (_, i) => `p2-${i}`), [], { nextToken: 't3' }))
+      .mockResolvedValueOnce(onePage(Array.from({ length: 10 }, (_, i) => `p3-${i}`), [], { nextToken: 't4' }));
+
+    await runSource('src-x', { trigger: 'cron' });
+
+    const cursorUpdate = updateSourceCalls.find((c) => c.id === 'src-x' && 'cursor' in c.patch);
+    expect(cursorUpdate).toBeUndefined(); // cursor left exactly as it was
+    expect(fetchXUserPostsMock).toHaveBeenCalledTimes(3); // capped at X_MAX_PAGES_PER_RUN
+    // All 30 reads are still billed/recorded, even though we didn't advance the cursor.
+    expect(recordRunXCostCalls[0]?.usage).toEqual({ xPostsRead: 30, xCostUsd: 0.15 });
+  });
+
+  it('skips the discovery-context build entirely when there are no allowlisted links (re-review item 4)', async () => {
+    makeXSource();
+    fetchXUserPostsMock.mockResolvedValueOnce(onePage(['p1'], [['https://not-an-event-platform.example.com']]));
+
+    const result = await runSource('src-x', { trigger: 'cron' });
+
+    expect(result.status).toBe('ok');
+    expect(processDiscoveredLinkMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('runSource(meetup_search): cost accounting (re-review item 1, HIGH)', () => {
+  it('surfaces the REAL classified cost/tokens on the run row, not hardcoded 0', async () => {
+    makeMeetupSource();
+    searchMeetupEventsMock.mockResolvedValueOnce([
+      { id: 'mu-1', title: 'DeFi Mixer', eventUrl: 'https://www.meetup.com/defi/events/1/' },
+      { id: 'mu-2', title: 'AI Builders', eventUrl: 'https://www.meetup.com/ai/events/2/' },
+    ]);
+
+    const result = await runSource('src-meetup', { trigger: 'cron' });
+
+    expect(result.status).toBe('ok');
+    const run = runRows.find((r) => r.id === result.runId)!;
+    expect(run.est_cost_usd).toBe(10);
+    expect(run.llm_input_tokens).toBe(200);
+  });
+
+  it('the monthly LLM cap stops further classification mid-batch', async () => {
+    makeMeetupSource();
+    checkMonthlyBudgetMock.mockResolvedValue({ spentUsd: 0, capUsd: 8, exceeded: false });
+    searchMeetupEventsMock.mockResolvedValueOnce([
+      { id: 'mu-1', title: 'a', eventUrl: 'https://www.meetup.com/x/events/1/' },
+      { id: 'mu-2', title: 'b', eventUrl: 'https://www.meetup.com/x/events/2/' },
+      { id: 'mu-3', title: 'c', eventUrl: 'https://www.meetup.com/x/events/3/' },
+    ]);
+
+    const result = await runSource('src-meetup', { trigger: 'cron' });
+
+    const run = runRows.find((r) => r.id === result.runId)!;
+    expect(processDiscoveredLinkCalls.filter((c) => c.canClassify)).toHaveLength(2);
+    expect(run.est_cost_usd).toBe(10);
+  });
+});
+
+describe('runSource(sponsor_pages): cost accounting (re-review item 1, HIGH) and sponsor rotation (item 8, LOW)', () => {
+  it('surfaces the REAL classified cost/tokens on the run row, not hardcoded 0', async () => {
+    makeSponsorPagesSource();
+    resolveSponsorPageUrlsMock.mockResolvedValueOnce({ urls: ['https://sponsor.example.com/events'], nextOffset: null });
+    fetchSponsorPageLinksMock.mockResolvedValueOnce(['https://lu.ma/e1', 'https://partiful.com/e/e2']);
+
+    const result = await runSource('src-sponsor', { trigger: 'cron' });
+
+    expect(result.status).toBe('ok');
+    const run = runRows.find((r) => r.id === result.runId)!;
+    expect(run.est_cost_usd).toBe(10);
+    expect(run.llm_input_tokens).toBe(200);
+  });
+
+  it('persists the rotation offset cursor returned by resolveSponsorPageUrls', async () => {
+    makeSponsorPagesSource({ sponsor_offset: 1 });
+    resolveSponsorPageUrlsMock.mockResolvedValueOnce({ urls: [], nextOffset: 2 });
+
+    await runSource('src-sponsor', { trigger: 'cron' });
+
+    const cursorUpdate = updateSourceCalls.find((c) => c.id === 'src-sponsor' && 'cursor' in c.patch);
+    expect(cursorUpdate?.patch).toEqual({ cursor: { sponsor_offset: 2 } });
+    expect(resolveSponsorPageUrlsMock).toHaveBeenCalledWith(expect.anything(), 'Test Conf', [], { offset: 1 });
+  });
+
+  it('does not persist a cursor when rotation does not apply (nextOffset null)', async () => {
+    makeSponsorPagesSource();
+    resolveSponsorPageUrlsMock.mockResolvedValueOnce({ urls: [], nextOffset: null });
+
+    await runSource('src-sponsor', { trigger: 'cron' });
+
+    expect(updateSourceCalls.find((c) => c.id === 'src-sponsor' && 'cursor' in c.patch)).toBeUndefined();
+  });
+
+  // Re-review item 4 (MEDIUM): checks the deadline with margin for the
+  // worst-case page time BEFORE starting a page, not just after it's
+  // already passed.
+  it('never starts a page fetch when less than SPONSOR_PAGE_WORST_CASE_MS remains before the deadline', async () => {
+    makeSponsorPagesSource();
+    resolveSponsorPageUrlsMock.mockResolvedValueOnce({
+      urls: ['https://sponsor.example.com/events', 'https://sponsor2.example.com/events'],
+      nextOffset: null,
+    });
+
+    // Deadline is only 1s out - far less than the ~17s worst-case margin -
+    // so even the FIRST page must never be started.
+    const result = await runSource('src-sponsor', { trigger: 'cron', deadlineMs: 1000 });
+
+    expect(fetchSponsorPageLinksMock).not.toHaveBeenCalled();
+    expect(result.status).toBe('partial'); // hitDeadline
+  });
+});

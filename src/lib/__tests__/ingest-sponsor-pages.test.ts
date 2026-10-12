@@ -36,6 +36,37 @@ describe('parseRobotsTxt / isPathAllowed', () => {
     const { parseRobotsTxt, isPathAllowed } = await import('../ingest/sources/sponsor-pages');
     expect(isPathAllowed('/anything', parseRobotsTxt(''))).toBe(true);
   });
+
+  // Re-review item 7: wildcard support.
+  it('supports the "*" wildcard mid-pattern', async () => {
+    const { parseRobotsTxt, isPathAllowed } = await import('../ingest/sources/sponsor-pages');
+    const rules = parseRobotsTxt('User-agent: *\nDisallow: /events/*/private\n');
+    expect(isPathAllowed('/events/123/private', rules)).toBe(false);
+    expect(isPathAllowed('/events/abc/private', rules)).toBe(false);
+    expect(isPathAllowed('/events/123/public', rules)).toBe(true);
+  });
+
+  it('supports the "$" end-of-url anchor', async () => {
+    const { parseRobotsTxt, isPathAllowed } = await import('../ingest/sources/sponsor-pages');
+    const rules = parseRobotsTxt('User-agent: *\nDisallow: /events$\n');
+    expect(isPathAllowed('/events', rules)).toBe(false);
+    // Without the anchor this would also match - $ means it must NOT continue.
+    expect(isPathAllowed('/events/public', rules)).toBe(true);
+  });
+
+  // Re-review item 7: group consecutive User-agent lines correctly.
+  it('applies shared directives to every agent in a run of consecutive User-agent lines, incl. "*"', async () => {
+    const { parseRobotsTxt, isPathAllowed } = await import('../ingest/sources/sponsor-pages');
+    const rules = parseRobotsTxt('User-agent: Googlebot\nUser-agent: *\nDisallow: /private\n');
+    expect(isPathAllowed('/private/page', rules)).toBe(false);
+  });
+
+  it('does not let a later, unrelated named-bot group leak into the "*" group', async () => {
+    const { parseRobotsTxt, isPathAllowed } = await import('../ingest/sources/sponsor-pages');
+    const rules = parseRobotsTxt('User-agent: *\nDisallow: /a\n\nUser-agent: Bingbot\nDisallow: /b\n');
+    expect(isPathAllowed('/a/x', rules)).toBe(false);
+    expect(isPathAllowed('/b/x', rules)).toBe(true); // /b only applies to Bingbot's own group
+  });
 });
 
 describe('isAllowedByRobots (fails open on no/unreachable robots.txt)', () => {
@@ -78,6 +109,36 @@ describe('isAllowedByRobots (fails open on no/unreachable robots.txt)', () => {
     }));
     const { isAllowedByRobots, createRobotsCache } = await import('../ingest/sources/sponsor-pages');
     expect(await isAllowedByRobots('https://sponsor.example.com/events', createRobotsCache())).toBe(true);
+  });
+
+  // Re-review item 7: a 5xx means "the site can't currently tell us its
+  // rules," which is NOT the same as "no robots.txt exists" - disallow
+  // everything rather than failing open.
+  it('treats a robots.txt 5xx as disallow-all, not fail-open', async () => {
+    vi.doMock('../safe-fetch', () => ({
+      safeFetch: vi.fn(async (url: string) => ({ ok: false, status: 503, url, headers: {}, text: '' })),
+      SafeFetchError: class SafeFetchError extends Error {},
+    }));
+    const { isAllowedByRobots, createRobotsCache } = await import('../ingest/sources/sponsor-pages');
+    expect(await isAllowedByRobots('https://sponsor.example.com/events', createRobotsCache())).toBe(false);
+  });
+
+  // Re-review item 7: maxRedirects: 0 on the robots.txt fetch + treating
+  // the resulting SafeFetchError as "unreachable" -> fail open, rather
+  // than silently following the redirect to a DIFFERENT origin's rules.
+  it('treats a robots.txt redirect as unreachable (fails open), never follows it', async () => {
+    const requestedUrls: string[] = [];
+    vi.doMock('../safe-fetch', () => ({
+      safeFetch: vi.fn(async (url: string, opts: { maxRedirects?: number }) => {
+        requestedUrls.push(url);
+        expect(opts.maxRedirects).toBe(0);
+        throw new Error('simulated: safeFetch itself throws on a redirect when maxRedirects is 0');
+      }),
+      SafeFetchError: class SafeFetchError extends Error {},
+    }));
+    const { isAllowedByRobots, createRobotsCache } = await import('../ingest/sources/sponsor-pages');
+    expect(await isAllowedByRobots('https://sponsor.example.com/events', createRobotsCache())).toBe(true);
+    expect(requestedUrls).toEqual(['https://sponsor.example.com/robots.txt']);
   });
 });
 
@@ -138,17 +199,18 @@ describe('resolveSponsorPageUrls', () => {
     } as never;
   }
 
-  it('admin-entered known URLs win outright and are capped at MAX_PAGES_PER_RUN', async () => {
+  it('admin-entered known URLs win outright, are capped at MAX_PAGES_PER_RUN, and never rotate (nextOffset null)', async () => {
     const { resolveSponsorPageUrls, MAX_PAGES_PER_RUN } = await import('../ingest/sources/sponsor-pages');
     const many = Array.from({ length: MAX_PAGES_PER_RUN + 5 }, (_, i) => `https://sponsor${i}.example.com/events`);
-    const urls = await resolveSponsorPageUrls(fakeSupabase([]), 'ETHDenver', many);
+    const { urls, nextOffset } = await resolveSponsorPageUrls(fakeSupabase([]), 'ETHDenver', many);
     expect(urls).toHaveLength(MAX_PAGES_PER_RUN);
     expect(urls[0]).toBe(many[0]);
+    expect(nextOffset).toBeNull();
   });
 
   it('discovers from event_sponsors.sponsor_url when no URLs are configured: homepage + /events per sponsor', async () => {
     const { resolveSponsorPageUrls } = await import('../ingest/sources/sponsor-pages');
-    const urls = await resolveSponsorPageUrls(
+    const { urls, nextOffset } = await resolveSponsorPageUrls(
       fakeSupabase([{ sponsor_url: 'https://acme.example.com' }, { sponsor_url: 'https://beta.example.com/' }]),
       'ETHDenver',
       []
@@ -159,11 +221,48 @@ describe('resolveSponsorPageUrls', () => {
       'https://beta.example.com/',
       'https://beta.example.com/events',
     ]);
+    expect(nextOffset).toBe(0); // both sponsors visited, wraps back to the start (offset 0)
   });
 
   it('returns [] when event_sponsors does not exist yet (42P01), never throws', async () => {
     const { resolveSponsorPageUrls } = await import('../ingest/sources/sponsor-pages');
-    const urls = await resolveSponsorPageUrls(fakeSupabase([], { code: '42P01', message: 'relation does not exist' }), 'ETHDenver', []);
+    const { urls, nextOffset } = await resolveSponsorPageUrls(fakeSupabase([], { code: '42P01', message: 'relation does not exist' }), 'ETHDenver', []);
     expect(urls).toEqual([]);
+    expect(nextOffset).toBeNull();
+  });
+
+  // Re-review item 8: rotation.
+  it('rotates which sponsor starts the list based on the offset cursor', async () => {
+    const { resolveSponsorPageUrls } = await import('../ingest/sources/sponsor-pages');
+    const sponsors = [
+      { sponsor_url: 'https://a.example.com' },
+      { sponsor_url: 'https://b.example.com' },
+      { sponsor_url: 'https://c.example.com' },
+    ];
+    const { urls, nextOffset } = await resolveSponsorPageUrls(fakeSupabase(sponsors), 'ETHDenver', [], { offset: 1 });
+    // Starts at sponsor index 1 ("b"), not index 0 ("a").
+    expect(urls[0]).toBe('https://b.example.com/');
+    expect(nextOffset).toBe(1); // 1 (offset) + 3 (all three visited) = 4 % 3 = 1
+  });
+
+  it('wraps an out-of-range offset back into bounds', async () => {
+    const { resolveSponsorPageUrls } = await import('../ingest/sources/sponsor-pages');
+    const sponsors = [{ sponsor_url: 'https://a.example.com' }, { sponsor_url: 'https://b.example.com' }];
+    const { urls } = await resolveSponsorPageUrls(fakeSupabase(sponsors), 'ETHDenver', [], { offset: 5 });
+    expect(urls[0]).toBe('https://b.example.com/'); // 5 % 2 == 1 -> starts at "b"
+  });
+
+  // Re-review item 8: normalize bare domains + skip bad ones instead of failing the run.
+  it('normalizes a bare domain (no scheme) to https://, and skips an unparseable one', async () => {
+    const { resolveSponsorPageUrls } = await import('../ingest/sources/sponsor-pages');
+    const sponsors = [{ sponsor_url: 'acme.example.com' }, { sponsor_url: 'not a url at all :::' }, { sponsor_url: 'https://beta.example.com' }];
+    const { urls } = await resolveSponsorPageUrls(fakeSupabase(sponsors), 'ETHDenver', []);
+    expect(urls).toContain('https://acme.example.com/');
+    expect(urls).toContain('https://acme.example.com/events');
+    expect(urls).toContain('https://beta.example.com/');
+    expect(urls).toContain('https://beta.example.com/events');
+    // The unparseable one contributed nothing, but didn't throw or stop
+    // the other two sponsors from being processed.
+    expect(urls).toHaveLength(4);
   });
 });

@@ -33,12 +33,18 @@
 // implemented without live access to `api.meetup.com/gql-ext`. The query
 // below reflects Meetup's documented post-Feb-2025 `eventSearch` shape
 // (meetup.com/graphql/guide: keywordSearch was split into groupSearch and
-// eventSearch). `parseMeetupEventSearchResponse` is defensive (every field
-// read is optional-chained, unexpected shapes yield an empty array rather
-// than throwing) so a schema drift degrades this source to "found nothing"
-// — logged and counted, never a crashed run — rather than breaking the
-// cron. Re-verify the query against Meetup's live schema before relying on
-// nonzero results in production.
+// eventSearch).
+//
+// Re-review item 6: a GraphQL `errors` array or an unparseable response body
+// is now treated as a RUN ERROR (thrown, logged via console.error) rather
+// than silently degrading to zero results — a real schema drift needs to
+// surface somewhere an admin will see it (the run's `ingest_runs.error`,
+// via `pipeline.ts`/`runSource`'s existing catch-and-record path), not get
+// swallowed as an indistinguishable "found nothing this run."
+// `parseMeetupEventSearchResponse` itself stays defensive for a
+// SUCCESSFUL, errors-free response's PER-EDGE shape (a node missing an id
+// or eventUrl is just skipped) — that's normal/expected sparseness, not
+// drift.
 import { safeFetch, SafeFetchError } from '../../safe-fetch';
 
 export class MeetupFetchError extends Error {}
@@ -177,7 +183,10 @@ export function parseMeetupEventSearchResponse(json: EventSearchGraphQLResponse)
  */
 export async function searchMeetupEvents(params: MeetupSearchParams): Promise<MeetupSearchResult[]> {
   const accessToken = await getMeetupAccessToken();
-  const radiusKm = Math.max(1, Math.min(100, params.radiusMi));
+  // Re-review item 6: this is miles (as the param name always said), not
+  // km — the old `radiusKm` local was simply misnamed; no unit conversion
+  // ever happened here. Meetup's `radius` filter is documented in miles.
+  const radiusMiles = Math.max(1, Math.min(100, params.radiusMi));
   const body = JSON.stringify({
     query: EVENT_SEARCH_QUERY,
     variables: {
@@ -185,7 +194,7 @@ export async function searchMeetupEvents(params: MeetupSearchParams): Promise<Me
         query: params.query,
         lat: params.lat,
         lon: params.lon,
-        radius: radiusKm,
+        radius: radiusMiles,
         startDateRange: params.startDateISO,
         endDateRange: params.endDateISO,
       },
@@ -215,8 +224,23 @@ export async function searchMeetupEvents(params: MeetupSearchParams): Promise<Me
   let json: EventSearchGraphQLResponse;
   try {
     json = JSON.parse(res.text);
-  } catch {
-    return [];
+  } catch (err) {
+    // Re-review item 6: invalid JSON is a run error, not a silent "found
+    // nothing" — log it so schema/response drift is visible.
+    console.error('[ingest] Meetup eventSearch returned invalid JSON', {
+      error: err instanceof Error ? err.message : String(err),
+      bodyPreview: res.text.slice(0, 500),
+    });
+    throw new MeetupFetchError('Meetup eventSearch returned invalid JSON.');
+  }
+  if (json.errors && json.errors.length > 0) {
+    const message = json.errors.map((e) => e.message || 'unknown error').join('; ');
+    // Re-review item 6: a GraphQL `errors` array (e.g. a filter field this
+    // module got wrong, or a schema change) is a run error, not a silent
+    // "found nothing" — log it so drift shows up instead of looking
+    // identical to "no matching events this run."
+    console.error('[ingest] Meetup eventSearch returned GraphQL errors (possible schema drift)', { errors: json.errors });
+    throw new MeetupFetchError(`Meetup eventSearch returned errors: ${message}`);
   }
   return parseMeetupEventSearchResponse(json);
 }

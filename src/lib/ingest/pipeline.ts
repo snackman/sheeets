@@ -22,12 +22,13 @@ import {
   updateSource,
   profileRowToThemeProfile,
   getIngestSupabase,
+  recordRunXCost,
 } from './db';
 import { fetchLumaIcalFeed, toIcalCandidates } from './sources/luma-ical';
 import { fetchTelegramChannelHtml, parseTelegramChannelHtml, isValidTelegramHandle } from './sources/telegram';
-import { isXConfigured, fetchXUserPosts, X_POST_READ_COST_USD } from './sources/x';
+import { isXConfigured, fetchXUserPosts, X_POST_READ_COST_USD, MAX_RESULTS_PER_ACCOUNT_PER_RUN, X_MAX_PAGES_PER_RUN, type XPostsPage } from './sources/x';
 import { isMeetupConfigured, searchMeetupEvents } from './sources/meetup';
-import { resolveSponsorPageUrls, fetchSponsorPageLinks, createRobotsCache } from './sources/sponsor-pages';
+import { resolveSponsorPageUrls, fetchSponsorPageLinks, createRobotsCache, SPONSOR_PAGE_WORST_CASE_MS } from './sources/sponsor-pages';
 import { isAllowlistedEventLink } from './allowlist';
 import { normalizeLumaEvent, computeContentHash } from './normalize';
 import { buildSheetLinkIndex, findSheetMatchByLink, fuzzyMatch, type DedupeCandidatePool } from './dedupe';
@@ -44,7 +45,6 @@ import { hostListMatches } from './hosts';
 import { getSponsorNamesForConference, matchSponsorName } from './sponsors';
 import { loadLearningContext, learnedHostSignalMatches } from './learning';
 import { checkAutoPublishKillSwitch } from './gate';
-import { recordRunXCost } from './db';
 import {
   FINAL_CANDIDATE_STATUSES,
   RETRY_ON_UNCHANGED_STATUSES,
@@ -191,7 +191,13 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
         : source.kind === 'telegram_channel'
           ? await processTelegramSource(commonArgs)
           : source.kind === 'x_account'
-            ? await processXSource(commonArgs)
+            // `runId` is threaded through so `processXSource` can record X
+            // spend itself, in a `finally`, right after the paid read(s) —
+            // see its doc comment (re-review item 2) — rather than this
+            // function recording it only after the WHOLE source finished
+            // without throwing, which would lose track of money already
+            // spent on a run that errors partway through processing.
+            ? await processXSource({ ...commonArgs, runId: run.id })
             : source.kind === 'meetup_search'
               ? await processMeetupSource(commonArgs)
               : await processSponsorPagesSource(commonArgs);
@@ -207,15 +213,6 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
       llm_output_tokens: llmOutputTokens,
       est_cost_usd: costUsd,
     });
-    // Phase 4 (§3.7): X API spend is tracked SEPARATELY from LLM spend, as
-    // its own best-effort update onto this same run row — never on the
-    // Luma-iCal/Telegram paths (xPostsRead/xCostUsd are 0 there), and never
-    // throws (db.ts#recordRunXCost degrades gracefully if the Phase 4
-    // migration isn't applied yet).
-    const xResult = result as { xPostsRead?: number; xCostUsd?: number };
-    if (xResult.xPostsRead || xResult.xCostUsd) {
-      await recordRunXCost(run.id, { xPostsRead: xResult.xPostsRead ?? 0, xCostUsd: xResult.xCostUsd ?? 0 });
-    }
     return { runId: run.id, status: result.hitDeadline ? 'partial' : 'ok', counts, previews: result.previews };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -983,6 +980,42 @@ interface DiscoverySourceLoopResult {
   previews?: CandidatePreview[];
 }
 
+/** Re-review item (cleanup): the three Phase 4 source processors below each
+ *  had their own byte-for-byte copy of this closure — pulled into one
+ *  helper. (`processLumaIcalSource`/`processTelegramSource` above predate
+ *  this helper and keep their own inline versions, unchanged, to minimize
+ *  the diff on already-shipped, already-reviewed code.) */
+function makeDiscoveryPersist(
+  dryRun: boolean | undefined,
+  previews: CandidatePreview[]
+): (row: Record<string, unknown> & { conference: string; canonical_key: string; status: CandidateStatus; event: NormalizedEvent }) => Promise<void> {
+  return async (row) => {
+    if (dryRun) {
+      previews.push({
+        canonical_key: row.canonical_key,
+        status: row.status,
+        final_score: (row.final_score as number | undefined) ?? null,
+        route: (row.route as string | undefined) ?? null,
+        llm_reason: (row.llm_reason as string | undefined) ?? null,
+        filter_reason: (row.filter_reason as string | undefined) ?? null,
+        event: row.event,
+      });
+      return;
+    }
+    await upsertCandidate(row);
+  };
+}
+
+/** True if at least one URL in `urls` is on an allowlisted event platform —
+ *  used to skip `buildDiscoverySourceContext` entirely (re-review item 4)
+ *  when a source's raw fetch step found nothing worth processing this run,
+ *  since that context build does several DB/network round trips (sheet
+ *  events, link index, verified hosts, learning context, sponsor names)
+ *  that are wasted work when there's nothing to run them for. */
+function hasAnyAllowlistedLink(urls: string[]): boolean {
+  return urls.some((u) => isAllowlistedEventLink(u));
+}
+
 /**
  * Feed a batch of already-extracted, not-yet-allowlist-filtered URLs
  * through `processDiscoveredLink`, one at a time, honoring the deadline and
@@ -990,6 +1023,12 @@ interface DiscoverySourceLoopResult {
  * inlined above instead of calling this, since it predates this helper)
  * shares. `sourceRef(url)` lets a caller attach per-URL provenance (a tweet
  * id, a Meetup node id, the sponsor page it came from).
+ *
+ * Re-review item 1 (HIGH): callers MUST read `runningCostUsdRef.value` /
+ * `totalTokensRef.{input,output}` back out after this returns and surface
+ * them as the source's `llmInputTokens`/`llmOutputTokens`/`costUsd` — this
+ * function mutates the refs it's given but never returns them itself
+ * (callers already own them, so they can inspect them directly).
  */
 async function runDiscoveredLinksBatch(
   urls: string[],
@@ -1096,13 +1135,15 @@ async function runDiscoveredLinksBatch(
 }
 
 /**
- * Phase 4 item 1 (§3.7/§7): one curated X account per run, read once via
+ * Phase 4 item 1 (§3.7/§7): one curated X account per run, paginated via
  * `GET /2/users/:id/tweets` with a `since_id` cursor (so a post is read
- * only once — item 1's requirement), extracting outbound links and feeding
- * every allowlisted one through the shared discovery engine. The monthly
- * X-spend cap (`checkMonthlyXBudget`) is checked BEFORE the API call, not
- * after — once exceeded, the run makes no further X calls at all this
- * month (not even a cheap one), same fail-closed posture as the LLM budget.
+ * only once — item 1's requirement) and, within this run, a
+ * `pagination_token` (re-review item 5) up to `X_MAX_PAGES_PER_RUN` pages,
+ * extracting outbound links and feeding every allowlisted one through the
+ * shared discovery engine. The monthly X-spend cap (`checkMonthlyXBudget`)
+ * is checked BEFORE any API call, not after — once exceeded, the run makes
+ * no further X calls at all this month (not even a cheap one), same
+ * fail-closed posture as the LLM budget.
  */
 async function processXSource(args: {
   source: Awaited<ReturnType<typeof getSource>>;
@@ -1111,55 +1152,93 @@ async function processXSource(args: {
   deadlineMs?: number;
   counts: RunCounts;
   dryRun?: boolean;
-}): Promise<DiscoverySourceLoopResult & { xPostsRead: number; xCostUsd: number }> {
-  const { profile, tab, counts, dryRun } = args;
+  /** Re-review item 2: threaded through so X spend can be recorded right
+   *  after the paid read(s), in a `finally`, rather than only after this
+   *  whole function returns successfully. */
+  runId: string;
+}): Promise<DiscoverySourceLoopResult> {
+  const { profile, tab, counts, dryRun, runId } = args;
   const source = args.source!;
   const deadline = Date.now() + (args.deadlineMs ?? 240_000);
   const previews: CandidatePreview[] = [];
-
-  async function persist(row: Record<string, unknown> & { conference: string; canonical_key: string; status: CandidateStatus; event: NormalizedEvent }): Promise<void> {
-    if (dryRun) {
-      previews.push({
-        canonical_key: row.canonical_key,
-        status: row.status,
-        final_score: (row.final_score as number | undefined) ?? null,
-        route: (row.route as string | undefined) ?? null,
-        llm_reason: (row.llm_reason as string | undefined) ?? null,
-        filter_reason: (row.filter_reason as string | undefined) ?? null,
-        event: row.event,
-      });
-      return;
-    }
-    await upsertCandidate(row);
-  }
+  const persist = makeDiscoveryPersist(dryRun, previews);
 
   const config = source.config as { handle?: string; userId?: string };
   if (!config.userId) throw new Error('X source is missing a resolved userId (re-add the account).');
-  const cursor = source.cursor as { since_id?: string };
+  const cursor = (source.cursor as { since_id?: string } | null) ?? {};
 
   const xBudget = await checkMonthlyXBudget();
   if (xBudget.exceeded) {
-    return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline: false, xPostsRead: 0, xCostUsd: 0, previews: dryRun ? previews : undefined };
+    return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline: false, previews: dryRun ? previews : undefined };
   }
 
-  const page = await fetchXUserPosts(config.userId, { sinceId: cursor?.since_id ?? null });
-  bump(counts, 'fetched', page.resultCount);
-  const xCostUsd = page.resultCount * X_POST_READ_COST_USD;
+  // Re-review item 5: paginate up to X_MAX_PAGES_PER_RUN pages of
+  // MAX_RESULTS_PER_ACCOUNT_PER_RUN posts each. `capped` tracks whether
+  // more pages were available beyond our per-run limit — if so, we must
+  // NOT advance `since_id` past the posts we never read (below), even
+  // though we already paid to read the ones we DID get.
+  const pages: XPostsPage[] = [];
+  let paginationToken: string | undefined;
+  let capped = false;
+  let totalPostsRead = 0;
+  try {
+    for (let i = 0; i < X_MAX_PAGES_PER_RUN; i++) {
+      const page = await fetchXUserPosts(config.userId, {
+        sinceId: cursor.since_id ?? null,
+        maxResults: MAX_RESULTS_PER_ACCOUNT_PER_RUN,
+        paginationToken,
+      });
+      pages.push(page);
+      totalPostsRead += page.resultCount;
+      const exhausted = page.resultCount < MAX_RESULTS_PER_ACCOUNT_PER_RUN || !page.nextToken;
+      if (exhausted) break;
+      paginationToken = page.nextToken ?? undefined;
+      if (i === X_MAX_PAGES_PER_RUN - 1) capped = true;
+    }
+  } finally {
+    // Re-review item 2 (MEDIUM): recorded here, in a `finally`, right
+    // after the paid read(s) complete (successfully or not) — so a
+    // failure anywhere in the dedupe/classify/persist processing below
+    // never loses track of money ALREADY spent on page reads that DID
+    // succeed before it. `recordRunXCost` itself degrades gracefully if
+    // the Phase 4 migration hasn't landed yet, and is a no-op for
+    // `totalPostsRead === 0` (e.g. the very first page threw before
+    // reading anything).
+    if (totalPostsRead > 0) {
+      await recordRunXCost(runId, { xPostsRead: totalPostsRead, xCostUsd: totalPostsRead * X_POST_READ_COST_USD });
+    }
+  }
+  bump(counts, 'fetched', totalPostsRead);
 
-  if (!dryRun && page.newestId) {
-    await updateSource(source.id, { cursor: { since_id: page.newestId } });
+  const linksByUrl = new Map<string, string>(); // url -> tweet permalink, for sourceRef
+  for (const page of pages) {
+    for (const post of page.posts) {
+      for (const link of post.links) {
+        if (!linksByUrl.has(link)) linksByUrl.set(link, `https://x.com/i/status/${post.id}`);
+      }
+    }
+  }
+  const candidateUrls = Array.from(linksByUrl.keys());
+
+  // Re-review item 4: skip the (expensive) discovery-context build
+  // entirely when there's nothing allowlisted to process, or the deadline
+  // from an earlier source in this run has already passed.
+  if (Date.now() > deadline || !hasAnyAllowlistedLink(candidateUrls)) {
+    return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline: Date.now() > deadline, previews: dryRun ? previews : undefined };
   }
 
   const budgetStatus = await checkMonthlyBudget();
   const ctx = await buildDiscoverySourceContext(source, profile, tab);
-  const linksByUrl = new Map<string, string>(); // url -> tweet permalink, for sourceRef
-  for (const post of page.posts) {
-    for (const link of post.links) {
-      if (!linksByUrl.has(link)) linksByUrl.set(link, `https://x.com/i/status/${post.id}`);
-    }
-  }
 
-  const { hitDeadline } = await runDiscoveredLinksBatch(Array.from(linksByUrl.keys()), {
+  // Re-review item 1 (HIGH): these refs are read back out below and
+  // surfaced as this source's real LLM cost/tokens — previously hardcoded
+  // to 0, silently discarding every classification this source triggered
+  // from the run's recorded cost and the monthly LLM budget's running
+  // total.
+  const runningCostUsdRef = { value: 0 };
+  const llmCallsThisRunRef = { value: 0 };
+  const totalTokensRef = { input: 0, output: 0 };
+  const { hitDeadline } = await runDiscoveredLinksBatch(candidateUrls, {
     source,
     profile,
     tab,
@@ -1171,18 +1250,33 @@ async function processXSource(args: {
     deadline,
     persist,
     budgetStatus,
-    runningCostUsdRef: { value: 0 },
-    llmCallsThisRunRef: { value: 0 },
-    totalTokensRef: { input: 0, output: 0 },
+    runningCostUsdRef,
+    llmCallsThisRunRef,
+    totalTokensRef,
   });
 
+  // Re-review item 2: advance `since_id` only now that the batch has
+  // actually been processed (not right after the paid read, above) — a
+  // crash between the read and this point must not silently drop links we
+  // already paid to read but never turned into candidates. Pages are
+  // newest-first, so the first page's `newestId` is the true overall
+  // newest post THIS query saw; never advance past unread posts when
+  // `capped` (more pages existed beyond our per-run limit) or the
+  // deadline cut the batch short (`hitDeadline`) — both mean something we
+  // read was never fully processed or more is waiting, so next run must
+  // start from the SAME place (re-reading, and re-billing, a few already-
+  // seen posts is an acceptable, bounded cost; silently skipping unread
+  // ones is not).
+  const newestIdThisRun = pages[0]?.newestId ?? null;
+  if (!dryRun && !capped && !hitDeadline && newestIdThisRun) {
+    await updateSource(source.id, { cursor: { since_id: newestIdThisRun } });
+  }
+
   return {
-    llmInputTokens: 0,
-    llmOutputTokens: 0,
-    costUsd: 0,
+    llmInputTokens: totalTokensRef.input,
+    llmOutputTokens: totalTokensRef.output,
+    costUsd: runningCostUsdRef.value,
     hitDeadline,
-    xPostsRead: page.resultCount,
-    xCostUsd,
     previews: dryRun ? previews : undefined,
   };
 }
@@ -1206,27 +1300,16 @@ async function processMeetupSource(args: {
   const source = args.source!;
   const deadline = Date.now() + (args.deadlineMs ?? 240_000);
   const previews: CandidatePreview[] = [];
-
-  async function persist(row: Record<string, unknown> & { conference: string; canonical_key: string; status: CandidateStatus; event: NormalizedEvent }): Promise<void> {
-    if (dryRun) {
-      previews.push({
-        canonical_key: row.canonical_key,
-        status: row.status,
-        final_score: (row.final_score as number | undefined) ?? null,
-        route: (row.route as string | undefined) ?? null,
-        llm_reason: (row.llm_reason as string | undefined) ?? null,
-        filter_reason: (row.filter_reason as string | undefined) ?? null,
-        event: row.event,
-      });
-      return;
-    }
-    await upsertCandidate(row);
-  }
+  const persist = makeDiscoveryPersist(dryRun, previews);
 
   const config = source.config as { query?: string; radius_mi?: number };
   if (!config.query) throw new Error('Meetup source is missing a search query.');
   const radiusMi = config.radius_mi ?? Math.max(1, Math.round(profile.radius_km * 0.621371));
 
+  // Re-review item 6: a GraphQL `errors` array or invalid JSON now THROWS
+  // out of `searchMeetupEvents` (instead of silently returning []), so a
+  // schema-drift run surfaces as a real `ingest_runs.error`, via the same
+  // catch-and-record path `runSource` already has for every other kind.
   const results = await searchMeetupEvents({
     query: config.query,
     lat: tab.center.lat,
@@ -1237,11 +1320,22 @@ async function processMeetupSource(args: {
   });
   bump(counts, 'fetched', results.length);
 
+  const candidateUrls = results.map((r) => r.eventUrl);
+  // Re-review item 4: skip the discovery-context build when there's
+  // nothing allowlisted to process, or the deadline has already passed.
+  if (Date.now() > deadline || !hasAnyAllowlistedLink(candidateUrls)) {
+    return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline: Date.now() > deadline, previews: dryRun ? previews : undefined };
+  }
+
   const budgetStatus = await checkMonthlyBudget();
   const ctx = await buildDiscoverySourceContext(source, profile, tab);
   const refByUrl = new Map(results.map((r) => [r.eventUrl, r.id] as const));
 
-  const { hitDeadline } = await runDiscoveredLinksBatch(results.map((r) => r.eventUrl), {
+  // Re-review item 1 (HIGH): read back out below as the real LLM cost/tokens.
+  const runningCostUsdRef = { value: 0 };
+  const llmCallsThisRunRef = { value: 0 };
+  const totalTokensRef = { input: 0, output: 0 };
+  const { hitDeadline } = await runDiscoveredLinksBatch(candidateUrls, {
     source,
     profile,
     tab,
@@ -1253,12 +1347,12 @@ async function processMeetupSource(args: {
     deadline,
     persist,
     budgetStatus,
-    runningCostUsdRef: { value: 0 },
-    llmCallsThisRunRef: { value: 0 },
-    totalTokensRef: { input: 0, output: 0 },
+    runningCostUsdRef,
+    llmCallsThisRunRef,
+    totalTokensRef,
   });
 
-  return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline, previews: dryRun ? previews : undefined };
+  return { llmInputTokens: totalTokensRef.input, llmOutputTokens: totalTokensRef.output, costUsd: runningCostUsdRef.value, hitDeadline, previews: dryRun ? previews : undefined };
 }
 
 /**
@@ -1279,32 +1373,30 @@ async function processSponsorPagesSource(args: {
   const source = args.source!;
   const deadline = Date.now() + (args.deadlineMs ?? 240_000);
   const previews: CandidatePreview[] = [];
-
-  async function persist(row: Record<string, unknown> & { conference: string; canonical_key: string; status: CandidateStatus; event: NormalizedEvent }): Promise<void> {
-    if (dryRun) {
-      previews.push({
-        canonical_key: row.canonical_key,
-        status: row.status,
-        final_score: (row.final_score as number | undefined) ?? null,
-        route: (row.route as string | undefined) ?? null,
-        llm_reason: (row.llm_reason as string | undefined) ?? null,
-        filter_reason: (row.filter_reason as string | undefined) ?? null,
-        event: row.event,
-      });
-      return;
-    }
-    await upsertCandidate(row);
-  }
+  const persist = makeDiscoveryPersist(dryRun, previews);
 
   const config = source.config as { urls?: string[] };
   const supabase = getIngestSupabase();
-  const pageUrls = await resolveSponsorPageUrls(supabase, source.conference, config.urls ?? []);
+  const cursor = (source.cursor as { sponsor_offset?: number } | null) ?? {};
+  const { urls: pageUrls, nextOffset } = await resolveSponsorPageUrls(supabase, source.conference, config.urls ?? [], {
+    offset: cursor.sponsor_offset ?? 0,
+  });
   bump(counts, 'fetched', pageUrls.length);
 
   const robotsCache = createRobotsCache();
   const linksBySourceUrl = new Map<string, string>(); // discovered link -> the sponsor page it came from
+  let sponsorPagesHitDeadline = false;
   for (const pageUrl of pageUrls) {
-    if (Date.now() > deadline) break;
+    // Re-review item 4: check the deadline with enough margin for the
+    // WORST-CASE time one more page could take (robots.txt timeout + page
+    // timeout + pacing sleep, ~17s — `SPONSOR_PAGE_WORST_CASE_MS`), not
+    // just whether the deadline has already passed — a page fetch started
+    // a moment before the deadline could otherwise still run past the
+    // cron's own hard cutoff.
+    if (Date.now() + SPONSOR_PAGE_WORST_CASE_MS > deadline) {
+      sponsorPagesHitDeadline = true;
+      break;
+    }
     const links = await fetchSponsorPageLinks(pageUrl, robotsCache);
     for (const link of links) {
       if (!linksBySourceUrl.has(link)) linksBySourceUrl.set(link, pageUrl);
@@ -1315,10 +1407,30 @@ async function processSponsorPagesSource(args: {
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
+  // Re-review item 8: persist the rotation cursor so the NEXT run starts
+  // from a different sponsor, regardless of whether this run finished
+  // early on the deadline — only when rotation applies at all (admin-
+  // entered URLs and "no sponsors found" both return `nextOffset: null`).
+  if (!dryRun && nextOffset !== null) {
+    await updateSource(source.id, { cursor: { sponsor_offset: nextOffset } });
+  }
+
+  const candidateUrls = Array.from(linksBySourceUrl.keys());
+  // Re-review item 4: skip the discovery-context build when there's
+  // nothing allowlisted to process, or the page-fetch loop above already
+  // ran out of deadline margin.
+  if (sponsorPagesHitDeadline || !hasAnyAllowlistedLink(candidateUrls)) {
+    return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline: sponsorPagesHitDeadline, previews: dryRun ? previews : undefined };
+  }
+
   const budgetStatus = await checkMonthlyBudget();
   const ctx = await buildDiscoverySourceContext(source, profile, tab);
 
-  const { hitDeadline } = await runDiscoveredLinksBatch(Array.from(linksBySourceUrl.keys()), {
+  // Re-review item 1 (HIGH): read back out below as the real LLM cost/tokens.
+  const runningCostUsdRef = { value: 0 };
+  const llmCallsThisRunRef = { value: 0 };
+  const totalTokensRef = { input: 0, output: 0 };
+  const { hitDeadline } = await runDiscoveredLinksBatch(candidateUrls, {
     source,
     profile,
     tab,
@@ -1330,10 +1442,16 @@ async function processSponsorPagesSource(args: {
     deadline,
     persist,
     budgetStatus,
-    runningCostUsdRef: { value: 0 },
-    llmCallsThisRunRef: { value: 0 },
-    totalTokensRef: { input: 0, output: 0 },
+    runningCostUsdRef,
+    llmCallsThisRunRef,
+    totalTokensRef,
   });
 
-  return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline, previews: dryRun ? previews : undefined };
+  return {
+    llmInputTokens: totalTokensRef.input,
+    llmOutputTokens: totalTokensRef.output,
+    costUsd: runningCostUsdRef.value,
+    hitDeadline: sponsorPagesHitDeadline || hitDeadline,
+    previews: dryRun ? previews : undefined,
+  };
 }
