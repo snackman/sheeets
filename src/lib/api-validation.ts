@@ -377,15 +377,18 @@ export const IngestProfileUpsertSchema = z.object({
   enabled: z.boolean().optional(),
 });
 
-/** Schema for POST /api/admin/ingest/config (add a Luma calendar or
- *  Telegram channel source — Phase 3 added `telegram_channel`). */
+/** Schema for POST /api/admin/ingest/config (add a Luma calendar, Telegram
+ *  channel, X account, Meetup search or sponsor event-page source — Phase 3
+ *  added `telegram_channel`, Phase 4 added the other three). */
 export const IngestSourceCreateSchema = z.object({
   password: z.string(),
   conference: z.string().min(1),
-  kind: z.enum(['luma_ical', 'telegram_channel']),
+  kind: z.enum(['luma_ical', 'telegram_channel', 'x_account', 'meetup_search', 'sponsor_pages']),
   /** Luma: a `luma.com/<slug>` calendar URL or raw `cal-…` id. Telegram: a
-   *  handle, `@handle`, or `t.me/<handle>` URL. */
-  input: z.string().min(1, 'A Luma calendar URL/id or Telegram channel handle is required'),
+   *  handle, `@handle`, or `t.me/<handle>` URL. X: a handle, `@handle`, or
+   *  `x.com/<handle>` URL. Meetup: a free-text topic query. Sponsor pages:
+   *  one or more event-page URLs, one per line or comma-separated. */
+  input: z.string().min(1, 'A source identifier is required'),
   label: z.string().max(200).optional(),
   trust: z.enum(['curated', 'host', 'discovery']).optional(),
 });

@@ -40,6 +40,15 @@ export interface SafeFetchOptions {
    * read so far. Returning true stops reading (e.g. once `</head>` is seen).
    */
   stopWhen?: (textSoFar: string) => boolean;
+  /** HTTP method. Default 'GET'. 'POST' is used only for fixed, internal
+   *  API endpoints we construct ourselves (e.g. Meetup's GraphQL endpoint,
+   *  Phase 4) — never for a user-supplied URL — but still goes through
+   *  every one of this module's SSRF guards (DNS-rebinding-safe lookup,
+   *  redirect re-validation, size/time caps), same as every other fetch in
+   *  this codebase (plan §10: "Every fetch goes through safeFetch"). */
+  method?: 'GET' | 'POST';
+  /** Request body for `method: 'POST'`. Ignored for GET. */
+  body?: string;
 }
 
 export interface SafeFetchResult {
@@ -260,14 +269,16 @@ export function parsePublicHttpUrl(raw: string): URL {
 function requestOnce(
   u: URL,
   headers: Record<string, string>,
-  signal: AbortSignal
+  signal: AbortSignal,
+  method: 'GET' | 'POST',
+  body?: string
 ): Promise<http.IncomingMessage> {
   return new Promise((resolve, reject) => {
     const mod = u.protocol === 'https:' ? https : http;
     const req = mod.request(
       u,
       {
-        method: 'GET',
+        method,
         headers,
         lookup: guardedLookup as unknown as net.LookupFunction,
         signal,
@@ -275,6 +286,7 @@ function requestOnce(
       resolve
     );
     req.on('error', reject);
+    if (method === 'POST' && body) req.write(body);
     req.end();
   });
 }
@@ -327,11 +339,14 @@ export async function safeFetch(
     maxBytes = DEFAULT_MAX_BYTES,
     maxRedirects = DEFAULT_MAX_REDIRECTS,
     stopWhen,
+    method = 'GET',
+    body,
   } = options;
 
   const signal = AbortSignal.timeout(timeoutMs);
   const reqHeaders: Record<string, string> = {
     'Accept-Encoding': 'gzip, deflate, br',
+    ...(method === 'POST' && body ? { 'Content-Length': String(Buffer.byteLength(body)) } : {}),
     ...headers,
   };
 
@@ -340,7 +355,7 @@ export async function safeFetch(
   for (let hop = 0; hop <= maxRedirects; hop++) {
     let res: http.IncomingMessage;
     try {
-      res = await requestOnce(current, reqHeaders, signal);
+      res = await requestOnce(current, reqHeaders, signal, method, body);
     } catch (err) {
       if (err instanceof SafeFetchError) throw err;
       if (signal.aborted) throw new SafeFetchError('Request timed out.');

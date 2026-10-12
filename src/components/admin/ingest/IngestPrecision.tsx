@@ -124,18 +124,60 @@ export default function IngestPrecision({ allConferenceTabs, password }: Props) 
             )}
           </div>
 
-          <div className="bg-stone-900 border border-stone-800 rounded-xl p-4 space-y-2">
-            <h3 className="text-sm font-semibold text-white">LLM spend this month</h3>
-            <p className="text-xs text-stone-400">
-              ${data.budget.spentUsd.toFixed(2)} / ${data.budget.capUsd.toFixed(2)} cap
-            </p>
-            <div className="w-full bg-stone-800 rounded-full h-2 overflow-hidden">
-              <div
-                className={`h-2 ${data.budget.spentUsd >= data.budget.capUsd ? 'bg-red-500' : 'bg-blue-500'}`}
-                style={{ width: `${Math.min(100, (data.budget.spentUsd / Math.max(data.budget.capUsd, 0.01)) * 100)}%` }}
-              />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="bg-stone-900 border border-stone-800 rounded-xl p-4 space-y-2">
+              <h3 className="text-sm font-semibold text-white">LLM spend this month</h3>
+              <p className="text-xs text-stone-400">
+                ${data.budget.spentUsd.toFixed(2)} / ${data.budget.capUsd.toFixed(2)} cap
+              </p>
+              <div className="w-full bg-stone-800 rounded-full h-2 overflow-hidden">
+                <div
+                  className={`h-2 ${data.budget.spentUsd >= data.budget.capUsd ? 'bg-red-500' : 'bg-blue-500'}`}
+                  style={{ width: `${Math.min(100, (data.budget.spentUsd / Math.max(data.budget.capUsd, 0.01)) * 100)}%` }}
+                />
+              </div>
+            </div>
+            <div className="bg-stone-900 border border-stone-800 rounded-xl p-4 space-y-2">
+              <h3 className="text-sm font-semibold text-white">X API spend this month</h3>
+              <p className="text-xs text-stone-400">
+                ${data.xBudget.spentUsd.toFixed(2)} / ${data.xBudget.capUsd.toFixed(2)} cap
+              </p>
+              <div className="w-full bg-stone-800 rounded-full h-2 overflow-hidden">
+                <div
+                  className={`h-2 ${data.xBudget.spentUsd >= data.xBudget.capUsd ? 'bg-red-500' : 'bg-purple-500'}`}
+                  style={{ width: `${Math.min(100, (data.xBudget.spentUsd / Math.max(data.xBudget.capUsd, 0.01)) * 100)}%` }}
+                />
+              </div>
             </div>
           </div>
+
+          {data.costByKind.length > 0 && (
+            <div className="bg-stone-900 border border-stone-800 rounded-xl p-4 space-y-2">
+              <h3 className="text-sm font-semibold text-white">Volume and cost per source type</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-stone-500 border-b border-stone-800">
+                      <th className="py-1.5 pr-3">Source type</th>
+                      <th className="py-1.5 pr-3">Runs</th>
+                      <th className="py-1.5 pr-3">LLM $</th>
+                      <th className="py-1.5 pr-3">X $</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.costByKind.map((c) => (
+                      <tr key={c.source_kind} className="border-b border-stone-900">
+                        <td className="py-1.5 pr-3 text-stone-300">{c.source_kind}</td>
+                        <td className="py-1.5 pr-3 text-stone-400">{c.run_count}</td>
+                        <td className="py-1.5 pr-3 text-stone-400">${c.llm_cost_usd.toFixed(4)}</td>
+                        <td className="py-1.5 pr-3 text-stone-400">${c.x_cost_usd.toFixed(4)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           <div className="bg-stone-900 border border-stone-800 rounded-xl p-4 space-y-2">
             <h3 className="text-sm font-semibold text-white">Volume per source</h3>

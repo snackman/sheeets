@@ -32,11 +32,15 @@ export async function GET(req: Request) {
 
   const reaped = await reapStaleRunningRuns();
 
-  // Phase 3: poll both curated Luma calendars and configured Telegram
-  // channels. `host_submission` sources are intentionally excluded — they
-  // are passive (fed by `POST /api/host/submissions`), never polled.
+  // Phase 4: also poll X accounts, Meetup searches and sponsor event
+  // pages — `runSource` itself skips an `x_account`/`meetup_search` source
+  // cleanly (status 'skipped', not 'error') when its credentials aren't
+  // configured, so listing them here is harmless even on a deploy with no
+  // `X_BEARER_TOKEN`/Meetup OAuth set. `host_submission` sources are
+  // intentionally excluded — they are passive (fed by
+  // `POST /api/host/submissions`), never polled.
   const [sources, tabs] = await Promise.all([
-    listDueSources(['luma_ical', 'telegram_channel']),
+    listDueSources(['luma_ical', 'telegram_channel', 'x_account', 'meetup_search', 'sponsor_pages']),
     getAllConferenceTabs(),
   ]);
   const todayISO = new Date().toISOString().slice(0, 10);

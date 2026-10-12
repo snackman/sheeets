@@ -25,6 +25,9 @@ import {
 } from './db';
 import { fetchLumaIcalFeed, toIcalCandidates } from './sources/luma-ical';
 import { fetchTelegramChannelHtml, parseTelegramChannelHtml, isValidTelegramHandle } from './sources/telegram';
+import { isXConfigured, fetchXUserPosts, X_POST_READ_COST_USD } from './sources/x';
+import { isMeetupConfigured, searchMeetupEvents } from './sources/meetup';
+import { resolveSponsorPageUrls, fetchSponsorPageLinks, createRobotsCache } from './sources/sponsor-pages';
 import { isAllowlistedEventLink } from './allowlist';
 import { normalizeLumaEvent, computeContentHash } from './normalize';
 import { buildSheetLinkIndex, findSheetMatchByLink, fuzzyMatch, type DedupeCandidatePool } from './dedupe';
@@ -32,7 +35,7 @@ import { dateWindowFilter, geoFilter, isPastEvent, geocodeAddressCached } from '
 import { LumaEnrichmentLimiter } from './enrich';
 import { scoreCandidate } from './scoring';
 import { processDiscoveredLink, PacedLinkLimiter, buildHostSignalComputer } from './discover';
-import { checkMonthlyBudget } from './budget';
+import { checkMonthlyBudget, checkMonthlyXBudget } from './budget';
 import { estimateCostUsd } from './pricing';
 import { toEventRow, ThrottledSheetPublisher } from './publish';
 import { reconcileConference } from './reconcile';
@@ -41,6 +44,7 @@ import { hostListMatches } from './hosts';
 import { getSponsorNamesForConference, matchSponsorName } from './sponsors';
 import { loadLearningContext, learnedHostSignalMatches } from './learning';
 import { checkAutoPublishKillSwitch } from './gate';
+import { recordRunXCost } from './db';
 import {
   FINAL_CANDIDATE_STATUSES,
   RETRY_ON_UNCHANGED_STATUSES,
@@ -49,6 +53,7 @@ import {
   type NormalizedEvent,
   type RunCounts,
   type RunTrigger,
+  type SourceKind,
 } from './types';
 
 function bump(counts: RunCounts, key: keyof RunCounts, by = 1) {
@@ -140,8 +145,25 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
       });
       return { runId: run.id, status: 'skipped', counts };
     }
-    if (source.kind !== 'luma_ical' && source.kind !== 'telegram_channel') {
+    const IMPLEMENTED_KINDS = ['luma_ical', 'telegram_channel', 'x_account', 'meetup_search', 'sponsor_pages'] as const;
+    if (!(IMPLEMENTED_KINDS as readonly string[]).includes(source.kind)) {
       throw new Error(`Source kind "${source.kind}" is not implemented until a later phase.`);
+    }
+
+    // Phase 4 (§Phase 4 items 1/3): X and Meetup are OFF unless their
+    // credentials are configured — skip cleanly (not an error) so the
+    // admin Log/Config UI shows "not configured"/"requires Meetup Pro"
+    // rather than a scary red error on every due run. Sponsor pages needs
+    // no credentials, so it's never skipped here.
+    if (source.kind === 'x_account' && !isXConfigured()) {
+      if (!opts.dryRun) await updateSource(sourceId, { last_run_at: new Date().toISOString(), last_status: 'skipped' });
+      await finishRun(run.id, { status: 'skipped', counts, error: 'X is not configured (X_BEARER_TOKEN is not set).' });
+      return { runId: run.id, status: 'skipped', counts };
+    }
+    if (source.kind === 'meetup_search' && !isMeetupConfigured()) {
+      if (!opts.dryRun) await updateSource(sourceId, { last_run_at: new Date().toISOString(), last_status: 'skipped' });
+      await finishRun(run.id, { status: 'skipped', counts, error: 'Meetup is not configured — requires Meetup Pro OAuth credentials.' });
+      return { runId: run.id, status: 'skipped', counts };
     }
 
     const profile = await getProfile(source.conference);
@@ -162,10 +184,17 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
     const tab = allTabs.find((t) => t.name === source.conference);
     if (!tab) throw new Error(`No conference tab found for "${source.conference}".`);
 
+    const commonArgs = { source, profile, tab, deadlineMs: opts.deadlineMs, counts, dryRun: opts.dryRun };
     const result =
       source.kind === 'luma_ical'
-        ? await processLumaIcalSource({ source, profile, tab, deadlineMs: opts.deadlineMs, counts, dryRun: opts.dryRun })
-        : await processTelegramSource({ source, profile, tab, deadlineMs: opts.deadlineMs, counts, dryRun: opts.dryRun });
+        ? await processLumaIcalSource(commonArgs)
+        : source.kind === 'telegram_channel'
+          ? await processTelegramSource(commonArgs)
+          : source.kind === 'x_account'
+            ? await processXSource(commonArgs)
+            : source.kind === 'meetup_search'
+              ? await processMeetupSource(commonArgs)
+              : await processSponsorPagesSource(commonArgs);
     llmInputTokens = result.llmInputTokens;
     llmOutputTokens = result.llmOutputTokens;
     costUsd = result.costUsd;
@@ -178,6 +207,15 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
       llm_output_tokens: llmOutputTokens,
       est_cost_usd: costUsd,
     });
+    // Phase 4 (§3.7): X API spend is tracked SEPARATELY from LLM spend, as
+    // its own best-effort update onto this same run row — never on the
+    // Luma-iCal/Telegram paths (xPostsRead/xCostUsd are 0 there), and never
+    // throws (db.ts#recordRunXCost degrades gracefully if the Phase 4
+    // migration isn't applied yet).
+    const xResult = result as { xPostsRead?: number; xCostUsd?: number };
+    if (xResult.xPostsRead || xResult.xCostUsd) {
+      await recordRunXCost(run.id, { xPostsRead: xResult.xPostsRead ?? 0, xCostUsd: xResult.xCostUsd ?? 0 });
+    }
     return { runId: run.id, status: result.hitDeadline ? 'partial' : 'ok', counts, previews: result.previews };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -860,4 +898,442 @@ async function processTelegramSource(args: {
   }
 
   return { llmInputTokens: totalInputTokens, llmOutputTokens: totalOutputTokens, costUsd: runningCostUsd, hitDeadline };
+}
+
+/* ------------------------------------------------------------------ */
+/* Phase 4 (plan §Phase 4): X, Meetup and sponsor-page sources. All three */
+/* are ALWAYS discovery trust (never auto-publish — enforced again here */
+/* even though `source.trust` is already forced to 'discovery' when the  */
+/* admin config route creates one of these, same belt-and-suspenders    */
+/* posture `discover.ts`/`scoring.ts` already apply) and all three just  */
+/* turn "a batch of raw items" into a list of candidate URLs, then hand   */
+/* every allowlisted one to the SAME shared engine Telegram uses          */
+/* (`processDiscoveredLink`) — so only the setup/fetch step below is new; */
+/* dedupe, filters, classification and routing are unchanged.            */
+/* ------------------------------------------------------------------ */
+
+interface DiscoverySourceRunContext {
+  enrichLimiter: LumaEnrichmentLimiter;
+  linkFetchLimiter: PacedLinkLimiter;
+  themeProfile: ReturnType<typeof profileRowToThemeProfile>;
+  client: OpenAI;
+  supabase: ReturnType<typeof getIngestSupabase>;
+  sheetEvents: Awaited<ReturnType<typeof fetchEvents>>;
+  linkIndex: Awaited<ReturnType<typeof buildSheetLinkIndex>>;
+  otherCandidates: DedupeCandidatePool[];
+  fewShot: Awaited<ReturnType<typeof loadLearningContext>>['fewShot'];
+  sponsorNames: string[];
+  computeHostSignals: ReturnType<typeof buildHostSignalComputer>;
+}
+
+/** Shared per-run setup every discovery source (Telegram inline above;
+ *  X/Meetup/sponsor-pages here) needs before it can call
+ *  `processDiscoveredLink` — one Luma enrichment limiter + sheet link
+ *  index + dedupe pool + learning context + sponsor names + host-signal
+ *  computer, built ONCE per run and reused for every item the source's own
+ *  fetch step produces. */
+async function buildDiscoverySourceContext(
+  source: Awaited<ReturnType<typeof getSource>>,
+  profile: IngestProfileRow,
+  tab: TabConfig
+): Promise<DiscoverySourceRunContext> {
+  const src = source!;
+  const enrichLimiter = new LumaEnrichmentLimiter(100, 1000);
+  const linkFetchLimiter = new PacedLinkLimiter(30, 500);
+  const resolveSlugViaLimiter = async (slug: string): Promise<string | null> => {
+    const payload = await enrichLimiter.enrich({ slug });
+    return payload?.event?.api_id ?? payload?.api_id ?? null;
+  };
+  const themeProfile = profileRowToThemeProfile(profile);
+  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const supabase = getIngestSupabase();
+
+  const sheetEvents = await fetchEvents(undefined, [tab]);
+  const linkIndex = await buildSheetLinkIndex(
+    sheetEvents.map((e) => ({ id: e.id, link: e.link })),
+    { maxResolutions: 50, resolveSlug: resolveSlugViaLimiter }
+  );
+  const otherCandidates: DedupeCandidatePool[] = (await listRecentCandidatesForDedupe(src.conference)).map((c) => ({
+    id: c.id,
+    canonical_key: c.canonical_key,
+    event: c.event,
+  }));
+
+  const organizerCounts = new Map<string, number>();
+  for (const e of sheetEvents) {
+    const key = e.organizer.trim().toLowerCase();
+    if (!key) continue;
+    organizerCounts.set(key, (organizerCounts.get(key) ?? 0) + 1);
+  }
+  const { data: verifiedHosts } = await supabase.from('verified_luma_hosts').select('host_api_id').is('revoked_at', null);
+  const verifiedHostIds = new Set((verifiedHosts ?? []).map((h: { host_api_id: string }) => h.host_api_id));
+
+  const { fewShot, learnedHosts } = await loadLearningContext({ conference: src.conference, themeKey: profile.theme_key });
+  const sponsorNames = await getSponsorNamesForConference(src.conference);
+  const computeHostSignals = buildHostSignalComputer({ profile, verifiedHostIds, organizerCounts, learnedHosts });
+
+  return { enrichLimiter, linkFetchLimiter, themeProfile, client, supabase, sheetEvents, linkIndex, otherCandidates, fewShot, sponsorNames, computeHostSignals };
+}
+
+interface DiscoverySourceLoopResult {
+  llmInputTokens: number;
+  llmOutputTokens: number;
+  costUsd: number;
+  hitDeadline: boolean;
+  previews?: CandidatePreview[];
+}
+
+/**
+ * Feed a batch of already-extracted, not-yet-allowlist-filtered URLs
+ * through `processDiscoveredLink`, one at a time, honoring the deadline and
+ * budget — the common tail every Phase 4 discovery source (and Telegram,
+ * inlined above instead of calling this, since it predates this helper)
+ * shares. `sourceRef(url)` lets a caller attach per-URL provenance (a tweet
+ * id, a Meetup node id, the sponsor page it came from).
+ */
+async function runDiscoveredLinksBatch(
+  urls: string[],
+  args: {
+    source: Awaited<ReturnType<typeof getSource>>;
+    profile: IngestProfileRow;
+    tab: TabConfig;
+    sourceKind: SourceKind;
+    sourceRef: (url: string) => string | null;
+    ctx: DiscoverySourceRunContext;
+    counts: RunCounts;
+    dryRun?: boolean;
+    deadline: number;
+    persist: (row: Record<string, unknown> & { conference: string; canonical_key: string; status: CandidateStatus; event: NormalizedEvent }) => Promise<void>;
+    budgetStatus: { spentUsd: number; capUsd: number };
+    runningCostUsdRef: { value: number };
+    llmCallsThisRunRef: { value: number };
+    totalTokensRef: { input: number; output: number };
+  }
+): Promise<{ hitDeadline: boolean }> {
+  const src = args.source!;
+  const canClassify = () =>
+    args.budgetStatus.spentUsd + args.runningCostUsdRef.value < args.budgetStatus.capUsd &&
+    args.llmCallsThisRunRef.value < args.profile.max_llm_calls_per_run;
+
+  const allowlisted = Array.from(new Set(urls)).filter(isAllowlistedEventLink);
+  for (const url of allowlisted) {
+    if (Date.now() > args.deadline) return { hitDeadline: true };
+
+    const cheapKey = normalizeEventLink(url);
+    const existing = cheapKey ? await getCandidateByKey(src.conference, cheapKey) : null;
+
+    const outcome = await processDiscoveredLink(url, existing, {
+      conference: src.conference,
+      tab: args.tab,
+      profile: args.profile,
+      themeProfile: args.ctx.themeProfile,
+      client: args.ctx.client,
+      supabase: args.ctx.supabase,
+      sourceId: src.id,
+      sourceKind: args.sourceKind,
+      sourceTrust: 'discovery', // Phase 4 item 1/2/3: X/Meetup/sponsor pages never auto-publish.
+      sourceRef: args.sourceRef(url),
+      enrichLimiter: args.ctx.enrichLimiter,
+      linkFetchLimiter: args.ctx.linkFetchLimiter,
+      linkIndex: args.ctx.linkIndex,
+      sheetEvents: args.ctx.sheetEvents,
+      otherCandidates: args.ctx.otherCandidates,
+      fewShot: args.ctx.fewShot,
+      sponsorNames: args.ctx.sponsorNames,
+      computeHostSignals: args.ctx.computeHostSignals,
+      canClassify,
+    });
+
+    if (outcome.kind === 'invalid') {
+      bump(args.counts, 'errors');
+      continue;
+    }
+    if (outcome.kind === 'skipped_final') {
+      bump(args.counts, 'skipped_final');
+      if (!args.dryRun && existing) {
+        await upsertCandidate({
+          conference: src.conference,
+          canonical_key: existing.canonical_key,
+          sources: [{ source_id: src.id, kind: args.sourceKind, ref: args.sourceRef(url), seen_at: new Date().toISOString() }],
+        });
+      }
+      continue;
+    }
+    if (outcome.kind === 'unchanged') {
+      bump(args.counts, 'unchanged');
+      if (!args.dryRun) await updateCandidate(outcome.existingId, { last_seen_at: new Date().toISOString() });
+      continue;
+    }
+    if (outcome.kind === 'protected') {
+      bump(args.counts, 'skipped_final');
+      if (!args.dryRun) await updateCandidate(outcome.existingId, { sources: outcome.sources, last_seen_at: new Date().toISOString() });
+      continue;
+    }
+
+    // outcome.kind === 'row'
+    bump(args.counts, 'new');
+    args.totalTokensRef.input += outcome.inputTokens;
+    args.totalTokensRef.output += outcome.outputTokens;
+    args.runningCostUsdRef.value += outcome.costUsd;
+    if (outcome.classified) {
+      args.llmCallsThisRunRef.value++;
+      bump(args.counts, 'classified');
+    }
+    if (outcome.row.status === 'duplicate') bump(args.counts, 'duplicates');
+    else if (outcome.row.status === 'filtered_out') bump(args.counts, 'filtered');
+    else if (outcome.row.status === 'auto_rejected') bump(args.counts, 'rejected');
+    else if (outcome.row.status === 'queued') bump(args.counts, 'queued');
+    else if (outcome.row.status === 'error') bump(args.counts, 'errors');
+
+    await args.persist(outcome.row as Record<string, unknown> & { conference: string; canonical_key: string; status: CandidateStatus; event: NormalizedEvent });
+    args.ctx.otherCandidates.push({
+      id: existing?.id ?? outcome.row.canonical_key,
+      canonical_key: outcome.row.canonical_key,
+      event: outcome.row.event,
+    });
+  }
+  return { hitDeadline: false };
+}
+
+/**
+ * Phase 4 item 1 (§3.7/§7): one curated X account per run, read once via
+ * `GET /2/users/:id/tweets` with a `since_id` cursor (so a post is read
+ * only once — item 1's requirement), extracting outbound links and feeding
+ * every allowlisted one through the shared discovery engine. The monthly
+ * X-spend cap (`checkMonthlyXBudget`) is checked BEFORE the API call, not
+ * after — once exceeded, the run makes no further X calls at all this
+ * month (not even a cheap one), same fail-closed posture as the LLM budget.
+ */
+async function processXSource(args: {
+  source: Awaited<ReturnType<typeof getSource>>;
+  profile: IngestProfileRow;
+  tab: TabConfig;
+  deadlineMs?: number;
+  counts: RunCounts;
+  dryRun?: boolean;
+}): Promise<DiscoverySourceLoopResult & { xPostsRead: number; xCostUsd: number }> {
+  const { profile, tab, counts, dryRun } = args;
+  const source = args.source!;
+  const deadline = Date.now() + (args.deadlineMs ?? 240_000);
+  const previews: CandidatePreview[] = [];
+
+  async function persist(row: Record<string, unknown> & { conference: string; canonical_key: string; status: CandidateStatus; event: NormalizedEvent }): Promise<void> {
+    if (dryRun) {
+      previews.push({
+        canonical_key: row.canonical_key,
+        status: row.status,
+        final_score: (row.final_score as number | undefined) ?? null,
+        route: (row.route as string | undefined) ?? null,
+        llm_reason: (row.llm_reason as string | undefined) ?? null,
+        filter_reason: (row.filter_reason as string | undefined) ?? null,
+        event: row.event,
+      });
+      return;
+    }
+    await upsertCandidate(row);
+  }
+
+  const config = source.config as { handle?: string; userId?: string };
+  if (!config.userId) throw new Error('X source is missing a resolved userId (re-add the account).');
+  const cursor = source.cursor as { since_id?: string };
+
+  const xBudget = await checkMonthlyXBudget();
+  if (xBudget.exceeded) {
+    return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline: false, xPostsRead: 0, xCostUsd: 0, previews: dryRun ? previews : undefined };
+  }
+
+  const page = await fetchXUserPosts(config.userId, { sinceId: cursor?.since_id ?? null });
+  bump(counts, 'fetched', page.resultCount);
+  const xCostUsd = page.resultCount * X_POST_READ_COST_USD;
+
+  if (!dryRun && page.newestId) {
+    await updateSource(source.id, { cursor: { since_id: page.newestId } });
+  }
+
+  const budgetStatus = await checkMonthlyBudget();
+  const ctx = await buildDiscoverySourceContext(source, profile, tab);
+  const linksByUrl = new Map<string, string>(); // url -> tweet permalink, for sourceRef
+  for (const post of page.posts) {
+    for (const link of post.links) {
+      if (!linksByUrl.has(link)) linksByUrl.set(link, `https://x.com/i/status/${post.id}`);
+    }
+  }
+
+  const { hitDeadline } = await runDiscoveredLinksBatch(Array.from(linksByUrl.keys()), {
+    source,
+    profile,
+    tab,
+    sourceKind: 'x_account',
+    sourceRef: (url) => linksByUrl.get(url) ?? null,
+    ctx,
+    counts,
+    dryRun,
+    deadline,
+    persist,
+    budgetStatus,
+    runningCostUsdRef: { value: 0 },
+    llmCallsThisRunRef: { value: 0 },
+    totalTokensRef: { input: 0, output: 0 },
+  });
+
+  return {
+    llmInputTokens: 0,
+    llmOutputTokens: 0,
+    costUsd: 0,
+    hitDeadline,
+    xPostsRead: page.resultCount,
+    xCostUsd,
+    previews: dryRun ? previews : undefined,
+  };
+}
+
+/**
+ * Phase 4 item 3 (§3.3/§7): Meetup `eventSearch` by keyword, centered on
+ * the conference's own location and date window, mapped through the
+ * EXISTING `parseMeetup` extractor (via `processDiscoveredLink`'s
+ * allowlist — meetup.com is already allowlisted) rather than a second
+ * Meetup normalizer, per the plan.
+ */
+async function processMeetupSource(args: {
+  source: Awaited<ReturnType<typeof getSource>>;
+  profile: IngestProfileRow;
+  tab: TabConfig;
+  deadlineMs?: number;
+  counts: RunCounts;
+  dryRun?: boolean;
+}): Promise<DiscoverySourceLoopResult> {
+  const { profile, tab, counts, dryRun } = args;
+  const source = args.source!;
+  const deadline = Date.now() + (args.deadlineMs ?? 240_000);
+  const previews: CandidatePreview[] = [];
+
+  async function persist(row: Record<string, unknown> & { conference: string; canonical_key: string; status: CandidateStatus; event: NormalizedEvent }): Promise<void> {
+    if (dryRun) {
+      previews.push({
+        canonical_key: row.canonical_key,
+        status: row.status,
+        final_score: (row.final_score as number | undefined) ?? null,
+        route: (row.route as string | undefined) ?? null,
+        llm_reason: (row.llm_reason as string | undefined) ?? null,
+        filter_reason: (row.filter_reason as string | undefined) ?? null,
+        event: row.event,
+      });
+      return;
+    }
+    await upsertCandidate(row);
+  }
+
+  const config = source.config as { query?: string; radius_mi?: number };
+  if (!config.query) throw new Error('Meetup source is missing a search query.');
+  const radiusMi = config.radius_mi ?? Math.max(1, Math.round(profile.radius_km * 0.621371));
+
+  const results = await searchMeetupEvents({
+    query: config.query,
+    lat: tab.center.lat,
+    lon: tab.center.lng,
+    radiusMi,
+    startDateISO: tab.dates[0],
+    endDateISO: tab.dates[tab.dates.length - 1],
+  });
+  bump(counts, 'fetched', results.length);
+
+  const budgetStatus = await checkMonthlyBudget();
+  const ctx = await buildDiscoverySourceContext(source, profile, tab);
+  const refByUrl = new Map(results.map((r) => [r.eventUrl, r.id] as const));
+
+  const { hitDeadline } = await runDiscoveredLinksBatch(results.map((r) => r.eventUrl), {
+    source,
+    profile,
+    tab,
+    sourceKind: 'meetup_search',
+    sourceRef: (url) => refByUrl.get(url) ?? null,
+    ctx,
+    counts,
+    dryRun,
+    deadline,
+    persist,
+    budgetStatus,
+    runningCostUsdRef: { value: 0 },
+    llmCallsThisRunRef: { value: 0 },
+    totalTokensRef: { input: 0, output: 0 },
+  });
+
+  return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline, previews: dryRun ? previews : undefined };
+}
+
+/**
+ * Phase 4 item 2 (§3.6/§7): sponsor event pages — admin-entered known URLs,
+ * or discovered from this conference's sponsors' own websites
+ * (`event_sponsors.sponsor_url`). Robots.txt-respecting, rate-limited, and
+ * capped at `MAX_PAGES_PER_RUN` pages total (`sources/sponsor-pages.ts`).
+ */
+async function processSponsorPagesSource(args: {
+  source: Awaited<ReturnType<typeof getSource>>;
+  profile: IngestProfileRow;
+  tab: TabConfig;
+  deadlineMs?: number;
+  counts: RunCounts;
+  dryRun?: boolean;
+}): Promise<DiscoverySourceLoopResult> {
+  const { profile, tab, counts, dryRun } = args;
+  const source = args.source!;
+  const deadline = Date.now() + (args.deadlineMs ?? 240_000);
+  const previews: CandidatePreview[] = [];
+
+  async function persist(row: Record<string, unknown> & { conference: string; canonical_key: string; status: CandidateStatus; event: NormalizedEvent }): Promise<void> {
+    if (dryRun) {
+      previews.push({
+        canonical_key: row.canonical_key,
+        status: row.status,
+        final_score: (row.final_score as number | undefined) ?? null,
+        route: (row.route as string | undefined) ?? null,
+        llm_reason: (row.llm_reason as string | undefined) ?? null,
+        filter_reason: (row.filter_reason as string | undefined) ?? null,
+        event: row.event,
+      });
+      return;
+    }
+    await upsertCandidate(row);
+  }
+
+  const config = source.config as { urls?: string[] };
+  const supabase = getIngestSupabase();
+  const pageUrls = await resolveSponsorPageUrls(supabase, source.conference, config.urls ?? []);
+  bump(counts, 'fetched', pageUrls.length);
+
+  const robotsCache = createRobotsCache();
+  const linksBySourceUrl = new Map<string, string>(); // discovered link -> the sponsor page it came from
+  for (const pageUrl of pageUrls) {
+    if (Date.now() > deadline) break;
+    const links = await fetchSponsorPageLinks(pageUrl, robotsCache);
+    for (const link of links) {
+      if (!linksBySourceUrl.has(link)) linksBySourceUrl.set(link, pageUrl);
+    }
+    // Rate-limit: one page per 500ms, politer than the Telegram/Luma 1/sec
+    // link-fetch pacing isn't needed here since each page fetch already
+    // costs a full HTTP round trip.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+
+  const budgetStatus = await checkMonthlyBudget();
+  const ctx = await buildDiscoverySourceContext(source, profile, tab);
+
+  const { hitDeadline } = await runDiscoveredLinksBatch(Array.from(linksBySourceUrl.keys()), {
+    source,
+    profile,
+    tab,
+    sourceKind: 'sponsor_pages',
+    sourceRef: (url) => linksBySourceUrl.get(url) ?? null,
+    ctx,
+    counts,
+    dryRun,
+    deadline,
+    persist,
+    budgetStatus,
+    runningCostUsdRef: { value: 0 },
+    llmCallsThisRunRef: { value: 0 },
+    totalTokensRef: { input: 0, output: 0 },
+  });
+
+  return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline, previews: dryRun ? previews : undefined };
 }

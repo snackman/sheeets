@@ -572,6 +572,24 @@ export async function listRecentCandidatesForDedupe(conference: string): Promise
   return (data as IngestCandidateRow[]) ?? [];
 }
 
+/**
+ * Postgres/PostgREST error codes meaning "the thing I queried doesn't
+ * exist (yet)" — a missing table/view (42P01), a missing column (42703),
+ * or PostgREST's own "not in the schema cache" code for either (PGRST205),
+ * plus the two ways PostgREST reports a MISSING RPC FUNCTION (PGRST202 is
+ * its own code for that; some gateway/pooler configurations instead let
+ * the underlying `42883 undefined_function` through). All five mean the
+ * same thing here: this migration (or this specific statement within it)
+ * hasn't been applied yet (re-review finding C). Defined ahead of
+ * `finishRun` (Phase 4 needs it there too, for `x_cost_usd` — see that
+ * function's doc comment) rather than only near `monthlyLlmCostUsd` below.
+ */
+const MISSING_RELATION_ERROR_CODES = new Set(['42P01', '42703', 'PGRST205', 'PGRST202', '42883']);
+
+function isMissingRelationError(error: { code?: string } | null | undefined): boolean {
+  return !!error?.code && MISSING_RELATION_ERROR_CODES.has(error.code);
+}
+
 /* ------------------------------------------------------------------ */
 /* Runs                                                                 */
 /* ------------------------------------------------------------------ */
@@ -678,22 +696,6 @@ export async function listRuns(opts: { conference?: string; limit?: number } = {
 }
 
 /**
- * Postgres/PostgREST error codes meaning "the thing I queried doesn't
- * exist (yet)" — a missing table/view (42P01), a missing column (42703),
- * or PostgREST's own "not in the schema cache" code for either (PGRST205),
- * plus the two ways PostgREST reports a MISSING RPC FUNCTION (PGRST202 is
- * its own code for that; some gateway/pooler configurations instead let
- * the underlying `42883 undefined_function` through). All five mean the
- * same thing here: this migration (or this specific statement within it)
- * hasn't been applied yet (re-review finding C).
- */
-const MISSING_RELATION_ERROR_CODES = new Set(['42P01', '42703', 'PGRST205', 'PGRST202', '42883']);
-
-function isMissingRelationError(error: { code?: string } | null | undefined): boolean {
-  return !!error?.code && MISSING_RELATION_ERROR_CODES.has(error.code);
-}
-
-/**
  * Sum `ingest_runs.est_cost_usd` + `ingest_submission_attempts.cost_usd`
  * for the current calendar month (UTC) — the monthly LLM budget cap
  * (`budget.ts#checkMonthlyBudget`), checked by EVERY candidate source
@@ -739,6 +741,90 @@ export async function monthlyLlmCostUsd(): Promise<number> {
   }
   const submissionsCost = (submissions ?? []).reduce((sum, r) => sum + Number((r as { cost_usd: number }).cost_usd || 0), 0);
   return runsCost + submissionsCost;
+}
+
+/**
+ * Sum `ingest_runs.x_cost_usd` for the current calendar month (UTC) — the
+ * Phase 4 X-spend budget cap (`budget.ts#checkMonthlyXBudget`), kept
+ * strictly separate from `monthlyLlmCostUsd` above (different cap, not
+ * the LLM one). Same RPC-first / client-fallback / degrade-on-missing-
+ * relation shape as `monthlyLlmCostUsd` (re-review finding B/C there),
+ * so a preview/prod deploy of this PR ahead of its migration still works:
+ * both the RPC and the `x_cost_usd` column itself are new in
+ * 20261014120000, and their absence (42P01/42703/PGRST205/PGRST202/42883)
+ * is treated as "$0 spent so far", never a thrown error — nothing about
+ * the ALREADY-LIVE Luma-iCal/Telegram cron run calls this function, so
+ * there is no live path this could regress even if it always returned 0.
+ */
+export async function monthlyXCostUsd(): Promise<number> {
+  const supabase = getIngestSupabase();
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+
+  const { data: rpcTotal, error: rpcError } = await supabase.rpc('get_monthly_ingest_x_cost_usd', { p_month_start: monthStart });
+  if (!rpcError) return Number(rpcTotal ?? 0);
+  if (!isMissingRelationError(rpcError)) throw new Error(`Failed to sum monthly X cost: ${rpcError.message}`);
+
+  const { data: runs, error: runsError } = await supabase.from('ingest_runs').select('x_cost_usd').gte('started_at', monthStart);
+  if (runsError) {
+    if (isMissingRelationError(runsError)) return 0; // x_cost_usd column doesn't exist yet.
+    throw new Error(`Failed to sum monthly X cost: ${runsError.message}`);
+  }
+  return (runs ?? []).reduce((sum, r) => sum + Number((r as { x_cost_usd?: number }).x_cost_usd || 0), 0);
+}
+
+/**
+ * Best-effort record of an `x_account` run's X API spend onto its own
+ * `ingest_runs` row, as a SEPARATE update after `finishRun` (not folded
+ * into `finishRun`'s own patch) — `finishRun`'s signature/behavior must
+ * stay exactly as it is for every other source kind (Luma iCal, Telegram,
+ * sponsor pages, Meetup — none of which set `x_posts_read`/`x_cost_usd`),
+ * so a run whose caller never calls this function is byte-for-byte what
+ * it was before this PR. Swallows a missing-column/table error (the
+ * 20261014120000 migration not applied yet) instead of throwing — same
+ * "degrade gracefully" posture as `monthlyXCostUsd` above, and the ONLY
+ * caller is Phase 4's `processXSource`, which itself can't run without an
+ * admin having added an `x_account` source (itself gated on
+ * `X_BEARER_TOKEN`), so this is never on the already-live cron's path.
+ */
+export async function recordRunXCost(runId: string, usage: { xPostsRead: number; xCostUsd: number }): Promise<void> {
+  if (usage.xPostsRead <= 0 && usage.xCostUsd <= 0) return;
+  const supabase = getIngestSupabase();
+  const { error } = await supabase
+    .from('ingest_runs')
+    .update({ x_posts_read: usage.xPostsRead, x_cost_usd: usage.xCostUsd })
+    .eq('id', runId);
+  if (error) {
+    if (isMissingRelationError(error)) return;
+    throw new Error(`Failed to record X run cost: ${error.message}`);
+  }
+}
+
+/** Per-`source_kind` run volume + cost (LLM $ and X $ separately) for the
+ *  Precision tab's "volume and cost per source type" breakdown (§9.1 item
+ *  4 / §11) — the `ingest_run_cost_by_source_kind` view (Phase 4 migration).
+ *  Returns [] if the view doesn't exist yet, same tolerance as every other
+ *  Phase 4 read. */
+export interface RunCostBySourceKind {
+  source_kind: string;
+  run_count: number;
+  llm_cost_usd: number;
+  x_cost_usd: number;
+  llm_input_tokens: number;
+  llm_output_tokens: number;
+}
+
+export async function getRunCostBySourceKind(conference: string): Promise<RunCostBySourceKind[]> {
+  const supabase = getIngestSupabase();
+  const { data, error } = await supabase
+    .from('ingest_run_cost_by_source_kind')
+    .select('*')
+    .eq('conference', conference);
+  if (error) {
+    if (isMissingRelationError(error)) return [];
+    throw new Error(`Failed to load run cost by source kind: ${error.message}`);
+  }
+  return (data as RunCostBySourceKind[]) ?? [];
 }
 
 /* ------------------------------------------------------------------ */

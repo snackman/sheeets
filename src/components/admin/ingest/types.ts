@@ -121,6 +121,18 @@ export interface IngestVolumeBySourceClient {
   rejected: number;
 }
 
+/** Phase 4 (§9.1 item 4 / §11): per-`source_kind` run volume + cost, from
+ *  `GET /api/admin/ingest/precision`'s `costByKind` (empty array until the
+ *  Phase 4 migration is applied). */
+export interface IngestCostByKindClient {
+  source_kind: string;
+  run_count: number;
+  llm_cost_usd: number;
+  x_cost_usd: number;
+  llm_input_tokens: number;
+  llm_output_tokens: number;
+}
+
 export interface IngestLabelMismatchClient {
   id: string;
   conference: string;
@@ -139,10 +151,24 @@ export interface IngestPrecisionResponseClient {
   live: IngestPrecisionSampleClient;
   review: IngestPrecisionSampleClient;
   volumeBySource: IngestVolumeBySourceClient[];
+  /** Phase 4: per-source-kind run volume + LLM/X cost. */
+  costByKind: IngestCostByKindClient[];
   budget: { spentUsd: number; capUsd: number };
+  /** Phase 4 (§3.7): the X API's own, separate monthly spend cap. */
+  xBudget: { spentUsd: number; capUsd: number };
   falsePositives: IngestLabelMismatchClient[];
   falseNegatives: IngestLabelMismatchClient[];
   profile: IngestProfileClient | null;
+}
+
+/** `GET /api/admin/ingest/config`'s `sourceAvailability` (§9.1 item 4:
+ *  "Each source type shows whether it's configured"). */
+export interface IngestSourceAvailabilityClient {
+  luma_ical: boolean;
+  telegram_channel: boolean;
+  x_account: boolean;
+  meetup_search: boolean;
+  sponsor_pages: boolean;
 }
 
 export const REJECT_REASON_OPTIONS: { value: string; label: string }[] = [

@@ -168,6 +168,41 @@ export interface TelegramChannelSourceConfig {
   handle: string;
 }
 
+/**
+ * Phase 4 (plan §3.7/§7): `ingest_sources.config` for an `x_account` source
+ * — one curated X account polled once per run via `GET /2/users/:id/tweets`.
+ * `userId` is resolved ONCE (admin "Add" flow, `sources/x.ts#resolveXUser`)
+ * and cached here so a run never spends an extra "User: Read" ($0.01) call
+ * just to re-resolve a handle it already knows. `handle` is kept only for
+ * display (the admin UI's source list) — the run itself always calls by id.
+ */
+export interface XAccountSourceConfig {
+  handle: string;
+  userId: string;
+}
+
+/** Phase 4 (plan §3.3/§7): `ingest_sources.config` for a `meetup_search`
+ *  source — a topic-keyword search against Meetup's GraphQL `eventSearch`,
+ *  centered on the conference's own location/dates (resolved at run time
+ *  from the conference tab, not stored here). */
+export interface MeetupSearchSourceConfig {
+  query: string;
+  radius_mi: number;
+}
+
+/**
+ * Phase 4 (plan §3.6/§7): `ingest_sources.config` for a `sponsor_pages`
+ * source. `urls`, when set, are admin-entered "known" event-listing pages
+ * (a sponsor's `/events` page, say) fetched as-is every run. When empty,
+ * the source instead DISCOVERS candidate pages at run time from this
+ * conference's own `event_sponsors.sponsor_url` rows (each sponsor's
+ * homepage, plus a same-origin `/events` guess) — see
+ * `sources/sponsor-pages.ts#resolveSponsorPageUrls`.
+ */
+export interface SponsorPagesSourceConfig {
+  urls: string[];
+}
+
 /** `ingest_sources` row. */
 export interface IngestSourceRow {
   id: string;

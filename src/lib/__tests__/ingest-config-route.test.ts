@@ -60,7 +60,23 @@ vi.mock('@/lib/ingest/filters', () => ({
   isPastEvent: vi.fn(() => false),
 }));
 
-import { PUT, PATCH, POST } from '../../app/api/admin/ingest/config/route';
+const isXConfiguredMock = vi.fn(() => true);
+const resolveXUserMock = vi.fn(async (handle: string) => ({ id: `uid-${handle}`, username: handle, name: handle }));
+vi.mock('@/lib/ingest/sources/x', () => ({
+  isXConfigured: () => isXConfiguredMock(),
+  normalizeXHandle: (input: string) => {
+    const raw = input.trim().replace(/^@/, '');
+    return /^[A-Za-z0-9_]{1,15}$/.test(raw) ? raw : null;
+  },
+  resolveXUser: (handle: string) => resolveXUserMock(handle),
+}));
+
+const isMeetupConfiguredMock = vi.fn(() => false);
+vi.mock('@/lib/ingest/sources/meetup', () => ({
+  isMeetupConfigured: () => isMeetupConfiguredMock(),
+}));
+
+import { PUT, PATCH, POST, GET } from '../../app/api/admin/ingest/config/route';
 
 function putRequest(body: unknown) {
   return new NextRequest('http://localhost/api/admin/ingest/config', {
@@ -412,6 +428,136 @@ describe('PUT /api/admin/ingest/config: blocks ADDING include_keywords/trusted_h
         blocked_hosts: [{ kind: 'organizer', name: 'Bad Org' }],
       })
     );
+    expect(res.status).toBe(200);
+  });
+});
+
+function getRequest(params: Record<string, string>) {
+  const url = new URL('http://localhost/api/admin/ingest/config');
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  return new NextRequest(url);
+}
+
+describe('GET /api/admin/ingest/config: sourceAvailability (Phase 4, §9.1 item 4)', () => {
+  beforeEach(() => {
+    isXConfiguredMock.mockReset().mockReturnValue(true);
+    isMeetupConfiguredMock.mockReset().mockReturnValue(false);
+  });
+
+  it('reports whether X and Meetup are configured, and the credential-free kinds as always true', async () => {
+    const res = await GET(getRequest({ password: 'config-test-password' }));
+    const json = await res.json();
+    expect(json.sourceAvailability).toEqual({
+      luma_ical: true,
+      telegram_channel: true,
+      x_account: true,
+      meetup_search: false,
+      sponsor_pages: true,
+    });
+  });
+});
+
+describe('POST /api/admin/ingest/config: Phase 4 source kinds (§3.6/§3.7/§3.3, §10 item 4)', () => {
+  beforeEach(() => {
+    createSourceMock.mockClear();
+    isXConfiguredMock.mockReset().mockReturnValue(true);
+    resolveXUserMock.mockClear();
+    isMeetupConfiguredMock.mockReset().mockReturnValue(false);
+  });
+
+  it('x_account: normalizes the handle, resolves the user id, and forces discovery trust', async () => {
+    const res = await POST(postRequest({ password: 'config-test-password', conference: 'Test Conf', kind: 'x_account', input: '@EthSideEvents' }));
+    const json = await res.json();
+    expect(res.status).toBe(200);
+    expect(resolveXUserMock).toHaveBeenCalledWith('EthSideEvents');
+    expect(createSourceMock).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'x_account', trust: 'discovery', config: { handle: 'EthSideEvents', userId: 'uid-EthSideEvents' } })
+    );
+    expect(json.source).toBeTruthy();
+  });
+
+  it('x_account: rejects an invalid handle without calling resolveXUser', async () => {
+    const res = await POST(postRequest({ password: 'config-test-password', conference: 'Test Conf', kind: 'x_account', input: 'not a handle!' }));
+    expect(res.status).toBe(400);
+    expect(resolveXUserMock).not.toHaveBeenCalled();
+  });
+
+  it('x_account: rejects when X is not configured (disabled-when-unconfigured, item 1)', async () => {
+    isXConfiguredMock.mockReturnValue(false);
+    const res = await POST(postRequest({ password: 'config-test-password', conference: 'Test Conf', kind: 'x_account', input: 'ethsideevents' }));
+    const json = await res.json();
+    expect(res.status).toBe(400);
+    expect(json.error).toMatch(/not configured/i);
+    expect(resolveXUserMock).not.toHaveBeenCalled();
+  });
+
+  it('meetup_search: creates a discovery-trust source from a free-text query, with a "requires Meetup Pro" warning when unconfigured', async () => {
+    const res = await POST(postRequest({ password: 'config-test-password', conference: 'Test Conf', kind: 'meetup_search', input: 'defi builders' }));
+    const json = await res.json();
+    expect(res.status).toBe(200);
+    expect(createSourceMock).toHaveBeenCalledWith(expect.objectContaining({ kind: 'meetup_search', trust: 'discovery', config: { query: 'defi builders' } }));
+    expect(json.warning).toMatch(/Meetup Pro/i);
+  });
+
+  it('meetup_search: no warning once Meetup is configured', async () => {
+    isMeetupConfiguredMock.mockReturnValue(true);
+    const res = await POST(postRequest({ password: 'config-test-password', conference: 'Test Conf', kind: 'meetup_search', input: 'ai builders' }));
+    const json = await res.json();
+    expect(res.status).toBe(200);
+    expect(json.warning).toBeUndefined();
+  });
+
+  it('meetup_search: rejects an empty query', async () => {
+    const res = await POST(postRequest({ password: 'config-test-password', conference: 'Test Conf', kind: 'meetup_search', input: '   ' }));
+    expect(res.status).toBe(400);
+  });
+
+  it('sponsor_pages: parses one-per-line URLs into config.urls, always discovery trust', async () => {
+    const res = await POST(
+      postRequest({
+        password: 'config-test-password',
+        conference: 'Test Conf',
+        kind: 'sponsor_pages',
+        input: 'https://acme.example.com/events\nhttps://beta.example.com/events\n',
+      })
+    );
+    const json = await res.json();
+    expect(res.status).toBe(200);
+    expect(createSourceMock).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'sponsor_pages', trust: 'discovery', config: { urls: ['https://acme.example.com/events', 'https://beta.example.com/events'] } })
+    );
+    expect(json.source).toBeTruthy();
+  });
+
+  it('sponsor_pages: "*" means discover from this conference\'s own sponsors (empty urls list)', async () => {
+    const res = await POST(postRequest({ password: 'config-test-password', conference: 'Test Conf', kind: 'sponsor_pages', input: '*' }));
+    expect(res.status).toBe(200);
+    expect(createSourceMock).toHaveBeenCalledWith(expect.objectContaining({ kind: 'sponsor_pages', config: { urls: [] } }));
+  });
+
+  it('sponsor_pages: rejects input that is neither a URL nor "*"', async () => {
+    const res = await POST(postRequest({ password: 'config-test-password', conference: 'Test Conf', kind: 'sponsor_pages', input: 'not a url' }));
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('PATCH /api/admin/ingest/config: Phase 4 kinds are ALWAYS discovery trust (§10 item 4)', () => {
+  beforeEach(() => {
+    getSourceMock.mockReset();
+    getProfileMock.mockReset();
+  });
+
+  it.each(['x_account', 'meetup_search', 'sponsor_pages'])('refuses to promote a %s source off discovery trust', async (kind) => {
+    getSourceMock.mockResolvedValue({ id: '11111111-1111-4111-8111-111111111111', conference: 'Test Conf', kind, trust: 'discovery' });
+    const res = await PATCH(patchRequest({ password: 'config-test-password', id: '11111111-1111-4111-8111-111111111111', trust: 'curated' }));
+    const json = await res.json();
+    expect(res.status).toBe(400);
+    expect(json.error).toMatch(/always discovery trust/);
+  });
+
+  it('allows a no-op "trust: discovery" patch on an x_account source', async () => {
+    getSourceMock.mockResolvedValue({ id: '11111111-1111-4111-8111-111111111111', conference: 'Test Conf', kind: 'x_account', trust: 'discovery' });
+    const res = await PATCH(patchRequest({ password: 'config-test-password', id: '11111111-1111-4111-8111-111111111111', trust: 'discovery' }));
     expect(res.status).toBe(200);
   });
 });

@@ -1,0 +1,25 @@
+{
+  "data": {
+    "eventSearch": {
+      "count": 3,
+      "edges": [
+        {
+          "node": {
+            "id": "mu-evt-1",
+            "title": "DeFi Builders Happy Hour",
+            "eventUrl": "https://www.meetup.com/defi-builders/events/123456789/"
+          }
+        },
+        {
+          "node": {
+            "id": "mu-evt-2",
+            "title": "Missing URL node (should be dropped)"
+          }
+        },
+        {
+          "node": null
+        }
+      ]
+    }
+  }
+}
