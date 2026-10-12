@@ -32,6 +32,7 @@ import {
   nameTokens,
   jaccardSimilarity,
   fuzzyMatch,
+  matchAgainstSheetAndCandidates,
 } from '../ingest/dedupe';
 
 beforeEach(() => {
@@ -173,5 +174,62 @@ describe('fuzzyMatch', () => {
 
   it('returns null for unrelated names on the same day', () => {
     expect(fuzzyMatch(base, { ...base, name: 'Yoga and Mindfulness Retreat' })).toBeNull();
+  });
+});
+
+describe('matchAgainstSheetAndCandidates (Phase 3 §5.2, shared by discovery sources)', () => {
+  const event = {
+    link: 'https://lu.ma/discovered-mixer',
+    name: 'ETH Builders Mixer',
+    dateISO: '2026-03-10',
+    startTime: '6:00 PM',
+    address: '123 Main St',
+    lat: 40,
+    lng: -105,
+  };
+
+  it('matches by exact link against the sheet link index', () => {
+    const linkIndex = { byKey: new Map([['luma:discovered-mixer', { id: 'evt-sheet-1', link: event.link }]]) };
+    const result = matchAgainstSheetAndCandidates(event, { linkIndex, sheetEvents: [], otherCandidates: [] });
+    expect(result.duplicateOf).toBe('evt-sheet-1');
+    expect(result.possibleDuplicateOf).toBeNull();
+  });
+
+  it('falls back to a fuzzy match against the sheet when there is no link match', () => {
+    const linkIndex = { byKey: new Map() };
+    const sheetEvents = [{ ...event, id: 'evt-sheet-2', link: 'https://lu.ma/other-slug', name: 'ETH Builders Mixer 2026' }];
+    const result = matchAgainstSheetAndCandidates(event, { linkIndex, sheetEvents, otherCandidates: [] });
+    expect(result.duplicateOf).toBe('evt-sheet-2');
+  });
+
+  it('falls back to a fuzzy match against other in-flight candidates', () => {
+    const linkIndex = { byKey: new Map() };
+    const otherCandidates = [{ id: 'cand-1', canonical_key: 'luma:another-slug', event: { ...event, name: 'ETH Builders Mixer 2026', link: 'https://lu.ma/another-slug' } }];
+    const result = matchAgainstSheetAndCandidates(event, { linkIndex, sheetEvents: [], otherCandidates });
+    expect(result.duplicateOf).toBe('cand-1');
+  });
+
+  it('records a possible_duplicate (0.6-0.85 band alone) without setting duplicateOf', () => {
+    const linkIndex = { byKey: new Map() };
+    const sheetEvents = [
+      { id: 'evt-sheet-3', link: 'https://lu.ma/other', name: 'ETH Builders Mixer Redux', dateISO: event.dateISO, startTime: '11:00 PM', address: 'Somewhere else', lat: 1, lng: 1 },
+    ];
+    const result = matchAgainstSheetAndCandidates(event, { linkIndex, sheetEvents, otherCandidates: [] });
+    expect(result.duplicateOf).toBeNull();
+    expect(result.possibleDuplicateOf).toBe('evt-sheet-3');
+  });
+
+  it('excludeCandidateId keeps a candidate from matching itself', () => {
+    const linkIndex = { byKey: new Map() };
+    const otherCandidates = [{ id: 'cand-self', canonical_key: 'luma:discovered-mixer', event }];
+    const result = matchAgainstSheetAndCandidates(event, { linkIndex, sheetEvents: [], otherCandidates, excludeCandidateId: 'cand-self' });
+    expect(result.duplicateOf).toBeNull();
+  });
+
+  it('returns both null when nothing matches', () => {
+    const linkIndex = { byKey: new Map() };
+    const result = matchAgainstSheetAndCandidates(event, { linkIndex, sheetEvents: [], otherCandidates: [] });
+    expect(result.duplicateOf).toBeNull();
+    expect(result.possibleDuplicateOf).toBeNull();
   });
 });

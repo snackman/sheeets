@@ -24,11 +24,14 @@ import {
   getIngestSupabase,
 } from './db';
 import { fetchLumaIcalFeed, toIcalCandidates } from './sources/luma-ical';
+import { fetchTelegramChannelHtml, parseTelegramChannelHtml, isValidTelegramHandle } from './sources/telegram';
+import { isAllowlistedEventLink } from './allowlist';
 import { normalizeLumaEvent, computeContentHash } from './normalize';
-import { buildSheetLinkIndex, findSheetMatchByLink, fuzzyMatch } from './dedupe';
+import { buildSheetLinkIndex, findSheetMatchByLink, fuzzyMatch, type DedupeCandidatePool } from './dedupe';
 import { dateWindowFilter, geoFilter, isPastEvent, geocodeAddressCached } from './filters';
 import { LumaEnrichmentLimiter } from './enrich';
 import { scoreCandidate } from './scoring';
+import { processDiscoveredLink, PacedLinkLimiter, buildHostSignalComputer } from './discover';
 import { checkMonthlyBudget } from './budget';
 import { estimateCostUsd } from './pricing';
 import { toEventRow, ThrottledSheetPublisher } from './publish';
@@ -124,7 +127,20 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
   let costUsd = 0;
 
   try {
-    if (source.kind !== 'luma_ical') {
+    // `host_submission` sources are passive — created lazily by `POST
+    // /api/host/submissions`, never polled. An admin clicking "Run now" on
+    // one (it shows up in the Config tab's Sources list like any other
+    // source, so it can be disabled there) has nothing to actually run.
+    if (source.kind === 'host_submission') {
+      if (!opts.dryRun) await updateSource(sourceId, { last_run_at: new Date().toISOString(), last_status: 'skipped' });
+      await finishRun(run.id, {
+        status: 'skipped',
+        counts,
+        error: 'host_submission sources are passive (fed by POST /api/host/submissions) — nothing to run.',
+      });
+      return { runId: run.id, status: 'skipped', counts };
+    }
+    if (source.kind !== 'luma_ical' && source.kind !== 'telegram_channel') {
       throw new Error(`Source kind "${source.kind}" is not implemented until a later phase.`);
     }
 
@@ -136,16 +152,20 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
     }
 
     // Phase 2 kill switch (`gate.ts`): re-checked just before each actual
-    // auto-publish attempt inside `processSource`, not only once here at
-    // the top of the run (review finding, LOW item 10) — a conference that
-    // goes bad mid-run stops publishing partway through, not only on the
-    // next run.
+    // auto-publish attempt inside `processLumaIcalSource`, not only once
+    // here at the top of the run (review finding, LOW item 10) — a
+    // conference that goes bad mid-run stops publishing partway through,
+    // not only on the next run. (Telegram/host-submission sources never
+    // publish at all, so this doesn't apply to them — §10 item 4.)
 
     const allTabs = await getAllConferenceTabs();
     const tab = allTabs.find((t) => t.name === source.conference);
     if (!tab) throw new Error(`No conference tab found for "${source.conference}".`);
 
-    const result = await processSource({ source, profile, tab, deadlineMs: opts.deadlineMs, counts, dryRun: opts.dryRun });
+    const result =
+      source.kind === 'luma_ical'
+        ? await processLumaIcalSource({ source, profile, tab, deadlineMs: opts.deadlineMs, counts, dryRun: opts.dryRun })
+        : await processTelegramSource({ source, profile, tab, deadlineMs: opts.deadlineMs, counts, dryRun: opts.dryRun });
     llmInputTokens = result.llmInputTokens;
     llmOutputTokens = result.llmOutputTokens;
     costUsd = result.costUsd;
@@ -174,7 +194,7 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
   }
 }
 
-async function processSource(args: {
+async function processLumaIcalSource(args: {
   source: Awaited<ReturnType<typeof getSource>>;
   profile: IngestProfileRow;
   tab: TabConfig;
@@ -644,4 +664,200 @@ async function processSource(args: {
     hitDeadline: false,
     previews: dryRun ? previews : undefined,
   };
+}
+
+/**
+ * Phase 3 Telegram source (plans/event-ingestion.md §3.4/§7): poll
+ * `https://t.me/s/<handle>` once, extract links from the latest posts, and
+ * run every ALLOWLISTED link (Luma/Partiful/Eventbrite/Meetup/Posh — §10)
+ * through the shared discovered-link engine (`discover.ts`). Telegram is
+ * always `discovery` trust (enforced when the source is created — the
+ * admin Config API never lets a `telegram_channel` source be anything
+ * else), so nothing this produces can ever auto-publish (§10 item 4,
+ * enforced independently inside `discover.ts` too — belt and suspenders).
+ */
+async function processTelegramSource(args: {
+  source: Awaited<ReturnType<typeof getSource>>;
+  profile: IngestProfileRow;
+  tab: TabConfig;
+  deadlineMs?: number;
+  counts: RunCounts;
+  dryRun?: boolean;
+}): Promise<{ llmInputTokens: number; llmOutputTokens: number; costUsd: number; hitDeadline: boolean; previews?: CandidatePreview[] }> {
+  const { profile, tab, counts, dryRun } = args;
+  const source = args.source!;
+  const deadline = Date.now() + (args.deadlineMs ?? 240_000);
+  const previews: CandidatePreview[] = [];
+
+  async function persist(row: Record<string, unknown> & { conference: string; canonical_key: string; status: CandidateStatus; event: NormalizedEvent }): Promise<void> {
+    if (dryRun) {
+      previews.push({
+        canonical_key: row.canonical_key,
+        status: row.status,
+        final_score: (row.final_score as number | undefined) ?? null,
+        route: (row.route as string | undefined) ?? null,
+        llm_reason: (row.llm_reason as string | undefined) ?? null,
+        filter_reason: (row.filter_reason as string | undefined) ?? null,
+        event: row.event,
+      });
+      return;
+    }
+    await upsertCandidate(row);
+  }
+
+  const handle = (source.config as { handle?: string }).handle;
+  if (!handle || !isValidTelegramHandle(handle)) throw new Error('Source is missing a valid Telegram handle.');
+
+  const html = await fetchTelegramChannelHtml(handle);
+  const messages = parseTelegramChannelHtml(html);
+  bump(counts, 'fetched', messages.length);
+
+  const budgetStatus = await checkMonthlyBudget();
+  let runningCostUsd = 0;
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let llmCallsThisRun = 0;
+
+  // Same shared-clock rationale as the Luma iCal path (review finding,
+  // MEDIUM item 7): one enrichment limiter for both event enrichment AND
+  // sheet-link slug resolution.
+  const enrichLimiter = new LumaEnrichmentLimiter(100, 1000);
+  const linkFetchLimiter = new PacedLinkLimiter(30, 500);
+  const resolveSlugViaLimiter = async (slug: string): Promise<string | null> => {
+    const payload = await enrichLimiter.enrich({ slug });
+    return payload?.event?.api_id ?? payload?.api_id ?? null;
+  };
+  const themeProfile = profileRowToThemeProfile(profile);
+  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const supabase = getIngestSupabase();
+
+  const sheetEvents = await fetchEvents(undefined, [tab]);
+  const linkIndex = await buildSheetLinkIndex(
+    sheetEvents.map((e) => ({ id: e.id, link: e.link })),
+    { maxResolutions: 50, resolveSlug: resolveSlugViaLimiter }
+  );
+  const otherCandidates: DedupeCandidatePool[] = (await listRecentCandidatesForDedupe(source.conference)).map((c) => ({
+    id: c.id,
+    canonical_key: c.canonical_key,
+    event: c.event,
+  }));
+
+  const organizerCounts = new Map<string, number>();
+  for (const e of sheetEvents) {
+    const key = e.organizer.trim().toLowerCase();
+    if (!key) continue;
+    organizerCounts.set(key, (organizerCounts.get(key) ?? 0) + 1);
+  }
+  const { data: verifiedHosts } = await supabase.from('verified_luma_hosts').select('host_api_id').is('revoked_at', null);
+  const verifiedHostIds = new Set((verifiedHosts ?? []).map((h: { host_api_id: string }) => h.host_api_id));
+
+  const { fewShot, learnedHosts } = await loadLearningContext({ conference: source.conference, themeKey: profile.theme_key });
+  const sponsorNames = await getSponsorNamesForConference(source.conference);
+
+  const computeHostSignals = buildHostSignalComputer({ profile, verifiedHostIds, organizerCounts, learnedHosts });
+
+  // Reads the current (mutable) counters at CALL time, not a frozen
+  // snapshot — correct as a closure since it's only ever invoked, never
+  // itself reassigned, while the loop below updates `runningCostUsd`/
+  // `llmCallsThisRun` in place.
+  const canClassify = () => budgetStatus.spentUsd + runningCostUsd < budgetStatus.capUsd && llmCallsThisRun < profile.max_llm_calls_per_run;
+
+  let hitDeadline = false;
+
+  outer: for (const message of messages) {
+    if (Date.now() > deadline) {
+      hitDeadline = true;
+      break;
+    }
+    const links = Array.from(new Set(message.links)).filter(isAllowlistedEventLink);
+    for (const url of links) {
+      if (Date.now() > deadline) {
+        hitDeadline = true;
+        break outer;
+      }
+
+      const cheapKey = normalizeEventLink(url);
+      const existing = cheapKey ? await getCandidateByKey(source.conference, cheapKey) : null;
+
+      const outcome = await processDiscoveredLink(url, existing, {
+        conference: source.conference,
+        tab,
+        profile,
+        themeProfile,
+        client,
+        supabase,
+        sourceId: source.id,
+        sourceKind: 'telegram_channel',
+        sourceTrust: source.trust,
+        sourceRef: message.url,
+        enrichLimiter,
+        linkFetchLimiter,
+        linkIndex,
+        sheetEvents,
+        otherCandidates,
+        fewShot,
+        sponsorNames,
+        computeHostSignals,
+        canClassify,
+      });
+
+      if (outcome.kind === 'invalid') {
+        bump(counts, 'errors');
+        continue;
+      }
+      if (outcome.kind === 'skipped_final') {
+        bump(counts, 'skipped_final');
+        if (!dryRun && existing) {
+          await upsertCandidate({
+            conference: source.conference,
+            canonical_key: existing.canonical_key,
+            sources: [{ source_id: source.id, kind: 'telegram_channel' as const, ref: message.url, seen_at: new Date().toISOString() }],
+          });
+        }
+        continue;
+      }
+      if (outcome.kind === 'unchanged') {
+        bump(counts, 'unchanged');
+        if (!dryRun) await updateCandidate(outcome.existingId, { last_seen_at: new Date().toISOString() });
+        continue;
+      }
+      if (outcome.kind === 'protected') {
+        // Review finding, MEDIUM item 4: a higher-trust candidate (most
+        // likely a curated Luma-calendar candidate this Telegram link
+        // also happens to resolve to) — append our source ref, bump
+        // `last_seen_at`, and touch nothing else.
+        bump(counts, 'skipped_final');
+        if (!dryRun) await updateCandidate(outcome.existingId, { sources: outcome.sources, last_seen_at: new Date().toISOString() });
+        continue;
+      }
+
+      // outcome.kind === 'row'
+      bump(counts, 'new');
+      totalInputTokens += outcome.inputTokens;
+      totalOutputTokens += outcome.outputTokens;
+      runningCostUsd += outcome.costUsd;
+      if (outcome.classified) {
+        llmCallsThisRun++;
+        bump(counts, 'classified');
+      }
+      if (outcome.row.status === 'duplicate') bump(counts, 'duplicates');
+      else if (outcome.row.status === 'filtered_out') bump(counts, 'filtered');
+      else if (outcome.row.status === 'auto_rejected') bump(counts, 'rejected');
+      else if (outcome.row.status === 'queued') bump(counts, 'queued');
+      else if (outcome.row.status === 'error') bump(counts, 'errors');
+
+      await persist(outcome.row as Record<string, unknown> & { conference: string; canonical_key: string; status: CandidateStatus; event: NormalizedEvent });
+      // Same in-run dedupe pool growth as the Luma iCal loop (review
+      // finding, LOW "dedupe within a single run") — a later link in the
+      // SAME (or a later message in this same) run can still match against
+      // it.
+      otherCandidates.push({
+        id: existing?.id ?? outcome.row.canonical_key,
+        canonical_key: outcome.row.canonical_key,
+        event: outcome.row.event,
+      });
+    }
+  }
+
+  return { llmInputTokens: totalInputTokens, llmOutputTokens: totalOutputTokens, costUsd: runningCostUsd, hitDeadline };
 }

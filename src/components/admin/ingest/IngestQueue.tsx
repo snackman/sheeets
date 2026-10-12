@@ -31,6 +31,14 @@ const STATUS_BADGE: Record<string, string> = {
   pending_classify: 'bg-stone-700 text-stone-300',
 };
 
+/** Human-readable source badge (Phase 3 — "see the submission source in the
+ *  Queue", plan §7 item 4). Any kind not listed just shows its raw value. */
+const SOURCE_KIND_LABELS: Record<string, string> = {
+  luma_ical: 'Luma calendar',
+  telegram_channel: 'Telegram',
+  host_submission: 'Host submission',
+};
+
 function scorePillClass(score: number | null, publishThreshold = 85, reviewThreshold = 40): string {
   if (score == null) return 'bg-stone-700 text-stone-300';
   if (score >= publishThreshold) return 'bg-green-500/20 text-green-400';
@@ -282,6 +290,7 @@ export default function IngestQueue({ allConferenceTabs, password }: Props) {
                     )}
                     <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[c.status] ?? 'bg-stone-700 text-stone-300'}`}>{c.status}</span>
                     <span className="text-xs bg-stone-800 text-stone-400 px-2 py-0.5 rounded-full">{c.conference}</span>
+                    <span className="text-xs bg-stone-800 text-stone-400 px-2 py-0.5 rounded-full">{SOURCE_KIND_LABELS[c.source_kind] ?? c.source_kind}</span>
                     {c.final_score != null && (
                       <span className={`text-xs px-2 py-0.5 rounded-full ${scorePillClass(c.final_score)}`}>score {c.final_score}</span>
                     )}

@@ -22,6 +22,7 @@ import {
   getSource,
 } from '@/lib/ingest/db';
 import { resolveLumaCalendar, fetchLumaIcalFeed, toIcalCandidates } from '@/lib/ingest/sources/luma-ical';
+import { normalizeTelegramHandle } from '@/lib/ingest/sources/telegram';
 import { isPastEvent } from '@/lib/ingest/filters';
 import { evaluateAutoPublishEnableGate } from '@/lib/ingest/gate';
 import type { IngestProfileRow, TrustedHostEntry } from '@/lib/ingest/types';
@@ -214,6 +215,29 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Phase 3: a `telegram_channel` source is ALWAYS `discovery` trust —
+    // unlike Luma calendars, this is not conditional on whether
+    // auto-publish happens to be on right now (§10 item 4: "discovery
+    // sources ... max out at review until precision data justifies
+    // otherwise", and the plan is explicit that Telegram never auto-
+    // publishes in Phase 3 at all, independent of the gate). The PATCH
+    // handler below enforces the same rule on updates.
+    if (kind === 'telegram_channel') {
+      const handle = normalizeTelegramHandle(input);
+      if (!handle) {
+        return NextResponse.json({ error: 'Invalid Telegram channel. Use a handle, @handle, or t.me/<handle> link.' }, { status: 400 });
+      }
+      const source = await createSource({
+        conference,
+        kind,
+        label: label || `@${handle}`,
+        config: { handle },
+        trust: 'discovery',
+        added_by: 'admin',
+      });
+      return NextResponse.json({ source });
+    }
+
     const profile = await getProfile(conference);
     // Review finding, MEDIUM item 2a: a brand-new source has no track
     // record of its own. If auto-publish is already on for this
@@ -250,13 +274,25 @@ export async function PATCH(req: NextRequest) {
 
   try {
     if (patch.trust !== undefined) {
+      const source = await getSource(id);
+
+      // Phase 3 (§10 item 4): a `telegram_channel` or `host_submission`
+      // source is ALWAYS `discovery` — this is the one case the PUT/POST
+      // "no changing trust while auto-publish is on" guard below doesn't
+      // cover, because it needs to hold even while auto-publish is OFF.
+      if (source && (source.kind === 'telegram_channel' || source.kind === 'host_submission') && patch.trust !== 'discovery') {
+        return NextResponse.json(
+          { error: `A ${source.kind} source is always discovery trust and can never auto-publish (plan §10).` },
+          { status: 400 }
+        );
+      }
+
       // Review finding, CRITICAL item 3 ("gate bypass via ... discovery-
       // trust"): a `discovery` source never auto-publishes (§10 item 4,
       // capped at review regardless of score) — upgrading it to
       // 'curated'/'host' while auto-publish is enabled for its conference
       // would be a second way around the same gate the publish-threshold
       // check in PUT protects against. Same response: reject outright.
-      const source = await getSource(id);
       if (source) {
         const profile = await getProfile(source.conference);
         if (profile?.auto_publish_enabled && patch.trust !== source.trust) {

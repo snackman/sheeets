@@ -158,18 +158,199 @@ export async function getSource(id: string): Promise<IngestSourceRow | null> {
   return (data as IngestSourceRow) ?? null;
 }
 
-/** Enabled sources due to run, oldest `last_run_at` first (nulls first = never run). */
-export async function listDueSources(kind?: SourceKind): Promise<IngestSourceRow[]> {
+/** Enabled sources due to run, oldest `last_run_at` first (nulls first = never run).
+ *  `kind` accepts one kind or several (Phase 3: the cron polls BOTH
+ *  `luma_ical` and `telegram_channel`; `host_submission` sources are
+ *  passive — fed by `POST /api/host/submissions`, never polled — so they're
+ *  simply never passed here). */
+export async function listDueSources(kind?: SourceKind | SourceKind[]): Promise<IngestSourceRow[]> {
   const supabase = getIngestSupabase();
   let query = supabase
     .from('ingest_sources')
     .select('*')
     .eq('enabled', true)
     .order('last_run_at', { ascending: true, nullsFirst: true });
-  if (kind) query = query.eq('kind', kind);
+  if (Array.isArray(kind)) query = query.in('kind', kind);
+  else if (kind) query = query.eq('kind', kind);
   const { data, error } = await query;
   if (error) throw new Error(`Failed to list due ingest sources: ${error.message}`);
   return (data as IngestSourceRow[]) ?? [];
+}
+
+/**
+ * Get (or lazily create) the single passive `host_submission` source for a
+ * conference (Phase 3, §7: "Phase 3: ... /api/host/sources"). Unlike every
+ * other source kind, this one isn't added through the admin Config UI — it
+ * exists purely so host-submitted candidates have a real `ingest_sources`
+ * row to point `source_id` at (so it shows up, and can be disabled, in the
+ * admin Config/Queue UI like any other source). Always `trust: 'discovery'`
+ * — host submissions are never auto-published (§10 item 4), and this is
+ * never changed by anything else, unlike a Luma/Telegram source's trust,
+ * which an admin can set.
+ */
+export async function getOrCreateHostSubmissionSource(conference: string): Promise<IngestSourceRow> {
+  const supabase = getIngestSupabase();
+  const { data: existing, error: findError } = await supabase
+    .from('ingest_sources')
+    .select('*')
+    .eq('conference', conference)
+    .eq('kind', 'host_submission')
+    .maybeSingle();
+  if (findError) throw new Error(`Failed to load host-submission source: ${findError.message}`);
+  if (existing) return existing as IngestSourceRow;
+
+  // Plain insert, not an upsert — `ingest_sources_unique` is a functional
+  // index (keyed on `coalesce(config->>'calendar_api_id', '')`/`handle`,
+  // not a plain column), and PostgREST's `onConflict` upsert param only
+  // matches a target by its literal column list, not an arbitrary
+  // expression. A concurrent double-create (two requests racing to be the
+  // first submission for a brand-new conference) is handled the same way
+  // the host-claims route handles its own unique-index race: insert, and on
+  // a unique-violation re-select the row that won (review finding pattern
+  // from #177's `event_claims` POST handler).
+  const { data: created, error: insertError } = await supabase
+    .from('ingest_sources')
+    .insert({
+      conference,
+      kind: 'host_submission' as SourceKind,
+      label: 'Host submissions',
+      config: {},
+      trust: 'discovery' as const,
+      added_by: 'system',
+    })
+    .select('*')
+    .single();
+  if (insertError) {
+    if ((insertError as { code?: string }).code === '23505') {
+      const { data: winner, error: refetchError } = await supabase
+        .from('ingest_sources')
+        .select('*')
+        .eq('conference', conference)
+        .eq('kind', 'host_submission')
+        .maybeSingle();
+      if (!refetchError && winner) return winner as IngestSourceRow;
+    }
+    throw new Error(`Failed to create host-submission source: ${insertError.message}`);
+  }
+  return created as IngestSourceRow;
+}
+
+/* ------------------------------------------------------------------ */
+/* Phase 3: public host-submission anti-abuse rate limiting (§10)      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Record one submission attempt and return its row id — the row is
+ * inserted BEFORE any count-based rate-limit check (review finding, HIGH
+ * item 2: inserting first and then counting, rather than counting then
+ * inserting, closes most of the TOCTOU race two concurrent requests from
+ * the same IP would otherwise have — the second request's count query
+ * will see the first request's just-inserted row, because it's already
+ * committed by the time it runs). This also means a flood of deliberately-
+ * invalid requests still counts against the limit, not just valid ones.
+ * `ipHash` is a SHA-256 of the client IP (IPv6 bucketed to its /64 prefix
+ * first — see `route.ts#bucketIp`); the raw IP is never stored.
+ */
+export async function recordSubmissionAttempt(ipHash: string, conference: string | null): Promise<string> {
+  const supabase = getIngestSupabase();
+  const { data, error } = await supabase
+    .from('ingest_submission_attempts')
+    .insert({ ip_hash: ipHash, conference })
+    .select('id')
+    .single();
+  if (error) throw new Error(`Failed to record submission attempt: ${error.message}`);
+  return (data as { id: string }).id;
+}
+
+/** Record this submission's LLM cost/token usage against its own attempt
+ *  row (review finding, MEDIUM item 7 — aggregated here instead of a
+ *  per-submission `ingest_runs` row) so `monthlyLlmCostUsd` below counts
+ *  it toward the budget cap. Called even on a `ClassifierError` that still
+ *  billed tokens (a schema-validation failure still gets a completion). */
+export async function recordSubmissionAttemptCost(
+  attemptId: string,
+  usage: { costUsd: number; inputTokens: number; outputTokens: number }
+): Promise<void> {
+  const supabase = getIngestSupabase();
+  const { error } = await supabase
+    .from('ingest_submission_attempts')
+    .update({ cost_usd: usage.costUsd, input_tokens: usage.inputTokens, output_tokens: usage.outputTokens })
+    .eq('id', attemptId);
+  if (error) throw new Error(`Failed to record submission attempt cost: ${error.message}`);
+}
+
+/** Count of attempts from `ipHash` in the last `windowMs` — the per-IP
+ *  rate-limit check. Includes the just-inserted current attempt (see
+ *  `recordSubmissionAttempt`'s doc comment), so callers compare with `>`,
+ *  not `>=`. Deliberately NOT filtered on `rejected` — unlike the global/
+ *  per-conference counts below, a per-IP-rejected attempt SHOULD keep
+ *  counting against that same IP's future windows (that's the point: it
+ *  stays rate-limited), it's only other IPs/conferences that must not be
+ *  penalized by it (re-review finding A). */
+export async function countRecentSubmissionAttempts(ipHash: string, windowMs: number): Promise<number> {
+  const supabase = getIngestSupabase();
+  const since = new Date(Date.now() - windowMs).toISOString();
+  const { count, error } = await supabase
+    .from('ingest_submission_attempts')
+    .select('id', { count: 'exact', head: true })
+    .eq('ip_hash', ipHash)
+    .gte('created_at', since);
+  if (error) throw new Error(`Failed to count submission attempts: ${error.message}`);
+  return count ?? 0;
+}
+
+/**
+ * Global (every IP) attempt count in the last `windowMs` — the overall
+ * ceiling (review finding, HIGH item 2) that stops a botnet spreading one
+ * attempt per IP from ever adding up to an unbounded flood of LLM calls.
+ *
+ * Filters `rejected = false` (re-review finding A): a request already
+ * rejected by its OWN per-IP limit (the only way a row can be `rejected`
+ * today — a captcha failure is checked BEFORE any row is inserted at all)
+ * must not ALSO count against this shared, cross-IP ceiling — otherwise
+ * one IP that blows through its own per-IP limit keeps consuming global
+ * budget and starts 429-ing every OTHER IP too, which is a DoS a single
+ * bad actor could trigger instead of only hurting themselves.
+ */
+export async function countGlobalRecentSubmissionAttempts(windowMs: number): Promise<number> {
+  const supabase = getIngestSupabase();
+  const since = new Date(Date.now() - windowMs).toISOString();
+  const { count, error } = await supabase
+    .from('ingest_submission_attempts')
+    .select('id', { count: 'exact', head: true })
+    .eq('rejected', false)
+    .gte('created_at', since);
+  if (error) throw new Error(`Failed to count global submission attempts: ${error.message}`);
+  return count ?? 0;
+}
+
+/** Per-conference attempt count in the last `windowMs` — stops one
+ *  conference's submission form being hammered from many different IPs
+ *  (review finding, HIGH item 2). Filters `rejected = false`, same
+ *  rationale as `countGlobalRecentSubmissionAttempts` above (re-review
+ *  finding A) — a flood against ONE conference that's already being
+ *  turned away by the per-IP limit must not also use up this
+ *  conference's shared daily budget for every other submitter. */
+export async function countConferenceRecentSubmissionAttempts(conference: string, windowMs: number): Promise<number> {
+  const supabase = getIngestSupabase();
+  const since = new Date(Date.now() - windowMs).toISOString();
+  const { count, error } = await supabase
+    .from('ingest_submission_attempts')
+    .select('id', { count: 'exact', head: true })
+    .eq('conference', conference)
+    .eq('rejected', false)
+    .gte('created_at', since);
+  if (error) throw new Error(`Failed to count conference submission attempts: ${error.message}`);
+  return count ?? 0;
+}
+
+/** Mark an attempt as `rejected` — called when ITS OWN per-IP (or, after
+ *  that, global/per-conference) check fails, so the global/per-conference
+ *  counts above exclude it from here on (re-review finding A). */
+export async function markSubmissionAttemptRejected(attemptId: string): Promise<void> {
+  const supabase = getIngestSupabase();
+  const { error } = await supabase.from('ingest_submission_attempts').update({ rejected: true }).eq('id', attemptId);
+  if (error) throw new Error(`Failed to mark submission attempt rejected: ${error.message}`);
 }
 
 export async function createSource(row: {
@@ -496,14 +677,68 @@ export async function listRuns(opts: { conference?: string; limit?: number } = {
   return (data as IngestRunRow[]) ?? [];
 }
 
-/** Sum of `est_cost_usd` across runs started this calendar month (UTC), for the budget cap. */
+/**
+ * Postgres/PostgREST error codes meaning "the thing I queried doesn't
+ * exist (yet)" — a missing table/view (42P01), a missing column (42703),
+ * or PostgREST's own "not in the schema cache" code for either (PGRST205),
+ * plus the two ways PostgREST reports a MISSING RPC FUNCTION (PGRST202 is
+ * its own code for that; some gateway/pooler configurations instead let
+ * the underlying `42883 undefined_function` through). All five mean the
+ * same thing here: this migration (or this specific statement within it)
+ * hasn't been applied yet (re-review finding C).
+ */
+const MISSING_RELATION_ERROR_CODES = new Set(['42P01', '42703', 'PGRST205', 'PGRST202', '42883']);
+
+function isMissingRelationError(error: { code?: string } | null | undefined): boolean {
+  return !!error?.code && MISSING_RELATION_ERROR_CODES.has(error.code);
+}
+
+/**
+ * Sum `ingest_runs.est_cost_usd` + `ingest_submission_attempts.cost_usd`
+ * for the current calendar month (UTC) — the monthly LLM budget cap
+ * (`budget.ts#checkMonthlyBudget`), checked by EVERY candidate source
+ * including the Phase 1b/2 Luma-iCal pipeline that's already live in
+ * production today.
+ *
+ * Re-review finding B: sums in SQL via `get_monthly_ingest_cost_usd` (one
+ * row back, correct no matter how many underlying rows exist), not by
+ * pulling rows client-side and reducing — the old version silently
+ * truncated at PostgREST's default 1000-row page once either table passed
+ * that many rows in a month.
+ *
+ * Re-review finding C: if that RPC isn't available yet (this exact
+ * migration hasn't been applied — a real possibility right after this PR
+ * deploys, since the Luma-iCal pipeline's budget check must not depend on
+ * a Phase 3 migration it has nothing else to do with), falls back to the
+ * previous per-table queries. Within that fallback, a missing-relation
+ * error from the `ingest_runs` half is a REAL problem and still throws
+ * (that table has existed since Phase 1b); the SAME error from the
+ * `ingest_submission_attempts` half is treated as $0 instead, since that
+ * table is brand new in this PR and its absence must never break the
+ * already-live cron's budget check.
+ */
 export async function monthlyLlmCostUsd(): Promise<number> {
   const supabase = getIngestSupabase();
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-  const { data, error } = await supabase.from('ingest_runs').select('est_cost_usd').gte('started_at', monthStart);
-  if (error) throw new Error(`Failed to sum monthly ingest cost: ${error.message}`);
-  return (data ?? []).reduce((sum, r) => sum + Number((r as { est_cost_usd: number }).est_cost_usd || 0), 0);
+
+  const { data: rpcTotal, error: rpcError } = await supabase.rpc('get_monthly_ingest_cost_usd', { p_month_start: monthStart });
+  if (!rpcError) return Number(rpcTotal ?? 0);
+  if (!isMissingRelationError(rpcError)) throw new Error(`Failed to sum monthly ingest cost: ${rpcError.message}`);
+
+  const [{ data: runs, error: runsError }, { data: submissions, error: submissionsError }] = await Promise.all([
+    supabase.from('ingest_runs').select('est_cost_usd').gte('started_at', monthStart),
+    supabase.from('ingest_submission_attempts').select('cost_usd').gte('created_at', monthStart),
+  ]);
+  if (runsError) throw new Error(`Failed to sum monthly ingest cost: ${runsError.message}`);
+  const runsCost = (runs ?? []).reduce((sum, r) => sum + Number((r as { est_cost_usd: number }).est_cost_usd || 0), 0);
+
+  if (submissionsError) {
+    if (!isMissingRelationError(submissionsError)) throw new Error(`Failed to sum monthly submission cost: ${submissionsError.message}`);
+    return runsCost; // ingest_submission_attempts doesn't exist yet — treat as $0, never break the cron.
+  }
+  const submissionsCost = (submissions ?? []).reduce((sum, r) => sum + Number((r as { cost_usd: number }).cost_usd || 0), 0);
+  return runsCost + submissionsCost;
 }
 
 /* ------------------------------------------------------------------ */

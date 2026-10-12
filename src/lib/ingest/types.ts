@@ -161,6 +161,13 @@ export interface LumaIcalSourceConfig {
   calendar_name?: string;
 }
 
+/** Phase 3: `ingest_sources.config` for a `telegram_channel` source. */
+export interface TelegramChannelSourceConfig {
+  /** Validated against `TELEGRAM_HANDLE_RE` (`sources/telegram.ts`) before
+   *  ever being stored or fetched. */
+  handle: string;
+}
+
 /** `ingest_sources` row. */
 export interface IngestSourceRow {
   id: string;
