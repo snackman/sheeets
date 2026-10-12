@@ -11,7 +11,6 @@ Imported from the project Google Sheet on 2026-10-04; this file is now the sourc
 | deep-dish-69056 | Performance: React.memo boundaries + query batching for EventApp | doing | P1 |  |  | Doing |  |  |  |
 | pineapple-22344 | Itinerary page overhaul: fix drag, use EventCard, pass conference, rebrand | doing | P1 |  |  | Doing |  |  |  |
 | capers-31744 | Fix date header flash when scrolling to top in list view | doing | P1 |  |  | Doing |  |  |  |
-| anchovy-41827 | Automated event gathering + theme filtering (Luma iCal feeds → Haiku theme classifier → admin review queue; then Telegram/host/X/sponsor sources) | todo | P1 |  |  |  | plans/event-ingestion.md |  | Plan 2026-10-10 (branch plan/event-ingestion). Phase 1 = Luma iCal + classifier + review queue. Open decisions in plan §17 |
 | spinach-57147 | GA4: HTML dashboard generator script | doing | P2 |  |  | Doing |  |  |  |
 | tomato-78283 | Luma RSVP feature (redirect-based) | todo | P2 |  |  | To Do |  |  | Plan exists - Luma API cant RSVP to 3rd party events |
 | mushroom-63880 | build event host community | todo | P2 |  |  | To Do |  |  |  |
@@ -37,6 +36,7 @@ Imported from the project Google Sheet on 2026-10-04; this file is now the sourc
 
 | ID | Task | Priority | Done | PR | Notes |
 |----|------|----------|------|----|-------|
+| anchovy-41827 | Automated event gathering + theme filtering (Luma iCal feeds → Haiku theme classifier → admin review queue; then Telegram/host/X/sponsor sources) | P1 | 2026-10-12 | #178 #179 #180 #181 #182 | Event ingestion phases 1a-4 shipped; auto-publish off (shadow) until 95%/50 gate |
 | diavola-17757 | Org filter + search + Details rename + /sponsors → /orgs | P1 |  |  |  |
 | spinach-53484 | GA4: Create audiences + Looker Studio dashboard | P1 |  |  |  |
 | quattro-formaggi-39867 | GA4 Analytics: Register custom dimensions, conversions, add user properties & missing events | P1 |  |  |  |
