@@ -77,17 +77,15 @@ import {
 import { DEFAULT_THEME_PROFILES } from '../src/lib/ingest/profiles';
 import { computeSignals, combineFinalScore, routeCandidate, type Route } from '../src/lib/ingest/signals';
 import { INGEST_MODEL, PROMPT_VERSION, classifyEvent, type ReasoningEffort } from '../src/lib/ingest/classifier';
+import { priceForModel } from '../src/lib/ingest/pricing';
 
-/** $/MTok by model, for cost estimates. gpt-5-nano and gpt-5-mini prices
- *  confirmed live against GET /v1/models + current OpenAI pricing at the
- *  time of the tuning round (2026-10-11) — there's no pricing-lookup API,
- *  so update this if a listed model's price changes. */
-const PRICE_TABLE: Record<string, { in: number; out: number }> = {
-  'gpt-5-nano': { in: 0.05, out: 0.4 },
-  'gpt-5-mini': { in: 0.25, out: 2.0 },
-};
+/** $/MTok by model, for cost estimates — shared with `src/lib/ingest/
+ *  pricing.ts` (Phase 2 follow-up; this used to be its own duplicate
+ *  table). The eval harness's default sweep model is the cheaper
+ *  `gpt-5-nano`, unlike the production default (`gpt-5-mini`), so it keeps
+ *  its own fallback by passing it explicitly. */
 function priceFor(model: string) {
-  return PRICE_TABLE[model] ?? PRICE_TABLE['gpt-5-nano'];
+  return priceForModel(model, 'gpt-5-nano');
 }
 
 /** `String(err)` on a `ClassifierError` loses its `.cause` (the real reason,

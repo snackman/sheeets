@@ -34,6 +34,10 @@ import { estimateCostUsd } from './pricing';
 import { toEventRow, ThrottledSheetPublisher } from './publish';
 import { reconcileConference } from './reconcile';
 import { ClassifierError } from './classifier';
+import { hostListMatches } from './hosts';
+import { getSponsorNamesForConference, matchSponsorName } from './sponsors';
+import { loadLearningContext, learnedHostSignalMatches } from './learning';
+import { checkAutoPublishKillSwitch } from './gate';
 import {
   FINAL_CANDIDATE_STATUSES,
   RETRY_ON_UNCHANGED_STATUSES,
@@ -42,7 +46,6 @@ import {
   type NormalizedEvent,
   type RunCounts,
   type RunTrigger,
-  type TrustedHostEntry,
 } from './types';
 
 function bump(counts: RunCounts, key: keyof RunCounts, by = 1) {
@@ -58,14 +61,6 @@ interface InRunCandidate {
   id: string;
   canonical_key: string;
   event: NormalizedEvent;
-}
-
-/** True if a host/organizer is in a profile's trusted/blocked list, by id or name. */
-function hostListMatches(entries: TrustedHostEntry[], event: Pick<NormalizedEvent, 'hosts' | 'organizer'>): boolean {
-  if (entries.length === 0) return false;
-  const names = new Set([event.organizer.toLowerCase(), ...event.hosts.map((h) => h.name.toLowerCase())].filter(Boolean));
-  const ids = new Set(event.hosts.map((h) => h.apiId).filter((id): id is string => !!id));
-  return entries.some((e) => (e.id && ids.has(e.id)) || names.has(e.name.toLowerCase()));
 }
 
 export interface RunSourceOptions {
@@ -138,6 +133,20 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
       if (!opts.dryRun) await updateSource(sourceId, { last_run_at: new Date().toISOString(), last_status: 'skipped' });
       await finishRun(run.id, { status: 'skipped', counts, error: 'No enabled ingest profile for this conference.' });
       return { runId: run.id, status: 'skipped', counts };
+    }
+
+    // Phase 2 kill switch (plans/event-ingestion.md §Phase 2, `gate.ts`):
+    // re-checked at the top of every run for a conference whose profile
+    // currently has auto-publish on. If rolling precision over the most
+    // recent real auto-published outcomes has dropped below the gate
+    // threshold, this flips the DB row back to shadow mode and records why
+    // — mutate the in-memory `profile` too so THIS run (already in
+    // flight) stops publishing immediately rather than one run late.
+    // Skipped for dry runs, which must never have a side effect on live
+    // config.
+    if (!opts.dryRun && profile.auto_publish_enabled) {
+      const kill = await checkAutoPublishKillSwitch(source.conference);
+      if (kill.killed) profile.auto_publish_enabled = false;
     }
 
     const allTabs = await getAllConferenceTabs();
@@ -256,6 +265,18 @@ async function processSource(args: {
 
   const { data: verifiedHosts } = await supabase.from('verified_luma_hosts').select('host_api_id').is('revoked_at', null);
   const verifiedHostIds = new Set((verifiedHosts ?? []).map((h: { host_api_id: string }) => h.host_api_id));
+
+  // Phase 2 learning loop (`learning.ts`): few-shot examples from past admin
+  // decisions, plus an optional learned trusted/blocked host nudge from
+  // this conference's own label history. Fetched once per run — same
+  // conference/theme for every candidate below, so there's no reason to
+  // re-query per candidate (and it keeps the prompt deterministic/cacheable
+  // across a run, per §5.6).
+  const { fewShot, learnedHosts } = await loadLearningContext({ conference: source.conference, themeKey: profile.theme_key });
+  // Phase 2 sponsor-name signal wiring (`sponsors.ts`): the conference's
+  // already-known sponsor names (from any published event), matched as
+  // plain text against each candidate below.
+  const sponsorNames = await getSponsorNamesForConference(source.conference);
 
   const sheetTitle = await getSheetTitle(tab.gid);
   const publisher = new ThrottledSheetPublisher(sheetTitle, tab.gid, { maxPerRun: profile.max_publish_per_run });
@@ -438,11 +459,18 @@ async function processSource(args: {
       continue;
     }
 
+    const hostNamesForLearning = [normalized.organizer, ...normalized.hosts.map((h) => h.name)];
     const isTrustedHost =
       hostListMatches(profile.trusted_hosts, normalized) ||
       normalized.hosts.some((h) => h.apiId && verifiedHostIds.has(h.apiId)) ||
-      (organizerCounts.get(normalized.organizer.trim().toLowerCase()) ?? 0) >= 2;
-    const isBlockedHost = hostListMatches(profile.blocked_hosts, normalized);
+      (organizerCounts.get(normalized.organizer.trim().toLowerCase()) ?? 0) >= 2 ||
+      learnedHostSignalMatches(learnedHosts, 'trusted', hostNamesForLearning);
+    const isBlockedHost =
+      hostListMatches(profile.blocked_hosts, normalized) ||
+      learnedHostSignalMatches(learnedHosts, 'blocked', hostNamesForLearning);
+
+    const sponsorText = [normalized.name, normalized.organizer, ...normalized.hosts.map((h) => h.name), normalized.descriptionText].join(' ');
+    const sponsorMatch = matchSponsorName(sponsorText, sponsorNames);
 
     let scoreResult;
     try {
@@ -462,10 +490,11 @@ async function processSource(args: {
           platform: normalized.platform,
           descriptionText: normalized.descriptionText,
         },
+        fewShot,
         isTrustedCalendarSource: source.trust === 'curated',
         isTrustedHost,
         isBlockedHost,
-        sponsorMatch: null, // event_sponsors lookup is keyed on already-published events; not wired for pre-publish candidates in 1b.
+        sponsorMatch,
         includeKeywords: profile.include_keywords,
         excludeKeywords: profile.exclude_keywords,
         possibleDuplicate: !!possibleDuplicateOf,

@@ -73,6 +73,8 @@ export function seedProfileRow(conference: string, themeKey: ThemeKey): Omit<Ing
     max_llm_calls_per_run: 150,
     max_publish_per_run: 25,
     enabled: true,
+    auto_publish_killed_at: null,
+    auto_publish_kill_reason: null,
   };
 }
 
@@ -527,4 +529,143 @@ export async function setCachedLumaApiId(linkKey: string, apiId: string | null):
     .from('ingest_link_cache')
     .upsert({ link_key: linkKey, luma_api_id: apiId, resolved_at: new Date().toISOString() }, { onConflict: 'link_key' });
   if (error) throw new Error(`Failed to write link cache: ${error.message}`);
+}
+
+/* ------------------------------------------------------------------ */
+/* Phase 2: learning loop + precision dashboard + auto-publish gate    */
+/* ------------------------------------------------------------------ */
+
+/** Theme labels eligible for few-shot (`learning.ts#selectFewShotExamples`):
+ *  `label_kind='theme'` only (non-theme reasons like "duplicate"/"wrong
+ *  city" don't teach theme fit) and never `excluded_from_fewshot`. Spans
+ *  every conference sharing `themeKey` — `learning.ts` ranks same-conference
+ *  examples first but the pool itself is theme-wide (§5.6). */
+export async function listLabelsForFewShot(themeKey: ThemeKey, limit = 400): Promise<IngestLabelRow[]> {
+  const supabase = getIngestSupabase();
+  const { data, error } = await supabase
+    .from('ingest_labels')
+    .select('*')
+    .eq('theme_key', themeKey)
+    .eq('label_kind', 'theme')
+    .eq('excluded_from_fewshot', false)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(`Failed to list labels for few-shot: ${error.message}`);
+  return (data as IngestLabelRow[]) ?? [];
+}
+
+/** One row of the `ingest_precision` view (migration 20261011120000). */
+export interface IngestPrecisionRow {
+  conference: string;
+  source_kind: string;
+  score_bucket: string;
+  reviewed_on_theme: number;
+  reviewed_off_theme: number;
+  auto_published: number;
+  auto_unpublished: number;
+  shadow_publish_candidates: number;
+  shadow_publish_approved: number;
+}
+
+/** All `ingest_precision` rows (one per source_kind x score_bucket) for a
+ *  conference — the raw input the Precision dashboard and the auto-publish
+ *  enable gate both roll up (`gate.ts`'s `summarize*` functions). */
+export async function getPrecisionRows(conference: string): Promise<IngestPrecisionRow[]> {
+  const supabase = getIngestSupabase();
+  const { data, error } = await supabase.from('ingest_precision').select('*').eq('conference', conference);
+  if (error) throw new Error(`Failed to load precision rows: ${error.message}`);
+  return (data as IngestPrecisionRow[]) ?? [];
+}
+
+/** The most recent `limit` REAL auto-publish outcomes for a conference —
+ *  `auto_published` (still live) or `unpublished`/`unpublished_external`
+ *  (taken back down), ordered by `published_at` so "recent" means recently
+ *  published, not recently decided. Feeds the kill switch
+ *  (`gate.ts#checkAutoPublishKillSwitch`). */
+export async function getRecentAutoPublishOutcomes(
+  conference: string,
+  limit = 50
+): Promise<Pick<IngestCandidateRow, 'status'>[]> {
+  const supabase = getIngestSupabase();
+  const { data, error } = await supabase
+    .from('ingest_candidates')
+    .select('status')
+    .eq('conference', conference)
+    .in('status', ['auto_published', 'unpublished', 'unpublished_external'])
+    .order('published_at', { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(`Failed to load recent auto-publish outcomes: ${error.message}`);
+  return (data as Pick<IngestCandidateRow, 'status'>[]) ?? [];
+}
+
+export interface CandidateVolumeBySource {
+  source_id: string;
+  label: string;
+  kind: SourceKind;
+  total: number;
+  published: number;
+  queued: number;
+  rejected: number;
+}
+
+/** Per-source candidate volume for the Precision dashboard's "volume per
+ *  source" table. Supabase's JS client has no `group by`, and at our
+ *  volumes (plan §12: tens-hundreds per conference) a raw select + in-
+ *  memory aggregation is simpler and cheaper than a dedicated view. */
+export async function getCandidateVolumeBySource(conference: string): Promise<CandidateVolumeBySource[]> {
+  const supabase = getIngestSupabase();
+  const [{ data: candidates, error: candErr }, sources] = await Promise.all([
+    supabase.from('ingest_candidates').select('source_id, status').eq('conference', conference).limit(5000),
+    listSources(conference),
+  ]);
+  if (candErr) throw new Error(`Failed to load candidate volume: ${candErr.message}`);
+
+  const bySource = new Map<string, { total: number; published: number; queued: number; rejected: number }>();
+  for (const row of (candidates ?? []) as { source_id: string | null; status: CandidateStatus }[]) {
+    if (!row.source_id) continue;
+    const agg = bySource.get(row.source_id) ?? { total: 0, published: 0, queued: 0, rejected: 0 };
+    agg.total++;
+    if (row.status === 'auto_published' || row.status === 'approved') agg.published++;
+    else if (row.status === 'queued') agg.queued++;
+    else if (row.status === 'auto_rejected' || row.status === 'rejected') agg.rejected++;
+    bySource.set(row.source_id, agg);
+  }
+
+  return sources.map((s) => ({
+    source_id: s.id,
+    label: s.label || s.kind,
+    kind: s.kind,
+    ...(bySource.get(s.id) ?? { total: 0, published: 0, queued: 0, rejected: 0 }),
+  }));
+}
+
+/** Recent false positives (an auto-published/approved event an admin later
+ *  took back down — `source='admin_unpublish'`) and false negatives (an
+ *  event the model would have rejected, `model_route='reject'`, that an
+ *  admin approved anyway) for the Precision dashboard's audit lists (§11). */
+export async function listRecentLabelMismatches(
+  conference: string,
+  limit = 10
+): Promise<{ falsePositives: IngestLabelRow[]; falseNegatives: IngestLabelRow[] }> {
+  const supabase = getIngestSupabase();
+  const [{ data: fp, error: fpError }, { data: fn, error: fnError }] = await Promise.all([
+    supabase
+      .from('ingest_labels')
+      .select('*')
+      .eq('conference', conference)
+      .eq('source', 'admin_unpublish')
+      .order('created_at', { ascending: false })
+      .limit(limit),
+    supabase
+      .from('ingest_labels')
+      .select('*')
+      .eq('conference', conference)
+      .eq('label', 'on_theme')
+      .eq('model_route', 'reject')
+      .order('created_at', { ascending: false })
+      .limit(limit),
+  ]);
+  if (fpError) throw new Error(`Failed to load false positives: ${fpError.message}`);
+  if (fnError) throw new Error(`Failed to load false negatives: ${fnError.message}`);
+  return { falsePositives: (fp as IngestLabelRow[]) ?? [], falseNegatives: (fn as IngestLabelRow[]) ?? [] };
 }

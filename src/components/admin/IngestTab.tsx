@@ -5,18 +5,20 @@ import type { TabConfig } from '@/lib/conferences';
 import IngestQueue from './ingest/IngestQueue';
 import IngestConfig from './ingest/IngestConfig';
 import IngestLog from './ingest/IngestLog';
+import IngestPrecision from './ingest/IngestPrecision';
 
 interface Props {
   allConferenceTabs: TabConfig[];
   password: string;
 }
 
-type SubTab = 'queue' | 'config' | 'log';
+type SubTab = 'queue' | 'config' | 'log' | 'precision';
 
 const SUB_TABS: { key: SubTab; label: string }[] = [
   { key: 'queue', label: 'Queue' },
   { key: 'config', label: 'Config' },
   { key: 'log', label: 'Log' },
+  { key: 'precision', label: 'Precision' },
 ];
 
 /** Event-ingestion admin tab (plans/event-ingestion.md, Phase 1b), modeled on ClaimsTab. */
@@ -42,6 +44,7 @@ export default function IngestTab({ allConferenceTabs, password }: Props) {
       {subTab === 'queue' && <IngestQueue allConferenceTabs={allConferenceTabs} password={password} />}
       {subTab === 'config' && <IngestConfig allConferenceTabs={allConferenceTabs} password={password} />}
       {subTab === 'log' && <IngestLog allConferenceTabs={allConferenceTabs} password={password} />}
+      {subTab === 'precision' && <IngestPrecision allConferenceTabs={allConferenceTabs} password={password} />}
     </div>
   );
 }

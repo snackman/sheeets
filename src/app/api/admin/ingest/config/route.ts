@@ -12,6 +12,8 @@ import {
 import { listProfiles, getProfile, upsertProfile, seedProfileRow, listSources, createSource, updateSource, deleteSource } from '@/lib/ingest/db';
 import { resolveLumaCalendar, fetchLumaIcalFeed, toIcalCandidates } from '@/lib/ingest/sources/luma-ical';
 import { isPastEvent } from '@/lib/ingest/filters';
+import { evaluateAutoPublishEnableGate } from '@/lib/ingest/gate';
+import type { IngestProfileRow } from '@/lib/ingest/types';
 
 export const runtime = 'nodejs';
 
@@ -42,8 +44,17 @@ export async function GET(req: NextRequest) {
 
   const conference = req.nextUrl.searchParams.get('conference') || undefined;
   try {
-    const [profiles, sources] = await Promise.all([listProfiles(), listSources(conference)]);
-    return NextResponse.json({ profiles, sources });
+    const [profiles, sources, gate] = await Promise.all([
+      listProfiles(),
+      listSources(conference),
+      // The Phase 2 auto-publish gate (plans/event-ingestion.md §13.2):
+      // computed whenever a specific conference is selected, so the Config
+      // sub-tab can show the toggle as locked (with why) BEFORE an admin
+      // ever tries to flip it — the PUT handler below is the actual
+      // enforcement; this is just so the UI doesn't have to guess.
+      conference ? evaluateAutoPublishEnableGate(conference) : Promise.resolve(null),
+    ]);
+    return NextResponse.json({ profiles, sources, gate });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed to load config' }, { status: 500 });
   }
@@ -60,7 +71,25 @@ export async function PUT(req: NextRequest) {
   try {
     const existing = await getProfile(conference);
     const base = existing ?? seedProfileRow(conference, patch.theme_key);
-    const row = await upsertProfile({ ...base, ...patch, conference });
+
+    // Phase 2 auto-publish gate, enforced server-side (plans/
+    // event-ingestion.md §13.2): only a false -> true transition is
+    // gated — saving other fields while it's already on (or saving it as
+    // false) never needs to pass this. Re-enabling after the kill switch
+    // fired clears the kill-switch record, same as a fresh enable.
+    let gatedPatch: Partial<IngestProfileRow> = patch;
+    if (patch.auto_publish_enabled === true && !existing?.auto_publish_enabled) {
+      const gate = await evaluateAutoPublishEnableGate(conference);
+      if (!gate.eligible) {
+        return NextResponse.json(
+          { error: `Cannot enable auto-publish yet: ${gate.reason}`, gate },
+          { status: 400 }
+        );
+      }
+      gatedPatch = { ...patch, auto_publish_killed_at: null, auto_publish_kill_reason: null };
+    }
+
+    const row = await upsertProfile({ ...base, ...gatedPatch, conference });
     return NextResponse.json({ profile: row });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed to save profile' }, { status: 500 });

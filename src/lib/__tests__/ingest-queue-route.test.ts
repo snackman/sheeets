@@ -61,6 +61,18 @@ vi.mock('@/lib/ingest/db', () => ({
   getProfile: (...a: unknown[]) => getProfileMock(...a),
   upsertProfile: (...a: unknown[]) => upsertProfileMock(...a),
   profileRowToThemeProfile: (...a: unknown[]) => profileRowToThemeProfileMock(...a),
+  // Phase 2: rescore now loads a learning context (`learning.ts`, which
+  // imports `listLabelsForFewShot` from this same module) and a sponsor
+  // name list (`sponsors.ts`, which calls `getIngestSupabase()`) — empty
+  // pools here, same as `ingest-pipeline.test.ts`'s db mock.
+  listLabelsForFewShot: vi.fn(async () => []),
+  getIngestSupabase: vi.fn(() => ({
+    from: () => ({
+      select: () => ({
+        eq: () => Promise.resolve({ data: [], error: null }),
+      }),
+    }),
+  })),
 }));
 
 vi.mock('@/lib/get-conferences', () => ({

@@ -100,9 +100,18 @@ vi.mock('../ingest/db', () => ({
     from: () => ({
       select: () => ({
         is: () => Promise.resolve({ data: [] }),
+        eq: () => Promise.resolve({ data: [], error: null }),
       }),
     }),
   })),
+  // Phase 2 learning loop / gate additions (`learning.ts`, `gate.ts`) — empty
+  // pools/outcomes so the pipeline's new calls are no-ops in these tests,
+  // which predate the learning loop and don't exercise it directly (see
+  // `ingest-learning.test.ts`/`ingest-gate.test.ts` for that logic).
+  listLabelsForFewShot: vi.fn(async () => []),
+  getRecentAutoPublishOutcomes: vi.fn(async () => []),
+  getPrecisionRows: vi.fn(async () => []),
+  upsertProfile: vi.fn(async () => ({})),
 }));
 
 vi.mock('../ingest/budget', () => ({

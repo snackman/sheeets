@@ -126,6 +126,13 @@ export interface IngestProfileRow {
   max_llm_calls_per_run: number;
   max_publish_per_run: number;
   enabled: boolean;
+  /** Set by the Phase 2 kill switch (`gate.ts#checkAutoPublishKillSwitch`)
+   *  when it automatically flips `auto_publish_enabled` back to false
+   *  because rolling precision dropped below the gate threshold. Cleared
+   *  (set back to null) the next time an admin successfully re-enables
+   *  auto-publish through the config API. */
+  auto_publish_killed_at: string | null;
+  auto_publish_kill_reason: string | null;
   updated_at: string;
 }
 
