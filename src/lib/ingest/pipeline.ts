@@ -60,6 +60,22 @@ function bump(counts: RunCounts, key: keyof RunCounts, by = 1) {
   counts[key] = (counts[key] ?? 0) + by;
 }
 
+/** Re-review (this round): a shared, mutable LLM cost/token accumulator,
+ *  owned by `runSource` and passed into every process*Source function
+ *  (including Telegram and Luma, which predate this and had their own
+ *  equivalent local variables). Every classify call's cost/tokens are
+ *  added here IMMEDIATELY, in the same statement that currently also adds
+ *  them to a function-local running total — so if the function throws
+ *  later (a dedupe/network/DB call failing on a LATER candidate), this
+ *  object still reflects every classify call that already succeeded, and
+ *  `runSource`'s `catch` block can read it directly instead of losing
+ *  that cost entirely. */
+interface CostAccumulator {
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+}
+
 /** Lightweight in-run representative of a candidate, for intra-run dedupe
  *  (review finding, LOW "dedupe within a single run"). Real candidates get
  *  their DB id; dry-run previews (which never get one) use the canonical
@@ -127,9 +143,17 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
     filtered: 0, classified: 0, published: 0, queued: 0, rejected: 0, errors: 0,
     ...(opts.dryRun ? { dry_run: 1 } : {}),
   };
-  let llmInputTokens = 0;
-  let llmOutputTokens = 0;
-  let costUsd = 0;
+  // Re-review (this round): a SHARED, mutable accumulator — not separate
+  // `let`s only ever assigned from a successful process*Source return —
+  // so that cost/tokens a source accumulated BEFORE throwing partway
+  // through (e.g. it classified and billed 5 candidates, then the 6th's
+  // dedupe call threw) are still visible in the `catch` block below,
+  // instead of being silently lost because the assignment from `result.*`
+  // never happened. Every process*Source function (incl. Telegram, which
+  // predates the X/Meetup/sponsor-pages helpers but has the exact same
+  // "accumulate locally, only surface it in the return value" shape) now
+  // mutates THIS object in place as it goes, via `commonArgs.costAcc`.
+  const costAcc: CostAccumulator = { inputTokens: 0, outputTokens: 0, costUsd: 0 };
 
   try {
     // `host_submission` sources are passive — created lazily by `POST
@@ -184,7 +208,7 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
     const tab = allTabs.find((t) => t.name === source.conference);
     if (!tab) throw new Error(`No conference tab found for "${source.conference}".`);
 
-    const commonArgs = { source, profile, tab, deadlineMs: opts.deadlineMs, counts, dryRun: opts.dryRun };
+    const commonArgs = { source, profile, tab, deadlineMs: opts.deadlineMs, counts, dryRun: opts.dryRun, costAcc };
     const result =
       source.kind === 'luma_ical'
         ? await processLumaIcalSource(commonArgs)
@@ -201,28 +225,31 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
             : source.kind === 'meetup_search'
               ? await processMeetupSource(commonArgs)
               : await processSponsorPagesSource(commonArgs);
-    llmInputTokens = result.llmInputTokens;
-    llmOutputTokens = result.llmOutputTokens;
-    costUsd = result.costUsd;
 
     if (!opts.dryRun) await updateSource(sourceId, { last_run_at: new Date().toISOString(), last_status: 'ok', last_error: null });
     await finishRun(run.id, {
       status: result.hitDeadline ? 'partial' : 'ok',
       counts,
-      llm_input_tokens: llmInputTokens,
-      llm_output_tokens: llmOutputTokens,
-      est_cost_usd: costUsd,
+      llm_input_tokens: costAcc.inputTokens,
+      llm_output_tokens: costAcc.outputTokens,
+      est_cost_usd: costAcc.costUsd,
     });
     return { runId: run.id, status: result.hitDeadline ? 'partial' : 'ok', counts, previews: result.previews };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     if (!opts.dryRun) await updateSource(sourceId, { last_run_at: new Date().toISOString(), last_status: 'error', last_error: message });
+    // Re-review (this round, HIGH-adjacent fix): read `costAcc` here too —
+    // whatever classification cost the source accumulated BEFORE it threw
+    // is still in there (every process*Source function mutates it in
+    // place as it goes, not only on a successful return), so a run that
+    // errors out partway through no longer reports $0/0 tokens for work
+    // it genuinely already paid for.
     await finishRun(run.id, {
       status: 'error',
       counts,
-      llm_input_tokens: llmInputTokens,
-      llm_output_tokens: llmOutputTokens,
-      est_cost_usd: costUsd,
+      llm_input_tokens: costAcc.inputTokens,
+      llm_output_tokens: costAcc.outputTokens,
+      est_cost_usd: costAcc.costUsd,
       error: message,
     });
     return { runId: run.id, status: 'error', counts, error: message };
@@ -236,8 +263,9 @@ async function processLumaIcalSource(args: {
   deadlineMs?: number;
   counts: RunCounts;
   dryRun?: boolean;
+  costAcc: CostAccumulator;
 }): Promise<{ llmInputTokens: number; llmOutputTokens: number; costUsd: number; hitDeadline: boolean; previews?: CandidatePreview[] }> {
-  const { profile, tab, counts, dryRun } = args;
+  const { profile, tab, counts, dryRun, costAcc } = args;
   const source = args.source!;
   const deadline = Date.now() + (args.deadlineMs ?? 240_000);
   const previews: CandidatePreview[] = [];
@@ -579,7 +607,14 @@ async function processLumaIcalSource(args: {
       if (err instanceof ClassifierError && err.usage) {
         totalInputTokens += err.usage.inputTokens;
         totalOutputTokens += err.usage.outputTokens;
-        runningCostUsd += estimateCostUsd(err.usage.model, err.usage.inputTokens, err.usage.outputTokens);
+        const failedCallCostUsd = estimateCostUsd(err.usage.model, err.usage.inputTokens, err.usage.outputTokens);
+        runningCostUsd += failedCallCostUsd;
+        // Re-review (this round): mirrored into the shared accumulator
+        // immediately, not just the local — see `CostAccumulator`'s doc
+        // comment (`runSource`'s `catch` block reads this directly).
+        costAcc.inputTokens += err.usage.inputTokens;
+        costAcc.outputTokens += err.usage.outputTokens;
+        costAcc.costUsd += failedCallCostUsd;
       }
       await persist({
         ...baseRow,
@@ -594,9 +629,15 @@ async function processLumaIcalSource(args: {
     bump(counts, 'classified');
     const callInputTokens = scoreResult.classifier.inputTokens;
     const callOutputTokens = scoreResult.classifier.outputTokens;
+    const callCostUsd = estimateCostUsd(scoreResult.classifier.model, callInputTokens, callOutputTokens);
     totalInputTokens += callInputTokens;
     totalOutputTokens += callOutputTokens;
-    runningCostUsd += estimateCostUsd(scoreResult.classifier.model, callInputTokens, callOutputTokens);
+    runningCostUsd += callCostUsd;
+    // Re-review (this round): mirrored into the shared accumulator
+    // immediately — see `CostAccumulator`'s doc comment.
+    costAcc.inputTokens += callInputTokens;
+    costAcc.outputTokens += callOutputTokens;
+    costAcc.costUsd += callCostUsd;
 
     let status: CandidateStatus;
     let sheetRow: number | null = null;
@@ -718,8 +759,9 @@ async function processTelegramSource(args: {
   deadlineMs?: number;
   counts: RunCounts;
   dryRun?: boolean;
+  costAcc: CostAccumulator;
 }): Promise<{ llmInputTokens: number; llmOutputTokens: number; costUsd: number; hitDeadline: boolean; previews?: CandidatePreview[] }> {
-  const { profile, tab, counts, dryRun } = args;
+  const { profile, tab, counts, dryRun, costAcc } = args;
   const source = args.source!;
   const deadline = Date.now() + (args.deadlineMs ?? 240_000);
   const previews: CandidatePreview[] = [];
@@ -871,6 +913,11 @@ async function processTelegramSource(args: {
       totalInputTokens += outcome.inputTokens;
       totalOutputTokens += outcome.outputTokens;
       runningCostUsd += outcome.costUsd;
+      // Re-review (this round): mirrored into the shared accumulator
+      // immediately — see `CostAccumulator`'s doc comment.
+      costAcc.inputTokens += outcome.inputTokens;
+      costAcc.outputTokens += outcome.outputTokens;
+      costAcc.costUsd += outcome.costUsd;
       if (outcome.classified) {
         llmCallsThisRun++;
         bump(counts, 'classified');
@@ -1024,11 +1071,15 @@ function hasAnyAllowlistedLink(urls: string[]): boolean {
  * shares. `sourceRef(url)` lets a caller attach per-URL provenance (a tweet
  * id, a Meetup node id, the sponsor page it came from).
  *
- * Re-review item 1 (HIGH): callers MUST read `runningCostUsdRef.value` /
- * `totalTokensRef.{input,output}` back out after this returns and surface
- * them as the source's `llmInputTokens`/`llmOutputTokens`/`costUsd` — this
- * function mutates the refs it's given but never returns them itself
- * (callers already own them, so they can inspect them directly).
+ * Re-review item 1 (HIGH, previous round) / re-review (this round, "persist
+ * LLM cost on a thrown batch"): callers pass in `args.costAcc` — the SAME
+ * shared `CostAccumulator` `runSource` holds — and MUST surface its final
+ * `.inputTokens`/`.outputTokens`/`.costUsd` as the source's own
+ * `llmInputTokens`/`llmOutputTokens`/`costUsd` on a normal return. This
+ * function mutates `costAcc` in place per candidate rather than returning
+ * a value itself, specifically so a LATER candidate throwing still leaves
+ * every EARLIER candidate's already-billed cost visible to `runSource`'s
+ * `catch` block, which reads the same object directly.
  */
 async function runDiscoveredLinksBatch(
   urls: string[],
@@ -1044,14 +1095,20 @@ async function runDiscoveredLinksBatch(
     deadline: number;
     persist: (row: Record<string, unknown> & { conference: string; canonical_key: string; status: CandidateStatus; event: NormalizedEvent }) => Promise<void>;
     budgetStatus: { spentUsd: number; capUsd: number };
-    runningCostUsdRef: { value: number };
+    /** Re-review (this round): the SAME shared accumulator `runSource`
+     *  holds a reference to — mutated here immediately per candidate, not
+     *  just via a local-to-the-caller ref, so cost already spent before a
+     *  later candidate's processing throws is never lost. Also the single
+     *  source of truth `canClassify` reads for the running total, so the
+     *  cap calculation and the externally-visible recorded cost can never
+     *  drift apart. */
+    costAcc: CostAccumulator;
     llmCallsThisRunRef: { value: number };
-    totalTokensRef: { input: number; output: number };
   }
 ): Promise<{ hitDeadline: boolean }> {
   const src = args.source!;
   const canClassify = () =>
-    args.budgetStatus.spentUsd + args.runningCostUsdRef.value < args.budgetStatus.capUsd &&
+    args.budgetStatus.spentUsd + args.costAcc.costUsd < args.budgetStatus.capUsd &&
     args.llmCallsThisRunRef.value < args.profile.max_llm_calls_per_run;
 
   const allowlisted = Array.from(new Set(urls)).filter(isAllowlistedEventLink);
@@ -1111,9 +1168,9 @@ async function runDiscoveredLinksBatch(
 
     // outcome.kind === 'row'
     bump(args.counts, 'new');
-    args.totalTokensRef.input += outcome.inputTokens;
-    args.totalTokensRef.output += outcome.outputTokens;
-    args.runningCostUsdRef.value += outcome.costUsd;
+    args.costAcc.inputTokens += outcome.inputTokens;
+    args.costAcc.outputTokens += outcome.outputTokens;
+    args.costAcc.costUsd += outcome.costUsd;
     if (outcome.classified) {
       args.llmCallsThisRunRef.value++;
       bump(args.counts, 'classified');
@@ -1156,8 +1213,9 @@ async function processXSource(args: {
    *  after the paid read(s), in a `finally`, rather than only after this
    *  whole function returns successfully. */
   runId: string;
+  costAcc: CostAccumulator;
 }): Promise<DiscoverySourceLoopResult> {
-  const { profile, tab, counts, dryRun, runId } = args;
+  const { profile, tab, counts, dryRun, runId, costAcc } = args;
   const source = args.source!;
   const deadline = Date.now() + (args.deadlineMs ?? 240_000);
   const previews: CandidatePreview[] = [];
@@ -1173,16 +1231,19 @@ async function processXSource(args: {
   }
 
   // Re-review item 5: paginate up to X_MAX_PAGES_PER_RUN pages of
-  // MAX_RESULTS_PER_ACCOUNT_PER_RUN posts each. `capped` tracks whether
-  // more pages were available beyond our per-run limit — if so, we must
-  // NOT advance `since_id` past the posts we never read (below), even
-  // though we already paid to read the ones we DID get.
+  // MAX_RESULTS_PER_ACCOUNT_PER_RUN posts each — EXCEPT on this source's
+  // very first run (no `since_id` cursor yet at all), where we read only
+  // ONE page and never backfill through an account's whole history
+  // (re-review item "first run with no cursor: read one page and set the
+  // cursor, no backfill"). A source that's run before always gets the
+  // full per-run page budget.
+  const isFirstRunEver = !cursor.since_id;
+  const pageLimit = isFirstRunEver ? 1 : X_MAX_PAGES_PER_RUN;
   const pages: XPostsPage[] = [];
   let paginationToken: string | undefined;
-  let capped = false;
   let totalPostsRead = 0;
   try {
-    for (let i = 0; i < X_MAX_PAGES_PER_RUN; i++) {
+    for (let i = 0; i < pageLimit; i++) {
       const page = await fetchXUserPosts(config.userId, {
         sinceId: cursor.since_id ?? null,
         maxResults: MAX_RESULTS_PER_ACCOUNT_PER_RUN,
@@ -1193,7 +1254,6 @@ async function processXSource(args: {
       const exhausted = page.resultCount < MAX_RESULTS_PER_ACCOUNT_PER_RUN || !page.nextToken;
       if (exhausted) break;
       paginationToken = page.nextToken ?? undefined;
-      if (i === X_MAX_PAGES_PER_RUN - 1) capped = true;
     }
   } finally {
     // Re-review item 2 (MEDIUM): recorded here, in a `finally`, right
@@ -1219,25 +1279,59 @@ async function processXSource(args: {
     }
   }
   const candidateUrls = Array.from(linksByUrl.keys());
+  // Pages are newest-first, so the FIRST page's `newestId` is the true
+  // overall newest post this query saw, regardless of how many pages we
+  // went on to read.
+  const newestIdThisRun = pages[0]?.newestId ?? null;
 
-  // Re-review item 4: skip the (expensive) discovery-context build
-  // entirely when there's nothing allowlisted to process, or the deadline
-  // from an earlier source in this run has already passed.
-  if (Date.now() > deadline || !hasAnyAllowlistedLink(candidateUrls)) {
-    return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline: Date.now() > deadline, previews: dryRun ? previews : undefined };
+  /** Re-review (HIGH, this round — "the X cursor can get stuck"): advance
+   *  `since_id` to `newestIdThisRun`, unless `dryRun` or there's nothing
+   *  to advance to. Called from every non-deadline exit path below so an
+   *  account whose recent posts simply have no allowlisted links (the
+   *  common case — most posts aren't event links) still makes forward
+   *  progress every run, instead of re-reading (and re-billing) the exact
+   *  same window forever. Also covers a per-run page cap: we now advance
+   *  all the way to the newest post and ACCEPT the gap (any older, still
+   *  unread posts within this query are simply never revisited) rather
+   *  than freezing the cursor — simpler, and the gap is bounded by
+   *  X_MAX_PAGES_PER_RUN's own page budget, not unbounded. The ONLY case
+   *  that must still leave the cursor untouched is a run the DEADLINE cut
+   *  short (checked by callers, not here) — there, posts were read and
+   *  their links may genuinely still be sitting unprocessed, so the next
+   *  run needs the SAME `since_id` to pick them back up. */
+  async function advanceCursor(): Promise<void> {
+    if (dryRun || !newestIdThisRun) return;
+    await updateSource(source.id, { cursor: { since_id: newestIdThisRun } });
+  }
+
+  // Re-review item 4 (deadline already passed before we even started
+  // processing links): advance the cursor is NOT safe here — we read
+  // posts and found links, but never attempted to process any of them,
+  // so the next run must retry from the SAME since_id (the one case that
+  // may leave the cursor unadvanced).
+  if (Date.now() > deadline) {
+    return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline: true, previews: dryRun ? previews : undefined };
+  }
+
+  // Re-review item 4: skip the (expensive) discovery-context build when
+  // there's nothing allowlisted to process — but STILL advance the
+  // cursor (this round's HIGH fix): no links to process means nothing
+  // was left unprocessed, so there's no risk in moving forward.
+  if (!hasAnyAllowlistedLink(candidateUrls)) {
+    await advanceCursor();
+    return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline: false, previews: dryRun ? previews : undefined };
   }
 
   const budgetStatus = await checkMonthlyBudget();
   const ctx = await buildDiscoverySourceContext(source, profile, tab);
 
-  // Re-review item 1 (HIGH): these refs are read back out below and
-  // surfaced as this source's real LLM cost/tokens — previously hardcoded
-  // to 0, silently discarding every classification this source triggered
-  // from the run's recorded cost and the monthly LLM budget's running
-  // total.
-  const runningCostUsdRef = { value: 0 };
+  // Re-review item 1 (HIGH, previous round) / re-review (this round,
+  // "persist LLM cost on a thrown batch"): `costAcc` is the SAME object
+  // `runSource` holds — mutated per-candidate inside
+  // `runDiscoveredLinksBatch`, so it reflects every classify call that
+  // succeeded even if a LATER candidate's processing throws and this
+  // function never reaches its own `return` below.
   const llmCallsThisRunRef = { value: 0 };
-  const totalTokensRef = { input: 0, output: 0 };
   const { hitDeadline } = await runDiscoveredLinksBatch(candidateUrls, {
     source,
     profile,
@@ -1250,32 +1344,19 @@ async function processXSource(args: {
     deadline,
     persist,
     budgetStatus,
-    runningCostUsdRef,
+    costAcc,
     llmCallsThisRunRef,
-    totalTokensRef,
   });
 
-  // Re-review item 2: advance `since_id` only now that the batch has
-  // actually been processed (not right after the paid read, above) — a
-  // crash between the read and this point must not silently drop links we
-  // already paid to read but never turned into candidates. Pages are
-  // newest-first, so the first page's `newestId` is the true overall
-  // newest post THIS query saw; never advance past unread posts when
-  // `capped` (more pages existed beyond our per-run limit) or the
-  // deadline cut the batch short (`hitDeadline`) — both mean something we
-  // read was never fully processed or more is waiting, so next run must
-  // start from the SAME place (re-reading, and re-billing, a few already-
-  // seen posts is an acceptable, bounded cost; silently skipping unread
-  // ones is not).
-  const newestIdThisRun = pages[0]?.newestId ?? null;
-  if (!dryRun && !capped && !hitDeadline && newestIdThisRun) {
-    await updateSource(source.id, { cursor: { since_id: newestIdThisRun } });
-  }
+  // Only a deadline hit DURING batch processing still withholds the
+  // advance (see `advanceCursor`'s doc comment) — a capped page read is
+  // no longer one of those cases.
+  if (!hitDeadline) await advanceCursor();
 
   return {
-    llmInputTokens: totalTokensRef.input,
-    llmOutputTokens: totalTokensRef.output,
-    costUsd: runningCostUsdRef.value,
+    llmInputTokens: costAcc.inputTokens,
+    llmOutputTokens: costAcc.outputTokens,
+    costUsd: costAcc.costUsd,
     hitDeadline,
     previews: dryRun ? previews : undefined,
   };
@@ -1295,8 +1376,9 @@ async function processMeetupSource(args: {
   deadlineMs?: number;
   counts: RunCounts;
   dryRun?: boolean;
+  costAcc: CostAccumulator;
 }): Promise<DiscoverySourceLoopResult> {
-  const { profile, tab, counts, dryRun } = args;
+  const { profile, tab, counts, dryRun, costAcc } = args;
   const source = args.source!;
   const deadline = Date.now() + (args.deadlineMs ?? 240_000);
   const previews: CandidatePreview[] = [];
@@ -1331,10 +1413,10 @@ async function processMeetupSource(args: {
   const ctx = await buildDiscoverySourceContext(source, profile, tab);
   const refByUrl = new Map(results.map((r) => [r.eventUrl, r.id] as const));
 
-  // Re-review item 1 (HIGH): read back out below as the real LLM cost/tokens.
-  const runningCostUsdRef = { value: 0 };
+  // Re-review item 1 (HIGH, previous round) / re-review (this round): read
+  // back out below — `costAcc` is the SAME object `runSource` holds, so
+  // it's never lost even if a later candidate throws.
   const llmCallsThisRunRef = { value: 0 };
-  const totalTokensRef = { input: 0, output: 0 };
   const { hitDeadline } = await runDiscoveredLinksBatch(candidateUrls, {
     source,
     profile,
@@ -1347,12 +1429,11 @@ async function processMeetupSource(args: {
     deadline,
     persist,
     budgetStatus,
-    runningCostUsdRef,
+    costAcc,
     llmCallsThisRunRef,
-    totalTokensRef,
   });
 
-  return { llmInputTokens: totalTokensRef.input, llmOutputTokens: totalTokensRef.output, costUsd: runningCostUsdRef.value, hitDeadline, previews: dryRun ? previews : undefined };
+  return { llmInputTokens: costAcc.inputTokens, llmOutputTokens: costAcc.outputTokens, costUsd: costAcc.costUsd, hitDeadline, previews: dryRun ? previews : undefined };
 }
 
 /**
@@ -1368,8 +1449,9 @@ async function processSponsorPagesSource(args: {
   deadlineMs?: number;
   counts: RunCounts;
   dryRun?: boolean;
+  costAcc: CostAccumulator;
 }): Promise<DiscoverySourceLoopResult> {
-  const { profile, tab, counts, dryRun } = args;
+  const { profile, tab, counts, dryRun, costAcc } = args;
   const source = args.source!;
   const deadline = Date.now() + (args.deadlineMs ?? 240_000);
   const previews: CandidatePreview[] = [];
@@ -1426,10 +1508,10 @@ async function processSponsorPagesSource(args: {
   const budgetStatus = await checkMonthlyBudget();
   const ctx = await buildDiscoverySourceContext(source, profile, tab);
 
-  // Re-review item 1 (HIGH): read back out below as the real LLM cost/tokens.
-  const runningCostUsdRef = { value: 0 };
+  // Re-review item 1 (HIGH, previous round) / re-review (this round): read
+  // back out below — `costAcc` is the SAME object `runSource` holds, so
+  // it's never lost even if a later candidate throws.
   const llmCallsThisRunRef = { value: 0 };
-  const totalTokensRef = { input: 0, output: 0 };
   const { hitDeadline } = await runDiscoveredLinksBatch(candidateUrls, {
     source,
     profile,
@@ -1442,15 +1524,14 @@ async function processSponsorPagesSource(args: {
     deadline,
     persist,
     budgetStatus,
-    runningCostUsdRef,
+    costAcc,
     llmCallsThisRunRef,
-    totalTokensRef,
   });
 
   return {
-    llmInputTokens: totalTokensRef.input,
-    llmOutputTokens: totalTokensRef.output,
-    costUsd: runningCostUsdRef.value,
+    llmInputTokens: costAcc.inputTokens,
+    llmOutputTokens: costAcc.outputTokens,
+    costUsd: costAcc.costUsd,
     hitDeadline: sponsorPagesHitDeadline || hitDeadline,
     previews: dryRun ? previews : undefined,
   };

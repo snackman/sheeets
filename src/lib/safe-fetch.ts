@@ -279,10 +279,15 @@ export function stripHeaderCI(headers: Record<string, string>, name: string): Re
 }
 
 /** Re-review item 3: strip `Authorization`/`Cookie` from `headers` when a
- *  redirect crosses to a DIFFERENT origin (scheme+host+port) than the one
- *  the caller actually supplied credentials for — a same-origin redirect
- *  (e.g. http -> https on the identical host, or a path-only redirect)
- *  keeps them, since that's still "the site we trusted with them." */
+ *  redirect crosses to a DIFFERENT origin (scheme+host+port, per
+ *  `URL.origin`'s own definition) than the one the caller actually
+ *  supplied credentials for. A same-origin redirect (identical scheme,
+ *  host AND port — e.g. only the path or query changed) keeps them, since
+ *  that's still "the site we trusted with them." Fixed comment (re-review,
+ *  this round): the previous example here — "http -> https on the
+ *  identical host" — was WRONG; a scheme change is a DIFFERENT origin by
+ *  this same definition, so that case already strips, it never "keeps
+ *  them" as the old wording claimed. */
 export function stripCrossOriginAuthHeaders(headers: Record<string, string>, currentOrigin: string, nextOrigin: string): Record<string, string> {
   if (currentOrigin === nextOrigin) return headers;
   return stripHeaderCI(stripHeaderCI(headers, 'Authorization'), 'Cookie');

@@ -123,22 +123,66 @@ describe('isAllowedByRobots (fails open on no/unreachable robots.txt)', () => {
     expect(await isAllowedByRobots('https://sponsor.example.com/events', createRobotsCache())).toBe(false);
   });
 
-  // Re-review item 7: maxRedirects: 0 on the robots.txt fetch + treating
-  // the resulting SafeFetchError as "unreachable" -> fail open, rather
-  // than silently following the redirect to a DIFFERENT origin's rules.
-  it('treats a robots.txt redirect as unreachable (fails open), never follows it', async () => {
+  // Re-review (this round): allows exactly one redirect hop for
+  // robots.txt, so the extremely common apex<->www redirect is now
+  // followed and TRUSTED, instead of always failing open on any redirect.
+  it('follows a same-site (apex -> www) robots.txt redirect and trusts the result', async () => {
     const requestedUrls: string[] = [];
     vi.doMock('../safe-fetch', () => ({
       safeFetch: vi.fn(async (url: string, opts: { maxRedirects?: number }) => {
         requestedUrls.push(url);
-        expect(opts.maxRedirects).toBe(0);
-        throw new Error('simulated: safeFetch itself throws on a redirect when maxRedirects is 0');
+        expect(opts.maxRedirects).toBe(1);
+        // safeFetch itself follows the redirect internally and returns
+        // the FINAL url - simulate landing on www after requesting apex.
+        return { ok: true, status: 200, url: 'https://www.sponsor.example.com/robots.txt', headers: {}, text: 'User-agent: *\nDisallow: /blocked\n' };
+      }),
+      SafeFetchError: class SafeFetchError extends Error {},
+    }));
+    const { isAllowedByRobots, createRobotsCache } = await import('../ingest/sources/sponsor-pages');
+    const cache = createRobotsCache();
+    expect(await isAllowedByRobots('https://sponsor.example.com/events', cache)).toBe(true);
+    expect(await isAllowedByRobots('https://sponsor.example.com/blocked/page', cache)).toBe(false);
+    expect(requestedUrls).toEqual(['https://sponsor.example.com/robots.txt']); // cached - only fetched once
+  });
+
+  // Re-review (this round): a redirect to a GENUINELY different domain
+  // (not apex<->www of the same site) must still never be trusted as
+  // that origin's own robots.txt.
+  it('discards a robots.txt redirect to a different domain (fails open, does not trust it)', async () => {
+    vi.doMock('../safe-fetch', () => ({
+      safeFetch: vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        url: 'https://totally-different-host.example.net/robots.txt',
+        headers: {},
+        text: 'User-agent: *\nDisallow: /\n', // would disallow everything if (wrongly) trusted
+      })),
+      SafeFetchError: class SafeFetchError extends Error {},
+    }));
+    const { isAllowedByRobots, createRobotsCache } = await import('../ingest/sources/sponsor-pages');
+    expect(await isAllowedByRobots('https://sponsor.example.com/events', createRobotsCache())).toBe(true);
+  });
+
+  // Re-review (this round): 429 ("rate limited") is unavailable, same
+  // posture as a 5xx - disallow, not fail-open.
+  it('treats a robots.txt 429 as disallow-all, not fail-open', async () => {
+    vi.doMock('../safe-fetch', () => ({
+      safeFetch: vi.fn(async (url: string) => ({ ok: false, status: 429, url, headers: {}, text: '' })),
+      SafeFetchError: class SafeFetchError extends Error {},
+    }));
+    const { isAllowedByRobots, createRobotsCache } = await import('../ingest/sources/sponsor-pages');
+    expect(await isAllowedByRobots('https://sponsor.example.com/events', createRobotsCache())).toBe(false);
+  });
+
+  it('fails open when the robots.txt fetch throws (e.g. too many/off-site redirect hops)', async () => {
+    vi.doMock('../safe-fetch', () => ({
+      safeFetch: vi.fn(async () => {
+        throw new Error('simulated: safeFetch exhausted its single allowed redirect hop');
       }),
       SafeFetchError: class SafeFetchError extends Error {},
     }));
     const { isAllowedByRobots, createRobotsCache } = await import('../ingest/sources/sponsor-pages');
     expect(await isAllowedByRobots('https://sponsor.example.com/events', createRobotsCache())).toBe(true);
-    expect(requestedUrls).toEqual(['https://sponsor.example.com/robots.txt']);
   });
 });
 
@@ -192,7 +236,11 @@ describe('resolveSponsorPageUrls', () => {
       from: () => ({
         select: () => ({
           eq: () => ({
-            not: () => Promise.resolve({ data: sponsorUrls, error }),
+            not: () => ({
+              // Re-review (this round): the real query now adds
+              // `.order('sponsor_url')` for a stable rotation order.
+              order: () => Promise.resolve({ data: sponsorUrls, error }),
+            }),
           }),
         }),
       }),
@@ -264,5 +312,19 @@ describe('resolveSponsorPageUrls', () => {
     // The unparseable one contributed nothing, but didn't throw or stop
     // the other two sponsors from being processed.
     expect(urls).toHaveLength(4);
+  });
+
+  // Re-review (this round): nextOffset must advance only by sponsors
+  // ACTUALLY FETCHED (contributed >= 1 page), not every sponsor merely
+  // selected/considered - a permanently-bad URL must not consume a
+  // rotation slot, since skipping it costs nothing (no page budget used).
+  it('does not advance the offset past a sponsor whose URL fails to parse', async () => {
+    const { resolveSponsorPageUrls } = await import('../ingest/sources/sponsor-pages');
+    const sponsors = [{ sponsor_url: 'not a url at all :::' }, { sponsor_url: 'https://beta.example.com' }];
+    const { urls, nextOffset } = await resolveSponsorPageUrls(fakeSupabase(sponsors), 'ETHDenver', []);
+    expect(urls).toEqual(['https://beta.example.com/', 'https://beta.example.com/events']);
+    // Only "beta" was actually fetched (1 sponsor), not both "selected"
+    // sponsors (2) - offset 0 + 1 fetched = 1.
+    expect(nextOffset).toBe(1);
   });
 });

@@ -201,31 +201,56 @@ export async function isAllowedByRobots(url: string, cache: RobotsCache): Promis
   return isPathAllowed(path, rules);
 }
 
+/** Two origins are the "same site" for robots.txt redirect purposes
+ *  (re-review, this round: "follow same-site redirects, e.g. apex -> www")
+ *  when their hostnames match after stripping a leading `www.` label —
+ *  deliberately NOT a full public-suffix-list same-site check (overkill
+ *  here), just enough to cover the extremely common apex<->www redirect
+ *  without ever trusting a REDIRECT TO A GENUINELY DIFFERENT DOMAIN as
+ *  that different domain's robots.txt. */
+function isSameSiteForRobots(a: URL, b: URL): boolean {
+  const norm = (h: string) => h.toLowerCase().replace(/^www\./, '');
+  return norm(a.hostname) === norm(b.hostname);
+}
+
 /**
- * Re-review item 7 ("re-check robots.txt on the redirect target, or set
- * maxRedirects: 0 and treat a redirect as a skip"): picks the second,
- * simpler option. `maxRedirects: 0` makes `safeFetch` throw
- * `SafeFetchError` on any 3xx instead of silently following it to a
- * DIFFERENT origin's robots.txt (which would describe rules for the wrong
- * site entirely) — caught below and treated the same as "no robots.txt
- * reachable," i.e. fail OPEN, same as a network error or a 404. A genuine
- * 5xx (the origin reached, but reported it's failing) is handled
- * separately as disallow-all, since that's NOT the same as "no robots.txt
- * exists."
+ * Re-review item 7 (previous round) chose `maxRedirects: 0` so a redirect
+ * to a DIFFERENT origin's robots.txt was never trusted as this origin's
+ * rules. Re-review (this round): that was too strict for the extremely
+ * common apex<->www redirect — many real sites serve `/robots.txt` only
+ * off `www.`, redirecting the apex. Now allows exactly ONE redirect hop,
+ * but only TRUSTS the result if it landed on the SAME SITE
+ * (`isSameSiteForRobots`); a redirect to a genuinely different domain is
+ * still discarded (fail open, same as before) rather than describing the
+ * wrong site's rules as if they were this origin's.
  */
 async function fetchRobotsRules(origin: string): Promise<RobotsRules | null> {
   try {
     const res = await safeFetch(`${origin}/robots.txt`, {
       timeoutMs: ROBOTS_TIMEOUT_MS,
       maxBytes: ROBOTS_MAX_BYTES,
-      maxRedirects: 0,
+      maxRedirects: 1,
       headers: { 'User-Agent': USER_AGENT, Accept: 'text/plain' },
     });
-    if (res.status >= 500) return DISALLOW_ALL_RULES; // re-review item 7: 5xx -> disallow-all, not fail-open.
-    if (!res.ok) return null; // 4xx (incl. the common 404 "no robots.txt") -> fail open.
+
+    let originUrl: URL;
+    let resultUrl: URL;
+    try {
+      originUrl = new URL(origin);
+      resultUrl = new URL(res.url);
+    } catch {
+      return null;
+    }
+    if (!isSameSiteForRobots(originUrl, resultUrl)) return null; // redirected off-site -> don't trust it as OUR robots.txt.
+
+    // Re-review (this round): 429 ("rate limited, try later") means the
+    // site can't currently tell us its rules either, same posture as a
+    // 5xx — treat it as unavailable/disallow, not as "no robots.txt."
+    if (res.status === 429 || res.status >= 500) return DISALLOW_ALL_RULES;
+    if (!res.ok) return null; // other 4xx (incl. the common 404 "no robots.txt") -> fail open.
     return parseRobotsTxt(res.text);
   } catch {
-    return null; // unreachable (incl. a redirect, now thrown by maxRedirects: 0) -> fail open.
+    return null; // unreachable (incl. a cross-site redirect beyond the single allowed hop) -> fail open.
   }
 }
 
@@ -320,11 +345,19 @@ export async function resolveSponsorPageUrls(
 
   let sponsorUrls: string[] = [];
   try {
+    // Re-review (this round): `.order('sponsor_url')` gives this query a
+    // STABLE, deterministic row order across runs — without it, Postgres
+    // makes no ordering guarantee at all for an unordered select, and the
+    // whole point of the `offset` rotation below is that "sponsor at
+    // index N" means the same sponsor on the next run. An unordered
+    // result could silently reshuffle between runs and defeat the
+    // rotation (or skip/repeat sponsors at random).
     const { data, error } = await supabase
       .from('event_sponsors')
       .select('sponsor_url')
       .eq('conference', conference)
-      .not('sponsor_url', 'is', null);
+      .not('sponsor_url', 'is', null)
+      .order('sponsor_url');
     if (error) {
       if ((error as { code?: string }).code === '42P01') return { urls: [], nextOffset: null };
       throw new Error(`Failed to load sponsor websites: ${error.message}`);
@@ -344,10 +377,15 @@ export async function resolveSponsorPageUrls(
   const rotated = [...sponsorUrls.slice(offset), ...sponsorUrls.slice(0, offset)];
 
   const pages: string[] = [];
-  let sponsorsVisited = 0;
+  // Re-review (this round): counts sponsors ACTUALLY FETCHED (i.e. we
+  // produced at least one page for them), not every sponsor merely
+  // SELECTED/considered by the loop — a sponsor whose `sponsor_url` fails
+  // to parse contributes nothing and must not consume a rotation slot
+  // either; it costs no page budget to re-attempt (and immediately skip)
+  // it again next run, so there's no reason to rotate past it.
+  let sponsorsFetched = 0;
   for (const homepage of rotated) {
     if (pages.length >= MAX_PAGES_PER_RUN) break;
-    sponsorsVisited++;
     // Re-review item 8: wrap URL construction in try/catch so one bad
     // `sponsor_url` skips just that sponsor rather than failing the run,
     // AND normalize a bare domain (e.g. "example.com", which `new URL()`
@@ -359,9 +397,10 @@ export async function resolveSponsorPageUrls(
     try {
       base = new URL(normalized);
     } catch {
-      continue;
+      continue; // nothing fetched for this sponsor - doesn't count toward the offset advance.
     }
     pages.push(base.href);
+    sponsorsFetched++;
     if (pages.length >= MAX_PAGES_PER_RUN) break;
     // Exactly homepage + /events — see MAX_PAGES_PER_SPONSOR_WHEN_DISCOVERED's doc comment.
     try {
@@ -372,5 +411,5 @@ export async function resolveSponsorPageUrls(
     }
   }
 
-  return { urls: pages.slice(0, MAX_PAGES_PER_RUN), nextOffset: (offset + sponsorsVisited) % sponsorUrls.length };
+  return { urls: pages.slice(0, MAX_PAGES_PER_RUN), nextOffset: (offset + sponsorsFetched) % sponsorUrls.length };
 }

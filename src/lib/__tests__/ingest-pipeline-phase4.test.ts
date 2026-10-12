@@ -229,6 +229,18 @@ vi.mock('../ingest/sources/sponsor-pages', () => ({
   SPONSOR_PAGE_WORST_CASE_MS: 16_500,
 }));
 
+// Re-review (this round): "persist LLM cost on a thrown batch ... for all
+// sources including Telegram" - Telegram predates the X/Meetup/sponsor-
+// pages helpers and has its own inline processDiscoveredLink loop, so it
+// needs its own minimal mocks here to exercise that path too.
+const fetchTelegramChannelHtmlMock = vi.fn(async () => '<html></html>');
+const parseTelegramChannelHtmlMock = vi.fn(() => [] as { postRef: string; url: string; text: string; links: string[] }[]);
+vi.mock('../ingest/sources/telegram', () => ({
+  fetchTelegramChannelHtml: () => fetchTelegramChannelHtmlMock(),
+  parseTelegramChannelHtml: () => parseTelegramChannelHtmlMock(),
+  isValidTelegramHandle: () => true,
+}));
+
 import { runSource } from '../ingest/pipeline';
 
 function makeXSource(cursor: Record<string, unknown> = {}) {
@@ -267,6 +279,19 @@ function makeSponsorPagesSource(cursor: Record<string, unknown> = {}) {
     trust: 'discovery',
     enabled: true,
     cursor,
+  });
+}
+
+function makeTelegramSource() {
+  sourceRows.set('src-telegram', {
+    id: 'src-telegram',
+    conference: 'Test Conf',
+    kind: 'telegram_channel',
+    label: '@testchannel',
+    config: { handle: 'testchannel' },
+    trust: 'discovery',
+    enabled: true,
+    cursor: {},
   });
 }
 
@@ -352,10 +377,45 @@ describe('runSource(x_account): cost accounting (re-review item 1, HIGH) and cur
     expect(cursorUpdate?.patch).toEqual({ cursor: { since_id: 'p-newest' } });
   });
 
-  it('does NOT advance since_id when the per-run page cap is hit (MEDIUM item 2: never skip unread posts)', async () => {
+  // Re-review (this round, HIGH: "the X cursor can get stuck") - a run
+  // whose recent posts have no allowlisted links at all (the common case
+  // - most posts aren't event links) must still advance, or the source
+  // would re-read and re-bill the exact same window forever.
+  it('a no-links run still advances the cursor (does not get stuck)', async () => {
     makeXSource({ since_id: 'old-cursor' });
-    // 3 full pages (the X_MAX_PAGES_PER_RUN cap), each with a nextToken ->
-    // more pages exist beyond what this run read.
+    fetchXUserPostsMock.mockResolvedValueOnce(onePage(['p1', 'p2'], [[], []]));
+
+    const result = await runSource('src-x', { trigger: 'cron' });
+
+    expect(result.status).toBe('ok');
+    expect(processDiscoveredLinkMock).not.toHaveBeenCalled();
+    const cursorUpdate = updateSourceCalls.find((c) => c.id === 'src-x' && 'cursor' in c.patch);
+    expect(cursorUpdate?.patch).toEqual({ cursor: { since_id: 'p1' } });
+  });
+
+  // Re-review (this round, HIGH): first run ever (no cursor at all) reads
+  // exactly ONE page - no backfill through the account's whole history -
+  // and still sets the cursor from it.
+  it('the first run (no cursor yet) reads a single page and sets the cursor - no backfill', async () => {
+    makeXSource(); // no cursor at all
+    // A full page with a nextToken - if pagination continued, this would
+    // page through the account's entire history. It must not.
+    fetchXUserPostsMock.mockResolvedValueOnce(
+      onePage(Array.from({ length: 10 }, (_, i) => `p-${i}`), [['https://lu.ma/e1']], { nextToken: 'more-history' })
+    );
+
+    await runSource('src-x', { trigger: 'cron' });
+
+    expect(fetchXUserPostsMock).toHaveBeenCalledTimes(1); // no backfill pagination
+    const cursorUpdate = updateSourceCalls.find((c) => c.id === 'src-x' && 'cursor' in c.patch);
+    expect(cursorUpdate?.patch).toEqual({ cursor: { since_id: 'p-0' } });
+  });
+
+  // Re-review (this round, HIGH): "when capped: advance to the newest and
+  // accept the gap" - simpler and bounded, replacing the previous round's
+  // "freeze the cursor when capped" behavior.
+  it('a capped run (3 full pages, more available) still advances the cursor', async () => {
+    makeXSource({ since_id: 'old-cursor' });
     fetchXUserPostsMock
       .mockResolvedValueOnce(onePage(Array.from({ length: 10 }, (_, i) => `p1-${i}`), [], { nextToken: 't2' }))
       .mockResolvedValueOnce(onePage(Array.from({ length: 10 }, (_, i) => `p2-${i}`), [], { nextToken: 't3' }))
@@ -363,11 +423,40 @@ describe('runSource(x_account): cost accounting (re-review item 1, HIGH) and cur
 
     await runSource('src-x', { trigger: 'cron' });
 
-    const cursorUpdate = updateSourceCalls.find((c) => c.id === 'src-x' && 'cursor' in c.patch);
-    expect(cursorUpdate).toBeUndefined(); // cursor left exactly as it was
     expect(fetchXUserPostsMock).toHaveBeenCalledTimes(3); // capped at X_MAX_PAGES_PER_RUN
-    // All 30 reads are still billed/recorded, even though we didn't advance the cursor.
+    const cursorUpdate = updateSourceCalls.find((c) => c.id === 'src-x' && 'cursor' in c.patch);
+    // Advances to the FIRST page's newest id - the gap (unread posts
+    // beyond page 3) is accepted, not frozen on.
+    expect(cursorUpdate?.patch).toEqual({ cursor: { since_id: 'p1-0' } });
+    // All 30 reads are still billed/recorded.
     expect(recordRunXCostCalls[0]?.usage).toEqual({ xPostsRead: 30, xCostUsd: 0.15 });
+  });
+
+  // Re-review (this round, HIGH): only a DEADLINE may still leave the
+  // cursor unadvanced.
+  it('does NOT advance the cursor when the deadline is hit before any processing starts', async () => {
+    makeXSource({ since_id: 'old-cursor' });
+    fetchXUserPostsMock.mockResolvedValueOnce(onePage(['p1'], [['https://lu.ma/e1']]));
+
+    const result = await runSource('src-x', { trigger: 'cron', deadlineMs: -1 }); // already expired
+
+    expect(result.status).toBe('partial');
+    const cursorUpdate = updateSourceCalls.find((c) => c.id === 'src-x' && 'cursor' in c.patch);
+    expect(cursorUpdate).toBeUndefined();
+  });
+
+  // Re-review (this round, HIGH test list): "two consecutive runs don't
+  // re-read the same posts" - the cursor written by run 1 is what run 2
+  // actually passes as since_id.
+  it('two consecutive runs do not re-read the same posts', async () => {
+    makeXSource(); // first run: no cursor
+    fetchXUserPostsMock.mockResolvedValueOnce(onePage(['p1'], [['https://lu.ma/e1']]));
+    await runSource('src-x', { trigger: 'cron' });
+    expect(fetchXUserPostsMock).toHaveBeenNthCalledWith(1, 'uid-1', expect.objectContaining({ sinceId: null }));
+
+    fetchXUserPostsMock.mockResolvedValueOnce(onePage(['p2'], [['https://lu.ma/e2']]));
+    await runSource('src-x', { trigger: 'cron' }); // second run: picks up the cursor run 1 just set
+    expect(fetchXUserPostsMock).toHaveBeenNthCalledWith(2, 'uid-1', expect.objectContaining({ sinceId: 'p1' }));
   });
 
   it('skips the discovery-context build entirely when there are no allowlisted links (re-review item 4)', async () => {
@@ -464,5 +553,47 @@ describe('runSource(sponsor_pages): cost accounting (re-review item 1, HIGH) and
 
     expect(fetchSponsorPageLinksMock).not.toHaveBeenCalled();
     expect(result.status).toBe('partial'); // hitDeadline
+  });
+});
+
+describe('runSource(telegram_channel): persists LLM cost already spent when a LATER link throws (re-review: "persist LLM cost on a thrown batch ... for all sources including Telegram")', () => {
+  it('records the first link\'s classify cost on the run row even though the second link\'s processing throws', async () => {
+    makeTelegramSource();
+    parseTelegramChannelHtmlMock.mockReturnValueOnce([
+      { postRef: 'testchannel/1', url: 'https://t.me/testchannel/1', text: '', links: ['https://lu.ma/e1'] },
+      { postRef: 'testchannel/2', url: 'https://t.me/testchannel/2', text: '', links: ['https://lu.ma/e2'] },
+    ]);
+    processDiscoveredLinkMock
+      .mockImplementationOnce(async (url: string) => ({
+        kind: 'row' as const,
+        row: {
+          conference: 'Test Conf',
+          canonical_key: url,
+          alt_keys: [],
+          source_id: null,
+          source_kind: 'telegram_channel',
+          sources: [],
+          source_ref: null,
+          event: { name: url, link: url, dateISO: '2027-03-10' },
+          content_hash: `h-${url}`,
+          status: 'queued' as const,
+        },
+        classified: true,
+        inputTokens: 100,
+        outputTokens: 20,
+        costUsd: 5,
+      }))
+      .mockRejectedValueOnce(new Error('simulated: second link processing throws'));
+
+    const result = await runSource('src-telegram', { trigger: 'cron' });
+
+    expect(result.status).toBe('error');
+    const errorRun = runRows.find((r) => r.status === 'error');
+    expect(errorRun).toBeTruthy();
+    // The FIRST link's classify succeeded before the SECOND threw - that
+    // cost must still show up on the run row, not $0/0 tokens.
+    expect(errorRun!.llm_input_tokens).toBe(100);
+    expect(errorRun!.llm_output_tokens).toBe(20);
+    expect(errorRun!.est_cost_usd).toBe(5);
   });
 });
