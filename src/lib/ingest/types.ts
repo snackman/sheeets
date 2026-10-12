@@ -95,3 +95,278 @@ export interface FewShotExample {
   label: 'on_theme' | 'off_theme';
   reason: string;
 }
+
+/* ------------------------------------------------------------------ */
+/* Phase 1b: DB-backed types (ingest_profiles/_sources/_candidates/_runs/_labels) */
+/* ------------------------------------------------------------------ */
+
+/** A host or calendar entry in a profile's trusted/blocked lists (§6 jsonb shape). */
+export interface TrustedHostEntry {
+  kind: 'luma_host' | 'luma_calendar' | 'organizer';
+  id?: string;
+  name: string;
+}
+
+/** `ingest_profiles` row — the DB-backed superset of `ThemeProfile` (§9.1). */
+export interface IngestProfileRow {
+  conference: string;
+  theme_key: ThemeKey;
+  theme_description: string;
+  include_keywords: string[];
+  exclude_keywords: string[];
+  trusted_hosts: TrustedHostEntry[];
+  blocked_hosts: TrustedHostEntry[];
+  publish_threshold: number;
+  review_threshold: number;
+  auto_publish_enabled: boolean;
+  radius_km: number;
+  window_pre_days: number;
+  window_post_days: number;
+  allow_online: boolean;
+  max_llm_calls_per_run: number;
+  max_publish_per_run: number;
+  enabled: boolean;
+  updated_at: string;
+}
+
+export type SourceKind =
+  | 'luma_ical'
+  | 'telegram_channel'
+  | 'telegram_bot'
+  | 'x_account'
+  | 'meetup_search'
+  | 'sponsor_pages'
+  | 'host_submission'
+  | 'manual_links';
+
+export type SourceTrust = 'curated' | 'host' | 'discovery';
+
+export interface LumaIcalSourceConfig {
+  calendar_api_id: string;
+  calendar_slug?: string;
+  calendar_name?: string;
+}
+
+/** `ingest_sources` row. */
+export interface IngestSourceRow {
+  id: string;
+  conference: string;
+  kind: SourceKind;
+  label: string;
+  config: Record<string, unknown>;
+  trust: SourceTrust;
+  enabled: boolean;
+  added_by: string | null;
+  cursor: Record<string, unknown>;
+  last_run_at: string | null;
+  last_status: string | null;
+  last_error: string | null;
+  created_at: string;
+}
+
+export type CandidateStatus =
+  | 'new'
+  | 'pending_classify'
+  | 'filtered_out'
+  | 'duplicate'
+  | 'queued'
+  | 'auto_published'
+  | 'approved'
+  | 'auto_rejected'
+  | 'rejected'
+  | 'unpublished'
+  | 'unpublished_external'
+  | 'error'
+  | 'stale';
+
+export type CandidateRoute = 'publish' | 'review' | 'reject';
+
+/**
+ * Statuses that represent a final, admin- or publish-owned decision. A
+ * re-ingest of the same feed (or a stray pipeline write) must never change
+ * the `status` of a candidate in one of these — only its `event` snapshot
+ * may be refreshed (review finding, CRITICAL item 2). Enforced in
+ * `db.ts`'s `upsertCandidate` and short-circuited early in the pipeline.
+ */
+export const FINAL_CANDIDATE_STATUSES: readonly CandidateStatus[] = [
+  'approved',
+  'auto_published',
+  'rejected',
+  'unpublished',
+  'unpublished_external',
+];
+
+/** Statuses a candidate must be in for approve/rescore/unpublish to act on
+ *  it. Anything not in here is either already decided (final) or mid-flight
+ *  in a way that shouldn't be approved/rescored (review findings, HIGH
+ *  items 3 and 4). */
+export const APPROVABLE_CANDIDATE_STATUSES: readonly CandidateStatus[] = [
+  'queued',
+  'auto_rejected',
+  'error',
+  'pending_classify',
+];
+
+/** Statuses excluded from the pre-enrichment "unchanged, skip" shortcut even
+ *  when the iCal-stub hash matches — they need to be retried, not treated
+ *  as settled (review finding, MEDIUM item 6). */
+export const RETRY_ON_UNCHANGED_STATUSES: readonly CandidateStatus[] = ['error', 'pending_classify'];
+
+/** One source that surfaced a candidate (§6 `sources` jsonb array). */
+export interface CandidateSourceRef {
+  source_id: string | null;
+  kind: SourceKind;
+  ref: string | null;
+  seen_at: string;
+}
+
+/** The normalized event payload stored in `ingest_candidates.event` (§5.1). */
+export interface NormalizedEvent {
+  name: string;
+  /** ISO UTC instant. */
+  startAt: string;
+  endAt?: string | null;
+  timezone: string;
+  /** "YYYY-MM-DD" in the conference timezone. */
+  dateISO: string;
+  /** "Oct 14" — same style as the client's formatDateShort, no weekday/year. */
+  sheetDate: string;
+  /** "6:00 PM" — same style as format12Hour. */
+  startTime: string;
+  endTime: string;
+  address: string;
+  lat?: number | null;
+  lng?: number | null;
+  isOnline: boolean;
+  organizer: string;
+  hosts: { apiId?: string; name: string; username?: string | null; twitter?: string | null }[];
+  calendar?: { apiId: string; name: string } | null;
+  cost: string;
+  /** Canonical public URL. */
+  link: string;
+  descriptionText: string;
+  imageUrl?: string | null;
+  platform: string;
+}
+
+/** `ingest_candidates` row. */
+export interface IngestCandidateRow {
+  id: string;
+  conference: string;
+  canonical_key: string;
+  alt_keys: string[];
+  source_id: string | null;
+  source_kind: SourceKind;
+  sources: CandidateSourceRef[];
+  source_ref: string | null;
+  event: NormalizedEvent;
+  content_hash: string;
+  /** Hash of the iCal-only fields, checked BEFORE enrichment (CRITICAL item 1). */
+  ical_hash: string | null;
+  status: CandidateStatus;
+  filter_reason: string | null;
+  duplicate_of: string | null;
+  possible_duplicate_of: string | null;
+  llm_score: number | null;
+  llm_reason: string | null;
+  llm_tags: string[] | null;
+  llm_flags: string[] | null;
+  is_event: boolean | null;
+  data_quality: DataQuality | null;
+  signal_breakdown: Record<string, number>;
+  final_score: number | null;
+  route: CandidateRoute | null;
+  shadow_route: CandidateRoute | null;
+  model: string | null;
+  prompt_version: string | null;
+  classified_at: string | null;
+  classify_attempts: number;
+  published_event_id: string | null;
+  sheet_row: number | null;
+  published_at: string | null;
+  review_note: string | null;
+  reject_reason: string | null;
+  edits: Record<string, unknown> | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  first_seen_at: string;
+  last_seen_at: string;
+  updated_at: string;
+}
+
+export type RunTrigger = 'cron' | 'manual' | 'webhook' | 'script';
+export type RunStatus = 'running' | 'ok' | 'partial' | 'error' | 'skipped';
+
+export interface RunCounts {
+  fetched?: number;
+  past?: number;
+  new?: number;
+  unchanged?: number;
+  /** Already final (approved/auto_published/rejected/unpublished…) —
+   *  snapshot refreshed, but dedupe/filter/classify/publish all skipped. */
+  skipped_final?: number;
+  enriched?: number;
+  duplicates?: number;
+  filtered?: number;
+  classified?: number;
+  published?: number;
+  queued?: number;
+  rejected?: number;
+  errors?: number;
+  /** Marker (1) so the Log tab/`ingest_runs` can tell a dry run apart from
+   *  a real run without a dedicated column. */
+  dry_run?: number;
+}
+
+/** `ingest_runs` row. */
+export interface IngestRunRow {
+  id: string;
+  source_id: string | null;
+  conference: string;
+  trigger: RunTrigger;
+  status: RunStatus;
+  started_at: string;
+  finished_at: string | null;
+  counts: RunCounts;
+  llm_input_tokens: number;
+  llm_output_tokens: number;
+  est_cost_usd: number;
+  error: string | null;
+}
+
+export type LabelSource = 'admin_review' | 'admin_unpublish' | 'sheet_removed' | 'eval_seed';
+
+/** `ingest_labels` row. */
+export interface IngestLabelRow {
+  id: string;
+  candidate_id: string | null;
+  conference: string;
+  theme_key: ThemeKey;
+  label: 'on_theme' | 'off_theme';
+  label_kind: 'theme' | 'non_theme';
+  source: LabelSource;
+  reason: string | null;
+  example: Record<string, unknown>;
+  model_score: number | null;
+  model_route: CandidateRoute | string | null;
+  /** True for weak/noisy signals (e.g. a curator deleting a published row —
+   *  could mean off-theme, duplicate, or just "not needed anymore") that
+   *  are kept for audit but must not feed the Phase 2 few-shot selector
+   *  (review finding, MEDIUM item 8). */
+  excluded_from_fewshot: boolean;
+  created_at: string;
+}
+
+/** Reject reasons shown as chips in the review queue (§9.2). Only
+ *  'off_theme' and 'spam' create theme labels; the rest are non_theme. */
+export const REJECT_REASONS = [
+  'off_theme',
+  'wrong_city',
+  'wrong_dates',
+  'duplicate',
+  'private_or_invite_only',
+  'spam',
+  'other',
+] as const;
+export type RejectReason = (typeof REJECT_REASONS)[number];
+export const THEME_REJECT_REASONS: readonly RejectReason[] = ['off_theme', 'spam'];

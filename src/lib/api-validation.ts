@@ -302,6 +302,106 @@ export const ClaimManualSchema = z.object({
   note: claimNote,
 });
 
+// ---------------------------------------------------------------------------
+// Event ingestion (plans/event-ingestion.md, Phase 1b)
+// ---------------------------------------------------------------------------
+
+/** Schema for POST /api/admin/ingest/run */
+export const IngestRunActionSchema = z
+  .object({
+    password: z.string(),
+    sourceId: z.string().uuid().optional(),
+    conference: z.string().min(1).optional(),
+    dryRun: z.boolean().optional().default(false),
+  })
+  .refine((d) => !!d.sourceId || !!d.conference, {
+    message: 'sourceId or conference is required',
+    path: ['sourceId'],
+  });
+
+const IngestCandidateIdSchema = z.string().uuid('Invalid candidate id');
+
+export const IngestRejectReasonSchema = z.enum([
+  'off_theme',
+  'wrong_city',
+  'wrong_dates',
+  'duplicate',
+  'private_or_invite_only',
+  'spam',
+  'other',
+]);
+
+/** Schema for POST /api/admin/ingest/queue */
+export const IngestQueueActionSchema = z.object({
+  password: z.string(),
+  action: z.enum(['approve', 'reject', 'restore', 'rescore', 'unpublish', 'trust_host', 'block_host']),
+  ids: z.array(IngestCandidateIdSchema).min(1).max(100),
+  reason: IngestRejectReasonSchema.optional(),
+  note: z.string().trim().max(1000).optional(),
+  edits: z
+    .object({
+      name: z.string().optional(),
+      date: z.string().optional(),
+      startTime: z.string().optional(),
+      endTime: z.string().optional(),
+      organizer: z.string().optional(),
+      address: z.string().optional(),
+      cost: z.string().optional(),
+      tags: z.array(z.string()).optional(),
+      food: z.boolean().optional(),
+      bar: z.boolean().optional(),
+      note: z.string().optional(),
+    })
+    .optional(),
+});
+
+/** Schema for PUT /api/admin/ingest/config (profile upsert) */
+export const IngestProfileUpsertSchema = z.object({
+  password: z.string(),
+  conference: z.string().min(1),
+  theme_key: z.enum(['crypto', 'ai', 'gaming', 'art', 'music', 'tech', 'custom']),
+  theme_description: z.string().max(2000).optional(),
+  include_keywords: z.array(z.string()).optional(),
+  exclude_keywords: z.array(z.string()).optional(),
+  trusted_hosts: z.array(z.object({ kind: z.enum(['luma_host', 'luma_calendar', 'organizer']), id: z.string().optional(), name: z.string() })).optional(),
+  blocked_hosts: z.array(z.object({ kind: z.enum(['luma_host', 'luma_calendar', 'organizer']), id: z.string().optional(), name: z.string() })).optional(),
+  publish_threshold: z.number().int().min(0).max(100).optional(),
+  review_threshold: z.number().int().min(0).max(100).optional(),
+  auto_publish_enabled: z.boolean().optional(),
+  radius_km: z.number().positive().optional(),
+  window_pre_days: z.number().int().min(0).optional(),
+  window_post_days: z.number().int().min(0).optional(),
+  allow_online: z.boolean().optional(),
+  max_llm_calls_per_run: z.number().int().positive().optional(),
+  max_publish_per_run: z.number().int().positive().optional(),
+  enabled: z.boolean().optional(),
+});
+
+/** Schema for POST /api/admin/ingest/config (add a Luma calendar source) */
+export const IngestSourceCreateSchema = z.object({
+  password: z.string(),
+  conference: z.string().min(1),
+  kind: z.literal('luma_ical'),
+  input: z.string().min(1, 'A Luma calendar URL or id is required'),
+  label: z.string().max(200).optional(),
+  trust: z.enum(['curated', 'host', 'discovery']).optional(),
+});
+
+/** Schema for PATCH /api/admin/ingest/config (toggle/update a source) */
+export const IngestSourceUpdateSchema = z.object({
+  password: z.string(),
+  id: z.string().uuid(),
+  enabled: z.boolean().optional(),
+  trust: z.enum(['curated', 'host', 'discovery']).optional(),
+  label: z.string().max(200).optional(),
+});
+
+/** Schema for DELETE /api/admin/ingest/config */
+export const IngestSourceDeleteSchema = z.object({
+  password: z.string(),
+  id: z.string().uuid(),
+});
+
 /** Schema for POST /api/admin/claims/[id] */
 export const AdminClaimActionSchema = z
   .object({
