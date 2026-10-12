@@ -63,6 +63,18 @@ export interface IngestProfileClient {
   max_llm_calls_per_run: number;
   max_publish_per_run: number;
   enabled: boolean;
+  auto_publish_killed_at: string | null;
+  auto_publish_kill_reason: string | null;
+}
+
+/** Phase 2 auto-publish gate result (`src/lib/ingest/gate.ts#GateResult`),
+ *  as returned by `GET /api/admin/ingest/config?conference=...`. */
+export interface IngestGateClient {
+  eligible: boolean;
+  sample: { sampleSize: number; positive: number; precision: number | null };
+  minSampleSize: number;
+  threshold: number;
+  reason: string;
 }
 
 export interface IngestSourceClient {
@@ -90,6 +102,47 @@ export interface IngestRunClient {
   llm_output_tokens: number;
   est_cost_usd: number;
   error: string | null;
+}
+
+/** `GET /api/admin/ingest/precision?conference=...` response (Phase 2). */
+export interface IngestPrecisionSampleClient {
+  sampleSize: number;
+  positive: number;
+  precision: number | null;
+}
+
+export interface IngestVolumeBySourceClient {
+  source_id: string;
+  label: string;
+  kind: string;
+  total: number;
+  published: number;
+  queued: number;
+  rejected: number;
+}
+
+export interface IngestLabelMismatchClient {
+  id: string;
+  conference: string;
+  label: string;
+  reason: string | null;
+  example: { name?: string; hosts?: string[] };
+  model_score: number | null;
+  model_route: string | null;
+  created_at: string;
+}
+
+export interface IngestPrecisionResponseClient {
+  conference: string;
+  gate: IngestGateClient;
+  shadow: IngestPrecisionSampleClient;
+  live: IngestPrecisionSampleClient;
+  review: IngestPrecisionSampleClient;
+  volumeBySource: IngestVolumeBySourceClient[];
+  budget: { spentUsd: number; capUsd: number };
+  falsePositives: IngestLabelMismatchClient[];
+  falseNegatives: IngestLabelMismatchClient[];
+  profile: IngestProfileClient | null;
 }
 
 export const REJECT_REASON_OPTIONS: { value: string; label: string }[] = [

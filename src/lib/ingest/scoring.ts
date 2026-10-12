@@ -21,6 +21,7 @@ export interface ScoreCandidateOptions {
   isTrustedCalendarSource: boolean;
   isTrustedHost: boolean;
   isBlockedHost: boolean;
+  isLearnedBlockedHost?: boolean;
   sponsorMatch?: string | null;
   includeKeywords: string[];
   excludeKeywords: string[];
@@ -59,6 +60,7 @@ export async function scoreCandidate(opts: ScoreCandidateOptions): Promise<Score
     isTrustedCalendarSource: opts.isTrustedCalendarSource,
     isTrustedHost: opts.isTrustedHost,
     isBlockedHost: opts.isBlockedHost,
+    isLearnedBlockedHost: opts.isLearnedBlockedHost,
     sponsorMatch: opts.sponsorMatch,
     text,
     includeKeywords: opts.includeKeywords,

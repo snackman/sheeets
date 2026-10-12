@@ -61,6 +61,19 @@ vi.mock('@/lib/ingest/db', () => ({
   getProfile: (...a: unknown[]) => getProfileMock(...a),
   upsertProfile: (...a: unknown[]) => upsertProfileMock(...a),
   profileRowToThemeProfile: (...a: unknown[]) => profileRowToThemeProfileMock(...a),
+  // Phase 2: rescore now loads a learning context (`learning.ts`, which
+  // imports `listLabelsForFewShot` from this same module) and a sponsor
+  // name list (`sponsors.ts`, which calls `getIngestSupabase()`) — empty
+  // pools here, same as `ingest-pipeline.test.ts`'s db mock.
+  listLabelsForFewShot: vi.fn(async () => []),
+  listLabelsForHostSignals: vi.fn(async () => []),
+  getIngestSupabase: vi.fn(() => ({
+    from: () => ({
+      select: () => ({
+        eq: () => Promise.resolve({ data: [], error: null }),
+      }),
+    }),
+  })),
 }));
 
 vi.mock('@/lib/get-conferences', () => ({
@@ -340,5 +353,41 @@ describe('POST /api/admin/ingest/queue: unpublish (HIGH item 9)', () => {
     expect(deleteSheetRowMock).not.toHaveBeenCalled();
     expect(insertLabelMock).not.toHaveBeenCalled();
     expect(updateCandidateMock).toHaveBeenCalledWith('3fa85f64-5717-4562-b3fc-2c963f66afa6', expect.objectContaining({ status: 'approved' }));
+  });
+});
+
+describe('POST /api/admin/ingest/queue: trust_host / block_host (review finding, MEDIUM item 2c)', () => {
+  it('rejects trust_host while auto-publish is enabled for the candidate\'s conference (adding a trusted host only raises scores)', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate());
+    getProfileMock.mockResolvedValue({ theme_key: 'crypto', trusted_hosts: [], blocked_hosts: [], include_keywords: [], exclude_keywords: [], publish_threshold: 85, review_threshold: 40, auto_publish_enabled: true });
+
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'trust_host', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+
+    expect(json.results[0].ok).toBe(false);
+    expect(json.results[0].error).toMatch(/Cannot trust a new host while auto-publish is enabled/);
+    expect(upsertProfileMock).not.toHaveBeenCalled();
+  });
+
+  it('allows trust_host when auto-publish is off for that conference', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate());
+    getProfileMock.mockResolvedValue({ theme_key: 'crypto', trusted_hosts: [], blocked_hosts: [], include_keywords: [], exclude_keywords: [], publish_threshold: 85, review_threshold: 40, auto_publish_enabled: false });
+
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'trust_host', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+
+    expect(json.results[0].ok).toBe(true);
+    expect(upsertProfileMock).toHaveBeenCalledWith(expect.objectContaining({ trusted_hosts: expect.any(Array) }));
+  });
+
+  it('allows block_host even while auto-publish is enabled (only lowers scores — not guarded)', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate());
+    getProfileMock.mockResolvedValue({ theme_key: 'crypto', trusted_hosts: [], blocked_hosts: [], include_keywords: [], exclude_keywords: [], publish_threshold: 85, review_threshold: 40, auto_publish_enabled: true });
+
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'block_host', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+
+    expect(json.results[0].ok).toBe(true);
+    expect(upsertProfileMock).toHaveBeenCalledWith(expect.objectContaining({ blocked_hosts: expect.any(Array) }));
   });
 });

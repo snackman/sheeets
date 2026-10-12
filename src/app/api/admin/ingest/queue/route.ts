@@ -27,6 +27,8 @@ import { scoreCandidate } from '@/lib/ingest/scoring';
 import { ClassifierError } from '@/lib/ingest/classifier';
 import { checkMonthlyBudget } from '@/lib/ingest/budget';
 import { estimateCostUsd } from '@/lib/ingest/pricing';
+import { getSponsorNamesForConference, matchSponsorName } from '@/lib/ingest/sponsors';
+import { loadLearningContext } from '@/lib/ingest/learning';
 import { buildSheetLinkIndex, findSheetMatchByLink, canonicalKeyForEvent, type SheetLinkIndex } from '@/lib/ingest/dedupe';
 import {
   THEME_REJECT_REASONS,
@@ -81,6 +83,25 @@ function hostEntries(event: NormalizedEvent): TrustedHostEntry[] {
     entries.push({ kind: 'organizer', name: event.organizer });
   }
   return entries;
+}
+
+/**
+ * Phase 2: the `ingest_labels.example` snapshot used to feed few-shot
+ * selection (`learning.ts`) — originally just `{name, hosts}`, which was
+ * enough for the row to exist but too thin to build a useful "name | hosts
+ * | summary" few-shot line (§5.6) or a learned host signal. Adding
+ * organizer/calendar/the model's own reason here is additive (jsonb, no
+ * migration) and every `learning.ts` reader already tolerates the older,
+ * thinner shape (missing fields are just skipped).
+ */
+function labelExample(event: NormalizedEvent, llmReason: string | null): Record<string, unknown> {
+  return {
+    name: event.name,
+    hosts: event.hosts.map((h) => h.name),
+    organizer: event.organizer || null,
+    calendar: event.calendar?.name ?? null,
+    llmReason: llmReason ?? null,
+  };
 }
 
 function mergeHostLists(existing: TrustedHostEntry[], toAdd: TrustedHostEntry[]): TrustedHostEntry[] {
@@ -226,7 +247,7 @@ export async function POST(req: NextRequest) {
               label_kind: 'theme',
               source: 'admin_review',
               reason: note ?? null,
-              example: { name: event.name, hosts: event.hosts.map((h) => h.name) },
+              example: labelExample(event, candidate.llm_reason),
               model_score: candidate.llm_score,
               model_route: candidate.route,
             });
@@ -268,7 +289,7 @@ export async function POST(req: NextRequest) {
             label_kind: THEME_REJECT_REASONS.includes(reason) ? 'theme' : 'non_theme',
             source: 'admin_review',
             reason,
-            example: { name: candidate.event.name, hosts: candidate.event.hosts.map((h) => h.name) },
+            example: labelExample(candidate.event, candidate.llm_reason),
             model_score: candidate.llm_score,
             model_route: candidate.route,
           });
@@ -306,6 +327,22 @@ export async function POST(req: NextRequest) {
           const startDate = tab?.dates?.[0] ?? candidate.event.dateISO;
           const endDate = tab?.dates?.[tab.dates.length - 1] ?? candidate.event.dateISO;
 
+          // Phase 2: a manual "Re-score" benefits from the same learning-loop
+          // signals a real pipeline run gets — few-shot from past decisions
+          // for this theme, and the sponsor-name text match (the fuzzier
+          // trusted-host match / learned-host nudge from `learning.ts` is
+          // pipeline-only: this single-candidate path has no reason to fetch
+          // and derive a whole conference's host-signal map for one rescore).
+          const [{ fewShot }, sponsorNames] = await Promise.all([
+            loadLearningContext({ conference: candidate.conference, themeKey: profile.theme_key, excludeCandidateId: id }),
+            getSponsorNamesForConference(candidate.conference),
+          ]);
+          // Host/organizer identity fields only — not the event name or
+          // description (review finding, MEDIUM item 8), same scoping as
+          // the pipeline's own sponsor match.
+          const sponsorText = [candidate.event.organizer, ...candidate.event.hosts.map((h) => h.name)].join(' ');
+          const sponsorMatch = matchSponsorName(sponsorText, sponsorNames);
+
           let scoreResult;
           try {
             scoreResult = await scoreCandidate({
@@ -324,10 +361,11 @@ export async function POST(req: NextRequest) {
                 platform: candidate.event.platform,
                 descriptionText: candidate.event.descriptionText,
               },
+              fewShot,
               isTrustedCalendarSource: false,
               isTrustedHost: false,
               isBlockedHost: false,
-              sponsorMatch: null,
+              sponsorMatch,
               includeKeywords: profile.include_keywords,
               excludeKeywords: profile.exclude_keywords,
               possibleDuplicate: !!candidate.possible_duplicate_of,
@@ -445,7 +483,7 @@ export async function POST(req: NextRequest) {
               label_kind: 'theme',
               source: 'admin_unpublish',
               reason: note ?? null,
-              example: { name: candidate.event.name, hosts: candidate.event.hosts.map((h) => h.name) },
+              example: labelExample(candidate.event, candidate.llm_reason),
               model_score: candidate.llm_score,
               model_route: candidate.route,
             });
@@ -455,6 +493,15 @@ export async function POST(req: NextRequest) {
           }
         } else if (action === 'trust_host' || action === 'block_host') {
           const profile = await getProfile(candidate.conference);
+          // Review finding, MEDIUM item 2c: "trust host" ADDS to
+          // `trusted_hosts`, which only ever RAISES scores (+20) — the
+          // same reason the config PUT handler blocks adding trusted
+          // hosts while auto-publish is on. "Block host" is NOT guarded:
+          // it only adds to `blocked_hosts`, which only lowers scores, so
+          // it stays allowed (same as removing from either list).
+          if (action === 'trust_host' && profile?.auto_publish_enabled) {
+            throw new Error('Cannot trust a new host while auto-publish is enabled for this conference. Turn auto-publish off first.');
+          }
           const entries = hostEntries(candidate.event);
           if (action === 'trust_host') {
             await upsertProfile({ conference: candidate.conference, trusted_hosts: mergeHostLists(profile?.trusted_hosts ?? [], entries) });

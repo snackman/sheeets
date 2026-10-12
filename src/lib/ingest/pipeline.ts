@@ -34,6 +34,10 @@ import { estimateCostUsd } from './pricing';
 import { toEventRow, ThrottledSheetPublisher } from './publish';
 import { reconcileConference } from './reconcile';
 import { ClassifierError } from './classifier';
+import { hostListMatches } from './hosts';
+import { getSponsorNamesForConference, matchSponsorName } from './sponsors';
+import { loadLearningContext, learnedHostSignalMatches } from './learning';
+import { checkAutoPublishKillSwitch } from './gate';
 import {
   FINAL_CANDIDATE_STATUSES,
   RETRY_ON_UNCHANGED_STATUSES,
@@ -42,7 +46,6 @@ import {
   type NormalizedEvent,
   type RunCounts,
   type RunTrigger,
-  type TrustedHostEntry,
 } from './types';
 
 function bump(counts: RunCounts, key: keyof RunCounts, by = 1) {
@@ -58,14 +61,6 @@ interface InRunCandidate {
   id: string;
   canonical_key: string;
   event: NormalizedEvent;
-}
-
-/** True if a host/organizer is in a profile's trusted/blocked list, by id or name. */
-function hostListMatches(entries: TrustedHostEntry[], event: Pick<NormalizedEvent, 'hosts' | 'organizer'>): boolean {
-  if (entries.length === 0) return false;
-  const names = new Set([event.organizer.toLowerCase(), ...event.hosts.map((h) => h.name.toLowerCase())].filter(Boolean));
-  const ids = new Set(event.hosts.map((h) => h.apiId).filter((id): id is string => !!id));
-  return entries.some((e) => (e.id && ids.has(e.id)) || names.has(e.name.toLowerCase()));
 }
 
 export interface RunSourceOptions {
@@ -139,6 +134,12 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
       await finishRun(run.id, { status: 'skipped', counts, error: 'No enabled ingest profile for this conference.' });
       return { runId: run.id, status: 'skipped', counts };
     }
+
+    // Phase 2 kill switch (`gate.ts`): re-checked just before each actual
+    // auto-publish attempt inside `processSource`, not only once here at
+    // the top of the run (review finding, LOW item 10) — a conference that
+    // goes bad mid-run stops publishing partway through, not only on the
+    // next run.
 
     const allTabs = await getAllConferenceTabs();
     const tab = allTabs.find((t) => t.name === source.conference);
@@ -256,6 +257,18 @@ async function processSource(args: {
 
   const { data: verifiedHosts } = await supabase.from('verified_luma_hosts').select('host_api_id').is('revoked_at', null);
   const verifiedHostIds = new Set((verifiedHosts ?? []).map((h: { host_api_id: string }) => h.host_api_id));
+
+  // Phase 2 learning loop (`learning.ts`): few-shot examples from past admin
+  // decisions, plus an optional learned trusted/blocked host nudge from
+  // this conference's own label history. Fetched once per run — same
+  // conference/theme for every candidate below, so there's no reason to
+  // re-query per candidate (and it keeps the prompt deterministic/cacheable
+  // across a run, per §5.6).
+  const { fewShot, learnedHosts } = await loadLearningContext({ conference: source.conference, themeKey: profile.theme_key });
+  // Phase 2 sponsor-name signal wiring (`sponsors.ts`): the conference's
+  // already-known sponsor names (from any published event), matched as
+  // plain text against each candidate below.
+  const sponsorNames = await getSponsorNamesForConference(source.conference);
 
   const sheetTitle = await getSheetTitle(tab.gid);
   const publisher = new ThrottledSheetPublisher(sheetTitle, tab.gid, { maxPerRun: profile.max_publish_per_run });
@@ -438,11 +451,36 @@ async function processSource(args: {
       continue;
     }
 
+    // Learned signals (from label history) are matched on the PRIMARY
+    // ORGANIZER only, never co-hosts (review finding, MEDIUM item 6) — a
+    // popular event's co-host list can include someone who only ever
+    // appears once, and attributing a whole-conference trust/block
+    // judgment to them from a single outcome is the wrong unit of
+    // attribution. The explicit, admin-curated `profile.trusted_hosts`/
+    // `blocked_hosts` lists (via `hostListMatches`) are unaffected — those
+    // are deliberately entered per host/co-host by an admin.
     const isTrustedHost =
       hostListMatches(profile.trusted_hosts, normalized) ||
       normalized.hosts.some((h) => h.apiId && verifiedHostIds.has(h.apiId)) ||
-      (organizerCounts.get(normalized.organizer.trim().toLowerCase()) ?? 0) >= 2;
+      (organizerCounts.get(normalized.organizer.trim().toLowerCase()) ?? 0) >= 2 ||
+      learnedHostSignalMatches(learnedHosts, 'trusted', [normalized.organizer]);
+    // Explicit (admin-curated) vs. learned (inferred) blocked-host are kept
+    // SEPARATE signals — only the explicit list hard-rejects. A learned
+    // block is a statistical inference from past outcomes, not a deliberate
+    // admin decision, so it must never outright kill a candidate on its
+    // own; `signals.ts` instead applies a score penalty and caps the route
+    // at review (review finding, MEDIUM item 6).
     const isBlockedHost = hostListMatches(profile.blocked_hosts, normalized);
+    const isLearnedBlockedHost = learnedHostSignalMatches(learnedHosts, 'blocked', [normalized.organizer]);
+
+    // Sponsor-name matching is scoped to host/organizer identity fields
+    // only — NOT the event name or free-text description (review finding,
+    // MEDIUM item 8): a sponsor's name merely being MENTIONED in a title or
+    // description is far weaker evidence than it being the actual
+    // host/organizer, and was the main source of false-positive risk for
+    // short/common sponsor names.
+    const sponsorText = [normalized.organizer, ...normalized.hosts.map((h) => h.name)].join(' ');
+    const sponsorMatch = matchSponsorName(sponsorText, sponsorNames);
 
     let scoreResult;
     try {
@@ -462,10 +500,12 @@ async function processSource(args: {
           platform: normalized.platform,
           descriptionText: normalized.descriptionText,
         },
+        fewShot,
         isTrustedCalendarSource: source.trust === 'curated',
         isTrustedHost,
         isBlockedHost,
-        sponsorMatch: null, // event_sponsors lookup is keyed on already-published events; not wired for pre-publish candidates in 1b.
+        isLearnedBlockedHost,
+        sponsorMatch,
         includeKeywords: profile.include_keywords,
         excludeKeywords: profile.exclude_keywords,
         possibleDuplicate: !!possibleDuplicateOf,
@@ -506,30 +546,50 @@ async function processSource(args: {
     let status: CandidateStatus;
     let sheetRow: number | null = null;
     let publishedAt: string | null = null;
+    let autoPublishedAt: string | null = null;
     let publishedEventId: string | null = null;
 
     if (scoreResult.route === 'reject') {
       status = 'auto_rejected';
       bump(counts, 'rejected');
     } else if (!dryRun && scoreResult.route === 'publish' && profile.auto_publish_enabled && !publisher.capReached) {
-      try {
-        const row = toEventRow(normalized, scoreResult.classifier.output.suggested_tags);
-        sheetRow = await publisher.publish(row);
-        status = 'auto_published';
-        publishedAt = new Date().toISOString();
-        sheetChanged = true;
-        bump(counts, 'published');
-        // Same id scheme the sheet (and the admin approve route) use —
-        // not the internal canonical_key, which is an ingestion-only
-        // identifier never seen by gviz/the sheet reader (review finding,
-        // LOW item 3).
-        publishedEventId = generateEventId(source.conference, normalized.sheetDate, normalized.startTime, normalized.name);
-        // Reflect the new row in the link index immediately, so a later
-        // event in this same feed that duplicates it (by link) is caught
-        // by the sheet-match dedupe check, not re-published too (review
-        // finding, LOW "dedupe within a single run").
-        linkIndex.byKey.set(canonicalKey, { id: publishedEventId, link: normalized.link });
-      } catch {
+      // Kill-switch re-check RIGHT BEFORE this specific publish attempt
+      // (review finding, LOW item 10), not only once at the top of the
+      // run — `profile` is the same object the whole loop reads, so
+      // flipping it here immediately stops every later candidate in this
+      // run too, not just this one. Gated behind `!publisher.capReached`
+      // (review finding, LOW item "skip the kill-switch query when the
+      // publish cap is already reached") — once the per-run publish cap
+      // is hit, nothing more will publish this run regardless of what the
+      // kill switch says, so there's no reason to spend a DB round trip
+      // checking it.
+      const kill = await checkAutoPublishKillSwitch(source.conference, { enabledAt: profile.auto_publish_enabled_at });
+      if (kill.killed) profile.auto_publish_enabled = false;
+
+      if (profile.auto_publish_enabled) {
+        try {
+          const row = toEventRow(normalized, scoreResult.classifier.output.suggested_tags);
+          sheetRow = await publisher.publish(row);
+          status = 'auto_published';
+          publishedAt = new Date().toISOString();
+          autoPublishedAt = publishedAt;
+          sheetChanged = true;
+          bump(counts, 'published');
+          // Same id scheme the sheet (and the admin approve route) use —
+          // not the internal canonical_key, which is an ingestion-only
+          // identifier never seen by gviz/the sheet reader (review finding,
+          // LOW item 3).
+          publishedEventId = generateEventId(source.conference, normalized.sheetDate, normalized.startTime, normalized.name);
+          // Reflect the new row in the link index immediately, so a later
+          // event in this same feed that duplicates it (by link) is caught
+          // by the sheet-match dedupe check, not re-published too (review
+          // finding, LOW "dedupe within a single run").
+          linkIndex.byKey.set(canonicalKey, { id: publishedEventId, link: normalized.link });
+        } catch {
+          status = 'queued';
+          bump(counts, 'queued');
+        }
+      } else {
         status = 'queued';
         bump(counts, 'queued');
       }
@@ -556,6 +616,7 @@ async function processSource(args: {
       classified_at: new Date().toISOString(),
       classify_attempts: (existing?.classify_attempts ?? 0) + 1,
       published_at: publishedAt,
+      auto_published_at: autoPublishedAt,
       published_event_id: publishedEventId,
       sheet_row: sheetRow,
       possible_duplicate_of: possibleDuplicateOf,

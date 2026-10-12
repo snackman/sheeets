@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Loader2, Plus, Play, Trash2 } from 'lucide-react';
 import type { TabConfig } from '@/lib/conferences';
 import { inputClass, btnPrimary } from '../styles';
-import type { IngestProfileClient, IngestSourceClient } from './types';
+import type { IngestProfileClient, IngestSourceClient, IngestGateClient } from './types';
 
 interface Props {
   allConferenceTabs: TabConfig[];
@@ -25,6 +25,7 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
   const [conference, setConference] = useState(allConferenceTabs[0]?.name || '');
   const [profile, setProfile] = useState<IngestProfileClient | null>(null);
   const [sources, setSources] = useState<IngestSourceClient[]>([]);
+  const [gate, setGate] = useState<IngestGateClient | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -44,6 +45,7 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
       const found = (json.profiles ?? []).find((p: IngestProfileClient) => p.conference === conference);
       setProfile(found ?? null);
       setSources(json.sources ?? []);
+      setGate(json.gate ?? null);
     } catch (err) {
       setMessage(`Error: ${err instanceof Error ? err.message : 'Failed to load'}`);
     } finally {
@@ -229,14 +231,32 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
                 <option key={p.value} value={p.value}>{p.label}</option>
               ))}
             </select>
-            <label className="flex items-center gap-2 text-sm text-stone-300">
-              <input
-                type="checkbox"
-                checked={profile.auto_publish_enabled}
-                onChange={(e) => saveProfile({ auto_publish_enabled: e.target.checked })}
-              />
-              Auto-publish (off = shadow mode; everything routes to the queue)
-            </label>
+            <div className="flex flex-col gap-1">
+              <label
+                className={`flex items-center gap-2 text-sm text-stone-300 ${
+                  !profile.auto_publish_enabled && !gate?.eligible ? 'opacity-60' : ''
+                }`}
+                title={!profile.auto_publish_enabled && gate ? gate.reason : undefined}
+              >
+                <input
+                  type="checkbox"
+                  checked={profile.auto_publish_enabled}
+                  disabled={!profile.auto_publish_enabled && !gate?.eligible}
+                  onChange={(e) => saveProfile({ auto_publish_enabled: e.target.checked })}
+                />
+                Auto-publish (off = shadow mode; everything routes to the queue)
+              </label>
+              {!profile.auto_publish_enabled && gate && (
+                <p className="text-xs text-stone-500">
+                  {gate.eligible ? gate.reason : `Locked: ${gate.reason}`}
+                </p>
+              )}
+              {profile.auto_publish_kill_reason && (
+                <p className="text-xs text-red-400">
+                  Kill switch fired{profile.auto_publish_killed_at ? ` on ${new Date(profile.auto_publish_killed_at).toLocaleString()}` : ''}: {profile.auto_publish_kill_reason}
+                </p>
+              )}
+            </div>
           </div>
 
           <textarea
