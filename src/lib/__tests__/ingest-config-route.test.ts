@@ -8,6 +8,7 @@ const upsertProfileMock = vi.fn(async (...args: unknown[]) => args[0]);
 const updateProfilePatchMock = vi.fn(async (...args: unknown[]) => args[1]);
 const getSourceMock = vi.fn();
 const updateSourceMock = vi.fn(async (..._args: unknown[]) => {});
+const createSourceMock = vi.fn(async (...args: unknown[]) => args[0]);
 const seedProfileRowMock = vi.fn((conference: string, themeKey: string) => ({
   conference,
   theme_key: themeKey,
@@ -38,7 +39,7 @@ vi.mock('@/lib/ingest/db', () => ({
   upsertProfile: (...a: unknown[]) => upsertProfileMock(...a),
   updateProfilePatch: (...a: unknown[]) => updateProfilePatchMock(...a),
   seedProfileRow: (conference: string, themeKey: string) => seedProfileRowMock(conference, themeKey),
-  createSource: vi.fn(async () => ({})),
+  createSource: (...a: unknown[]) => createSourceMock(...a),
   updateSource: (...a: unknown[]) => updateSourceMock(...a),
   deleteSource: vi.fn(async () => {}),
   getSource: (...a: unknown[]) => getSourceMock(...a),
@@ -50,7 +51,7 @@ vi.mock('@/lib/ingest/gate', () => ({
 }));
 
 vi.mock('@/lib/ingest/sources/luma-ical', () => ({
-  resolveLumaCalendar: vi.fn(),
+  resolveLumaCalendar: vi.fn(async () => ({ apiId: 'cal-TEST1234', slug: 'test-cal', name: 'Test Calendar' })),
   fetchLumaIcalFeed: vi.fn(),
   toIcalCandidates: vi.fn(() => []),
 }));
@@ -59,7 +60,7 @@ vi.mock('@/lib/ingest/filters', () => ({
   isPastEvent: vi.fn(() => false),
 }));
 
-import { PUT, PATCH } from '../../app/api/admin/ingest/config/route';
+import { PUT, PATCH, POST } from '../../app/api/admin/ingest/config/route';
 
 function putRequest(body: unknown) {
   return new NextRequest('http://localhost/api/admin/ingest/config', {
@@ -72,6 +73,14 @@ function putRequest(body: unknown) {
 function patchRequest(body: unknown) {
   return new NextRequest('http://localhost/api/admin/ingest/config', {
     method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+function postRequest(body: unknown) {
+  return new NextRequest('http://localhost/api/admin/ingest/config', {
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
@@ -264,5 +273,145 @@ describe('PATCH /api/admin/ingest/config: gate bypass via discovery-trust (revie
     expect(res.status).toBe(200);
     expect(getProfileMock).not.toHaveBeenCalled(); // never even needed to check — trust wasn't in the patch
     expect(updateSourceMock).toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/admin/ingest/config: new sources while auto-publish is on (review finding, MEDIUM item 2a)', () => {
+  beforeEach(() => {
+    getProfileMock.mockReset();
+    createSourceMock.mockClear();
+  });
+
+  it('forces a brand-new source to discovery trust when the conference has auto-publish on, even if curated/host was requested', async () => {
+    getProfileMock.mockResolvedValue({ conference: 'Test Conf', auto_publish_enabled: true });
+
+    const res = await POST(postRequest({ password: 'config-test-password', conference: 'Test Conf', kind: 'luma_ical', input: 'luma.com/test-cal', trust: 'curated' }));
+    expect(res.status).toBe(200);
+    expect(createSourceMock).toHaveBeenCalledWith(expect.objectContaining({ trust: 'discovery' }));
+  });
+
+  it('uses the requested (or default curated) trust when auto-publish is off', async () => {
+    getProfileMock.mockResolvedValue({ conference: 'Test Conf', auto_publish_enabled: false });
+
+    const res = await POST(postRequest({ password: 'config-test-password', conference: 'Test Conf', kind: 'luma_ical', input: 'luma.com/test-cal', trust: 'host' }));
+    expect(res.status).toBe(200);
+    expect(createSourceMock).toHaveBeenCalledWith(expect.objectContaining({ trust: 'host' }));
+  });
+
+  it('defaults to curated (not discovery) when there is no profile yet for the conference', async () => {
+    getProfileMock.mockResolvedValue(null);
+
+    const res = await POST(postRequest({ password: 'config-test-password', conference: 'Brand New Conf', kind: 'luma_ical', input: 'luma.com/test-cal' }));
+    expect(res.status).toBe(200);
+    expect(createSourceMock).toHaveBeenCalledWith(expect.objectContaining({ trust: 'curated' }));
+  });
+});
+
+describe('PUT /api/admin/ingest/config: blocks ADDING include_keywords/trusted_hosts while auto-publish is on (review finding, MEDIUM item 2b)', () => {
+  beforeEach(() => {
+    getProfileMock.mockReset();
+    updateProfilePatchMock.mockClear();
+    upsertProfileMock.mockClear();
+  });
+
+  it('rejects adding an include keyword while auto-publish is on', async () => {
+    getProfileMock.mockResolvedValue({
+      conference: 'Test Conf', theme_key: 'crypto', auto_publish_enabled: true, publish_threshold: 85,
+      include_keywords: ['defi'], trusted_hosts: [],
+    });
+
+    const res = await PUT(putRequest({ password: 'config-test-password', conference: 'Test Conf', theme_key: 'crypto', include_keywords: ['defi', 'nft'] }));
+    const json = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(json.error).toMatch(/Cannot add include keywords/);
+    expect(updateProfilePatchMock).not.toHaveBeenCalled();
+  });
+
+  it('allows REMOVING an include keyword while auto-publish is on (only lowers scores)', async () => {
+    getProfileMock.mockResolvedValue({
+      conference: 'Test Conf', theme_key: 'crypto', auto_publish_enabled: true, publish_threshold: 85,
+      include_keywords: ['defi', 'nft'], trusted_hosts: [],
+    });
+
+    const res = await PUT(putRequest({ password: 'config-test-password', conference: 'Test Conf', theme_key: 'crypto', include_keywords: ['defi'] }));
+    expect(res.status).toBe(200);
+    expect(updateProfilePatchMock).toHaveBeenCalled();
+  });
+
+  it('allows adding an include keyword when auto-publish is off', async () => {
+    getProfileMock.mockResolvedValue({
+      conference: 'Test Conf', theme_key: 'crypto', auto_publish_enabled: false, publish_threshold: 85,
+      include_keywords: ['defi'], trusted_hosts: [],
+    });
+
+    const res = await PUT(putRequest({ password: 'config-test-password', conference: 'Test Conf', theme_key: 'crypto', include_keywords: ['defi', 'nft'] }));
+    expect(res.status).toBe(200);
+  });
+
+  it('rejects adding a trusted host while auto-publish is on', async () => {
+    getProfileMock.mockResolvedValue({
+      conference: 'Test Conf', theme_key: 'crypto', auto_publish_enabled: true, publish_threshold: 85,
+      include_keywords: [], trusted_hosts: [{ kind: 'organizer', name: 'Existing Org' }],
+    });
+
+    const res = await PUT(
+      putRequest({
+        password: 'config-test-password',
+        conference: 'Test Conf',
+        theme_key: 'crypto',
+        trusted_hosts: [{ kind: 'organizer', name: 'Existing Org' }, { kind: 'organizer', name: 'New Org' }],
+      })
+    );
+    const json = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(json.error).toMatch(/Cannot add trusted hosts/);
+    expect(updateProfilePatchMock).not.toHaveBeenCalled();
+  });
+
+  it('allows REMOVING a trusted host while auto-publish is on', async () => {
+    getProfileMock.mockResolvedValue({
+      conference: 'Test Conf', theme_key: 'crypto', auto_publish_enabled: true, publish_threshold: 85,
+      include_keywords: [], trusted_hosts: [{ kind: 'organizer', name: 'Existing Org' }, { kind: 'organizer', name: 'Other Org' }],
+    });
+
+    const res = await PUT(
+      putRequest({
+        password: 'config-test-password',
+        conference: 'Test Conf',
+        theme_key: 'crypto',
+        trusted_hosts: [{ kind: 'organizer', name: 'Existing Org' }],
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(updateProfilePatchMock).toHaveBeenCalled();
+  });
+
+  it('allows adding a trusted host for a BRAND NEW profile (no prior list to compare against)', async () => {
+    getProfileMock.mockResolvedValue(null);
+
+    const res = await PUT(
+      putRequest({ password: 'config-test-password', conference: 'New Conf', theme_key: 'crypto', trusted_hosts: [{ kind: 'organizer', name: 'New Org' }] })
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it('does not block exclude_keywords or blocked_hosts changes (only lowers scores — left untouched by this guard)', async () => {
+    getProfileMock.mockResolvedValue({
+      conference: 'Test Conf', theme_key: 'crypto', auto_publish_enabled: true, publish_threshold: 85,
+      include_keywords: [], trusted_hosts: [], exclude_keywords: ['scam'], blocked_hosts: [],
+    });
+
+    const res = await PUT(
+      putRequest({
+        password: 'config-test-password',
+        conference: 'Test Conf',
+        theme_key: 'crypto',
+        exclude_keywords: ['scam', 'rug'],
+        blocked_hosts: [{ kind: 'organizer', name: 'Bad Org' }],
+      })
+    );
+    expect(res.status).toBe(200);
   });
 });

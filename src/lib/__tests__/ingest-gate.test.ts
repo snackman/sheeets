@@ -335,6 +335,22 @@ describe('checkAutoPublishKillSwitch (db-backed)', () => {
     );
   });
 
+  it('does not throw when the profile row is gone by the time of the write (review finding, LOW item "gate.ts:241")', async () => {
+    const outcomes = [
+      ...Array.from({ length: 40 }, () => ({ status: 'auto_published', event: { dateISO: '2027-06-01' }, updated_at: '2027-06-01T00:00:00Z' })),
+      ...Array.from({ length: 10 }, () => ({ status: 'unpublished', event: { dateISO: '2027-06-01' }, updated_at: '2027-06-01T00:00:00Z' })),
+    ]; // 40/50 = 80%, below threshold -> would try to write
+    vi.doMock('../ingest/db', () => ({
+      getPrecisionRows: vi.fn(async () => []),
+      getRecentAutoPublishOutcomes: vi.fn(async () => outcomes),
+      // db.ts#updateProfilePatch resolves null (not a thrown error) when
+      // zero rows matched the UPDATE — gate.ts must tolerate that.
+      updateProfilePatch: vi.fn(async () => null),
+    }));
+    const { checkAutoPublishKillSwitch } = await import('../ingest/gate');
+    await expect(checkAutoPublishKillSwitch('Gone Conf')).resolves.toEqual(expect.objectContaining({ killed: true }));
+  });
+
   it('a re-enable is not killed by stale pre-enable history (review finding, HIGH item 2)', async () => {
     // All 50 "bad" outcomes are from BEFORE the most recent enable — a
     // real `getRecentAutoPublishOutcomes` would never return them once

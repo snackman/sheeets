@@ -24,7 +24,27 @@ import {
 import { resolveLumaCalendar, fetchLumaIcalFeed, toIcalCandidates } from '@/lib/ingest/sources/luma-ical';
 import { isPastEvent } from '@/lib/ingest/filters';
 import { evaluateAutoPublishEnableGate } from '@/lib/ingest/gate';
-import type { IngestProfileRow } from '@/lib/ingest/types';
+import type { IngestProfileRow, TrustedHostEntry } from '@/lib/ingest/types';
+
+/** True if `next` contains any keyword not already in `existing`
+ *  (case-insensitive) — used to tell "only removed items" (safe, always
+ *  allowed: a removal only lowers scores) apart from "added items" (needs
+ *  the auto-publish guard below — review finding, MEDIUM item 2b). */
+function hasAddedKeywords(existing: string[], next: string[]): boolean {
+  const existingSet = new Set(existing.map((k) => k.toLowerCase()));
+  return next.some((k) => !existingSet.has(k.toLowerCase()));
+}
+
+function hostEntryKey(e: Pick<TrustedHostEntry, 'kind' | 'id' | 'name'>): string {
+  return `${e.kind}:${(e.id || e.name).toLowerCase()}`;
+}
+
+/** Same "added vs. removed" distinction as `hasAddedKeywords`, for the
+ *  trusted-hosts list. */
+function hasAddedHostEntries(existing: TrustedHostEntry[], next: TrustedHostEntry[]): boolean {
+  const existingKeys = new Set(existing.map(hostEntryKey));
+  return next.some((e) => !existingKeys.has(hostEntryKey(e)));
+}
 
 export const runtime = 'nodejs';
 
@@ -109,6 +129,40 @@ export async function PUT(req: NextRequest) {
       );
     }
 
+    // Review finding, MEDIUM item 2b: block ADDING to `include_keywords`
+    // or `trusted_hosts` while auto-publish is on (or being turned on in
+    // this request) — both only ever RAISE scores (+5/keyword capped at
+    // +15, +20 for a trusted host), so an admin could otherwise pass the
+    // gate, then quietly pad either list to push borderline candidates
+    // over the publish threshold. Picked "block" over "auto-disable and
+    // record why" as the simplest option — it reuses the exact same
+    // pattern as the publish_threshold guard above, with no new state to
+    // track. REMOVING items is always allowed (it only lowers scores,
+    // same as `exclude_keywords`/`blocked_hosts` edits, which this does
+    // not touch at all).
+    if (autoPublishIsOrWillBeOn && existing) {
+      if (patch.include_keywords !== undefined && hasAddedKeywords(existing.include_keywords, patch.include_keywords)) {
+        return NextResponse.json(
+          {
+            error:
+              'Cannot add include keywords while auto-publish is on (or being turned on in this request) — ' +
+              'that would raise scores without re-checking the gate. Removing keywords is fine. Turn auto-publish off first to add new ones.',
+          },
+          { status: 400 }
+        );
+      }
+      if (patch.trusted_hosts !== undefined && hasAddedHostEntries(existing.trusted_hosts, patch.trusted_hosts)) {
+        return NextResponse.json(
+          {
+            error:
+              'Cannot add trusted hosts while auto-publish is on (or being turned on in this request) — ' +
+              'that would raise scores without re-checking the gate. Removing trusted hosts is fine. Turn auto-publish off first to add new ones.',
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     const base = existing ?? seedProfileRow(conference, patch.theme_key);
 
     // Phase 2 auto-publish gate, enforced server-side (plans/
@@ -160,13 +214,24 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const profile = await getProfile(conference);
+    // Review finding, MEDIUM item 2a: a brand-new source has no track
+    // record of its own. If auto-publish is already on for this
+    // conference, force it to 'discovery' trust (capped at review, §10
+    // item 4 — never auto-publishes) regardless of what was requested,
+    // rather than refusing to add it outright. It can be promoted once
+    // auto-publish is off (the PATCH handler below blocks promoting a
+    // source's trust while auto-publish is on, so there's no later way
+    // around this either).
+    const effectiveTrust = profile?.auto_publish_enabled ? 'discovery' : trust ?? 'curated';
+
     const resolved = await resolveLumaCalendar(input);
     const source = await createSource({
       conference,
       kind,
       label: label || resolved.name || resolved.apiId,
       config: { calendar_api_id: resolved.apiId, calendar_slug: resolved.slug, calendar_name: resolved.name },
-      trust: trust ?? 'curated',
+      trust: effectiveTrust,
       added_by: 'admin',
     });
     return NextResponse.json({ source });

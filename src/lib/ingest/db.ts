@@ -120,17 +120,26 @@ export async function upsertProfile(row: Partial<IngestProfileRow> & { conferenc
  * MEDIUM item 7)). The config API's PUT handler uses this for every
  * EXISTING profile and only falls back to `upsertProfile` for a brand-new
  * one (where seeding full defaults is the point).
+ *
+ * Uses `.maybeSingle()`, not `.single()` — if the row vanished between a
+ * caller's earlier read and this write (e.g. the kill switch racing an
+ * admin deleting/recreating the profile), zero rows matching is a real,
+ * if rare, possibility and must not throw (review finding, LOW item
+ * "gate.ts:241: handle a missing profile row without throwing" —
+ * `checkAutoPublishKillSwitch` calls this and ignores the return value,
+ * so this is the one place that needed to change). Returns null in that
+ * case instead of an error.
  */
-export async function updateProfilePatch(conference: string, patch: Partial<IngestProfileRow>): Promise<IngestProfileRow> {
+export async function updateProfilePatch(conference: string, patch: Partial<IngestProfileRow>): Promise<IngestProfileRow | null> {
   const supabase = getIngestSupabase();
   const { data, error } = await supabase
     .from('ingest_profiles')
     .update(patch)
     .eq('conference', conference)
     .select('*')
-    .single();
+    .maybeSingle();
   if (error) throw new Error(`Failed to update ingest profile: ${error.message}`);
-  return data as IngestProfileRow;
+  return (data as IngestProfileRow) ?? null;
 }
 
 export async function listSources(conference?: string): Promise<IngestSourceRow[]> {

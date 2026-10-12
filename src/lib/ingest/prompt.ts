@@ -187,14 +187,23 @@ export function buildFewShotBlock(examples: FewShotExample[]): string {
 }
 
 /**
- * The full user-turn content: the (sanitized) few-shot block, if any,
- * followed by `<event_data>` (review finding, CRITICAL item 4 — both
- * untrusted-data blocks live together in the user turn now, neither in
- * the system prompt).
+ * The full user-turn content: the few-shot block, if any, followed by
+ * `<event_data>` (review finding, CRITICAL item 4 — both untrusted-data
+ * blocks live together in the user turn now, neither in the system
+ * prompt).
+ *
+ * A pure assembler — it does NOT sanitize `fewShot` itself (a prior
+ * version called `sanitizeFewShotExamples` here AND the one caller,
+ * `classifier.ts#classifyEvent`, sanitized again before calling this,
+ * redundantly sanitizing twice every call — review finding, LOW item
+ * "remove the duplicate sanitize step"). `classifyEvent` is the single
+ * sanitization point: it needs the sanitized list anyway, to decide
+ * whether `buildSystemPrompt`'s `hasFewShot` flag should be true, so it
+ * passes that same already-sanitized list on to this function. Any other
+ * caller must sanitize first too.
  */
 export function buildUserContent(event: ClassifierEventInput, fewShot: FewShotExample[] = []): string {
-  const sanitized = sanitizeFewShotExamples(fewShot);
-  const fewShotBlock = buildFewShotBlock(sanitized);
+  const fewShotBlock = buildFewShotBlock(fewShot);
   const eventBlock = buildEventDataContent(event);
   return fewShotBlock ? `${fewShotBlock}\n\n${eventBlock}` : eventBlock;
 }

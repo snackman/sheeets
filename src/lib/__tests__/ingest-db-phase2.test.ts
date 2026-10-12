@@ -102,6 +102,28 @@ describe('updateProfilePatch (review finding, MEDIUM item 7)', () => {
     expect(calls.some((c) => c.method === 'eq' && c.args[0] === 'conference' && c.args[1] === 'Test Conf')).toBe(true);
     expect(calls.some((c) => c.method === 'upsert')).toBe(false);
   });
+
+  it('returns null (does not throw) when no row matches — e.g. the profile vanished between a caller\'s read and this write (review finding, LOW item "gate.ts:241")', async () => {
+    const { createClient } = await import('@supabase/supabase-js');
+    const { client } = makeFakeSupabase({
+      ingest_profiles: () => ({ data: null, error: null }), // maybeSingle: zero rows matched, not an error
+    });
+    (createClient as ReturnType<typeof vi.fn>).mockReturnValue(client);
+
+    const { updateProfilePatch } = await import('../ingest/db');
+    await expect(updateProfilePatch('Gone Conf', { radius_km: 50 })).resolves.toBeNull();
+  });
+
+  it('still throws on a REAL database error', async () => {
+    const { createClient } = await import('@supabase/supabase-js');
+    const { client } = makeFakeSupabase({
+      ingest_profiles: () => ({ data: null, error: { message: 'connection lost' } }),
+    });
+    (createClient as ReturnType<typeof vi.fn>).mockReturnValue(client);
+
+    const { updateProfilePatch } = await import('../ingest/db');
+    await expect(updateProfilePatch('Test Conf', { radius_km: 50 })).rejects.toThrow('connection lost');
+  });
 });
 
 describe('getPrecisionRows', () => {

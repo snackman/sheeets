@@ -493,6 +493,15 @@ export async function POST(req: NextRequest) {
           }
         } else if (action === 'trust_host' || action === 'block_host') {
           const profile = await getProfile(candidate.conference);
+          // Review finding, MEDIUM item 2c: "trust host" ADDS to
+          // `trusted_hosts`, which only ever RAISES scores (+20) — the
+          // same reason the config PUT handler blocks adding trusted
+          // hosts while auto-publish is on. "Block host" is NOT guarded:
+          // it only adds to `blocked_hosts`, which only lowers scores, so
+          // it stays allowed (same as removing from either list).
+          if (action === 'trust_host' && profile?.auto_publish_enabled) {
+            throw new Error('Cannot trust a new host while auto-publish is enabled for this conference. Turn auto-publish off first.');
+          }
           const entries = hostEntries(candidate.event);
           if (action === 'trust_host') {
             await upsertProfile({ conference: candidate.conference, trusted_hosts: mergeHostLists(profile?.trusted_hosts ?? [], entries) });

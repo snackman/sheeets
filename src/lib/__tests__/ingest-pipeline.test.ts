@@ -169,24 +169,31 @@ vi.mock('../luma-server', () => ({
   LumaFetchError: class LumaFetchError extends Error {},
 }));
 
+const DEFAULT_VEVENT = {
+  uid: 'evt-ABC123DEF456@events.lu.ma',
+  summary: 'ETH Builders Mixer',
+  description: 'Get up-to-date information at: https://luma.com/ethcc-mixer\n\nHosted by Alice',
+  dtstart: '2027-03-10T18:00:00.000Z',
+  dtstartIsDateOnly: false,
+  dtend: '2027-03-10T21:00:00.000Z',
+  location: 'https://luma.com/event/evt-ABC123DEF456',
+  geo: { lat: 43.5528, lng: 7.0174 },
+  sequence: 0,
+  status: 'CONFIRMED',
+  dtstamp: '2027-03-01T00:00:00.000Z',
+};
+// Named so individual tests (e.g. the publish-cap test below, which needs
+// TWO distinct events in one feed) can override the default single-event
+// feed via `.mockResolvedValueOnce`/`.mockResolvedValue`.
+const fetchLumaIcalFeedMock = vi.fn(async () => [DEFAULT_VEVENT]);
 vi.mock('../ingest/sources/luma-ical', () => ({
-  fetchLumaIcalFeed: vi.fn(async () => [
-    {
-      uid: 'evt-ABC123DEF456@events.lu.ma',
-      summary: 'ETH Builders Mixer',
-      description: 'Get up-to-date information at: https://luma.com/ethcc-mixer\n\nHosted by Alice',
-      dtstart: '2027-03-10T18:00:00.000Z',
-      dtstartIsDateOnly: false,
-      dtend: '2027-03-10T21:00:00.000Z',
-      location: 'https://luma.com/event/evt-ABC123DEF456',
-      geo: { lat: 43.5528, lng: 7.0174 },
-      sequence: 0,
-      status: 'CONFIRMED',
-      dtstamp: '2027-03-01T00:00:00.000Z',
-    },
-  ]),
+  fetchLumaIcalFeed: (...a: unknown[]) => fetchLumaIcalFeedMock(...(a as [])),
+  // apiId derived from each event's own `uid` (not a fixed constant) so
+  // two different events in the same feed get distinct canonical keys —
+  // `evt-ABC123DEF456@events.lu.ma` -> `evt-ABC123DEF456`, matching the
+  // existing hardcoded behavior for the single-event default feed above.
   toIcalCandidates: vi.fn((events: { uid: string; description: string }[]) =>
-    events.map((vevent) => ({ vevent, apiId: 'evt-ABC123DEF456', slug: 'ethcc-mixer' }))
+    events.map((vevent) => ({ vevent, apiId: vevent.uid.split('@')[0], slug: 'ethcc-mixer' }))
   ),
 }));
 
@@ -223,6 +230,7 @@ beforeEach(() => {
   getProfileMock.mockReset().mockResolvedValue(defaultProfile);
   getRecentAutoPublishOutcomesMock.mockReset().mockResolvedValue([]);
   updateProfilePatchMock.mockClear();
+  fetchLumaIcalFeedMock.mockReset().mockResolvedValue([DEFAULT_VEVENT]);
 });
 
 describe('runSource: change detection (CRITICAL item 1 — ical_hash vs content_hash)', () => {
@@ -442,5 +450,42 @@ describe('runSource: kill switch wiring (review finding, HIGH item 2 / LOW item 
     // gate.ts's checkAutoPublishKillSwitch is what writes the DB row back
     // to shadow mode — confirm it actually did.
     expect(updateProfilePatchMock).toHaveBeenCalledWith('Test Conf', expect.objectContaining({ auto_publish_enabled: false }));
+  });
+
+  it('skips the kill-switch query entirely once the per-run publish cap is reached (review finding, LOW item)', async () => {
+    // Two distinct events in the feed, a publish cap of 1: the first
+    // publishes (querying the kill switch once); the second must be
+    // queued WITHOUT a second kill-switch query, since nothing more can
+    // publish this run regardless of what it would say.
+    fetchLumaIcalFeedMock.mockResolvedValue([
+      DEFAULT_VEVENT,
+      { ...DEFAULT_VEVENT, uid: 'evt-SECOND0000000@events.lu.ma', location: 'https://luma.com/event/evt-SECOND0000000' },
+    ]);
+    getProfileMock.mockResolvedValue({ ...defaultProfile, auto_publish_enabled: true, max_publish_per_run: 1 });
+    scoreCandidateMock.mockResolvedValue(publishableScoreResult());
+    // Distinct enriched names per event (the enrichment mock otherwise
+    // returns the SAME hardcoded name for every call) — otherwise the
+    // second candidate would fuzzy-dedupe against the first (same name,
+    // same date) and never reach the publish-routing code this test is
+    // actually exercising.
+    fetchLumaEventMock
+      .mockImplementationOnce(async () => ({
+        api_id: 'evt-ABC123DEF456',
+        event: { api_id: 'evt-ABC123DEF456', name: 'ETH Builders Mixer' },
+        hosts: [{ api_id: 'usr-1', name: 'Alice' }],
+        description_mirror: null,
+      }))
+      .mockImplementationOnce(async () => ({
+        api_id: 'evt-SECOND0000000',
+        event: { api_id: 'evt-SECOND0000000', name: 'A Totally Different Second Mixer' },
+        hosts: [{ api_id: 'usr-2', name: 'Bob' }],
+        description_mirror: null,
+      }));
+
+    const result = await runSource('src-1', { trigger: 'manual' });
+    expect(result.status).toBe('ok');
+    expect(result.counts.published).toBe(1);
+    expect(result.counts.queued).toBe(1);
+    expect(getRecentAutoPublishOutcomesMock).toHaveBeenCalledTimes(1);
   });
 });

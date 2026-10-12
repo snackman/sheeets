@@ -552,16 +552,21 @@ async function processSource(args: {
     if (scoreResult.route === 'reject') {
       status = 'auto_rejected';
       bump(counts, 'rejected');
-    } else if (!dryRun && scoreResult.route === 'publish' && profile.auto_publish_enabled) {
+    } else if (!dryRun && scoreResult.route === 'publish' && profile.auto_publish_enabled && !publisher.capReached) {
       // Kill-switch re-check RIGHT BEFORE this specific publish attempt
       // (review finding, LOW item 10), not only once at the top of the
       // run — `profile` is the same object the whole loop reads, so
       // flipping it here immediately stops every later candidate in this
-      // run too, not just this one.
+      // run too, not just this one. Gated behind `!publisher.capReached`
+      // (review finding, LOW item "skip the kill-switch query when the
+      // publish cap is already reached") — once the per-run publish cap
+      // is hit, nothing more will publish this run regardless of what the
+      // kill switch says, so there's no reason to spend a DB round trip
+      // checking it.
       const kill = await checkAutoPublishKillSwitch(source.conference, { enabledAt: profile.auto_publish_enabled_at });
       if (kill.killed) profile.auto_publish_enabled = false;
 
-      if (profile.auto_publish_enabled && !publisher.capReached) {
+      if (profile.auto_publish_enabled) {
         try {
           const row = toEventRow(normalized, scoreResult.classifier.output.suggested_tags);
           sheetRow = await publisher.publish(row);
