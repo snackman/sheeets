@@ -4,7 +4,7 @@
 // exits cleanly and the next run picks up where it stopped.
 import OpenAI from 'openai';
 import { normalizeEventLink } from '../luma';
-import { fetchEvents } from '../fetch-events';
+import { fetchEvents, generateEventId } from '../fetch-events';
 import { getSheetTitle } from '../google-sheets';
 import { invalidateEventsCache } from '../fetch-events-cached';
 import { getAllConferenceTabs } from '../get-conferences';
@@ -306,16 +306,16 @@ async function processSource(args: {
     // something an admin unpublished (review finding, CRITICAL item 2).
     if (existing && FINAL_CANDIDATE_STATUSES.includes(existing.status)) {
       if (!dryRun) {
+        // Only the fields `upsertCandidate` actually allows through for a
+        // final candidate: `ical_hash`, `last_seen_at` (added by
+        // `upsertCandidate` itself) and `sources`. Never `event`/
+        // `content_hash` — this previously replaced an enriched (or
+        // admin-edited) snapshot with the bare, un-enriched iCal stub on
+        // every re-ingest (review finding, MEDIUM item 1).
         await upsertCandidate({
           conference: source.conference,
           canonical_key: canonicalKey,
-          alt_keys: slug ? [`luma:${slug.toLowerCase()}`] : [],
-          source_id: source.id,
-          source_kind: source.kind,
           sources: [{ source_id: source.id, kind: source.kind, ref: vevent.uid, seen_at: new Date().toISOString() }],
-          source_ref: vevent.uid,
-          event: stub,
-          content_hash: stubHash,
           ical_hash: stubHash,
         });
       }
@@ -506,6 +506,7 @@ async function processSource(args: {
     let status: CandidateStatus;
     let sheetRow: number | null = null;
     let publishedAt: string | null = null;
+    let publishedEventId: string | null = null;
 
     if (scoreResult.route === 'reject') {
       status = 'auto_rejected';
@@ -518,11 +519,16 @@ async function processSource(args: {
         publishedAt = new Date().toISOString();
         sheetChanged = true;
         bump(counts, 'published');
+        // Same id scheme the sheet (and the admin approve route) use —
+        // not the internal canonical_key, which is an ingestion-only
+        // identifier never seen by gviz/the sheet reader (review finding,
+        // LOW item 3).
+        publishedEventId = generateEventId(source.conference, normalized.sheetDate, normalized.startTime, normalized.name);
         // Reflect the new row in the link index immediately, so a later
         // event in this same feed that duplicates it (by link) is caught
         // by the sheet-match dedupe check, not re-published too (review
         // finding, LOW "dedupe within a single run").
-        linkIndex.byKey.set(canonicalKey, { id: canonicalKey, link: normalized.link });
+        linkIndex.byKey.set(canonicalKey, { id: publishedEventId, link: normalized.link });
       } catch {
         status = 'queued';
         bump(counts, 'queued');
@@ -550,6 +556,7 @@ async function processSource(args: {
       classified_at: new Date().toISOString(),
       classify_attempts: (existing?.classify_attempts ?? 0) + 1,
       published_at: publishedAt,
+      published_event_id: publishedEventId,
       sheet_row: sheetRow,
       possible_duplicate_of: possibleDuplicateOf,
     });

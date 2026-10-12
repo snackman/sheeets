@@ -24,6 +24,7 @@ import {
 } from '@/lib/ingest/db';
 import { toEventRow, ThrottledSheetPublisher } from '@/lib/ingest/publish';
 import { scoreCandidate } from '@/lib/ingest/scoring';
+import { ClassifierError } from '@/lib/ingest/classifier';
 import { checkMonthlyBudget } from '@/lib/ingest/budget';
 import { estimateCostUsd } from '@/lib/ingest/pricing';
 import { buildSheetLinkIndex, findSheetMatchByLink, canonicalKeyForEvent, type SheetLinkIndex } from '@/lib/ingest/dedupe';
@@ -242,13 +243,21 @@ export async function POST(req: NextRequest) {
           }
         } else if (action === 'reject') {
           if (!reason) throw new Error('reason is required to reject');
-          await updateCandidate(id, {
-            status: 'rejected' as CandidateStatus,
+          // Only from a non-final status (review finding, MEDIUM item 2) —
+          // a published event (approved/auto_published) must go through
+          // `unpublish` first, and the other final statuses have nothing
+          // left to reject. Also acts as a lock against a concurrent
+          // duplicate request, same as approve.
+          const claimedReject = await claimCandidateStatus(id, APPROVABLE_CANDIDATE_STATUSES, 'rejected', {
             reject_reason: reason,
             review_note: note ?? null,
             reviewed_at: new Date().toISOString(),
             reviewed_by: 'admin',
           });
+          if (!claimedReject) {
+            results.push({ id, ok: false, error: `Candidate is ${candidate.status}, not rejectable (already handled, or published — unpublish it instead).` });
+            continue;
+          }
 
           const profile = await getProfile(candidate.conference);
           await insertLabel({
@@ -264,7 +273,17 @@ export async function POST(req: NextRequest) {
             model_route: candidate.route,
           });
         } else if (action === 'restore') {
-          await updateCandidate(id, { status: 'queued' as CandidateStatus, reject_reason: null, reviewed_at: null, reviewed_by: null });
+          // Only from rejected/auto_rejected — never from a final,
+          // published status (review finding, MEDIUM item 2).
+          const claimedRestore = await claimCandidateStatus(id, ['rejected', 'auto_rejected'], 'queued', {
+            reject_reason: null,
+            reviewed_at: null,
+            reviewed_by: null,
+          });
+          if (!claimedRestore) {
+            results.push({ id, ok: false, error: `Candidate is ${candidate.status}, not restorable.` });
+            continue;
+          }
         } else if (action === 'rescore') {
           // Never rescore something already finalized — a rescore that
           // somehow routed differently must not resurrect a decision an
@@ -287,34 +306,54 @@ export async function POST(req: NextRequest) {
           const startDate = tab?.dates?.[0] ?? candidate.event.dateISO;
           const endDate = tab?.dates?.[tab.dates.length - 1] ?? candidate.event.dateISO;
 
-          const scoreResult = await scoreCandidate({
-            client,
-            profile: themeProfile,
-            conference: { name: candidate.conference, startDate, endDate },
-            event: {
-              name: candidate.event.name,
-              hosts: candidate.event.hosts.map((h) => h.name),
-              calendarName: candidate.event.calendar?.name ?? null,
-              organizer: candidate.event.organizer,
-              venue: candidate.event.address || null,
-              dateISO: candidate.event.dateISO,
-              startTime: candidate.event.startTime,
-              cost: candidate.event.cost,
-              platform: candidate.event.platform,
-              descriptionText: candidate.event.descriptionText,
-            },
-            isTrustedCalendarSource: false,
-            isTrustedHost: false,
-            isBlockedHost: false,
-            sponsorMatch: null,
-            includeKeywords: profile.include_keywords,
-            excludeKeywords: profile.exclude_keywords,
-            possibleDuplicate: !!candidate.possible_duplicate_of,
-            noGeo: candidate.event.lat == null,
-            sourceTrust: 'curated',
-            publishThreshold: profile.publish_threshold,
-            reviewThreshold: profile.review_threshold,
-          });
+          let scoreResult;
+          try {
+            scoreResult = await scoreCandidate({
+              client,
+              profile: themeProfile,
+              conference: { name: candidate.conference, startDate, endDate },
+              event: {
+                name: candidate.event.name,
+                hosts: candidate.event.hosts.map((h) => h.name),
+                calendarName: candidate.event.calendar?.name ?? null,
+                organizer: candidate.event.organizer,
+                venue: candidate.event.address || null,
+                dateISO: candidate.event.dateISO,
+                startTime: candidate.event.startTime,
+                cost: candidate.event.cost,
+                platform: candidate.event.platform,
+                descriptionText: candidate.event.descriptionText,
+              },
+              isTrustedCalendarSource: false,
+              isTrustedHost: false,
+              isBlockedHost: false,
+              sponsorMatch: null,
+              includeKeywords: profile.include_keywords,
+              excludeKeywords: profile.exclude_keywords,
+              possibleDuplicate: !!candidate.possible_duplicate_of,
+              noGeo: candidate.event.lat == null,
+              sourceTrust: 'curated',
+              publishThreshold: profile.publish_threshold,
+              reviewThreshold: profile.review_threshold,
+            });
+          } catch (err) {
+            // A schema-validation failure still bills tokens — record that
+            // cost even though the rescore itself failed (review finding,
+            // LOW item 5, same as the pipeline's classify catch).
+            if (err instanceof ClassifierError && err.usage) {
+              await recordAdhocCost({
+                conference: candidate.conference,
+                trigger: 'manual',
+                inputTokens: err.usage.inputTokens,
+                outputTokens: err.usage.outputTokens,
+                costUsd: estimateCostUsd(err.usage.model, err.usage.inputTokens, err.usage.outputTokens),
+                counts: { errors: 1 },
+                status: 'error',
+                error: err.message,
+              });
+            }
+            throw err;
+          }
 
           // Record the cost so it counts toward the monthly cap, same as a
           // pipeline run (review finding, HIGH item 4).
@@ -371,20 +410,31 @@ export async function POST(req: NextRequest) {
             if (!tab) throw new Error(`No conference tab for "${candidate.conference}".`);
             const sheetTitle = await getSheetTitle(tab.gid);
             const rows = await readRange(sheetTitle, 'A1:L');
-            const targetName = candidate.event.name.trim().toLowerCase();
-            // Match by link key AND name, and never a row with a blank
-            // link/name — a shared link (data error) or an empty trailing
-            // row must never be the one removed (review finding, HIGH item 9).
-            const rowIdx = rows.findIndex((r) => {
+            // Match by link key ONLY (a blank link cell normalizes to null
+            // and can never match a real key, so blank rows are already
+            // excluded). Require EXACTLY one match — zero means we can't
+            // find it to delete, more than one means we can't safely tell
+            // which row is the real one; either way, refuse rather than
+            // guess (review finding, MEDIUM item 1). The outer catch below
+            // rolls the claimed status back on any thrown error here, so
+            // this never returns ok:true or writes a label without an
+            // actual deletion.
+            const matchingRowIndexes = rows.reduce<number[]>((acc, r, idx) => {
               const rowLink = (r[8] || '').trim();
-              const rowName = (r[4] || '').trim();
-              if (!rowLink || !rowName) return false;
-              return normalizeEventLink(rowLink) === linkKey && rowName.toLowerCase() === targetName;
-            });
-            if (rowIdx >= 0) {
-              await deleteSheetRow(tab.gid, rowIdx);
-              sheetChanged = true;
+              if (rowLink && normalizeEventLink(rowLink) === linkKey) acc.push(idx);
+              return acc;
+            }, []);
+
+            if (matchingRowIndexes.length !== 1) {
+              throw new Error(
+                matchingRowIndexes.length === 0
+                  ? 'Could not find this event in the sheet by link; not unpublishing.'
+                  : `Found ${matchingRowIndexes.length} sheet rows with this link; refusing to guess which to delete.`
+              );
             }
+
+            await deleteSheetRow(tab.gid, matchingRowIndexes[0]);
+            sheetChanged = true;
 
             const profile = await getProfile(candidate.conference);
             await insertLabel({

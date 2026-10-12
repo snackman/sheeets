@@ -30,6 +30,27 @@ function keyFor(conference: string, canonicalKey: string) {
   return `${conference}::${canonicalKey}`;
 }
 
+const defaultProfile = {
+  conference: 'Test Conf',
+  theme_key: 'crypto',
+  theme_description: 'Crypto stuff',
+  include_keywords: [],
+  exclude_keywords: [],
+  trusted_hosts: [],
+  blocked_hosts: [],
+  publish_threshold: 85,
+  review_threshold: 40,
+  auto_publish_enabled: false,
+  radius_km: 1000,
+  window_pre_days: 30,
+  window_post_days: 30,
+  allow_online: true,
+  max_llm_calls_per_run: 150,
+  max_publish_per_run: 25,
+  enabled: true,
+};
+const getProfileMock = vi.fn(async () => defaultProfile);
+
 vi.mock('../ingest/db', () => ({
   getSource: vi.fn(async () => ({
     id: 'src-1',
@@ -40,25 +61,7 @@ vi.mock('../ingest/db', () => ({
     trust: 'curated',
     enabled: true,
   })),
-  getProfile: vi.fn(async () => ({
-    conference: 'Test Conf',
-    theme_key: 'crypto',
-    theme_description: 'Crypto stuff',
-    include_keywords: [],
-    exclude_keywords: [],
-    trusted_hosts: [],
-    blocked_hosts: [],
-    publish_threshold: 85,
-    review_threshold: 40,
-    auto_publish_enabled: false,
-    radius_km: 1000,
-    window_pre_days: 30,
-    window_post_days: 30,
-    allow_online: true,
-    max_llm_calls_per_run: 150,
-    max_publish_per_run: 25,
-    enabled: true,
-  })),
+  getProfile: (...a: unknown[]) => getProfileMock(...(a as [])),
   getCandidateByKey: vi.fn(async (conference: string, canonicalKey: string) => candidateStore.get(keyFor(conference, canonicalKey)) ?? null),
   upsertCandidate: vi.fn(async (row: FakeRow) => {
     const k = keyFor(row.conference, row.canonical_key);
@@ -119,9 +122,13 @@ vi.mock('../get-conferences', () => ({
   ]),
 }));
 
-vi.mock('../fetch-events', () => ({
-  fetchEvents: vi.fn(async () => []),
-}));
+vi.mock('../fetch-events', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../fetch-events')>();
+  return {
+    fetchEvents: vi.fn(async () => []),
+    generateEventId: actual.generateEventId, // real, pure implementation
+  };
+});
 
 vi.mock('../google-sheets', () => ({
   getSheetTitle: vi.fn(async () => 'Test Sheet Tab'),
@@ -175,8 +182,8 @@ const scoreCandidateMock = vi.fn(async (..._args: unknown[]) => ({
   },
   signals: { breakdown: {}, total: 0, hardReject: false, capRouteAtReview: false },
   finalScore: 50,
-  route: 'review' as const,
-  shadowRoute: 'review' as const,
+  route: 'review' as 'review' | 'publish' | 'reject',
+  shadowRoute: 'review' as 'review' | 'publish' | 'reject',
 }));
 vi.mock('../ingest/scoring', () => ({
   scoreCandidate: (...args: unknown[]) => scoreCandidateMock(...args),
@@ -194,6 +201,7 @@ beforeEach(() => {
   runningGuard = false;
   fetchLumaEventMock.mockClear();
   scoreCandidateMock.mockClear();
+  getProfileMock.mockReset().mockResolvedValue(defaultProfile);
 });
 
 describe('runSource: change detection (CRITICAL item 1 — ical_hash vs content_hash)', () => {
@@ -226,13 +234,16 @@ describe('runSource: change detection (CRITICAL item 1 — ical_hash vs content_
 });
 
 describe('runSource: final-status protection (CRITICAL item 2)', () => {
-  it('never re-processes (or touches status on) an already-approved candidate', async () => {
+  it('never re-processes (or touches status on) an already-approved candidate, and never overwrites its event snapshot (MEDIUM item 1)', async () => {
+    const adminEditedEvent = { name: 'ETH Builders Mixer (admin-edited title)', hosts: [{ name: 'Alice' }] };
     candidateStore.set('Test Conf::luma:evt-abc123def456', {
       conference: 'Test Conf',
       canonical_key: 'luma:evt-abc123def456',
       status: 'approved',
       ical_hash: 'stale-hash-from-a-previous-run',
       published_event_id: 'evt-xyz',
+      event: adminEditedEvent,
+      content_hash: 'stale-content-hash',
     });
 
     const result = await runSource('src-1', { trigger: 'manual' });
@@ -244,6 +255,13 @@ describe('runSource: final-status protection (CRITICAL item 2)', () => {
     const row = candidateStore.get('Test Conf::luma:evt-abc123def456');
     expect(row?.status).toBe('approved'); // never changed
     expect(row?.published_event_id).toBe('evt-xyz'); // never touched
+    // The re-ingest must never replace an enriched/admin-edited event
+    // snapshot with the bare iCal stub (MEDIUM item 1 — this was the bug:
+    // the final-status refresh used to pass `event`/`content_hash` too).
+    expect(row?.event).toEqual(adminEditedEvent);
+    expect(row?.content_hash).toBe('stale-content-hash');
+    // Only these are allowed to refresh.
+    expect(row?.ical_hash).not.toBe('stale-hash-from-a-previous-run');
   });
 
   it('never re-processes an unpublished candidate (never resurrects it)', async () => {
@@ -301,5 +319,37 @@ describe('runSource: overlap guard (applies regardless of dryRun)', () => {
     runningGuard = true;
     const result = await runSource('src-1', { trigger: 'manual' });
     expect(result.status).toBe('skipped');
+  });
+});
+
+describe('runSource: auto-publish records the real sheet event id (LOW item 3)', () => {
+  it('stores published_event_id computed via generateEventId, not the internal canonical_key', async () => {
+    getProfileMock.mockResolvedValue({ ...defaultProfile, auto_publish_enabled: true });
+    scoreCandidateMock.mockResolvedValueOnce({
+      classifier: {
+        output: { theme_score: 95, reason: 'great fit', suggested_tags: [], flags: [], is_event: true, data_quality: 'sufficient' },
+        injectionDetected: false,
+        inputTokens: 100,
+        outputTokens: 20,
+        model: 'gpt-5-mini',
+        promptVersion: '1a-v2-openai',
+      },
+      signals: { breakdown: {}, total: 0, hardReject: false, capRouteAtReview: false },
+      finalScore: 95,
+      route: 'publish',
+      shadowRoute: 'publish',
+    });
+
+    const result = await runSource('src-1', { trigger: 'manual' });
+    expect(result.status).toBe('ok');
+    expect(result.counts.published).toBe(1);
+
+    const row = candidateStore.get('Test Conf::luma:evt-abc123def456');
+    expect(row?.status).toBe('auto_published');
+    expect(row?.published_event_id).toBeTruthy();
+    // Never the ingestion-internal canonical key — that's not an id gviz
+    // (or the sheet) would ever produce (review finding, LOW item 3).
+    expect(row?.published_event_id).not.toBe('luma:evt-abc123def456');
+    expect(String(row?.published_event_id)).toMatch(/^evt-/);
   });
 });

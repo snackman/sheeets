@@ -155,7 +155,10 @@ export default function IngestQueue({ allConferenceTabs, password }: Props) {
         runAction([activeId], 'approve');
       } else if (e.key === 'r' && activeId) {
         e.preventDefault();
-        if (actionLoading) return;
+        // Reject only from the Queued filter too — the server now rejects
+        // the request outright for anything already final (review
+        // finding, MEDIUM item 2); keep the shortcut from even trying.
+        if (actionLoading || statusFilter !== 'queued') return;
         runAction([activeId], 'reject', { reason: 'off_theme' });
       } else if (e.key === 'e' && activeId) {
         e.preventDefault();
@@ -215,13 +218,18 @@ export default function IngestQueue({ allConferenceTabs, password }: Props) {
               Approve selected
             </button>
           )}
-          <button
-            onClick={() => runAction(selectedIds, 'reject', { reason: 'off_theme' })}
-            disabled={actionLoading !== null}
-            className="text-xs bg-red-600 hover:bg-red-700 text-white rounded-md px-2.5 py-1 cursor-pointer disabled:opacity-50"
-          >
-            Reject selected (off-theme)
-          </button>
+          {/* Reject only from the Queued filter (review finding, MEDIUM
+              item 2) — the server now refuses to reject anything already
+              final. */}
+          {statusFilter === 'queued' && (
+            <button
+              onClick={() => runAction(selectedIds, 'reject', { reason: 'off_theme' })}
+              disabled={actionLoading !== null}
+              className="text-xs bg-red-600 hover:bg-red-700 text-white rounded-md px-2.5 py-1 cursor-pointer disabled:opacity-50"
+            >
+              Reject selected (off-theme)
+            </button>
+          )}
         </div>
       )}
 
@@ -335,14 +343,19 @@ export default function IngestQueue({ allConferenceTabs, password }: Props) {
                           </button>
                         </>
                       )}
-                      <button
-                        onClick={() => setPendingReject(isPendingReject ? null : c.id)}
-                        disabled={isActioning}
-                        title="Reject"
-                        className="bg-red-600 hover:bg-red-700 text-white rounded-lg p-2 cursor-pointer disabled:opacity-50"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+                      {/* Reject only from the Queued filter (review
+                          finding, MEDIUM item 2) — published events must
+                          go through Unpublish instead. */}
+                      {statusFilter === 'queued' && (
+                        <button
+                          onClick={() => setPendingReject(isPendingReject ? null : c.id)}
+                          disabled={isActioning}
+                          title="Reject"
+                          className="bg-red-600 hover:bg-red-700 text-white rounded-lg p-2 cursor-pointer disabled:opacity-50"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
                         onClick={() => runAction([c.id], 'rescore')}
                         disabled={isActioning}

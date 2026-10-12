@@ -209,15 +209,17 @@ export async function updateCandidate(id: string, patch: Record<string, unknown>
   if (error) throw new Error(`Failed to update candidate: ${error.message}`);
 }
 
-/** Fields that only describe the raw ingested snapshot — safe to refresh on
- *  a re-ingest even when the candidate already has a final/admin-owned
- *  status. Everything else (status, review fields, publish fields, score…)
- *  is decision state and must never be clobbered by a re-ingest (review
- *  finding, CRITICAL item 2). */
-const SNAPSHOT_ONLY_FIELDS = [
-  'conference', 'canonical_key', 'alt_keys', 'source_id', 'source_kind',
-  'sources', 'source_ref', 'event', 'content_hash', 'ical_hash', 'last_seen_at',
-] as const;
+/** The ONLY fields a re-ingest may touch once a candidate has a
+ *  final/admin-owned status — notably NOT `event`/`content_hash`, which
+ *  would otherwise silently replace an enriched (or admin-edited) snapshot
+ *  with the bare, un-enriched iCal stub (review finding, MEDIUM item 1).
+ *  `conference`/`canonical_key` are the upsert's conflict-target columns,
+ *  not really "refreshed", but must stay in the written payload for the
+ *  ON CONFLICT match itself. */
+const FINAL_REFRESH_FIELDS = ['conference', 'canonical_key', 'ical_hash', 'last_seen_at', 'sources'] as const;
+
+/** PostgREST `not(...,'in',...)` list literal for FINAL_CANDIDATE_STATUSES. */
+const FINAL_STATUS_LIST = `(${FINAL_CANDIDATE_STATUSES.map((s) => `"${s}"`).join(',')})`;
 
 /**
  * Idempotent upsert keyed on (conference, canonical_key) — the pipeline's
@@ -226,37 +228,68 @@ const SNAPSHOT_ONLY_FIELDS = [
  * Guards against a re-ingest overwriting an admin decision or a publish
  * outcome (CRITICAL item 2): if the existing row's status is final
  * (`FINAL_CANDIDATE_STATUSES` — approved/auto_published/rejected/
- * unpublished/unpublished_external), only the raw snapshot fields are
+ * unpublished/unpublished_external), only `FINAL_REFRESH_FIELDS` are
  * written; `status` and every decision/publish field are left exactly as
  * they are. This also means a previously-published candidate can never be
  * re-marked `duplicate` of its own now-live sheet row, and an unpublished
  * candidate can never be silently re-queued or re-published by a later run.
+ *
+ * Closes the read-then-write race a separate "SELECT status, then decide,
+ * then write" would have (review finding, LOW item 4): both attempts below
+ * are conditional UPDATEs whose WHERE clause is evaluated atomically
+ * against the row as it exists at the moment the UPDATE actually runs, not
+ * against an earlier, possibly-stale read. Whichever one's WHERE matches
+ * wins; if neither matches, no row exists yet and we insert one.
  */
 export async function upsertCandidate(row: Record<string, unknown> & { conference: string; canonical_key: string }): Promise<IngestCandidateRow> {
   const supabase = getIngestSupabase();
+  const nowIso = new Date().toISOString();
 
-  const { data: existing, error: existingError } = await supabase
+  // 1. If a FINAL row already exists, refresh only the allowed fields.
+  //    Gated entirely by `.in('status', FINAL_CANDIDATE_STATUSES)` in the
+  //    WHERE clause — if the row is concurrently un-finalized between a
+  //    caller deciding to call this and this statement running, this
+  //    simply won't match, and step 2 below will.
+  const finalRefreshPatch: Record<string, unknown> = { last_seen_at: nowIso };
+  for (const key of FINAL_REFRESH_FIELDS) {
+    if (key === 'conference' || key === 'canonical_key' || key === 'last_seen_at') continue;
+    if (key in row) finalRefreshPatch[key] = row[key];
+  }
+  const { data: finalMatch, error: finalError } = await supabase
     .from('ingest_candidates')
-    .select('status')
+    .update(finalRefreshPatch)
     .eq('conference', row.conference)
     .eq('canonical_key', row.canonical_key)
+    .in('status', FINAL_CANDIDATE_STATUSES as CandidateStatus[])
+    .select('*')
     .maybeSingle();
-  if (existingError) throw new Error(`Failed to check existing candidate: ${existingError.message}`);
+  if (finalError) throw new Error(`Failed to refresh a final candidate: ${finalError.message}`);
+  if (finalMatch) return finalMatch as IngestCandidateRow;
 
-  let payload: Record<string, unknown> = { ...row, last_seen_at: new Date().toISOString() };
-  if (existing && FINAL_CANDIDATE_STATUSES.includes(existing.status as CandidateStatus)) {
-    payload = Object.fromEntries(
-      Object.entries(payload).filter(([key]) => (SNAPSHOT_ONLY_FIELDS as readonly string[]).includes(key))
-    );
-  }
-
-  const { data, error } = await supabase
+  // 2. Not final (or no row yet) — try a full conditional update against a
+  //    NON-final row.
+  const fullPatch = { ...row, last_seen_at: nowIso };
+  const { data: nonFinalMatch, error: nonFinalError } = await supabase
     .from('ingest_candidates')
-    .upsert(payload, { onConflict: 'conference,canonical_key' })
+    .update(fullPatch)
+    .eq('conference', row.conference)
+    .eq('canonical_key', row.canonical_key)
+    .not('status', 'in', FINAL_STATUS_LIST)
+    .select('*')
+    .maybeSingle();
+  if (nonFinalError) throw new Error(`Failed to update candidate: ${nonFinalError.message}`);
+  if (nonFinalMatch) return nonFinalMatch as IngestCandidateRow;
+
+  // 3. Neither UPDATE matched a row — it doesn't exist yet. Insert (or, on
+  //    the rare chance a concurrent insert won the race in the meantime,
+  //    fall back to upserting it).
+  const { data: inserted, error: insertError } = await supabase
+    .from('ingest_candidates')
+    .upsert(fullPatch, { onConflict: 'conference,canonical_key' })
     .select('*')
     .single();
-  if (error) throw new Error(`Failed to upsert candidate: ${error.message}`);
-  return data as IngestCandidateRow;
+  if (insertError) throw new Error(`Failed to insert candidate: ${insertError.message}`);
+  return inserted as IngestCandidateRow;
 }
 
 /**

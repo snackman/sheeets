@@ -106,6 +106,7 @@ vi.mock('@/lib/ingest/scoring', () => ({
 }));
 
 import { POST } from '../../app/api/admin/ingest/queue/route';
+import { ClassifierError } from '../ingest/classifier';
 
 function postRequest(body: unknown) {
   return new NextRequest('http://localhost/api/admin/ingest/queue', {
@@ -118,7 +119,7 @@ function postRequest(body: unknown) {
 beforeEach(() => {
   getCandidateMock.mockReset();
   claimCandidateStatusMock.mockReset();
-  updateCandidateMock.mockReset();
+  updateCandidateMock.mockReset().mockResolvedValue(undefined);
   insertLabelMock.mockReset();
   getProfileMock.mockReset().mockResolvedValue({ theme_key: 'crypto', trusted_hosts: [], blocked_hosts: [], include_keywords: [], exclude_keywords: [], publish_threshold: 85, review_threshold: 40 });
   upsertProfileMock.mockReset();
@@ -186,6 +187,51 @@ describe('POST /api/admin/ingest/queue: approve (HIGH item 3)', () => {
   });
 });
 
+describe('POST /api/admin/ingest/queue: reject/restore status guards (MEDIUM item 2)', () => {
+  it('rejects only from a non-final (approvable) status, using the atomic claim as a lock', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate({ status: 'queued' }));
+    claimCandidateStatusMock.mockResolvedValue(baseCandidate({ status: 'rejected' }));
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'reject', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'], reason: 'off_theme' }));
+    const json = await res.json();
+    expect(json.results[0].ok).toBe(true);
+    expect(claimCandidateStatusMock).toHaveBeenCalledWith(
+      '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+      expect.arrayContaining(['queued', 'auto_rejected', 'error', 'pending_classify']),
+      'rejected',
+      expect.any(Object)
+    );
+    expect(insertLabelMock).toHaveBeenCalled();
+  });
+
+  it('refuses to reject a published candidate — must go through unpublish instead', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate({ status: 'approved' }));
+    claimCandidateStatusMock.mockResolvedValue(null); // 'approved' is not in the allowed fromStatuses, so the claim fails
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'reject', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'], reason: 'off_theme' }));
+    const json = await res.json();
+    expect(json.results[0].ok).toBe(false);
+    expect(json.results[0].error).toMatch(/not rejectable|unpublish/i);
+    expect(insertLabelMock).not.toHaveBeenCalled();
+  });
+
+  it('restores only from rejected/auto_rejected', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate({ status: 'rejected' }));
+    claimCandidateStatusMock.mockResolvedValue(baseCandidate({ status: 'queued' }));
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'restore', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+    expect(json.results[0].ok).toBe(true);
+    expect(claimCandidateStatusMock).toHaveBeenCalledWith('3fa85f64-5717-4562-b3fc-2c963f66afa6', ['rejected', 'auto_rejected'], 'queued', expect.any(Object));
+  });
+
+  it('refuses to restore a published candidate', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate({ status: 'approved' }));
+    claimCandidateStatusMock.mockResolvedValue(null);
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'restore', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+    expect(json.results[0].ok).toBe(false);
+    expect(json.results[0].error).toMatch(/not restorable/i);
+  });
+});
+
 describe('POST /api/admin/ingest/queue: rescore (HIGH item 4)', () => {
   it('refuses to rescore a finalized candidate', async () => {
     getCandidateMock.mockResolvedValue(baseCandidate({ status: 'approved' }));
@@ -215,6 +261,23 @@ describe('POST /api/admin/ingest/queue: rescore (HIGH item 4)', () => {
       expect.objectContaining({ conference: 'Test Conf', inputTokens: 50, outputTokens: 10 })
     );
   });
+
+  it('still records cost when the classifier call fails with usage info attached (LOW item 5)', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate({ status: 'queued' }));
+    const classifierError = new ClassifierError('Schema validation failed.', undefined, {
+      inputTokens: 77,
+      outputTokens: 33,
+      model: 'gpt-5-mini',
+    });
+    scoreCandidateMock.mockRejectedValueOnce(classifierError);
+
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'rescore', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+    expect(json.results[0].ok).toBe(false);
+    expect(recordAdhocCostMock).toHaveBeenCalledWith(
+      expect.objectContaining({ conference: 'Test Conf', inputTokens: 77, outputTokens: 33, status: 'error' })
+    );
+  });
 });
 
 describe('POST /api/admin/ingest/queue: unpublish (HIGH item 9)', () => {
@@ -235,28 +298,47 @@ describe('POST /api/admin/ingest/queue: unpublish (HIGH item 9)', () => {
     expect(json.results[0].error).toMatch(/no resolvable link/);
   });
 
-  it('never deletes a blank row even if it matches by link with an empty name', async () => {
+  it('deletes a row matched by link key alone, even with a blank name (MEDIUM item 1: link-only matching)', async () => {
     getCandidateMock.mockResolvedValue(baseCandidate({ status: 'approved' }));
     claimCandidateStatusMock.mockResolvedValue(baseCandidate({ status: 'unpublished' }));
-    // A row with the right link but a BLANK name must never be deleted.
     readRangeMock.mockResolvedValue([
       ['Mar 10', '6:00 PM', '', '', '', '', '', '', 'https://luma.com/event/evt-abc123def456', '', '', ''],
     ]);
     const res = await POST(postRequest({ password: 'queue-test-password', action: 'unpublish', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
     const json = await res.json();
     expect(json.results[0].ok).toBe(true);
-    expect(deleteSheetRowMock).not.toHaveBeenCalled();
+    expect(deleteSheetRowMock).toHaveBeenCalledWith(1, 0);
   });
 
-  it('deletes the row only when both link AND name match', async () => {
+  it('rolls back the claim and refuses when ZERO rows match the link (MEDIUM item 1)', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate({ status: 'approved' }));
+    claimCandidateStatusMock.mockResolvedValue(baseCandidate({ status: 'unpublished' }));
+    readRangeMock.mockResolvedValue([
+      ['Mar 10', '6:00 PM', '', 'Bob', 'Some Other Event', '', '', '', 'https://luma.com/event/evt-totallyunrelated', '', '', ''],
+    ]);
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'unpublish', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+    expect(json.results[0].ok).toBe(false);
+    expect(json.results[0].error).toMatch(/could not find/i);
+    expect(deleteSheetRowMock).not.toHaveBeenCalled();
+    expect(insertLabelMock).not.toHaveBeenCalled();
+    // Rolled back to the original (published) status, not left "unpublished".
+    expect(updateCandidateMock).toHaveBeenCalledWith('3fa85f64-5717-4562-b3fc-2c963f66afa6', expect.objectContaining({ status: 'approved' }));
+  });
+
+  it('rolls back the claim and refuses when MORE THAN ONE row matches the link (MEDIUM item 1)', async () => {
     getCandidateMock.mockResolvedValue(baseCandidate({ status: 'approved' }));
     claimCandidateStatusMock.mockResolvedValue(baseCandidate({ status: 'unpublished' }));
     readRangeMock.mockResolvedValue([
       ['Mar 10', '6:00 PM', '', 'Alice', 'ETH Builders Mixer', '', '', '', 'https://luma.com/event/evt-abc123def456', '', '', ''],
+      ['Mar 11', '7:00 PM', '', 'Alice', 'ETH Builders Mixer (duplicate row)', '', '', '', 'https://luma.com/event/evt-abc123def456', '', '', ''],
     ]);
     const res = await POST(postRequest({ password: 'queue-test-password', action: 'unpublish', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
     const json = await res.json();
-    expect(json.results[0].ok).toBe(true);
-    expect(deleteSheetRowMock).toHaveBeenCalledWith(1, 0);
+    expect(json.results[0].ok).toBe(false);
+    expect(json.results[0].error).toMatch(/found 2 sheet rows/i);
+    expect(deleteSheetRowMock).not.toHaveBeenCalled();
+    expect(insertLabelMock).not.toHaveBeenCalled();
+    expect(updateCandidateMock).toHaveBeenCalledWith('3fa85f64-5717-4562-b3fc-2c963f66afa6', expect.objectContaining({ status: 'approved' }));
   });
 });
