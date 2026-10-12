@@ -133,6 +133,13 @@ export interface IngestProfileRow {
    *  auto-publish through the config API. */
   auto_publish_killed_at: string | null;
   auto_publish_kill_reason: string | null;
+  /** Set whenever an admin successfully turns `auto_publish_enabled` on
+   *  (cleared back to null is NOT done — it's simply overwritten on every
+   *  fresh enable). The kill switch's rolling sample only considers
+   *  outcomes at or after this timestamp, so a re-enable is never killed
+   *  immediately by a bad run from a PRIOR enable window (review finding,
+   *  HIGH item 2). */
+  auto_publish_enabled_at: string | null;
   updated_at: string;
 }
 
@@ -291,6 +298,12 @@ export interface IngestCandidateRow {
   published_event_id: string | null;
   sheet_row: number | null;
   published_at: string | null;
+  /** Set ONLY when the PIPELINE auto-published this row (never on a manual
+   *  admin approval, which shares `published_at` but not this). The kill
+   *  switch's rolling sample filters on this being non-null — mixing in a
+   *  manual approval would measure the wrong thing (review finding, HIGH
+   *  item 2). */
+  auto_published_at: string | null;
   review_note: string | null;
   reject_reason: string | null;
   edits: Record<string, unknown> | null;

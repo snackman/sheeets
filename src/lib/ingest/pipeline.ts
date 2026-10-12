@@ -135,19 +135,11 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
       return { runId: run.id, status: 'skipped', counts };
     }
 
-    // Phase 2 kill switch (plans/event-ingestion.md §Phase 2, `gate.ts`):
-    // re-checked at the top of every run for a conference whose profile
-    // currently has auto-publish on. If rolling precision over the most
-    // recent real auto-published outcomes has dropped below the gate
-    // threshold, this flips the DB row back to shadow mode and records why
-    // — mutate the in-memory `profile` too so THIS run (already in
-    // flight) stops publishing immediately rather than one run late.
-    // Skipped for dry runs, which must never have a side effect on live
-    // config.
-    if (!opts.dryRun && profile.auto_publish_enabled) {
-      const kill = await checkAutoPublishKillSwitch(source.conference);
-      if (kill.killed) profile.auto_publish_enabled = false;
-    }
+    // Phase 2 kill switch (`gate.ts`): re-checked just before each actual
+    // auto-publish attempt inside `processSource`, not only once here at
+    // the top of the run (review finding, LOW item 10) — a conference that
+    // goes bad mid-run stops publishing partway through, not only on the
+    // next run.
 
     const allTabs = await getAllConferenceTabs();
     const tab = allTabs.find((t) => t.name === source.conference);
@@ -459,17 +451,35 @@ async function processSource(args: {
       continue;
     }
 
-    const hostNamesForLearning = [normalized.organizer, ...normalized.hosts.map((h) => h.name)];
+    // Learned signals (from label history) are matched on the PRIMARY
+    // ORGANIZER only, never co-hosts (review finding, MEDIUM item 6) — a
+    // popular event's co-host list can include someone who only ever
+    // appears once, and attributing a whole-conference trust/block
+    // judgment to them from a single outcome is the wrong unit of
+    // attribution. The explicit, admin-curated `profile.trusted_hosts`/
+    // `blocked_hosts` lists (via `hostListMatches`) are unaffected — those
+    // are deliberately entered per host/co-host by an admin.
     const isTrustedHost =
       hostListMatches(profile.trusted_hosts, normalized) ||
       normalized.hosts.some((h) => h.apiId && verifiedHostIds.has(h.apiId)) ||
       (organizerCounts.get(normalized.organizer.trim().toLowerCase()) ?? 0) >= 2 ||
-      learnedHostSignalMatches(learnedHosts, 'trusted', hostNamesForLearning);
-    const isBlockedHost =
-      hostListMatches(profile.blocked_hosts, normalized) ||
-      learnedHostSignalMatches(learnedHosts, 'blocked', hostNamesForLearning);
+      learnedHostSignalMatches(learnedHosts, 'trusted', [normalized.organizer]);
+    // Explicit (admin-curated) vs. learned (inferred) blocked-host are kept
+    // SEPARATE signals — only the explicit list hard-rejects. A learned
+    // block is a statistical inference from past outcomes, not a deliberate
+    // admin decision, so it must never outright kill a candidate on its
+    // own; `signals.ts` instead applies a score penalty and caps the route
+    // at review (review finding, MEDIUM item 6).
+    const isBlockedHost = hostListMatches(profile.blocked_hosts, normalized);
+    const isLearnedBlockedHost = learnedHostSignalMatches(learnedHosts, 'blocked', [normalized.organizer]);
 
-    const sponsorText = [normalized.name, normalized.organizer, ...normalized.hosts.map((h) => h.name), normalized.descriptionText].join(' ');
+    // Sponsor-name matching is scoped to host/organizer identity fields
+    // only — NOT the event name or free-text description (review finding,
+    // MEDIUM item 8): a sponsor's name merely being MENTIONED in a title or
+    // description is far weaker evidence than it being the actual
+    // host/organizer, and was the main source of false-positive risk for
+    // short/common sponsor names.
+    const sponsorText = [normalized.organizer, ...normalized.hosts.map((h) => h.name)].join(' ');
     const sponsorMatch = matchSponsorName(sponsorText, sponsorNames);
 
     let scoreResult;
@@ -494,6 +504,7 @@ async function processSource(args: {
         isTrustedCalendarSource: source.trust === 'curated',
         isTrustedHost,
         isBlockedHost,
+        isLearnedBlockedHost,
         sponsorMatch,
         includeKeywords: profile.include_keywords,
         excludeKeywords: profile.exclude_keywords,
@@ -535,30 +546,45 @@ async function processSource(args: {
     let status: CandidateStatus;
     let sheetRow: number | null = null;
     let publishedAt: string | null = null;
+    let autoPublishedAt: string | null = null;
     let publishedEventId: string | null = null;
 
     if (scoreResult.route === 'reject') {
       status = 'auto_rejected';
       bump(counts, 'rejected');
-    } else if (!dryRun && scoreResult.route === 'publish' && profile.auto_publish_enabled && !publisher.capReached) {
-      try {
-        const row = toEventRow(normalized, scoreResult.classifier.output.suggested_tags);
-        sheetRow = await publisher.publish(row);
-        status = 'auto_published';
-        publishedAt = new Date().toISOString();
-        sheetChanged = true;
-        bump(counts, 'published');
-        // Same id scheme the sheet (and the admin approve route) use —
-        // not the internal canonical_key, which is an ingestion-only
-        // identifier never seen by gviz/the sheet reader (review finding,
-        // LOW item 3).
-        publishedEventId = generateEventId(source.conference, normalized.sheetDate, normalized.startTime, normalized.name);
-        // Reflect the new row in the link index immediately, so a later
-        // event in this same feed that duplicates it (by link) is caught
-        // by the sheet-match dedupe check, not re-published too (review
-        // finding, LOW "dedupe within a single run").
-        linkIndex.byKey.set(canonicalKey, { id: publishedEventId, link: normalized.link });
-      } catch {
+    } else if (!dryRun && scoreResult.route === 'publish' && profile.auto_publish_enabled) {
+      // Kill-switch re-check RIGHT BEFORE this specific publish attempt
+      // (review finding, LOW item 10), not only once at the top of the
+      // run — `profile` is the same object the whole loop reads, so
+      // flipping it here immediately stops every later candidate in this
+      // run too, not just this one.
+      const kill = await checkAutoPublishKillSwitch(source.conference, { enabledAt: profile.auto_publish_enabled_at });
+      if (kill.killed) profile.auto_publish_enabled = false;
+
+      if (profile.auto_publish_enabled && !publisher.capReached) {
+        try {
+          const row = toEventRow(normalized, scoreResult.classifier.output.suggested_tags);
+          sheetRow = await publisher.publish(row);
+          status = 'auto_published';
+          publishedAt = new Date().toISOString();
+          autoPublishedAt = publishedAt;
+          sheetChanged = true;
+          bump(counts, 'published');
+          // Same id scheme the sheet (and the admin approve route) use —
+          // not the internal canonical_key, which is an ingestion-only
+          // identifier never seen by gviz/the sheet reader (review finding,
+          // LOW item 3).
+          publishedEventId = generateEventId(source.conference, normalized.sheetDate, normalized.startTime, normalized.name);
+          // Reflect the new row in the link index immediately, so a later
+          // event in this same feed that duplicates it (by link) is caught
+          // by the sheet-match dedupe check, not re-published too (review
+          // finding, LOW "dedupe within a single run").
+          linkIndex.byKey.set(canonicalKey, { id: publishedEventId, link: normalized.link });
+        } catch {
+          status = 'queued';
+          bump(counts, 'queued');
+        }
+      } else {
         status = 'queued';
         bump(counts, 'queued');
       }
@@ -585,6 +611,7 @@ async function processSource(args: {
       classified_at: new Date().toISOString(),
       classify_attempts: (existing?.classify_attempts ?? 0) + 1,
       published_at: publishedAt,
+      auto_published_at: autoPublishedAt,
       published_event_id: publishedEventId,
       sheet_row: sheetRow,
       possible_duplicate_of: possibleDuplicateOf,

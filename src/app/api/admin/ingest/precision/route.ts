@@ -35,13 +35,22 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [precisionRows, liveOutcomes, volumeBySource, budget, mismatches, profile] = await Promise.all([
+    // Fetched first (not in the Promise.all below) because the "live"
+    // rolling sample needs to know the CURRENT enable window
+    // (`auto_publish_enabled_at`) — same scoping the kill switch itself
+    // uses, so the dashboard and the kill switch always agree (review
+    // finding, HIGH item 2).
+    const profile = await getProfile(conference);
+
+    const [precisionRows, liveOutcomes, volumeBySource, budget, mismatches] = await Promise.all([
       getPrecisionRows(conference),
-      getRecentAutoPublishOutcomes(conference, AUTO_PUBLISH_MIN_SAMPLE_SIZE),
+      getRecentAutoPublishOutcomes(conference, {
+        limit: AUTO_PUBLISH_MIN_SAMPLE_SIZE,
+        sinceIso: profile?.auto_publish_enabled_at ?? null,
+      }),
       getCandidateVolumeBySource(conference),
       checkMonthlyBudget(),
       listRecentLabelMismatches(conference, 10),
-      getProfile(conference),
     ]);
 
     const shadow = summarizeShadowSample(precisionRows);

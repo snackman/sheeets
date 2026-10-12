@@ -75,6 +75,7 @@ export function seedProfileRow(conference: string, themeKey: ThemeKey): Omit<Ing
     enabled: true,
     auto_publish_killed_at: null,
     auto_publish_kill_reason: null,
+    auto_publish_enabled_at: null,
   };
 }
 
@@ -104,6 +105,31 @@ export async function upsertProfile(row: Partial<IngestProfileRow> & { conferenc
     .select('*')
     .single();
   if (error) throw new Error(`Failed to save ingest profile: ${error.message}`);
+  return data as IngestProfileRow;
+}
+
+/**
+ * A true partial UPDATE — sends ONLY the given fields, unlike
+ * `upsertProfile`, which resends every field of whatever caller-built
+ * object it's given (fine for a brand-new row, since there's no prior
+ * state to lose, but dangerous for an EXISTING row: a request that read
+ * the profile, then wrote back a merge of `{...fullRowItReadEarlier,
+ * ...patch}`, can silently clobber a field someone else changed in
+ * between — e.g. the kill switch flipping `auto_publish_enabled` off
+ * while an admin's unrelated config save is in flight (review finding,
+ * MEDIUM item 7)). The config API's PUT handler uses this for every
+ * EXISTING profile and only falls back to `upsertProfile` for a brand-new
+ * one (where seeding full defaults is the point).
+ */
+export async function updateProfilePatch(conference: string, patch: Partial<IngestProfileRow>): Promise<IngestProfileRow> {
+  const supabase = getIngestSupabase();
+  const { data, error } = await supabase
+    .from('ingest_profiles')
+    .update(patch)
+    .eq('conference', conference)
+    .select('*')
+    .single();
+  if (error) throw new Error(`Failed to update ingest profile: ${error.message}`);
   return data as IngestProfileRow;
 }
 
@@ -554,7 +580,36 @@ export async function listLabelsForFewShot(themeKey: ThemeKey, limit = 400): Pro
   return (data as IngestLabelRow[]) ?? [];
 }
 
-/** One row of the `ingest_precision` view (migration 20261011120000). */
+/**
+ * Theme labels for ONE conference, for the learned trusted/blocked host
+ * signal (`learning.ts#deriveLearnedHostSignals`) — deliberately a
+ * SEPARATE query from `listLabelsForFewShot`, not filtered on
+ * `excluded_from_fewshot` (review finding, MEDIUM item 6): that flag is
+ * specifically about whether a label is a good FEW-SHOT PROMPT example
+ * (readable, representative text for the model to imitate), which is a
+ * different question from whether it's valid evidence that "this
+ * organizer's events tend to get approved/rejected" for the host-signal
+ * statistic. A label excluded from few-shot for being verbose or an odd
+ * phrasing is still a real admin decision about a real organizer.
+ */
+export async function listLabelsForHostSignals(
+  conference: string,
+  limit = 500
+): Promise<Pick<IngestLabelRow, 'label' | 'label_kind' | 'example'>[]> {
+  const supabase = getIngestSupabase();
+  const { data, error } = await supabase
+    .from('ingest_labels')
+    .select('label, label_kind, example')
+    .eq('conference', conference)
+    .eq('label_kind', 'theme')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(`Failed to list labels for host signals: ${error.message}`);
+  return (data ?? []) as Pick<IngestLabelRow, 'label' | 'label_kind' | 'example'>[];
+}
+
+/** One row of the `ingest_precision` view (migration 20261011120000,
+ *  extended by 20261012120000 with `shadow_publish_rejected_theme`). */
 export interface IngestPrecisionRow {
   conference: string;
   source_kind: string;
@@ -565,6 +620,13 @@ export interface IngestPrecisionRow {
   auto_unpublished: number;
   shadow_publish_candidates: number;
   shadow_publish_approved: number;
+  /** Decided (rejected, theme reasons), shadow_route='publish' rows — the
+   *  other half of the shadow-precision denominator (review finding,
+   *  CRITICAL item 1). Together with `shadow_publish_approved`, this is
+   *  "decided" shadow-publish items; `shadow_publish_candidates` (still
+   *  'queued', i.e. UNDECIDED) must never be used as a precision
+   *  denominator — see `gate.ts#summarizeShadowSample`. */
+  shadow_publish_rejected_theme: number;
 }
 
 /** All `ingest_precision` rows (one per source_kind x score_bucket) for a
@@ -577,25 +639,44 @@ export async function getPrecisionRows(conference: string): Promise<IngestPrecis
   return (data as IngestPrecisionRow[]) ?? [];
 }
 
-/** The most recent `limit` REAL auto-publish outcomes for a conference —
- *  `auto_published` (still live) or `unpublished`/`unpublished_external`
- *  (taken back down), ordered by `published_at` so "recent" means recently
- *  published, not recently decided. Feeds the kill switch
- *  (`gate.ts#checkAutoPublishKillSwitch`). */
+/** The subset of an `ingest_candidates` row the kill switch's rolling
+ *  sample needs — just enough to apply `gate.ts`'s "what counts as a
+ *  failure" rule (a manual unpublish always counts; a curator deleting the
+ *  sheet row AFTER the event already happened does not — review finding,
+ *  HIGH item 2). */
+export type AutoPublishOutcomeRow = Pick<IngestCandidateRow, 'status' | 'auto_published_at' | 'updated_at'> & {
+  event: Pick<NormalizedEvent, 'dateISO'>;
+};
+
+/**
+ * The most recent `opts.limit` REAL auto-publish outcomes for a
+ * conference — rows the PIPELINE itself auto-published
+ * (`auto_published_at is not null`; a manual admin approval shares
+ * `published_at` but never sets `auto_published_at`, so it's excluded —
+ * review finding, HIGH item 2), still live (`auto_published`) or taken
+ * back down (`unpublished`/`unpublished_external`). `opts.sinceIso`
+ * (typically the profile's `auto_publish_enabled_at`) excludes outcomes
+ * from before the most recent enable, so a re-enable is never immediately
+ * killed by a prior bad window's history. Ordered by `auto_published_at`
+ * so "recent" means recently auto-published, not recently decided. Feeds
+ * the kill switch (`gate.ts#checkAutoPublishKillSwitch`).
+ */
 export async function getRecentAutoPublishOutcomes(
   conference: string,
-  limit = 50
-): Promise<Pick<IngestCandidateRow, 'status'>[]> {
+  opts: { limit?: number; sinceIso?: string | null } = {}
+): Promise<AutoPublishOutcomeRow[]> {
   const supabase = getIngestSupabase();
-  const { data, error } = await supabase
+  let query = supabase
     .from('ingest_candidates')
-    .select('status')
+    .select('status, event, auto_published_at, updated_at')
     .eq('conference', conference)
-    .in('status', ['auto_published', 'unpublished', 'unpublished_external'])
-    .order('published_at', { ascending: false })
-    .limit(limit);
+    .not('auto_published_at', 'is', null)
+    .in('status', ['auto_published', 'unpublished', 'unpublished_external']);
+  if (opts.sinceIso) query = query.gte('auto_published_at', opts.sinceIso);
+  query = query.order('auto_published_at', { ascending: false }).limit(opts.limit ?? 50);
+  const { data, error } = await query;
   if (error) throw new Error(`Failed to load recent auto-publish outcomes: ${error.message}`);
-  return (data as Pick<IngestCandidateRow, 'status'>[]) ?? [];
+  return (data as AutoPublishOutcomeRow[]) ?? [];
 }
 
 export interface CandidateVolumeBySource {

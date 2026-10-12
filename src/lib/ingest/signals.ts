@@ -10,9 +10,18 @@ export interface SignalInput {
   isTrustedCalendarSource?: boolean;
   /** A host/organizer is allowlisted, a verified Luma host, or has >=2 prior sheet events. */
   isTrustedHost?: boolean;
-  /** A host/organizer is on the conference's blocked-host list. */
+  /** A host/organizer is on the conference's EXPLICIT, admin-curated
+   *  blocked-host list — a deliberate decision, so this hard-rejects. */
   isBlockedHost?: boolean;
-  /** A known sponsor name (from `event_sponsors`) appears in name/hosts/description. */
+  /** A host/organizer matches a host INFERRED as blocked from past label
+   *  history (`learning.ts#deriveLearnedHostSignals`) — a statistical
+   *  guess, not a deliberate admin decision, so it must never hard-reject
+   *  on its own: a score penalty plus a review cap only (review finding,
+   *  MEDIUM item 6). Ignored when `isBlockedHost` is also true (that's
+   *  already the stronger, hard-reject signal). */
+  isLearnedBlockedHost?: boolean;
+  /** A known sponsor name (from `event_sponsors`) appears in the
+   *  host/organizer identity fields. */
   sponsorMatch?: string | null;
   /** Text to match include/exclude keywords against: name + hosts + description. */
   text: string;
@@ -44,6 +53,11 @@ const TRUSTED_HOST_POINTS = 20;
 const SPONSOR_MATCH_POINTS = 10;
 const EXCLUDE_KEYWORD_POINTS = -40;
 const BLOCKED_HOST_POINTS = -40;
+/** Softer than the explicit block's -40 (review finding, MEDIUM item 6) —
+ *  a learned block is an inference, not a deliberate admin decision, and
+ *  must never carry enough weight (combined with the review cap below) to
+ *  function as a de facto hard reject on its own. */
+const LEARNED_BLOCKED_HOST_POINTS = -25;
 
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -92,6 +106,12 @@ export function computeSignals(input: SignalInput): SignalResult {
   if (input.isBlockedHost) {
     breakdown['blocked_host'] = BLOCKED_HOST_POINTS;
     hardReject = true;
+  } else if (input.isLearnedBlockedHost) {
+    // Never hard-reject on an inference alone (review finding, MEDIUM item
+    // 6) — a penalty plus a review cap, same treatment as a possible
+    // duplicate or missing geo.
+    breakdown['learned_blocked_host'] = LEARNED_BLOCKED_HOST_POINTS;
+    capRouteAtReview = true;
   }
 
   if (input.injectionDetected) {

@@ -66,6 +66,7 @@ vi.mock('@/lib/ingest/db', () => ({
   // name list (`sponsors.ts`, which calls `getIngestSupabase()`) — empty
   // pools here, same as `ingest-pipeline.test.ts`'s db mock.
   listLabelsForFewShot: vi.fn(async () => []),
+  listLabelsForHostSignals: vi.fn(async () => []),
   getIngestSupabase: vi.fn(() => ({
     from: () => ({
       select: () => ({

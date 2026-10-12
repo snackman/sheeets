@@ -27,7 +27,7 @@ import type {
   FewShotExample,
   ThemeProfile,
 } from './types';
-import { buildEventDataContent, buildSystemPrompt, scanForInjection } from './prompt';
+import { buildSystemPrompt, buildUserContent, sanitizeFewShotExamples, scanForInjection } from './prompt';
 
 /** Env-overridable so a cheaper/newer model can be swapped in without a code change. */
 export const INGEST_MODEL = process.env.INGEST_MODEL || 'gpt-5-mini';
@@ -40,7 +40,17 @@ export const INGEST_MODEL = process.env.INGEST_MODEL || 'gpt-5-mini';
  * reasoning room up through 'low' while staying a real ceiling.
  */
 export const CLASSIFIER_MAX_TOKENS = 1200;
-export const PROMPT_VERSION = '1a-v2-openai';
+/**
+ * Bumped for Phase 2 (review finding, CRITICAL item 4): few-shot examples
+ * moved out of the system prompt into a delimited `<fewshot_examples>`
+ * JSON block in the user turn, sanitized (injection-scanned, length-capped)
+ * the same way `<event_data>` is. This changes what the model actually
+ * sees for every classification with any few-shot examples, so every
+ * candidate re-classifies rather than reusing a `content_hash` match from
+ * the old prompt shape (§5.5: "Re-classify only when ... prompt_version
+ * changes").
+ */
+export const PROMPT_VERSION = '2-v1-openai';
 
 export class ClassifierError extends Error {
   constructor(
@@ -92,8 +102,14 @@ export async function classifyEvent(opts: ClassifyOptions): Promise<ClassifyResu
   const injectionDetected =
     scanForInjection(event.name) || scanForInjection(event.descriptionText);
 
-  const system = buildSystemPrompt(profile, conference, fewShot);
-  const userContent = buildEventDataContent(event);
+  // `sanitizeFewShotExamples` may drop examples that fail the injection
+  // scan (review finding, CRITICAL item 4) — the system prompt's "there IS
+  // a fewshot block" sentence must agree with what actually ends up in the
+  // user turn, so both are derived from the SAME sanitized list rather
+  // than the raw, possibly-still-injected `fewShot` input.
+  const sanitizedFewShot = sanitizeFewShotExamples(fewShot);
+  const system = buildSystemPrompt(profile, conference, sanitizedFewShot.length > 0);
+  const userContent = buildUserContent(event, sanitizedFewShot);
 
   let completion;
   try {

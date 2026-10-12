@@ -9,15 +9,34 @@
 // candidate up by event_id. Instead it pulls the distinct sponsor names
 // already crawled for ANY of a conference's published events
 // (`scripts/crawl-sponsors.ts`) and matches those names, as plain text,
-// against a candidate's own name/hosts/organizer/description — a candidate
-// whose host or title literally names a known sponsor org for this
-// conference is a reasonable positive theme-fit signal even before any
-// link exists between the two rows.
+// against a candidate's own HOST/ORGANIZER identity fields (callers in
+// `pipeline.ts`/the queue route build that text, deliberately excluding
+// the event name and free-text description — review finding, MEDIUM item
+// 8: a sponsor being merely MENTIONED in a title/description is much
+// weaker evidence than it being the actual host/organizer, and was the
+// main source of false-positive risk).
 import { getIngestSupabase } from './db';
 
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+
+/**
+ * Crypto/web3 sponsor names that are ALSO common, generic English words or
+ * very short tickers/acronyms (review finding, MEDIUM item 8: "Add a
+ * stoplist for 'Base', 'Near', 'Open', 'AI', 'Ledger' and similar"). For
+ * these, case-insensitive whole-word matching is far too permissive — "a
+ * base camp meetup" or "an open bar" would otherwise "match" sponsors
+ * named "Base"/"Open". Matched against the host/organizer text this module
+ * does, a false hit is less likely than against full descriptions, but
+ * still possible (an organizer display name containing an ordinary word).
+ * Entries here (plus anything shorter than `MIN_UNAMBIGUOUS_SPONSOR_LENGTH`)
+ * require an EXACT-CASE match instead of case-insensitive.
+ */
+const AMBIGUOUS_SPONSOR_NAMES = new Set([
+  'base', 'near', 'open', 'ai', 'ledger', 'link', 'core', 'sol', 'ton', 'ref', 'render', 'story', 'sign',
+]);
+const MIN_UNAMBIGUOUS_SPONSOR_LENGTH = 4;
 
 export async function getSponsorNamesForConference(conference: string): Promise<string[]> {
   const supabase = getIngestSupabase();
@@ -42,13 +61,21 @@ export async function getSponsorNamesForConference(conference: string): Promise<
   return Array.from(names);
 }
 
-/** First known sponsor name that appears (case-insensitive, word-boundary,
- *  same style as `signals.ts`'s keyword matcher) in `text`, or null. */
+/**
+ * First known sponsor name that appears, word-boundary matched, in `text`
+ * (the caller's host/organizer text), or null. Case-insensitive for an
+ * ordinary, unambiguous sponsor name (same style as `signals.ts`'s keyword
+ * matcher); for a short or common-word name (the stoplist above, or
+ * anything under `MIN_UNAMBIGUOUS_SPONSOR_LENGTH` chars), the match is
+ * case-SENSITIVE instead — it must appear with the sponsor's own
+ * capitalization, not any-case (review finding, MEDIUM item 8).
+ */
 export function matchSponsorName(text: string, sponsorNames: string[]): string | null {
   for (const name of sponsorNames) {
     const trimmed = name.trim();
     if (!trimmed) continue;
-    const re = new RegExp(`(?<![A-Za-z0-9])${escapeRegExp(trimmed)}(?![A-Za-z0-9])`, 'i');
+    const ambiguous = trimmed.length < MIN_UNAMBIGUOUS_SPONSOR_LENGTH || AMBIGUOUS_SPONSOR_NAMES.has(trimmed.toLowerCase());
+    const re = new RegExp(`(?<![A-Za-z0-9])${escapeRegExp(trimmed)}(?![A-Za-z0-9])`, ambiguous ? '' : 'i');
     if (re.test(text)) return trimmed;
   }
   return null;

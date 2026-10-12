@@ -48,8 +48,16 @@ const defaultProfile = {
   max_llm_calls_per_run: 150,
   max_publish_per_run: 25,
   enabled: true,
+  auto_publish_killed_at: null as string | null,
+  auto_publish_kill_reason: null as string | null,
+  auto_publish_enabled_at: null as string | null,
 };
 const getProfileMock = vi.fn(async () => defaultProfile);
+// Phase 2 kill switch (`gate.ts#checkAutoPublishKillSwitch`, real
+// implementation — not mocked in this file, only its DB calls are): named
+// so tests can assert it's actually invoked, and control its outcome.
+const getRecentAutoPublishOutcomesMock = vi.fn(async () => [] as { status: string; event?: { dateISO?: string | null }; updated_at?: string }[]);
+const updateProfilePatchMock = vi.fn(async () => ({}));
 
 vi.mock('../ingest/db', () => ({
   getSource: vi.fn(async () => ({
@@ -109,9 +117,11 @@ vi.mock('../ingest/db', () => ({
   // which predate the learning loop and don't exercise it directly (see
   // `ingest-learning.test.ts`/`ingest-gate.test.ts` for that logic).
   listLabelsForFewShot: vi.fn(async () => []),
-  getRecentAutoPublishOutcomes: vi.fn(async () => []),
+  listLabelsForHostSignals: vi.fn(async () => []),
+  getRecentAutoPublishOutcomes: (...a: unknown[]) => getRecentAutoPublishOutcomesMock(...(a as [])),
   getPrecisionRows: vi.fn(async () => []),
   upsertProfile: vi.fn(async () => ({})),
+  updateProfilePatch: (...a: unknown[]) => updateProfilePatchMock(...(a as [])),
 }));
 
 vi.mock('../ingest/budget', () => ({
@@ -211,6 +221,8 @@ beforeEach(() => {
   fetchLumaEventMock.mockClear();
   scoreCandidateMock.mockClear();
   getProfileMock.mockReset().mockResolvedValue(defaultProfile);
+  getRecentAutoPublishOutcomesMock.mockReset().mockResolvedValue([]);
+  updateProfilePatchMock.mockClear();
 });
 
 describe('runSource: change detection (CRITICAL item 1 — ical_hash vs content_hash)', () => {
@@ -360,5 +372,75 @@ describe('runSource: auto-publish records the real sheet event id (LOW item 3)',
     // (or the sheet) would ever produce (review finding, LOW item 3).
     expect(row?.published_event_id).not.toBe('luma:evt-abc123def456');
     expect(String(row?.published_event_id)).toMatch(/^evt-/);
+  });
+});
+
+describe('runSource: kill switch wiring (review finding, HIGH item 2 / LOW item 10)', () => {
+  function publishableScoreResult() {
+    return {
+      classifier: {
+        output: { theme_score: 95, reason: 'great fit', suggested_tags: [], flags: [], is_event: true, data_quality: 'sufficient' },
+        injectionDetected: false,
+        inputTokens: 100,
+        outputTokens: 20,
+        model: 'gpt-5-mini',
+        promptVersion: '2-v1-openai',
+      },
+      signals: { breakdown: {}, total: 0, hardReject: false, capRouteAtReview: false },
+      finalScore: 95,
+      route: 'publish' as const,
+      shadowRoute: 'publish' as const,
+    };
+  }
+
+  it('sets auto_published_at (distinct from published_at only in spirit — both set together on a real auto-publish)', async () => {
+    getProfileMock.mockResolvedValue({ ...defaultProfile, auto_publish_enabled: true });
+    scoreCandidateMock.mockResolvedValueOnce(publishableScoreResult());
+
+    await runSource('src-1', { trigger: 'manual' });
+    const row = candidateStore.get('Test Conf::luma:evt-abc123def456');
+    expect(row?.status).toBe('auto_published');
+    expect(row?.auto_published_at).toBeTruthy();
+    expect(row?.auto_published_at).toBe(row?.published_at);
+  });
+
+  it('re-checks the kill switch right before the publish attempt, passing the profile\'s auto_publish_enabled_at as sinceIso (LOW item 10 / HIGH item 2)', async () => {
+    getProfileMock.mockResolvedValue({ ...defaultProfile, auto_publish_enabled: true, auto_publish_enabled_at: '2027-05-01T00:00:00.000Z' });
+    scoreCandidateMock.mockResolvedValueOnce(publishableScoreResult());
+
+    await runSource('src-1', { trigger: 'manual' });
+
+    expect(getRecentAutoPublishOutcomesMock).toHaveBeenCalledWith(
+      'Test Conf',
+      expect.objectContaining({ sinceIso: '2027-05-01T00:00:00.000Z' })
+    );
+  });
+
+  it('does NOT check the kill switch for a dry run (must never have a side effect)', async () => {
+    getProfileMock.mockResolvedValue({ ...defaultProfile, auto_publish_enabled: true });
+    scoreCandidateMock.mockResolvedValueOnce(publishableScoreResult());
+
+    await runSource('src-1', { trigger: 'manual', dryRun: true });
+    expect(getRecentAutoPublishOutcomesMock).not.toHaveBeenCalled();
+  });
+
+  it('when the kill switch fires mid-run, the candidate about to publish is queued instead, and no DB write flips auto_publish_enabled off a second time from this module (gate.ts owns that write)', async () => {
+    getProfileMock.mockResolvedValue({ ...defaultProfile, auto_publish_enabled: true });
+    // 50 bad outcomes -> checkAutoPublishKillSwitch (the REAL implementation,
+    // only its DB calls are mocked here) decides to kill.
+    getRecentAutoPublishOutcomesMock.mockResolvedValue(
+      Array.from({ length: 50 }, () => ({ status: 'unpublished', event: { dateISO: '2027-06-01' }, updated_at: '2027-06-01T00:00:00Z' }))
+    );
+    scoreCandidateMock.mockResolvedValueOnce(publishableScoreResult());
+
+    const result = await runSource('src-1', { trigger: 'manual' });
+    expect(result.status).toBe('ok');
+    expect(result.counts.published ?? 0).toBe(0);
+    expect(result.counts.queued).toBe(1);
+    const row = candidateStore.get('Test Conf::luma:evt-abc123def456');
+    expect(row?.status).toBe('queued');
+    // gate.ts's checkAutoPublishKillSwitch is what writes the DB row back
+    // to shadow mode — confirm it actually did.
+    expect(updateProfilePatchMock).toHaveBeenCalledWith('Test Conf', expect.objectContaining({ auto_publish_enabled: false }));
   });
 });

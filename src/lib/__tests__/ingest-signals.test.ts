@@ -68,6 +68,31 @@ describe('computeSignals', () => {
     expect(r2.capRouteAtReview).toBe(true);
     expect(r3.capRouteAtReview).toBe(true);
   });
+
+  describe('isLearnedBlockedHost (review finding, MEDIUM item 6 — must NEVER hard-reject on its own)', () => {
+    it('applies a softer -25 penalty and caps the route at review, without hard-rejecting', () => {
+      const r = computeSignals({ isLearnedBlockedHost: true, text: 'Some event', includeKeywords: [], excludeKeywords: [] });
+      expect(r.hardReject).toBe(false);
+      expect(r.capRouteAtReview).toBe(true);
+      expect(r.breakdown.learned_blocked_host).toBe(-25);
+      expect(r.total).toBe(-25);
+    });
+
+    it('the explicit blocked-host signal wins (and hard-rejects) when BOTH are true on the same candidate', () => {
+      const r = computeSignals({ isBlockedHost: true, isLearnedBlockedHost: true, text: 'Some event', includeKeywords: [], excludeKeywords: [] });
+      expect(r.hardReject).toBe(true);
+      expect(r.breakdown.blocked_host).toBe(-40);
+      expect(r.breakdown.learned_blocked_host).toBeUndefined(); // not double-penalized
+    });
+
+    it('routeCandidate never returns reject from a learned-only block, even at a terrible score — it\'s capped at review instead', () => {
+      const signals = computeSignals({ isLearnedBlockedHost: true, text: '', includeKeywords: [], excludeKeywords: [] });
+      const profile = { publishThreshold: 85, reviewThreshold: 40 };
+      // A high llmScore that would otherwise publish must land on review, not publish AND not reject.
+      const route = routeCandidate({ isEvent: true, llmScore: 95, dataQuality: 'sufficient', signals, profile });
+      expect(route).toBe('review');
+    });
+  });
 });
 
 describe('combineFinalScore', () => {

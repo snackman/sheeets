@@ -139,14 +139,45 @@ describe('selectFewShotExamples', () => {
     expect(examples).toHaveLength(1);
   });
 
-  it('stops adding examples once the token budget is exceeded', () => {
+  it('a tiny budget still cuts off eventually (sanity check)', () => {
     const pool: IngestLabelRow[] = [];
     for (let i = 0; i < 4; i++) {
       pool.push(label({ id: `pos-${i}`, label: 'on_theme', example: { name: 'x'.repeat(200) } }));
     }
-    // Each example costs ~50+ tokens; a tiny budget should only fit one.
     const examples = selectFewShotExamples(pool, { conference: 'Test Conf', maxTokenBudget: 60 });
     expect(examples.length).toBeLessThan(4);
+  });
+
+  it('SKIPS an example that does not fit instead of stopping — a later, smaller example still gets in (review finding, LOW item 9)', () => {
+    const pool: IngestLabelRow[] = [
+      // Ranked first (most recent) but far too large to fit the budget on its own.
+      label({ id: 'huge', label: 'on_theme', created_at: '2027-03-01T00:00:00.000Z', example: { name: 'x'.repeat(400) } }),
+      // Ranked second, small enough to fit — must NOT be cut off by the huge one ahead of it.
+      label({ id: 'small', label: 'on_theme', created_at: '2027-01-01T00:00:00.000Z', example: { name: 'small event' } }),
+    ];
+    const examples = selectFewShotExamples(pool, { conference: 'Test Conf', maxTokenBudget: 40 });
+    expect(examples.some((e) => e.summary === 'small event')).toBe(true);
+    expect(examples.some((e) => e.summary.startsWith('x'))).toBe(false); // the huge one never fit
+  });
+
+  it('INTERLEAVES positives and negatives rather than taking all positives first (review finding, LOW item 9)', () => {
+    // 4 positives (P1..P4) and 4 negatives (N1..N4), each the same length so
+    // every example costs the same number of tokens — distinct `created_at`
+    // controls rank order within each label so this is deterministic.
+    const pool: IngestLabelRow[] = [];
+    for (let i = 1; i <= 4; i++) {
+      pool.push(label({ id: `p${i}`, label: 'on_theme', created_at: `2027-01-0${i}T00:00:00.000Z`, example: { name: `P${i}` } }));
+      pool.push(label({ id: `n${i}`, label: 'off_theme', created_at: `2027-01-0${i}T00:00:00.000Z`, example: { name: `N${i}` } }));
+    }
+    // rankLabelsForFewShot ranks most-recent-first, so within each label the
+    // order is P4,P3,P2,P1 / N4,N3,N2,N1 — interleaved: P4,N4,P3,N3,P2,N2,P1,N1.
+    const oneExampleCost = estimateTokens('P4 -> on_theme (admin decision)');
+    const budgetForExactlyFour = oneExampleCost * 4;
+    const examples = selectFewShotExamples(pool, { conference: 'Test Conf', maxPerLabel: 4, maxTokenBudget: budgetForExactlyFour });
+
+    expect(examples).toHaveLength(4);
+    const summaries = examples.map((e) => e.summary);
+    expect(summaries).toEqual(['P4', 'N4', 'P3', 'N3']); // the first 4 of the interleaved sequence, not all-positives-first
   });
 
   it('returns an empty array for an empty pool', () => {
@@ -197,6 +228,19 @@ describe('deriveLearnedHostSignals', () => {
     const signals = deriveLearnedHostSignals(labels);
     expect(signals.blocked.size).toBe(0);
   });
+
+  it('attributes ONLY to the primary organizer, never a co-host (review finding, MEDIUM item 6)', () => {
+    // "Prolific Cohost" appears as a CO-HOST on every one of these
+    // approved events, but is never the organizer — must not be learned
+    // as trusted from that alone. "Real Organizer" IS the organizer every
+    // time and should be learned trusted.
+    const labels = Array.from({ length: LEARNED_HOST_MIN_DECISIONS }, (_, i) =>
+      label({ id: `l${i}`, label: 'on_theme', example: { organizer: 'Real Organizer', hosts: ['Prolific Cohost'] } })
+    );
+    const signals = deriveLearnedHostSignals(labels);
+    expect(signals.trusted.has('real organizer')).toBe(true);
+    expect(signals.trusted.has('prolific cohost')).toBe(false);
+  });
 });
 
 describe('learnedHostSignalMatches', () => {
@@ -211,25 +255,40 @@ describe('learnedHostSignalMatches', () => {
   });
 });
 
-describe('loadLearningContext', () => {
+describe('loadLearningContext (review finding, MEDIUM item 6: two SEPARATE pools)', () => {
   beforeEach(() => {
     vi.resetModules();
   });
 
-  it('fetches one label pool and derives both few-shot and host signals from it', async () => {
-    const pool = [
-      label({ id: 'a', conference: 'Test Conf', label: 'on_theme', example: { name: 'A', organizer: 'Trusted Org' } }),
-      label({ id: 'b', conference: 'Test Conf', label: 'on_theme', example: { name: 'B', organizer: 'Trusted Org' } }),
-      label({ id: 'c', conference: 'Test Conf', label: 'on_theme', example: { name: 'C', organizer: 'Trusted Org' } }),
+  it('fetches few-shot and host-signal pools SEPARATELY, from the right functions, and derives each from its own pool', async () => {
+    const fewShotPool = [
+      label({ id: 'a', conference: 'Test Conf', label: 'on_theme', example: { name: 'A', organizer: 'FewShot Org' } }),
+      label({ id: 'b', conference: 'Test Conf', label: 'on_theme', example: { name: 'B', organizer: 'FewShot Org' } }),
+      label({ id: 'c', conference: 'Test Conf', label: 'on_theme', example: { name: 'C', organizer: 'FewShot Org' } }),
     ];
-    const listLabelsForFewShotMock = vi.fn(async () => pool);
-    vi.doMock('../ingest/db', () => ({ listLabelsForFewShot: listLabelsForFewShotMock }));
+    // A label pool deliberately DIFFERENT from the few-shot pool, to prove
+    // the two aren't just the same fetch reused — e.g. this includes a
+    // label that would have been excluded from few-shot (but
+    // `listLabelsForHostSignals` itself is responsible for not filtering
+    // on that; this test only needs to show the two results differ).
+    const hostSignalPool = Array.from({ length: LEARNED_HOST_MIN_DECISIONS }, (_, i) =>
+      label({ id: `h${i}`, conference: 'Test Conf', label: 'on_theme', example: { organizer: 'HostSignal Org' } })
+    );
+    const listLabelsForFewShotMock = vi.fn(async () => fewShotPool);
+    const listLabelsForHostSignalsMock = vi.fn(async () => hostSignalPool);
+    vi.doMock('../ingest/db', () => ({
+      listLabelsForFewShot: listLabelsForFewShotMock,
+      listLabelsForHostSignals: listLabelsForHostSignalsMock,
+    }));
 
     const { loadLearningContext } = await import('../ingest/learning');
     const ctx = await loadLearningContext({ conference: 'Test Conf', themeKey: 'crypto' });
 
-    expect(listLabelsForFewShotMock).toHaveBeenCalledTimes(1);
+    expect(listLabelsForFewShotMock).toHaveBeenCalledWith('crypto');
+    expect(listLabelsForHostSignalsMock).toHaveBeenCalledWith('Test Conf');
     expect(ctx.fewShot.length).toBe(3);
-    expect(ctx.learnedHosts.trusted.has('trusted org')).toBe(true);
+    // Learned hosts come from the HOST-SIGNAL pool, not the few-shot pool.
+    expect(ctx.learnedHosts.trusted.has('hostsignal org')).toBe(true);
+    expect(ctx.learnedHosts.trusted.has('fewshot org')).toBe(false);
   });
 });

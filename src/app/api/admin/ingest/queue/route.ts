@@ -337,12 +337,10 @@ export async function POST(req: NextRequest) {
             loadLearningContext({ conference: candidate.conference, themeKey: profile.theme_key, excludeCandidateId: id }),
             getSponsorNamesForConference(candidate.conference),
           ]);
-          const sponsorText = [
-            candidate.event.name,
-            candidate.event.organizer,
-            ...candidate.event.hosts.map((h) => h.name),
-            candidate.event.descriptionText,
-          ].join(' ');
+          // Host/organizer identity fields only — not the event name or
+          // description (review finding, MEDIUM item 8), same scoping as
+          // the pipeline's own sponsor match.
+          const sponsorText = [candidate.event.organizer, ...candidate.event.hosts.map((h) => h.name)].join(' ');
           const sponsorMatch = matchSponsorName(sponsorText, sponsorNames);
 
           let scoreResult;

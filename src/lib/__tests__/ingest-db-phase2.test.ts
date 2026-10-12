@@ -13,7 +13,7 @@ function makeFakeSupabase(resolversByTable: Record<string, () => { data: unknown
   function from(table: string) {
     callsByTable[table] = callsByTable[table] ?? [];
     const chain: Record<string, unknown> = {};
-    const methods = ['select', 'eq', 'in', 'not', 'order', 'limit', 'is', 'maybeSingle', 'single'];
+    const methods = ['select', 'eq', 'in', 'not', 'gte', 'order', 'limit', 'is', 'maybeSingle', 'single', 'update', 'upsert'];
     for (const m of methods) {
       chain[m] = (...args: unknown[]) => {
         callsByTable[table].push({ method: m, args });
@@ -64,6 +64,46 @@ describe('listLabelsForFewShot', () => {
   });
 });
 
+describe('listLabelsForHostSignals (review finding, MEDIUM item 6)', () => {
+  it('filters by conference + label_kind=theme, but NOT excluded_from_fewshot', async () => {
+    const { createClient } = await import('@supabase/supabase-js');
+    const { client, callsByTable } = makeFakeSupabase({
+      ingest_labels: () => ({ data: [{ id: 'l1' }], error: null }),
+    });
+    (createClient as ReturnType<typeof vi.fn>).mockReturnValue(client);
+
+    const { listLabelsForHostSignals } = await import('../ingest/db');
+    const result = await listLabelsForHostSignals('Test Conf');
+
+    expect(result).toEqual([{ id: 'l1' }]);
+    const eqCalls = callsByTable.ingest_labels.filter((c) => c.method === 'eq');
+    expect(eqCalls).toContainEqual({ method: 'eq', args: ['conference', 'Test Conf'] });
+    expect(eqCalls).toContainEqual({ method: 'eq', args: ['label_kind', 'theme'] });
+    // The crucial difference from `listLabelsForFewShot`: no
+    // excluded_from_fewshot filter at all.
+    expect(eqCalls.some((c) => c.args[0] === 'excluded_from_fewshot')).toBe(false);
+  });
+});
+
+describe('updateProfilePatch (review finding, MEDIUM item 7)', () => {
+  it('sends ONLY the given patch fields via a conditional UPDATE, never a full-row upsert', async () => {
+    const { createClient } = await import('@supabase/supabase-js');
+    const { client, callsByTable } = makeFakeSupabase({
+      ingest_profiles: () => ({ data: { conference: 'Test Conf', auto_publish_enabled: false }, error: null }),
+    });
+    (createClient as ReturnType<typeof vi.fn>).mockReturnValue(client);
+
+    const { updateProfilePatch } = await import('../ingest/db');
+    await updateProfilePatch('Test Conf', { radius_km: 50 });
+
+    const calls = callsByTable.ingest_profiles;
+    const updateCall = calls.find((c) => c.method === 'update');
+    expect(updateCall?.args[0]).toEqual({ radius_km: 50 }); // ONLY the patch, not a full row
+    expect(calls.some((c) => c.method === 'eq' && c.args[0] === 'conference' && c.args[1] === 'Test Conf')).toBe(true);
+    expect(calls.some((c) => c.method === 'upsert')).toBe(false);
+  });
+});
+
 describe('getPrecisionRows', () => {
   it('selects all ingest_precision rows for the conference', async () => {
     const { createClient } = await import('@supabase/supabase-js');
@@ -80,8 +120,8 @@ describe('getPrecisionRows', () => {
   });
 });
 
-describe('getRecentAutoPublishOutcomes', () => {
-  it('filters to auto_published/unpublished/unpublished_external, ordered by published_at desc', async () => {
+describe('getRecentAutoPublishOutcomes (review finding, HIGH item 2)', () => {
+  it('filters to auto_published_at IS NOT NULL (real auto-publishes only) and status in auto_published/unpublished/unpublished_external, ordered by auto_published_at desc', async () => {
     const { createClient } = await import('@supabase/supabase-js');
     const { client, callsByTable } = makeFakeSupabase({
       ingest_candidates: () => ({ data: [{ status: 'auto_published' }], error: null }),
@@ -89,13 +129,27 @@ describe('getRecentAutoPublishOutcomes', () => {
     (createClient as ReturnType<typeof vi.fn>).mockReturnValue(client);
 
     const { getRecentAutoPublishOutcomes } = await import('../ingest/db');
-    const result = await getRecentAutoPublishOutcomes('Test Conf', 25);
+    const result = await getRecentAutoPublishOutcomes('Test Conf', { limit: 25 });
 
     expect(result).toEqual([{ status: 'auto_published' }]);
     const calls = callsByTable.ingest_candidates;
+    expect(calls).toContainEqual({ method: 'not', args: ['auto_published_at', 'is', null] });
     expect(calls).toContainEqual({ method: 'in', args: ['status', ['auto_published', 'unpublished', 'unpublished_external']] });
-    expect(calls).toContainEqual({ method: 'order', args: ['published_at', { ascending: false }] });
+    expect(calls).toContainEqual({ method: 'order', args: ['auto_published_at', { ascending: false }] });
     expect(calls).toContainEqual({ method: 'limit', args: [25] });
+    expect(calls.some((c) => c.method === 'gte')).toBe(false); // no sinceIso given -> no gte filter
+  });
+
+  it('adds a gte(auto_published_at, sinceIso) filter when sinceIso is given, so a re-enable only sees outcomes from the new window', async () => {
+    const { createClient } = await import('@supabase/supabase-js');
+    const { client, callsByTable } = makeFakeSupabase({ ingest_candidates: () => ({ data: [], error: null }) });
+    (createClient as ReturnType<typeof vi.fn>).mockReturnValue(client);
+
+    const { getRecentAutoPublishOutcomes } = await import('../ingest/db');
+    await getRecentAutoPublishOutcomes('Test Conf', { limit: 50, sinceIso: '2027-06-01T00:00:00.000Z' });
+
+    const calls = callsByTable.ingest_candidates;
+    expect(calls).toContainEqual({ method: 'gte', args: ['auto_published_at', '2027-06-01T00:00:00.000Z'] });
   });
 });
 
