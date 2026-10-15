@@ -341,7 +341,7 @@ export default function SharedItineraryPage() {
           ))}
 
           <div className="pt-3 pb-2 text-center">
-            <span className="text-[10px] text-[var(--theme-text-faint)]">sheeets.xyz — side event guide</span>
+            <span className="text-[10px] text-[var(--theme-text-faint)]">plan.wtf — side event guide</span>
           </div>
         </div>
       )}
