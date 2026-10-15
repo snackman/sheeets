@@ -5,6 +5,12 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import type { ETHDenverEvent, ReactionEmoji, NativeAd, FriendInfo } from '@/lib/types';
 import { formatDateLabel } from '@/lib/utils';
 import { sortByStartTime } from '@/lib/time-parse';
+import {
+  selectStickyDateHeader,
+  stickyDateHeaderEquals,
+  type DateHeaderOffset,
+  type StickyDateHeaderValue,
+} from '@/lib/sticky-date-header';
 import { EventCard } from './EventCard';
 import NativeAdCard from './NativeAdCard';
 import { imageCache, FlyerLightbox } from './OGImage';
@@ -278,8 +284,17 @@ export const ListView = memo(function ListView({
   }, [canNext, eventIndices, lightboxPosInEvents, hasImageAtPos]);
 
   /* ---- sticky date header overlay ---- */
-  const [stickyLabel, setStickyLabel] = useState<string | null>(null);
-  const [stickyCount, setStickyCount] = useState<number>(0);
+  // Indices of date-header items within flatItems (recomputed only when
+  // flatItems identity changes, not on every scroll event).
+  const dateHeaderIndices = useMemo(
+    () => flatItems.reduce<number[]>((acc, item, i) => {
+      if (item.kind === 'date-header') acc.push(i);
+      return acc;
+    }, []),
+    [flatItems],
+  );
+
+  const [stickyHeader, setStickyHeader] = useState<StickyDateHeaderValue | null>(null);
 
   const updateStickyHeader = useCallback(() => {
     const scrollEl = containerRef.current;
@@ -287,60 +302,20 @@ export const ListView = memo(function ListView({
 
     const scrollTop = scrollEl.scrollTop;
 
-    // Don't show sticky overlay when first in-flow date header is still visible
-    const virtualItems = virtualizer.getVirtualItems();
-    if (flatItems[0]?.kind === 'date-header') {
-      const firstVItem = virtualItems.find(v => v.index === 0);
-      if (firstVItem && scrollTop < firstVItem.start + firstVItem.size) {
-        setStickyLabel(null);
-        setStickyCount(0);
-        return;
-      }
-    } else if (scrollTop <= 10) {
-      setStickyLabel(null);
-      setStickyCount(0);
-      return;
-    }
+    const headers: DateHeaderOffset[] = dateHeaderIndices.map((index) => {
+      const item = flatItems[index];
+      const offset = virtualizer.getOffsetForIndex(index, 'start');
+      return {
+        label: item.kind === 'date-header' ? item.label : '',
+        eventCount: item.kind === 'date-header' ? item.eventCount : 0,
+        start: offset ? offset[0] : 0,
+      };
+    });
 
-    // Offset for the wrapper's padding-top (32px = py-4 on the outer container)
-    const wrapperOffsetTop = 0;
+    const next = selectStickyDateHeader(headers, scrollTop);
 
-    // Find the last date-header that has scrolled past the top
-    let lastHeader: { label: string; eventCount: number } | null = null;
-    for (const vItem of virtualItems) {
-      const item = flatItems[vItem.index];
-      if (item.kind === 'date-header') {
-        // vItem.start is relative to the virtual list top
-        if (vItem.start <= scrollTop + wrapperOffsetTop) {
-          lastHeader = { label: item.label, eventCount: item.eventCount };
-        }
-      }
-    }
-
-    // If we have no virtual items in range, check non-virtual items:
-    // fallback — find the last date-header before scroll position
-    if (!lastHeader) {
-      for (let i = 0; i < flatItems.length; i++) {
-        const item = flatItems[i];
-        if (item.kind === 'date-header') {
-          const offset = virtualizer.getOffsetForIndex(i, 'start');
-          if (offset !== undefined && offset[0] <= scrollTop + wrapperOffsetTop) {
-            lastHeader = { label: item.label, eventCount: item.eventCount };
-          }
-        }
-      }
-    }
-
-    if (lastHeader) {
-      setStickyLabel(lastHeader.label);
-      setStickyCount(lastHeader.eventCount);
-    } else if (flatItems.length > 0 && flatItems[0].kind === 'date-header') {
-      // default to first header
-      const first = flatItems[0];
-      setStickyLabel(first.label);
-      setStickyCount(first.eventCount);
-    }
-  }, [containerRef, flatItems, virtualizer]);
+    setStickyHeader((prev) => (stickyDateHeaderEquals(prev, next) ? prev : next));
+  }, [containerRef, dateHeaderIndices, flatItems, virtualizer]);
 
   // Attach scroll listener for sticky header
   useEffect(() => {
@@ -385,19 +360,23 @@ export const ListView = memo(function ListView({
 
   return (
     <div className="max-w-3xl mx-auto px-2 sm:px-4 pb-8 relative">
-      {/* Overlay sticky date header */}
-      {stickyLabel && (
-        <div className="sticky top-0 z-20 bg-[var(--theme-date-sep-bg)] py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-[var(--theme-date-sep-border)] rounded-lg">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-[var(--theme-date-sep-text)]">
-              {stickyLabel}
-            </h2>
-            <span className="text-xs text-[var(--theme-date-sep-muted)] font-medium">
-              {stickyCount} event{stickyCount !== 1 ? 's' : ''}
-            </span>
+      {/* Overlay sticky date header. The sticky wrapper itself always renders
+          at zero height so toggling the header inside it never shifts list
+          layout (that shift was the root cause of the scroll-to-top flash). */}
+      <div className="sticky top-0 z-20 h-0">
+        {stickyHeader && (
+          <div className="absolute top-0 left-0 w-full bg-[var(--theme-date-sep-bg)] py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-[var(--theme-date-sep-border)] rounded-lg">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-[var(--theme-date-sep-text)]">
+                {stickyHeader.label}
+              </h2>
+              <span className="text-xs text-[var(--theme-date-sep-muted)] font-medium">
+                {stickyHeader.eventCount} event{stickyHeader.eventCount !== 1 ? 's' : ''}
+              </span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Virtual list container */}
       <div
