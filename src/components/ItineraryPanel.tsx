@@ -4,13 +4,15 @@ import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { X, AlertTriangle, Trash2, CalendarX, Share2, ExternalLink, GripVertical, Eye, EyeOff } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
-import { VIBE_COLORS } from '@/lib/tags';
-import { formatDateLabel, isSafeHttpUrl } from '@/lib/utils';
-import { sortByStartTime, detectConflicts } from '@/lib/time-parse';
+import { formatDateLabel } from '@/lib/utils';
+import { createPrioritySort, parseTimeToMinutes, detectConflicts } from '@/lib/time-parse';
 import { useDragReorder } from '@/hooks/useDragReorder';
 import { useProfile } from '@/hooks/useProfile';
 import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryReorder } from '@/lib/analytics';
 import { ShareCardModal } from '@/components/ShareCardModal';
+import { EventCard } from '@/components/EventCard';
+import { useConferenceTabs } from '@/hooks/useConferenceTabs';
+import { getTabConfig } from '@/lib/conferences';
 
 interface ItineraryPanelProps {
   isOpen: boolean;
@@ -94,15 +96,18 @@ export function ItineraryPanel({
       groupMap.get(key)!.push(event);
     }
 
+    // Sort by time, but let the user's saved drag order win among overlapping
+    // events — otherwise re-sorting on every render would undo any reordering.
+    const prioritySort = createPrioritySort([...itinerary]);
     return Array.from(groupMap.entries())
       .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
       .map(([dateISO, groupEvents]) => ({
         dateISO,
         label:
           dateISO === 'unknown' ? 'Date TBD' : formatDateLabel(dateISO),
-        events: groupEvents.sort(sortByStartTime),
+        events: groupEvents.sort(prioritySort),
       }));
-  }, [itineraryEvents]);
+  }, [itineraryEvents, itinerary]);
 
   const handleClear = () => {
     trackItineraryClear();
@@ -130,6 +135,25 @@ export function ItineraryPanel({
     [onReorder, itinerary, flatEventIds]
   );
 
+  // Event lookup for the drag-clamp: dragging an event can't cross one it
+  // doesn't overlap with (see useDragReorder's clampInsertIndex).
+  const itineraryEventMap = useMemo(
+    () => new Map(itineraryEvents.map((e) => [e.id, e])),
+    [itineraryEvents]
+  );
+  const getEventTime = useCallback(
+    (id: string) => {
+      const ev = itineraryEventMap.get(id);
+      if (!ev) return null;
+      return {
+        dateISO: ev.dateISO,
+        startMinutes: parseTimeToMinutes(ev.startTime),
+        endMinutes: parseTimeToMinutes(ev.endTime),
+      };
+    },
+    [itineraryEventMap]
+  );
+
   const {
     setOrderedIds,
     registerItemRef,
@@ -137,7 +161,7 @@ export function ItineraryPanel({
     getItemProps,
     getDropIndicator,
     dragId,
-  } = useDragReorder({ onReorder: handleReorder });
+  } = useDragReorder({ onReorder: handleReorder, getEventTime });
 
   // Keep ordered IDs in sync
   useEffect(() => {
@@ -145,6 +169,12 @@ export function ItineraryPanel({
   }, [flatEventIds, setOrderedIds]);
 
   const canDrag = !!onReorder;
+
+  // Slug for the currently selected conference, so "open full page" carries it over.
+  const { tabs } = useConferenceTabs();
+  const itineraryHref = selectedConference
+    ? `/itinerary?conf=${getTabConfig(selectedConference, tabs).slug}`
+    : '/itinerary';
 
   return (
     <>
@@ -175,7 +205,7 @@ export function ItineraryPanel({
             {itineraryEvents.length > 0 && (
               <>
                 <Link
-                  href="/itinerary"
+                  href={itineraryHref}
                   className="p-1.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent-link)] active:text-[var(--theme-accent-link)] transition-colors"
                   aria-label="Open full page"
                   title="Open full page"
@@ -241,7 +271,7 @@ export function ItineraryPanel({
                 {/* Branding header (visible in PNG) */}
                 <div className="pt-3 pb-1 px-1 flex items-center gap-2">
                   <span className="text-base">📅</span>
-                  <span className="text-sm font-bold text-[var(--theme-text-primary)]">sheeets.xyz</span>
+                  <span className="text-sm font-bold text-[var(--theme-text-primary)]">plan.wtf</span>
                   <span className="text-xs text-[var(--theme-text-muted)]">— My Itinerary</span>
                 </div>
 
@@ -272,11 +302,6 @@ export function ItineraryPanel({
                     <div className="space-y-2">
                       {group.events.map((event) => {
                         const hasConflict = conflicts.has(event.id);
-                        const vibeColor =
-                          VIBE_COLORS[event.vibe] || VIBE_COLORS['default'];
-                        const timeDisplay = event.isAllDay
-                          ? 'All Day'
-                          : `${event.startTime}${event.endTime ? ` - ${event.endTime}` : ''}`;
                         const dropIndicator = getDropIndicator(event.id);
                         const isBeingDragged = dragId === event.id;
 
@@ -292,98 +317,54 @@ export function ItineraryPanel({
                               <div className="absolute -top-1.5 left-0 right-0 h-0.5 bg-[var(--theme-accent)] rounded-full z-10" />
                             )}
 
-                            <div
-                              className={`bg-[var(--theme-bg-secondary)] rounded-lg p-3 border transition-opacity ${
-                                hasConflict
-                                  ? 'border-[var(--theme-accent)]/40'
-                                  : 'border-[var(--theme-border-primary)]'
-                              } ${isBeingDragged ? 'opacity-40' : 'opacity-100'}`}
-                            >
-                              {/* Conflict warning */}
-                              {hasConflict && (
-                                <div className="flex items-center gap-1.5 mb-2 text-[var(--theme-accent-link)]">
-                                  <AlertTriangle className="w-3 h-3" />
-                                  <span className="text-[10px] font-medium uppercase tracking-wide">
-                                    Schedule conflict
-                                  </span>
+                            {/* Conflict warning */}
+                            {hasConflict && (
+                              <div className="flex items-center gap-1.5 mb-1 px-1 text-[var(--theme-accent-link)]">
+                                <AlertTriangle className="w-3 h-3" />
+                                <span className="text-[10px] font-medium uppercase tracking-wide">
+                                  Schedule conflict
+                                </span>
+                              </div>
+                            )}
+
+                            <div className={`flex items-stretch gap-1 transition-opacity ${isBeingDragged ? 'opacity-40' : 'opacity-100'}`}>
+                              {canDrag && (
+                                <div
+                                  data-export-hide
+                                  {...getDragHandleProps(event.id)}
+                                  className="shrink-0 flex items-center text-[var(--theme-text-faint)] hover:text-[var(--theme-text-secondary)] active:text-[var(--theme-text-secondary)] cursor-grab active:cursor-grabbing touch-none select-none"
+                                  aria-label="Drag to reorder"
+                                  title="Drag to reorder"
+                                >
+                                  <GripVertical className="w-4 h-4" />
                                 </div>
                               )}
 
-                              {/* Top row: drag handle, name, link + star */}
-                              <div className="flex items-start gap-2">
-                                {canDrag && (
-                                  <div
-                                    data-export-hide
-                                    {...getDragHandleProps(event.id)}
-                                    className="shrink-0 pt-0.5 text-[var(--theme-text-faint)] hover:text-[var(--theme-text-secondary)] active:text-[var(--theme-text-secondary)] cursor-grab active:cursor-grabbing touch-none select-none"
-                                    aria-label="Drag to reorder"
-                                    title="Drag to reorder"
-                                  >
-                                    <GripVertical className="w-4 h-4" />
-                                  </div>
-                                )}
-                                <h4 className="flex-1 text-sm font-semibold text-[var(--theme-text-primary)] leading-tight min-w-0 truncate">
-                                  {event.name}
-                                </h4>
-                                <div className="flex items-center gap-0.5 shrink-0" data-export-hide>
-                                  {isSafeHttpUrl(event.link) && (
-                                    <a
-                                      href={event.link}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-accent-link)] active:text-[var(--theme-accent-link)] transition-colors"
-                                      aria-label="Open event link"
-                                      title="Open event link"
-                                    >
-                                      <ExternalLink className="w-3.5 h-3.5" />
-                                    </a>
-                                  )}
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onToggleHidden(event.id);
-                                    }}
-                                    className={`p-1 transition-colors cursor-pointer ${
-                                      hiddenEvents.has(event.id)
-                                        ? 'text-[var(--theme-text-muted)]'
-                                        : 'text-[var(--theme-text-faint)] hover:text-[var(--theme-text-muted)]'
-                                    }`}
-                                    title={hiddenEvents.has(event.id) ? 'Hidden from friends (tap to show)' : 'Hide from friends'}
-                                  >
-                                    {hiddenEvents.has(event.id) ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                                  </button>
-                                  <button
-                                    onClick={() => onItineraryToggle(event.id)}
-                                    className="p-1 text-[var(--theme-accent-link)] hover:text-[var(--theme-accent-link)] active:text-[var(--theme-accent-link)] transition-colors cursor-pointer"
-                                    aria-label="Remove from itinerary"
-                                    title="Remove from itinerary"
-                                  >
-                                    <X className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
+                              <div className="flex-1 min-w-0">
+                                <EventCard
+                                  event={event}
+                                  isInItinerary
+                                  onItineraryToggle={onItineraryToggle}
+                                  conference={selectedConference}
+                                  suppressImpressionTracking
+                                />
                               </div>
 
-                              {/* Time */}
-                              <p className={`text-[var(--theme-text-secondary)] text-xs mt-1 ${canDrag ? 'ml-6' : ''}`}>
-                                {timeDisplay}
-                              </p>
-
-                              {/* Badges */}
-                              <div className={`flex items-center gap-1.5 mt-1.5 ${canDrag ? 'ml-6' : ''}`}>
-                                {event.vibe && (
-                                  <span
-                                    className="px-1.5 py-0.5 rounded text-[10px] font-semibold text-[var(--theme-text-primary)]"
-                                    style={{ backgroundColor: vibeColor }}
-                                  >
-                                    {event.vibe}
-                                  </span>
-                                )}
-                                {event.isFree && (
-                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/20 text-emerald-400">
-                                    FREE
-                                  </span>
-                                )}
-                              </div>
+                              <button
+                                data-export-hide
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onToggleHidden(event.id);
+                                }}
+                                className={`shrink-0 self-start mt-4 p-1 transition-colors cursor-pointer ${
+                                  hiddenEvents.has(event.id)
+                                    ? 'text-[var(--theme-text-muted)]'
+                                    : 'text-[var(--theme-text-faint)] hover:text-[var(--theme-text-muted)]'
+                                }`}
+                                title={hiddenEvents.has(event.id) ? 'Hidden from friends (tap to show)' : 'Hide from friends'}
+                              >
+                                {hiddenEvents.has(event.id) ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                              </button>
                             </div>
 
                             {/* Drop indicator - below */}
@@ -399,7 +380,7 @@ export function ItineraryPanel({
 
                 {/* Footer in PNG */}
                 <div className="pt-3 pb-2 text-center">
-                  <span className="text-[10px] text-[var(--theme-text-faint)]">sheeets.xyz — side event guide</span>
+                  <span className="text-[10px] text-[var(--theme-text-faint)]">plan.wtf — side event guide</span>
                 </div>
               </div>
 

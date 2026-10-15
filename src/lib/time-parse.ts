@@ -25,6 +25,51 @@ export function sortByStartTime(a: ETHDenverEvent, b: ETHDenverEvent): number {
   return (parseTimeToMinutes(a.startTime) ?? 0) - (parseTimeToMinutes(b.startTime) ?? 0);
 }
 
+/** Do two events' time ranges overlap? All-day events never overlap (same convention as detectConflicts). */
+export function eventsOverlap(a: ETHDenverEvent, b: ETHDenverEvent): boolean {
+  if (a.isAllDay || b.isAllDay) return false;
+
+  const aStart = parseTimeToMinutes(a.startTime);
+  const bStart = parseTimeToMinutes(b.startTime);
+  if (aStart === null || bStart === null) return false;
+
+  const aEnd = parseTimeToMinutes(a.endTime) ?? aStart;
+  const bEnd = parseTimeToMinutes(b.endTime) ?? bStart;
+
+  return aStart < bEnd && bStart < aEnd;
+}
+
+/**
+ * Build a comparator that sorts events by start time, only deferring to the
+ * user's saved order when two events are "tied" in time order — i.e. they
+ * start at the same time, or their time ranges overlap. Events that don't
+ * overlap always stay in time order, no matter what the saved order says.
+ *
+ * This is what makes drag-to-reorder "stick": without it, re-sorting a day's
+ * events by start time on every render (plain `sortByStartTime`) discards
+ * whatever priority the user set by dragging. With it, a drag only ever
+ * changes the relative priority among events that overlap; everything else
+ * keeps falling back to chronological order.
+ *
+ * `savedOrder` is the full ordered list of event IDs as last saved (e.g.
+ * `[...itinerary]`). IDs missing from it (or when both IDs are missing) fall
+ * back to time order, which — since Array#sort is stable — preserves the
+ * events' existing relative order for exact time ties.
+ */
+export function createPrioritySort(savedOrder: string[]) {
+  const priority = new Map(savedOrder.map((id, index) => [id, index]));
+
+  return function sortByPriority(a: ETHDenverEvent, b: ETHDenverEvent): number {
+    const byTime = sortByStartTime(a, b);
+    if (byTime === 0 || eventsOverlap(a, b)) {
+      const pa = priority.get(a.id);
+      const pb = priority.get(b.id);
+      if (pa !== undefined && pb !== undefined) return pa - pb;
+    }
+    return byTime;
+  };
+}
+
 /**
  * Detect events that have time conflicts (overlapping times on the same day).
  * Returns a Set of conflicting event IDs.

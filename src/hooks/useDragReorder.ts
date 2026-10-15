@@ -2,9 +2,66 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 
+export interface EventTime {
+  dateISO: string;
+  startMinutes: number | null;
+  endMinutes: number | null;
+}
+
 interface UseDragReorderOptions {
   /** Called with the new ordered array when a drop completes */
   onReorder: (orderedIds: string[]) => void;
+  /**
+   * Optional: return time info for an event ID. When provided, drops are
+   * clamped so an event can't be dragged past one it doesn't overlap with —
+   * i.e. it can only move within the range of events whose times overlap it.
+   */
+  getEventTime?: (id: string) => EventTime | null;
+}
+
+/** Does event A end strictly before event B starts (different day, or same day and earlier)? */
+export function endsBefore(a: EventTime, b: EventTime): boolean {
+  if (a.dateISO < b.dateISO) return true;
+  if (a.dateISO > b.dateISO) return false;
+  if (a.endMinutes == null || b.startMinutes == null) return false;
+  return a.endMinutes <= b.startMinutes;
+}
+
+/**
+ * Clamp an insertion index so the source event can't be placed on the far
+ * side of an event it doesn't overlap with. The source is still free to move
+ * anywhere among events whose times overlap it.
+ */
+export function clampInsertIndex(
+  ids: string[],
+  sourceId: string,
+  insertIndex: number,
+  getEventTime: (id: string) => EventTime | null
+): number {
+  const sourceTime = getEventTime(sourceId);
+  if (!sourceTime) return insertIndex;
+
+  let clamped = insertIndex;
+
+  // Don't allow placing below (after) an event that starts after the source ends.
+  for (let i = 0; i < ids.length; i++) {
+    if (ids[i] === sourceId) continue;
+    const t = getEventTime(ids[i]);
+    if (t && endsBefore(sourceTime, t) && i < clamped) {
+      clamped = Math.min(clamped, i);
+    }
+  }
+
+  // Don't allow placing above (before) an event that ends before the source starts.
+  for (let i = ids.length - 1; i >= 0; i--) {
+    if (ids[i] === sourceId) continue;
+    const t = getEventTime(ids[i]);
+    if (t && endsBefore(t, sourceTime) && i >= clamped) {
+      clamped = Math.max(clamped, i + 1);
+    }
+  }
+
+  return clamped;
 }
 
 interface DragState {
@@ -31,7 +88,7 @@ interface TouchDragState {
   position: 'above' | 'below';
 }
 
-export function useDragReorder({ onReorder }: UseDragReorderOptions) {
+export function useDragReorder({ onReorder, getEventTime }: UseDragReorderOptions) {
   const [dragState, setDragState] = useState<DragState>({
     dragId: null,
     overId: null,
@@ -53,6 +110,10 @@ export function useDragReorder({ onReorder }: UseDragReorderOptions) {
   useEffect(() => {
     onReorderRef.current = onReorder;
   }, [onReorder]);
+  const getEventTimeRef = useRef(getEventTime);
+  useEffect(() => {
+    getEventTimeRef.current = getEventTime;
+  }, [getEventTime]);
 
   /** Keep the ordered IDs in sync so drag handlers can access them */
   const setOrderedIds = useCallback((ids: string[]) => {
@@ -73,10 +134,13 @@ export function useDragReorder({ onReorder }: UseDragReorderOptions) {
   const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', id);
-    // Set a small drag image offset
+    // Use the full card (the registered item element) as the drag image,
+    // instead of just the tiny grip handle this listener is attached to.
     if (e.dataTransfer.setDragImage) {
-      const target = e.currentTarget as HTMLElement;
-      e.dataTransfer.setDragImage(target, 20, 20);
+      const itemEl = itemRefs.current.get(id);
+      if (itemEl) {
+        e.dataTransfer.setDragImage(itemEl, 20, 20);
+      }
     }
     setDragState({ dragId: id, overId: null, position: 'below' });
   }, []);
@@ -136,6 +200,10 @@ export function useDragReorder({ onReorder }: UseDragReorderOptions) {
 
     if (position === 'below') {
       targetIndex += 1;
+    }
+
+    if (getEventTimeRef.current) {
+      targetIndex = clampInsertIndex(ids, sourceId, targetIndex, getEventTimeRef.current);
     }
 
     ids.splice(targetIndex, 0, sourceId);
@@ -279,6 +347,9 @@ export function useDragReorder({ onReorder }: UseDragReorderOptions) {
         if (targetIndex !== -1) {
           if (position === 'below') {
             targetIndex += 1;
+          }
+          if (getEventTimeRef.current) {
+            targetIndex = clampInsertIndex(ids, sourceId, targetIndex, getEventTimeRef.current);
           }
           ids.splice(targetIndex, 0, sourceId);
           onReorderRef.current(ids);

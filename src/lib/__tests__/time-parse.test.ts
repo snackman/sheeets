@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseTimeToMinutes, sortByStartTime, detectConflicts } from '../time-parse';
+import { parseTimeToMinutes, sortByStartTime, detectConflicts, eventsOverlap, createPrioritySort } from '../time-parse';
 import type { ETHDenverEvent } from '../types';
 import { sampleEvents } from './fixtures/sample-events';
 
@@ -128,6 +128,60 @@ describe('sortByStartTime', () => {
     expect(sorted[0].name).toBe('A'); // all-day first
     expect(sorted[1].name).toBe('B'); // 9am
     expect(sorted[2].name).toBe('C'); // 5pm
+  });
+});
+
+describe('eventsOverlap', () => {
+  it('returns true for events with overlapping time ranges', () => {
+    const a: ETHDenverEvent = { ...sampleEvents[0], id: 'a', startTime: '10:00a', endTime: '11:00a', isAllDay: false };
+    const b: ETHDenverEvent = { ...sampleEvents[0], id: 'b', startTime: '10:30a', endTime: '11:30a', isAllDay: false };
+    expect(eventsOverlap(a, b)).toBe(true);
+  });
+
+  it('returns false for events that do not overlap', () => {
+    const a: ETHDenverEvent = { ...sampleEvents[0], id: 'a', startTime: '9:00a', endTime: '9:30a', isAllDay: false };
+    const b: ETHDenverEvent = { ...sampleEvents[0], id: 'b', startTime: '11:00a', endTime: '11:30a', isAllDay: false };
+    expect(eventsOverlap(a, b)).toBe(false);
+  });
+
+  it('returns false when either event is all-day', () => {
+    const a: ETHDenverEvent = { ...sampleEvents[0], id: 'a', startTime: 'All Day', isAllDay: true };
+    const b: ETHDenverEvent = { ...sampleEvents[0], id: 'b', startTime: '11:00a', endTime: '11:30a', isAllDay: false };
+    expect(eventsOverlap(a, b)).toBe(false);
+  });
+});
+
+describe('createPrioritySort', () => {
+  it('lets the saved order win among events whose times overlap', () => {
+    const a: ETHDenverEvent = { ...sampleEvents[0], id: 'a', startTime: '10:00a', endTime: '11:00a', isAllDay: false };
+    const b: ETHDenverEvent = { ...sampleEvents[0], id: 'b', startTime: '10:30a', endTime: '11:30a', isAllDay: false };
+    // Time order alone would put a before b; a saved order dragging b above a should win.
+    const sort = createPrioritySort(['b', 'a']);
+    const sorted = [a, b].sort(sort);
+    expect(sorted.map((e) => e.id)).toEqual(['b', 'a']);
+  });
+
+  it('keeps chronological order for events that do not overlap, regardless of saved order', () => {
+    const early: ETHDenverEvent = { ...sampleEvents[0], id: 'early', startTime: '9:00a', endTime: '9:30a', isAllDay: false };
+    const late: ETHDenverEvent = { ...sampleEvents[0], id: 'late', startTime: '11:00a', endTime: '11:30a', isAllDay: false };
+    // Saved order says "late" should come first, but since they don't overlap, time order wins.
+    const sort = createPrioritySort(['late', 'early']);
+    const sorted = [early, late].sort(sort);
+    expect(sorted.map((e) => e.id)).toEqual(['early', 'late']);
+  });
+
+  it('falls back to a stable order when saved order is missing for one or both events', () => {
+    const a: ETHDenverEvent = { ...sampleEvents[0], id: 'a', startTime: '10:00a', endTime: '11:00a', isAllDay: false };
+    const b: ETHDenverEvent = { ...sampleEvents[0], id: 'b', startTime: '10:00a', endTime: '11:00a', isAllDay: false };
+    // Same start time, neither ID is in the saved order — should preserve input order (stable sort).
+    const sort = createPrioritySort([]);
+    const sorted = [a, b].sort(sort);
+    expect(sorted.map((e) => e.id)).toEqual(['a', 'b']);
+
+    // Only one of the two IDs is known — still falls back to time order instead of guessing.
+    const sortPartial = createPrioritySort(['a']);
+    const sortedPartial = [a, b].sort(sortPartial);
+    expect(sortedPartial.map((e) => e.id)).toEqual(['a', 'b']);
   });
 });
 

@@ -42,6 +42,13 @@ interface EventCardProps {
   onRsvp?: () => void;
   /** Compact mode for map popups — smaller text, no impression tracking */
   compact?: boolean;
+  /**
+   * Suppress impression tracking (both the general event impression and the
+   * featured-ad impression) without changing the card's layout or styling.
+   * Use this on pages that re-render events already tracked elsewhere, e.g.
+   * the itinerary page/panel, so the same event view isn't double-counted.
+   */
+  suppressImpressionTracking?: boolean;
 }
 
 function FriendsGoingModal({
@@ -142,6 +149,7 @@ export const EventCard = memo(function EventCard({
   rsvpStatus,
   onRsvp,
   compact,
+  suppressImpressionTracking,
 }: EventCardProps) {
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [showCheckedInModal, setShowCheckedInModal] = useState(false);
@@ -153,7 +161,7 @@ export const EventCard = memo(function EventCard({
 
   // Track featured event impressions via IntersectionObserver
   useEffect(() => {
-    if (!event.isFeatured || compact) return;
+    if (!event.isFeatured || compact || suppressImpressionTracking) return;
     const el = cardRef.current;
     if (!el || featuredImpressionTracked.current) return;
 
@@ -176,11 +184,11 @@ export const EventCard = memo(function EventCard({
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [event.id, event.name, event.isFeatured, conference, compact]);
+  }, [event.id, event.name, event.isFeatured, conference, compact, suppressImpressionTracking]);
 
   // Track event impressions via IntersectionObserver (all events in list view)
   useEffect(() => {
-    if (compact) return;
+    if (compact || suppressImpressionTracking) return;
     const el = cardRef.current;
     if (!el || eventImpressionTracked.current) return;
 
@@ -203,7 +211,7 @@ export const EventCard = memo(function EventCard({
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [event.id, event.name, conference, compact]);
+  }, [event.id, event.name, conference, compact, suppressImpressionTracking]);
 
   const handleCopyLink = (e: React.MouseEvent) => {
     e.stopPropagation();
