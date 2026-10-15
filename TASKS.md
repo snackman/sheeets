@@ -8,8 +8,6 @@ Imported from the project Google Sheet on 2026-10-04; this file is now the sourc
 | ID | Task | Stage | Priority | Due | Lead | Tags | Plan | PR | Notes |
 |----|------|-------|----------|-----|------|------|------|----|-------|
 | sausage-24472 | Batch RSVP / Auto Sign-up for Luma Events | todo | P1 |  |  | Shelved | plans/sausage-24472-batch-rsvp-v2.md |  | Shelved 2026-10-10: automation only possible via host Luma API keys; see plan |
-| pineapple-22344 | Itinerary page overhaul: fix drag, use EventCard, pass conference, rebrand | doing | P1 |  |  | Doing |  |  |  |
-| capers-31744 | Fix date header flash when scrolling to top in list view | doing | P1 |  |  | Doing |  |  |  |
 | spinach-57147 | GA4: HTML dashboard generator script | doing | P2 |  |  | Doing |  |  |  |
 | tomato-78283 | Luma RSVP feature (redirect-based) | todo | P2 |  |  | To Do |  |  | Plan exists - Luma API cant RSVP to 3rd party events |
 | mushroom-63880 | build event host community | todo | P2 |  |  | To Do |  |  |  |
@@ -35,6 +33,8 @@ Imported from the project Google Sheet on 2026-10-04; this file is now the sourc
 
 | ID | Task | Priority | Done | PR | Notes |
 |----|------|----------|------|----|-------|
+| capers-31744 | Fix date header flash when scrolling to top in list view | P1 | 2026-10-15 | #183 | Sticky header no longer affects layout |
+| pineapple-22344 | Itinerary page overhaul: fix drag, use EventCard, pass conference, rebrand | P1 | 2026-10-15 | #184 | Option A drag priority, EventCard, ?conf=, plan.wtf branding |
 | deep-dish-69056 | Performance: React.memo boundaries + query batching for EventApp | P1 | 2026-10-15 | #129 | Merged 2026-05-03; verified still on master |
 | anchovy-41827 | Automated event gathering + theme filtering (Luma iCal feeds → Haiku theme classifier → admin review queue; then Telegram/host/X/sponsor sources) | P1 | 2026-10-12 | #178 #179 #180 #181 #182 | Event ingestion phases 1a-4 shipped; auto-publish off (shadow) until 95%/50 gate |
 | diavola-17757 | Org filter + search + Details rename + /sponsors → /orgs | P1 |  |  |  |
