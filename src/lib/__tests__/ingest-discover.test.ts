@@ -3,6 +3,26 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const { scoreCandidateMock } = vi.hoisted(() => ({ scoreCandidateMock: vi.fn() }));
 vi.mock('../ingest/scoring', () => ({ scoreCandidate: scoreCandidateMock }));
 
+// Short-Luma-link resolution (Bug: "short Luma links bypass dedupe") goes
+// through `./db`'s link cache + alt-key lookup. Defaulted to "confirmed no
+// api id" (`null`, not `undefined` — the tri-state's "never resolve again"
+// state, see `db.ts#getCachedLumaApiId`) so every PRE-EXISTING test below
+// (all of which use a bare `lu.ma/<slug>` URL) exercises exactly the same
+// code path it did before this fix: no resolution, straight through to
+// `ctx.enrichLimiter.enrich({slug})`. Tests that care about resolution
+// itself override these per-test.
+const { getCachedLumaApiIdMock, setCachedLumaApiIdMock, getCandidateByKeyOrAltKeyMock } = vi.hoisted(() => ({
+  getCachedLumaApiIdMock: vi.fn(async (): Promise<string | null | undefined> => null),
+  setCachedLumaApiIdMock: vi.fn(async (): Promise<void> => undefined),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getCandidateByKeyOrAltKeyMock: vi.fn(async (): Promise<any> => null),
+}));
+vi.mock('../ingest/db', () => ({
+  getCachedLumaApiId: getCachedLumaApiIdMock,
+  setCachedLumaApiId: setCachedLumaApiIdMock,
+  getCandidateByKeyOrAltKey: getCandidateByKeyOrAltKeyMock,
+}));
+
 import { processDiscoveredLink, PacedLinkLimiter, type DiscoveredLinkContext } from '../ingest/discover';
 import type { IngestCandidateRow, IngestProfileRow } from '../ingest/types';
 
@@ -229,5 +249,109 @@ describe('processDiscoveredLink — clears stale duplicate_of/filter_reason when
       expect(outcome.row.duplicate_of).toBeNull();
       expect(outcome.row.filter_reason).toBeNull();
     }
+  });
+});
+
+// Bug: "short Luma links bypass dedupe" — a short `lu.ma/<slug>` link
+// discovered via Telegram/sheet-mining/a host submission used to
+// canonicalize to a DIFFERENT key (`luma:<slug>`) than the curated iCal
+// path's `luma:evt-…` for the SAME event, so it was processed as a
+// brand-new candidate instead of being deduped/protected against the one
+// the curated calendar already created — including resurfacing events an
+// admin had already rejected.
+describe('processDiscoveredLink — short Luma link canonicalization (Bug: "short Luma links bypass dedupe")', () => {
+  it('resolves a cold-cache short link to its evt- canonical key, records the slug as an alt key, and reuses the resolution payload (no second enrichment call)', async () => {
+    getCachedLumaApiIdMock.mockResolvedValueOnce(undefined); // cold cache: never resolved before
+    getCandidateByKeyOrAltKeyMock.mockResolvedValueOnce(null); // no existing evt- candidate yet
+    scoreCandidateMock.mockResolvedValueOnce({
+      classifier: {
+        output: { is_event: true, theme_score: 70, reason: 'On theme', suggested_tags: [], flags: [], data_quality: 'sufficient' },
+        injectionDetected: false,
+        inputTokens: 10,
+        outputTokens: 5,
+        model: 'gpt-5-mini',
+        promptVersion: 'v1',
+      },
+      signals: { breakdown: {}, total: 0, hardReject: false, capRouteAtReview: false },
+      finalScore: 70,
+      route: 'review',
+      shadowRoute: 'review',
+    });
+    const enrich = vi.fn(async () => VALID_LUMA_PAYLOAD);
+    const outcome = await processDiscoveredLink('https://lu.ma/discovered-mixer', null, makeContext({ enrichLimiter: { enrich } }));
+
+    expect(outcome.kind).toBe('row');
+    if (outcome.kind === 'row') {
+      expect(outcome.row.canonical_key).toBe('luma:evt-abc123');
+      expect(outcome.row.alt_keys).toEqual(['luma:discovered-mixer']);
+    }
+    // One enrichment call total — used BOTH to resolve the api id and to
+    // build the normalized event, not enriched twice for the same link.
+    expect(enrich).toHaveBeenCalledTimes(1);
+    expect(setCachedLumaApiIdMock).toHaveBeenCalledWith('luma:discovered-mixer', 'evt-ABC123');
+    expect(getCandidateByKeyOrAltKeyMock).toHaveBeenCalledWith('ETHDenver', 'luma:evt-abc123');
+  });
+
+  it('a short link for an event already REJECTED under its evt- key stays rejected (skipped_final, never re-queued)', async () => {
+    getCachedLumaApiIdMock.mockResolvedValueOnce('evt-ABC123'); // warm cache: resolved previously
+    const rejectedEvtCandidate = makeCandidate({
+      id: 'evt-candidate-1',
+      canonical_key: 'luma:evt-abc123',
+      alt_keys: [],
+      source_kind: 'luma_ical',
+      status: 'rejected',
+    });
+    getCandidateByKeyOrAltKeyMock.mockResolvedValueOnce(rejectedEvtCandidate);
+    const enrich = vi.fn(async () => VALID_LUMA_PAYLOAD);
+    // The caller's own cheap lookup (by the raw slug key) found nothing —
+    // exactly the real-world case: the row only exists under its evt- key.
+    const outcome = await processDiscoveredLink('https://lu.ma/discovered-mixer', null, makeContext({ enrichLimiter: { enrich } }));
+
+    expect(outcome).toEqual({ kind: 'skipped_final', existingId: 'evt-candidate-1', canonicalKey: 'luma:evt-abc123' });
+    // Protection kicks in before any enrichment/classification spend.
+    expect(enrich).not.toHaveBeenCalled();
+    expect(scoreCandidateMock).not.toHaveBeenCalled();
+  });
+
+  it('a short link for an event already APPROVED under its evt- key is also skipped_final', async () => {
+    getCachedLumaApiIdMock.mockResolvedValueOnce('evt-ABC123');
+    const approvedEvtCandidate = makeCandidate({
+      id: 'evt-candidate-2',
+      canonical_key: 'luma:evt-abc123',
+      alt_keys: ['luma:discovered-mixer'],
+      source_kind: 'luma_ical',
+      status: 'approved',
+    });
+    getCandidateByKeyOrAltKeyMock.mockResolvedValueOnce(approvedEvtCandidate);
+    const enrich = vi.fn(async () => VALID_LUMA_PAYLOAD);
+    const outcome = await processDiscoveredLink('https://lu.ma/discovered-mixer', null, makeContext({ enrichLimiter: { enrich } }));
+
+    expect(outcome).toEqual({ kind: 'skipped_final', existingId: 'evt-candidate-2', canonicalKey: 'luma:evt-abc123' });
+    expect(enrich).not.toHaveBeenCalled();
+  });
+
+  it('does not attempt resolution for a link that already IS an evt- link', async () => {
+    scoreCandidateMock.mockResolvedValueOnce({
+      classifier: {
+        output: { is_event: true, theme_score: 70, reason: 'On theme', suggested_tags: [], flags: [], data_quality: 'sufficient' },
+        injectionDetected: false,
+        inputTokens: 10,
+        outputTokens: 5,
+        model: 'gpt-5-mini',
+        promptVersion: 'v1',
+      },
+      signals: { breakdown: {}, total: 0, hardReject: false, capRouteAtReview: false },
+      finalScore: 70,
+      route: 'review',
+      shadowRoute: 'review',
+    });
+    const outcome = await processDiscoveredLink(
+      'https://luma.com/event/evt-ABC123',
+      null,
+      makeContext({ enrichLimiter: { enrich: vi.fn(async () => VALID_LUMA_PAYLOAD) } })
+    );
+    expect(getCachedLumaApiIdMock).not.toHaveBeenCalled();
+    expect(getCandidateByKeyOrAltKeyMock).not.toHaveBeenCalled();
+    expect(outcome.kind).not.toBe('invalid');
   });
 });

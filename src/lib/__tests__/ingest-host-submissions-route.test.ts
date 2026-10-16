@@ -109,6 +109,11 @@ vi.mock('@/lib/ingest/db', () => ({
   }),
   getOrCreateHostSubmissionSource: getOrCreateHostSubmissionSourceMock,
   getCandidateByKey: getCandidateByKeyMock,
+  // The route now looks up its cheap pre-check via the alt-keys-aware
+  // lookup (Bug: "short Luma links bypass dedupe") — same underlying mock,
+  // so every existing `getCandidateByKeyMock.mockResolvedValue(...)` below
+  // still controls what the route sees.
+  getCandidateByKeyOrAltKey: getCandidateByKeyMock,
   upsertCandidate: upsertCandidateMock,
   updateCandidate: updateCandidateMock,
   listRecentCandidatesForDedupe: vi.fn(async () => []),
@@ -537,7 +542,10 @@ describe('POST /api/host/submissions — never auto-publishes, always discovery 
 
   it('treats a "skipped_final"/"unchanged" outcome as a friendly duplicate, without a fresh upsert', async () => {
     getCandidateByKeyMock.mockResolvedValueOnce({ id: 'cand-existing', status: 'approved', canonical_key: 'luma:discovered-mixer', classify_attempts: 1 } as unknown as Awaited<ReturnType<typeof getCandidateByKeyMock>>);
-    processDiscoveredLinkMock.mockResolvedValueOnce({ kind: 'skipped_final' });
+    // `skipped_final` always carries its own `existingId` now (Bug: "short
+    // Luma links bypass dedupe" — it may be a DIFFERENT, internally
+    // re-resolved candidate than this route's own cheap lookup above).
+    processDiscoveredLinkMock.mockResolvedValueOnce({ kind: 'skipped_final', existingId: 'cand-existing', canonicalKey: 'luma:discovered-mixer' });
     const res = await POST(postRequest(VALID_BODY));
     const json = await res.json();
     expect(json.status).toBe('duplicate');

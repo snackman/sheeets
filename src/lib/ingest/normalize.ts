@@ -80,6 +80,46 @@ export function looksLikeRealAddress(text: string | null | undefined): boolean {
   return !/^https?:\/\//i.test(trimmed);
 }
 
+/** A Luma calendar's public name that describes the AGGREGATOR itself — an
+ *  admin-curated "community"/"side events" calendar covering many unrelated
+ *  hosts — rather than one specific organizer, e.g. "Breakpoint 2026
+ *  Community Events" or "Devcon 8 Side Events (official)". Such a name is
+ *  never a meaningful "Organizer" value for a single event on that
+ *  calendar (Bug: "Organizer column shows the source calendar name" — see
+ *  `resolveLumaOrganizer`). An empty/missing name also counts as generic
+ *  (nothing useful to show). */
+const GENERIC_CALENDAR_NAME_RE = /\b(?:community|side|official|public|partner|ecosystem)\s+events?\b|\bevents?\s+calendar\b/i;
+
+export function isGenericAggregatorCalendarName(name: string | null | undefined): boolean {
+  const trimmed = (name ?? '').trim();
+  if (!trimmed) return true;
+  return GENERIC_CALENDAR_NAME_RE.test(trimmed);
+}
+
+/**
+ * Organizer-display priority for a Luma event (Bug: "Organizer column
+ * shows the source calendar name" — a published row's Organizer used to
+ * fall back to `ingest_sources.label`/`calendar.name` unconditionally,
+ * which for a calendar with no listed hosts on an event showed the
+ * ADMIN-FACING label for the whole feed, e.g. "Luma: Devcon 8 Side Events
+ * (official)", instead of anything about that one event):
+ *   1. The event's own Luma hosts, names joined (most specific).
+ *   2. The iCal `ORGANIZER` property's `CN=` param, if the feed sets one.
+ *   3. The calendar's own public name (resolved from Luma's API, NOT the
+ *      internal `ingest_sources.label`) — only when it isn't a generic
+ *      aggregator name (`isGenericAggregatorCalendarName`).
+ *   4. Empty string.
+ */
+export function resolveLumaOrganizer(opts: { hosts: { name: string }[]; organizerCN?: string | null; calendarName?: string | null }): string {
+  const hostNames = opts.hosts.map((h) => h.name?.trim()).filter((n): n is string => !!n);
+  if (hostNames.length > 0) return hostNames.join(', ');
+  const cn = opts.organizerCN?.trim();
+  if (cn) return cn;
+  const calendarName = opts.calendarName?.trim();
+  if (calendarName && !isGenericAggregatorCalendarName(calendarName)) return calendarName;
+  return '';
+}
+
 function priceCentsFromTicketTypes(payload: LumaEventPayload): number | null {
   const types = (payload as { ticket_types?: { cost?: number | null; price?: number | null }[] }).ticket_types;
   if (!types || types.length === 0) return null;
@@ -112,7 +152,7 @@ export function normalizeLumaEvent(opts: NormalizeLumaOptions): NormalizedEvent 
       twitter: normalizeHandle(h.twitter_handle),
     }));
 
-  const organizer = hosts[0]?.name || calendar?.name || '';
+  const organizer = resolveLumaOrganizer({ hosts, organizerCN: vevent.organizerName, calendarName: calendar?.name ?? null });
 
   const descriptionFromMirror = enrichment?.description_mirror ? extractMirrorText(enrichment.description_mirror) : '';
   const descriptionFromIcal = vevent.description || '';
@@ -241,7 +281,7 @@ export function normalizeDiscoveredLumaEvent(opts: NormalizeDiscoveredLumaOption
       username: h.username ?? null,
       twitter: normalizeHandle(h.twitter_handle),
     }));
-  const organizer = hosts[0]?.name || '';
+  const organizer = resolveLumaOrganizer({ hosts });
 
   const descriptionText = (payload.description_mirror ? extractMirrorText(payload.description_mirror) : '').slice(0, 4000);
   const priceCents = typeof detail.ticket_price_cents === 'number' ? detail.ticket_price_cents : priceCentsFromTicketTypes(payload);

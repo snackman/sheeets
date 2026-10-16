@@ -49,7 +49,7 @@ import {
   getProfile,
   profileRowToThemeProfile,
   getOrCreateHostSubmissionSource,
-  getCandidateByKey,
+  getCandidateByKeyOrAltKey,
   upsertCandidate,
   updateCandidate,
   listRecentCandidatesForDedupe,
@@ -337,7 +337,7 @@ export async function POST(req: NextRequest) {
   if (!canonicalKey) {
     return NextResponse.json({ error: 'Invalid URL.' }, { status: 400, headers: NO_STORE });
   }
-  const existing = await getCandidateByKey(body.conference, canonicalKey);
+  const existing = await getCandidateByKeyOrAltKey(body.conference, canonicalKey);
 
   const themeProfile = profileRowToThemeProfile(profile);
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -408,8 +408,11 @@ export async function POST(req: NextRequest) {
     // last time — nothing new to classify. Just bump `last_seen_at` and
     // give a friendly "already got this one" notice rather than silently
     // doing nothing.
-    const existingId = outcome.kind === 'unchanged' ? outcome.existingId : existing?.id;
-    if (existingId) await updateCandidate(existingId, { last_seen_at: new Date().toISOString() });
+    // Both carry `existingId` directly now — `skipped_final` may be keyed
+    // off a candidate `processDiscoveredLink` resolved internally (a short
+    // Luma link re-keyed onto its `evt-…` candidate), which can differ from
+    // this route's own cheap `existing` lookup above.
+    await updateCandidate(outcome.existingId, { last_seen_at: new Date().toISOString() });
     return NextResponse.json(
       { success: true, status: 'duplicate', message: 'This event has already been submitted and is in review.' },
       { headers: NO_STORE }
