@@ -18,6 +18,10 @@ function isRateLimitError(err: unknown): boolean {
 export function toEventRow(event: NormalizedEvent, tags: string[]): EventRow {
   return {
     date: event.sheetDate,
+    // The real calendar date, so `insertEventRowSorted` can write column A
+    // as a real Sheets date without re-deriving the year by re-parsing
+    // `sheetDate`'s display text (see `EventRow.dateISO`/`parseDateToISO`).
+    dateISO: event.dateISO,
     startTime: event.startTime,
     endTime: event.endTime,
     organizer: event.organizer,

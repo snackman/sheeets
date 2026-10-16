@@ -285,9 +285,9 @@ export interface NormalizedEvent {
   timezone: string;
   /** "YYYY-MM-DD" in the conference timezone. */
   dateISO: string;
-  /** "Oct 14" — same style as the client's formatDateShort, no weekday/year. */
+  /** "Mon, October 14" — matches the curated tabs' own date-cell text, see `event-format.ts#sheetDateShort`. */
   sheetDate: string;
-  /** "6:00 PM" — same style as format12Hour. */
+  /** "6:00p" — matches the curated tabs' own time-cell text, see `event-format.ts#sheetTime12Hour`. */
   startTime: string;
   endTime: string;
   address: string;
