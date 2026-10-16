@@ -4,7 +4,7 @@
 // (confirmed via `vercel project inspect` / team billing — see PR
 // description), so `vercel.json` schedules this every 4 hours; this handler
 // additionally skips any conference outside its active window
-// (`startDate - 30 days` through `endDate`) so off-season runs are nearly
+// (`startDate - 60 days` through `endDate`) so off-season runs are nearly
 // free even if triggered manually.
 import { NextResponse } from 'next/server';
 import { isCronSecret } from '@/lib/admin-auth';
@@ -16,7 +16,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 300;
 
 const OVERALL_DEADLINE_MS = 270_000; // leave margin under maxDuration=300
-const ACTIVE_WINDOW_PRE_DAYS = 30;
+const ACTIVE_WINDOW_PRE_DAYS = 60;
 
 function isInActiveWindow(startDate: string, endDate: string, todayISO: string): boolean {
   const start = new Date(startDate + 'T00:00:00Z');
