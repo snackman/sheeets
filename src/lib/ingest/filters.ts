@@ -221,7 +221,7 @@ export class ReverseGeocodeLimiter {
     try {
       const url =
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json` +
-        `?access_token=${token}&types=neighborhood,place&limit=2`;
+        `?access_token=${token}&types=neighborhood,place`; // no `limit`: Mapbox rejects limit with multiple types; without it, returns one feature per type
       const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
       if (!res.ok) {
         this.cache.set(key, null);
