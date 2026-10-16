@@ -1,36 +1,48 @@
 /**
  * One-off repair for the "ingested events invisible on the site" bug.
  *
- * Root cause (see `src/lib/google-sheets.ts#forceSheetText` and
- * `src/lib/fetch-events.ts#findHeaderIndex` for the full writeup): the
- * ingest publisher used to write Date/Start Time/End Time as plain text
- * like "Oct 31" / "12:00 PM" under valueInputOption=USER_ENTERED. Sheets
- * parses that as a REAL date/time value and stores it that way. Once a
- * tab's Start Time/End Time columns hold even one real time value, gviz
- * (which `fetchEvents` reads) infers the WHOLE column as `datetime` — and
- * then the literal "Start Time"/"End Time" header cells, which can't be
- * coerced to that type, come back as `v: null` with no `f` either. That
- * breaks `findHeaderIndex`, so the whole tab reads as zero events.
+ * Root cause (see `src/lib/google-sheets.ts#forceSheetText`/
+ * `#mainSectionRowValues` and `src/lib/fetch-events.ts#findHeaderIndex` for
+ * the full writeup): the ingest publisher used to write Start Time/End Time
+ * as plain text like "12:00 PM" under valueInputOption=USER_ENTERED. Sheets
+ * parses that as a REAL time value and stores it that way. Once a tab's
+ * Start/End Time columns hold even one real time value, gviz (which
+ * `fetchEvents` reads) infers the WHOLE column as `datetime` — and then the
+ * literal "Start Time"/"End Time" header cells, which can't be coerced to
+ * that type, come back as `v: null` with no `f` either. That breaks
+ * `findHeaderIndex`, so the whole tab reads as zero events.
  *
- * This script repairs already-written rows in one affected tab by
- * rewriting columns A (Date), B (Start Time), and C (End Time) as literal
- * TEXT in the curated format ("Mon, October 5", "9:00a") — matching what a
- * fixed publisher now writes going forward (`event-format.ts`). It reads
- * with FORMATTED_VALUE (the `readRange` helper's default) so it sees
- * exactly what's displayed ("12:00 PM"), not a raw date serial number, and
- * writes with valueInputOption=RAW so Sheets/gviz can never re-type these
- * cells as a date/time value again.
+ * This script repairs already-written rows in one affected tab:
+ *   - Columns B (Start Time) / C (End Time): rewritten as literal TEXT in
+ *     the curated format ("9:00a") — valueInputOption=RAW, so Sheets/gviz
+ *     can never re-type these cells as a time value again.
+ *   - Column A (Date): rewritten as a REAL Sheets date (an unambiguous ISO
+ *     value, valueInputOption=USER_ENTERED), with its number format set to
+ *     the curated `ddd", "mmmm" "d` pattern (e.g. "Mon, October 5") via a
+ *     `spreadsheets.batchUpdate` `repeatCell` request. The curated tabs'
+ *     column A IS a real date (verified live against "Token2049 2026"/gid
+ *     357353145) — a TEXT value in that date-typed column comes back
+ *     `v: null`/`f: null` from gviz, and `fetchEvents`' carry-forward
+ *     `currentDate` logic would silently give the row the PREVIOUS row's
+ *     date. Column A in the broken Devcon tab is already a real date (the
+ *     bug never touched it), just with the wrong number format — writing
+ *     the ISO value again is a no-op for rows where it's already correct,
+ *     and this script doesn't need to special-case that.
+ *
+ * It reads with FORMATTED_VALUE (the `readRange` helper's default) so it
+ * sees exactly what's displayed ("12:00 PM", "Oct 31"), not a raw
+ * date/time serial number.
  *
  * Finding the header: this tab's header row is wherever column E (0-indexed
  * 4) reads "Event Name" (case-insensitive) — the one column that's always
  * a plain string no matter how gviz has typed B/C (see `findHeaderIndex`'s
  * comment in fetch-events.ts for why B/C alone aren't reliable here).
  *
- * Idempotent: re-parses whatever text is currently in each cell (whether
- * it's still the old broken "Oct 31"/"12:00 PM" style or already the
- * curated "Mon, October 5"/"9:00a" style) and reformats it the same way
- * every time, so running this twice is a no-op the second time. A blank
- * cell is left blank (never fabricates a date/time that wasn't there).
+ * Idempotent: re-parses whatever text is currently displayed in each cell
+ * (whether it's still the old broken style or already the curated style)
+ * and reformats/rewrites it the same way every time, so running this twice
+ * is a no-op the second time. A blank cell is left blank (never fabricates
+ * a date/time that wasn't there).
  *
  * Usage:
  *   npx tsx scripts/repair-sheet-text-cells.ts --gid <gid> [--dry-run]
@@ -44,7 +56,7 @@
  * --dry-run prints the planned per-row changes and writes nothing. ALWAYS
  * run with --dry-run first and review the output before running for real.
  */
-import { getSheetTitle, readRange, writeValuesBatch } from '../src/lib/google-sheets';
+import { getSheetTitle, readRange, writeValuesBatch, setDateColumnFormat } from '../src/lib/google-sheets';
 import { getIngestSupabase } from '../src/lib/ingest/db';
 import type { ConferenceConfig } from '../src/lib/types';
 
@@ -122,17 +134,27 @@ function parseDateCell(raw: string): { month: number; day: number } | null {
   return { month, day };
 }
 
-/** Reformat a date cell as the curated "Mon, October 5" text, given the
- *  conference's year (for computing the weekday). */
-function repairDateCell(raw: string, year: number): string | null {
+/** The real ISO date value to write, plus the curated display text it's
+ *  expected to render as once `setDateColumnFormat` is applied. */
+interface RepairedDate {
+  iso: string; // "2026-10-31" — written via USER_ENTERED as a real date
+  display: string; // "Sat, October 31" — for logging / idempotency only
+}
+
+/** Reformat a date cell given the conference's year (for computing the ISO
+ *  value and the weekday). Returns null if the cell is blank, unparseable,
+ *  OR already displaying the curated text (no-op — nothing to repair). */
+function repairDateCell(raw: string, year: number): RepairedDate | null {
   if (!raw.trim()) return null; // leave blank cells blank
   const parsed = parseDateCell(raw);
   if (!parsed) return null; // not a recognizable date — leave untouched
   const { month, day } = parsed;
   const d = new Date(Date.UTC(year, month, day));
   const weekday = SHEET_WEEKDAYS[d.getUTCDay()];
-  const formatted = `${weekday}, ${SHEET_MONTHS_FULL[month]} ${day}`;
-  return formatted === raw.trim() ? null : formatted; // no-op if already correct
+  const display = `${weekday}, ${SHEET_MONTHS_FULL[month]} ${day}`;
+  if (display === raw.trim()) return null; // already correct — no-op
+  const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  return { iso, display };
 }
 
 /**
@@ -169,7 +191,7 @@ function repairTimeCell(raw: string): string | null {
 
 interface RowChange {
   sheetRow: number; // 1-based
-  date?: { from: string; to: string };
+  date?: { from: string; to: RepairedDate };
   startTime?: { from: string; to: string };
   endTime?: { from: string; to: string };
 }
@@ -228,36 +250,61 @@ async function main() {
 
   for (const c of changes) {
     const parts: string[] = [];
-    if (c.date) parts.push(`A: "${c.date.from}" -> "${c.date.to}"`);
+    if (c.date) parts.push(`A: "${c.date.from}" -> "${c.date.to.display}" (real date ${c.date.to.iso})`);
     if (c.startTime) parts.push(`B: "${c.startTime.from}" -> "${c.startTime.to}"`);
     if (c.endTime) parts.push(`C: "${c.endTime.from}" -> "${c.endTime.to}"`);
     console.log(`  row ${c.sheetRow}: ${parts.join(', ')}`);
   }
   console.log(`\n${changes.length} row(s) need repair.`);
 
+  const dateRows = changes.filter((c) => c.date);
+  if (dateRows.length > 0) {
+    console.log(
+      `\nAfter repair, column A will be typed "date" (real Sheets dates, curated ` +
+      `"${'ddd", "mmmm" "d'}" number format) and columns B/C will stay typed ` +
+      `"string" (forced literal text) — matching the curated "Token2049 2026" ` +
+      `(gid 357353145) shape [date, string, string, string].`
+    );
+  }
+
   if (dryRun) {
     console.log('Dry run — nothing written.');
     return;
   }
 
-  // One values.batchUpdate call per tab: each changed row contributes one
-  // A:C range (even if only one of the three cells changed, we rewrite the
-  // whole A:C span for that row so the call stays a single data[] entry per
-  // row rather than up to three). valueInputOption=RAW (writeValuesBatch's
-  // default) stores exactly this literal text — never let Sheets/gviz
-  // re-type these cells as a date/time value again.
-  const data = changes.map((c) => {
-    const row = rows[c.sheetRow - 1] || [];
-    const date = c.date ? c.date.to : (row[0] || '');
-    const startTime = c.startTime ? c.startTime.to : (row[1] || '');
-    const endTime = c.endTime ? c.endTime.to : (row[2] || '');
-    return {
-      range: `'${sheetName}'!A${c.sheetRow}:C${c.sheetRow}`,
-      values: [[date, startTime, endTime]],
-    };
-  });
+  // Column A needs USER_ENTERED (a real date) while B/C need RAW (literal
+  // text) — one values.batchUpdate call per valueInputOption, each
+  // covering every affected row in one HTTP request. A third
+  // spreadsheets.batchUpdate call (also one HTTP request, many `requests`
+  // entries) sets column A's curated number format on the rows that got a
+  // new date value.
+  const dateData = dateRows.map((c) => ({
+    range: `'${sheetName}'!A${c.sheetRow}`,
+    values: [[c.date!.to.iso]],
+  }));
+  if (dateData.length > 0) {
+    await writeValuesBatch(dateData, 'USER_ENTERED');
+  }
 
-  await writeValuesBatch(data);
+  const timeData = changes
+    .filter((c) => c.startTime || c.endTime)
+    .map((c) => {
+      const row = rows[c.sheetRow - 1] || [];
+      const startTime = c.startTime ? c.startTime.to : (row[1] || '');
+      const endTime = c.endTime ? c.endTime.to : (row[2] || '');
+      return {
+        range: `'${sheetName}'!B${c.sheetRow}:C${c.sheetRow}`,
+        values: [[startTime, endTime]],
+      };
+    });
+  if (timeData.length > 0) {
+    await writeValuesBatch(timeData, 'RAW');
+  }
+
+  if (dateRows.length > 0) {
+    await setDateColumnFormat(gid, dateRows.map((c) => c.sheetRow - 1));
+  }
+
   console.log(`Repaired ${changes.length} row(s) in "${sheetName}".`);
 }
 

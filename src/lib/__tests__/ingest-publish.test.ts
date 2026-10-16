@@ -44,6 +44,7 @@ describe('toEventRow', () => {
     const row = toEventRow(makeEvent(), ['ETH', 'Networking']);
     expect(row).toEqual({
       date: 'Mar 10',
+      dateISO: '2026-03-10',
       startTime: '6:00 PM',
       endTime: '9:00 PM',
       organizer: 'Alice',

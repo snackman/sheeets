@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { SHEET_ID } from '@/lib/constants';
+import { parseDateToISO } from './utils';
 
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -252,6 +253,13 @@ export async function writeValuesBatch(
 
 export interface EventRow {
   date: string;
+  /** The event's real calendar date, "YYYY-MM-DD", when the caller already
+   *  has one (e.g. the ingest pipeline's `NormalizedEvent.dateISO`). Lets
+   *  `mainSectionRowValues` write a real Sheets date without re-deriving
+   *  the year by re-parsing `date`'s display text (which would silently
+   *  assume a hardcoded year — see `parseDateToISO`). Callers that only
+   *  have the display text (e.g. an admin-approve edit) can omit this. */
+  dateISO?: string;
   startTime: string;
   endTime: string;
   organizer: string;
@@ -314,7 +322,16 @@ export function forceSheetText(value: string): string {
 
 /** Build the A:L cell values for an event row (user text escaped; Date/Start
  *  Time/End Time/Cost forced to literal text so Sheets/gviz never re-types
- *  them as a date, time, or currency number — see `forceSheetText`). */
+ *  them as a date, time, or currency number — see `forceSheetText`).
+ *
+ *  This is the right behavior for the "Add Events Here" REVIEW section
+ *  (written by `appendEventRow`) — `fetchEvents` never reads that section
+ *  at all, and forcing Date to text there keeps its displayed text
+ *  (and therefore `findReviewRow`'s plain string match against
+ *  `event_submissions.event_date`) unchanged from before this fix.
+ *
+ *  The MAIN section (what `fetchEvents`/gviz actually reads) needs the
+ *  OPPOSITE treatment for column A — see `mainSectionRowValues` below. */
 export function eventRowValues(event: EventRow): string[] {
   return [
     forceSheetText(event.date),
@@ -330,6 +347,103 @@ export function eventRowValues(event: EventRow): string[] {
     event.bar ? 'TRUE' : 'FALSE',
     escapeSheetValue(event.note),
   ];
+}
+
+/** The curated tabs' own Date-column number format, e.g. "Mon, October 5"
+ *  — verified live against "Token2049 2026" (gid 357353145), whose column
+ *  A number-format pattern is literally this string. */
+export const CURATED_DATE_PATTERN = 'ddd", "mmmm" "d';
+
+/**
+ * Resolve the ISO date ("YYYY-MM-DD") to write as column A's real Sheets
+ * date value for a MAIN-SECTION row. Prefers `event.dateISO` (exact, when
+ * the caller has one) over re-parsing `event.date`'s display text — that
+ * fallback (`parseDateToISO`) hardcodes a single year, so it's only a
+ * reasonable guess, not something to prefer when the real date is known.
+ * Returns '' if neither is available/parseable.
+ */
+function resolveMainSectionDateISO(event: EventRow): string {
+  if (event.dateISO) return event.dateISO;
+  if (!event.date) return '';
+  return parseDateToISO(event.date);
+}
+
+/**
+ * Build the A:L cell values for a row in the MAIN section — the section
+ * `fetchEvents`/gviz actually reads, and the one this bug is about.
+ *
+ * Unlike `eventRowValues` (used for the review section), column A (Date)
+ * here is written as a REAL Sheets date (an unambiguous ISO value, e.g.
+ * "2026-10-31", via valueInputOption=USER_ENTERED) instead of forced text.
+ * This matters because the curated tabs' column A IS a real date (verified
+ * live: "Token2049 2026"/gid 357353145 has `Date(...)` values with number
+ * format `ddd", "mmmm" "d`) — if an ingest-published row instead stores a
+ * TEXT value in that date-typed column, gviz returns `v: null`/`f: null`
+ * for it, and `fetchEvents`' carry-forward `currentDate` logic silently
+ * gives the row the PREVIOUS row's date (same class of bug this PR fixes
+ * for the Start/End Time columns, just the opposite direction — those
+ * needed to stay text, this one needs to stay a real date).
+ *
+ * Returns whether column A ended up a real date, so the caller knows
+ * whether it's worth also calling `setDateColumnFormat` (no point for the
+ * "couldn't resolve an ISO date, fell back to forced text" case).
+ */
+export function mainSectionRowValues(event: EventRow): { values: string[]; dateIsRealDate: boolean } {
+  const values = eventRowValues(event);
+  const iso = resolveMainSectionDateISO(event);
+  values[0] = iso || forceSheetText(event.date);
+  return { values, dateIsRealDate: Boolean(iso) };
+}
+
+/** Exported only for testing the exact repeatCell request shape without a
+ *  live Sheets API call (see `setDateColumnFormat`). */
+export function dateColumnFormatRequest(gid: number, rowIndex0: number) {
+  return {
+    repeatCell: {
+      range: {
+        sheetId: gid,
+        startRowIndex: rowIndex0,
+        endRowIndex: rowIndex0 + 1,
+        startColumnIndex: 0,
+        endColumnIndex: 1,
+      },
+      cell: {
+        userEnteredFormat: {
+          numberFormat: { type: 'DATE', pattern: CURATED_DATE_PATTERN },
+        },
+      },
+      fields: 'userEnteredFormat.numberFormat',
+    },
+  };
+}
+
+/**
+ * Apply the curated Date-column number format to column A of one or more
+ * (0-based) row indexes, in one `spreadsheets.batchUpdate` call. Called
+ * after writing a real date value via `mainSectionRowValues` so the cell
+ * displays "Mon, October 5" instead of whatever default/inherited date
+ * format Sheets would otherwise use — explicit rather than relying on
+ * `insertDimension`'s `inheritFromBefore`, which only works once there's
+ * already a correctly-formatted row directly above the insertion point.
+ */
+export async function setDateColumnFormat(gid: number, rowIndexes0: number[]): Promise<void> {
+  if (rowIndexes0.length === 0) return;
+  const token = await getAccessToken();
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ requests: rowIndexes0.map((r) => dateColumnFormatRequest(gid, r)) }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to set date column format: ${res.status} ${text}`);
+  }
 }
 
 /**
@@ -500,11 +614,14 @@ export async function insertEventRowSorted(sheetName: string, gid: number, event
     throw new Error(`Failed to insert row: ${insertRes.status} ${text}`);
   }
 
-  // 5. Write event data to the newly inserted row
+  // 5. Write event data to the newly inserted row. This is the MAIN
+  //    section fetchEvents/gviz reads, so column A (Date) must stay a real
+  //    Sheets date — see `mainSectionRowValues`.
   const writeRange = encodeURIComponent(`'${sheetName}'!A${insertRow}:L${insertRow}`);
   const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${writeRange}?valueInputOption=USER_ENTERED`;
 
-  const values = [eventRowValues(event)];
+  const { values: rowValues, dateIsRealDate } = mainSectionRowValues(event);
+  const values = [rowValues];
 
   const writeRes = await fetch(writeUrl, {
     method: 'PUT',
@@ -518,6 +635,19 @@ export async function insertEventRowSorted(sheetName: string, gid: number, event
   if (!writeRes.ok) {
     const text = await writeRes.text();
     throw new Error(`Failed to write event data: ${writeRes.status} ${text}`);
+  }
+
+  // 6. Make sure the real date displays in the curated style ("Mon,
+  //    October 5") rather than whatever default format Sheets picked.
+  //    Non-fatal: the event is already published and correctly typed for
+  //    gviz either way — this only affects display polish and this row's
+  //    own chronological-sort parsing on a LATER insert.
+  if (dateIsRealDate) {
+    try {
+      await setDateColumnFormat(gid, [insertIdx]);
+    } catch (err) {
+      console.warn(`Failed to set date column format for row ${insertRow}: ${err instanceof Error ? err.message : err}`);
+    }
   }
 
   return insertRow;
