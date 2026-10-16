@@ -1042,12 +1042,12 @@ Content-Type: application/json
             {
               label: 'npm',
               language: 'bash',
-              code: `npm install @sheeets/mcp-server`,
+              code: `npm install @sheeets/mcp`,
             },
             {
               label: 'npx',
               language: 'bash',
-              code: `npx @sheeets/mcp-server`,
+              code: `npx @sheeets/mcp`,
             },
           ]}
         />
@@ -1067,7 +1067,7 @@ Content-Type: application/json
   "mcpServers": {
     "sheeets": {
       "command": "npx",
-      "args": ["@sheeets/mcp-server"],
+      "args": ["@sheeets/mcp"],
       "env": {
         "SHEEETS_API_KEY": "shts_your_api_key_here"
       }
