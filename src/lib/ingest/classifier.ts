@@ -55,8 +55,19 @@ export const CLASSIFIER_MAX_TOKENS = 1200;
  * normal attendee-facing event copy ("register here", "bring your
  * laptop", "DM us", ...) and only flag text that actually tries to address
  * the classifier itself. Same re-classify-on-prompt-change rule applies.
+ *
+ * Bumped again (tuning round, 2026-10-16): "private_or_invite_only" had no
+ * guidance at all before this — the model only ever saw the bare enum
+ * value name via the structured-output schema. Added explicit flag /
+ * never-flag examples so only TRULY closed-access listings ("invite
+ * only", "confirmed attendees will be notified", "members only", a VIP
+ * perk, a closed private dinner) get flagged, and ordinary approval-gated
+ * RSVPs, registration steps, or exclusive-sounding marketing copy
+ * ("approval required", "RSVP required", a ticket-required-to-enter rule,
+ * "prestigious"/"curated" copy) do not. Re-classify-on-prompt-change rule
+ * applies.
  */
-export const PROMPT_VERSION = '2-v2-openai';
+export const PROMPT_VERSION = '2-v3-openai';
 
 export class ClassifierError extends Error {
   constructor(

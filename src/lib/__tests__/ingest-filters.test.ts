@@ -62,12 +62,20 @@ describe('ReverseGeocodeLimiter', () => {
     Promise.resolve(new Response(JSON.stringify({ features }), { status: 200 }));
 
   beforeEach(() => {
-    process.env.MAPBOX_SECRET_TOKEN = 'test-token';
+    // `vi.stubEnv` (not direct `process.env` mutation) so `vi.unstubAllEnvs()`
+    // below reliably restores whatever was there before — including a real
+    // `MAPBOX_SECRET_TOKEN`/`NEXT_PUBLIC_MAPBOX_TOKEN` from `.env.local` —
+    // rather than leaving `.env.local`'s value deleted for the rest of the
+    // run (env-leak bug fix: the "no token configured" test below used to
+    // fail whenever `.env.local` was loaded, because it only cleared
+    // `MAPBOX_SECRET_TOKEN` and never touched `NEXT_PUBLIC_MAPBOX_TOKEN`,
+    // which `filters.ts` falls back to).
+    vi.stubEnv('MAPBOX_SECRET_TOKEN', 'test-token');
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    delete process.env.MAPBOX_SECRET_TOKEN;
+    vi.unstubAllEnvs();
   });
 
   it('builds "Neighborhood, City" from a Mapbox response with both', async () => {
@@ -112,7 +120,11 @@ describe('ReverseGeocodeLimiter', () => {
   });
 
   it('returns null without calling fetch when no Mapbox token is configured', async () => {
-    delete process.env.MAPBOX_SECRET_TOKEN;
+    // Stub BOTH env vars `filters.ts` checks (`MAPBOX_SECRET_TOKEN ||
+    // NEXT_PUBLIC_MAPBOX_TOKEN`) to hermetically simulate "no token", even
+    // when `.env.local` is loaded and provides a real one.
+    vi.stubEnv('MAPBOX_SECRET_TOKEN', '');
+    vi.stubEnv('NEXT_PUBLIC_MAPBOX_TOKEN', '');
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     const limiter = new ReverseGeocodeLimiter();

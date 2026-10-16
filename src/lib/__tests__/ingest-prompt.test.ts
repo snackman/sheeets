@@ -184,6 +184,29 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('DM us');
     expect(prompt).toContain('must NEVER set the "instructions_in_content" flag');
   });
+
+  it('gives explicit flag / never-flag guidance for "private_or_invite_only" (retune, 2026-10-16)', () => {
+    const prompt = buildSystemPrompt(DEFAULT_THEME_PROFILES.crypto, { name: 'Consensus Miami' });
+    expect(prompt).toContain('private_or_invite_only');
+
+    // Must-flag examples: explicitly closed/invite-only access.
+    expect(prompt).toContain('INVITE ONLY November 10th');
+    expect(prompt).toContain('120 seats. Invitation-only.');
+    expect(prompt).toContain('Venue: Confirmed attendees will be notified');
+    expect(prompt).toContain('Padel Social [Members Only]');
+
+    // Never-flag examples: approval-gated RSVPs / registration / marketing
+    // copy with no actual closed-access statement.
+    expect(prompt).toContain('Enter our prestigious Web3 Founders and Investors Meetup');
+    expect(prompt).toContain('Join SuperteamUK every Friday at our co-working space');
+    expect(prompt).toContain('Registration requires host approval');
+    expect(prompt).toContain('Access to the hub is only for Devcon ticket holders');
+
+    // The guidance must say these plainly, not just list them as examples.
+    expect(prompt).toContain('MUST NOT flag');
+    expect(prompt).toContain('Approval required to attend');
+    expect(prompt).toContain('RSVP required');
+  });
 });
 
 describe('sanitizeFewShotExamples (review finding, CRITICAL item 4)', () => {

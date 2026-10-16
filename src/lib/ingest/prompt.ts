@@ -119,6 +119,30 @@ export function buildSystemPrompt(
       'fit using whatever is available — a bare event name or calendar that clearly signals ' +
       'the theme (e.g. a name built from the theme\'s own keywords) can still score high even ' +
       'with no description at all.',
+    '"private_or_invite_only" flag rule: flag ONLY a fixed, closed guest list that a new ' +
+      'person cannot join. NEVER flag a normal entry requirement (registering, applying, ' +
+      'getting approved, or buying/holding a ticket) — ANYONE can clear that path, so it is ' +
+      'not private, no matter how the gate is worded.',
+    'MUST flag (closed guest list, no path in for a new person): "INVITE ONLY November ' +
+      '10th" / "invitation-only" / "by invitation"; "Venue: Confirmed attendees will be ' +
+      'notified" (only names already on the list get in); "Padel Social [Members Only]" (an ' +
+      'existing membership, not one you can join on the spot); "120 seats. Invitation-only."; ' +
+      'a perk restricted to VIP-pass holders; a private dinner described as closed to the ' +
+      'public.',
+    'MUST NOT flag (a normal entry requirement — anyone can clear it, so it is a public ' +
+      'event, NOT invite-only): "Registration requires host approval"; "Approval required to ' +
+      'attend"; "RSVP required"; "Limited spots, apply to attend"; "Access to the hub is only ' +
+      'for Devcon ticket holders" (any Devcon ticket holder gets in — that is a ticket check, ' +
+      'not an invite list); "Enter our prestigious Web3 Founders and Investors Meetup" and ' +
+      'other exclusive-sounding marketing copy ("prestigious", "curated", "exclusive ' +
+      'evening") with no actual closed-access statement; "Join SuperteamUK every Friday at ' +
+      'our co-working space" and other open community co-working days. If you are not sure ' +
+      'whether access is truly closed to new people, do NOT flag it — a false positive here ' +
+      'wrongly caps a public event at review.',
+    'Do not confuse "members only" with "ticket holders only": "Members Only" (a club ' +
+      'membership you must already have — FLAG) is NOT the same thing as "only for Devcon ' +
+      'ticket holders" or "[conference] badge required" (an ordinary ticket anyone attending ' +
+      'the conference already has, or can buy — do NOT flag).',
     'reason must be one short sentence (<=160 chars) a curator can read in a review queue.',
   ].filter(Boolean);
 
