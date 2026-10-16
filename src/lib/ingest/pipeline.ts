@@ -13,6 +13,7 @@ import {
   getSource,
   getProfile,
   getCandidateByKey,
+  getCandidateByKeyOrAltKey,
   upsertCandidate,
   updateCandidate,
   listRecentCandidatesForDedupe,
@@ -395,7 +396,17 @@ async function processLumaIcalSource(args: {
       continue;
     }
 
-    const calendarRef = { apiId: calendarApiId, name: source.label || source.conference };
+    // Bug: "Organizer column shows the source calendar name" — this used to
+    // be `source.label || source.conference`, i.e. the admin's internal
+    // display label for this ingest SOURCE (e.g. "Luma: Devcon 8 Side
+    // Events (official)"), which `normalizeLumaEvent`'s organizer fallback
+    // then leaked straight into the published sheet whenever an event had
+    // no Luma hosts. `calendar_name` is the calendar's own public name as
+    // resolved from Luma's API (`resolveLumaCalendar`, stored on
+    // `source.config` when the source was added) — still subject to
+    // `isGenericAggregatorCalendarName`'s filter in `normalizeLumaEvent`,
+    // and never the internal label.
+    const calendarRef = { apiId: calendarApiId, name: (source.config as { calendar_name?: string }).calendar_name ?? '' };
     const existing = await getCandidateByKey(source.conference, canonicalKey);
 
     // The iCal-only stub (no network call) is used BOTH for change
@@ -895,7 +906,7 @@ async function processTelegramSource(args: {
       }
 
       const cheapKey = normalizeEventLink(url);
-      const existing = cheapKey ? await getCandidateByKey(source.conference, cheapKey) : null;
+      const existing = cheapKey ? await getCandidateByKeyOrAltKey(source.conference, cheapKey) : null;
 
       const outcome = await processDiscoveredLink(url, existing, {
         conference: source.conference,
@@ -925,10 +936,10 @@ async function processTelegramSource(args: {
       }
       if (outcome.kind === 'skipped_final') {
         bump(counts, 'skipped_final');
-        if (!dryRun && existing) {
+        if (!dryRun) {
           await upsertCandidate({
             conference: source.conference,
-            canonical_key: existing.canonical_key,
+            canonical_key: outcome.canonicalKey,
             sources: [{ source_id: source.id, kind: 'telegram_channel' as const, ref: message.url, seen_at: new Date().toISOString() }],
           });
         }
@@ -1157,7 +1168,7 @@ async function runDiscoveredLinksBatch(
     if (Date.now() > args.deadline) return { hitDeadline: true };
 
     const cheapKey = normalizeEventLink(url);
-    const existing = cheapKey ? await getCandidateByKey(src.conference, cheapKey) : null;
+    const existing = cheapKey ? await getCandidateByKeyOrAltKey(src.conference, cheapKey) : null;
 
     const outcome = await processDiscoveredLink(url, existing, {
       conference: src.conference,
@@ -1187,10 +1198,10 @@ async function runDiscoveredLinksBatch(
     }
     if (outcome.kind === 'skipped_final') {
       bump(args.counts, 'skipped_final');
-      if (!args.dryRun && existing) {
+      if (!args.dryRun) {
         await upsertCandidate({
           conference: src.conference,
-          canonical_key: existing.canonical_key,
+          canonical_key: outcome.canonicalKey,
           sources: [{ source_id: src.id, kind: args.sourceKind, ref: args.sourceRef(url), seen_at: new Date().toISOString() }],
         });
       }

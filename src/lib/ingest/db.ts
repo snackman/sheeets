@@ -395,6 +395,39 @@ export async function getCandidateByKey(conference: string, canonicalKey: string
   return (data as IngestCandidateRow) ?? null;
 }
 
+/**
+ * Same as `getCandidateByKey`, but also matches a candidate whose
+ * `alt_keys` (gin-indexed) contains `canonicalKey` — not just its
+ * `canonical_key` column. Needed because a Luma event can be discovered
+ * under more than one link shape (a curated calendar's `luma:evt-…` vs. a
+ * short `lu.ma/<slug>` link resolved to the SAME api id elsewhere): once a
+ * short-link key is resolved to its evt- canonical key (`discover.ts`), the
+ * row that key was stored under may only have the slug recorded in
+ * `alt_keys`, not `canonical_key` itself. Checking only `canonical_key`
+ * (as every lookup used to) meant a short link for an already-rejected/
+ * approved event could never find that candidate and would be ingested as
+ * a brand-new one instead (Bug: "short Luma links bypass dedupe").
+ *
+ * Two separate queries rather than one `.or(...)` filter, to avoid having
+ * to escape `canonicalKey` (which can contain `.`, `/`, `:`) into a
+ * PostgREST filter-string.
+ */
+export async function getCandidateByKeyOrAltKey(conference: string, canonicalKey: string): Promise<IngestCandidateRow | null> {
+  const direct = await getCandidateByKey(conference, canonicalKey);
+  if (direct) return direct;
+
+  const supabase = getIngestSupabase();
+  const { data, error } = await supabase
+    .from('ingest_candidates')
+    .select('*')
+    .eq('conference', conference)
+    .contains('alt_keys', [canonicalKey])
+    .limit(1);
+  if (error) throw new Error(`Failed to load candidate by alt key: ${error.message}`);
+  const rows = (data as IngestCandidateRow[] | null) ?? [];
+  return rows[0] ?? null;
+}
+
 export async function getCandidate(id: string): Promise<IngestCandidateRow | null> {
   const supabase = getIngestSupabase();
   const { data, error } = await supabase.from('ingest_candidates').select('*').eq('id', id).maybeSingle();

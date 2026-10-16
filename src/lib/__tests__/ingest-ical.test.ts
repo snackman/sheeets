@@ -66,6 +66,19 @@ describe('parseICalFeed', () => {
     expect(ev?.location).toBe('https://luma.com/event/evt-ABC123DEF456');
   });
 
+  // Bug: "Organizer column shows the source calendar name" — organizer
+  // priority fallback 2 (`normalize.ts`'s `resolveLumaOrganizer`) reads
+  // this straight off the VEVENT, so the parser has to actually surface it.
+  it('parses the ORGANIZER property\'s CN param as organizerName', () => {
+    const ev = events.find((e) => e.uid === 'evt-NOGEO0001XY@events.lu.ma');
+    expect(ev?.organizerName).toBe('Devcon Core Team');
+  });
+
+  it('leaves organizerName null when there is no ORGANIZER line', () => {
+    const ev = events.find((e) => e.uid === 'evt-ABC123DEF456@events.lu.ma');
+    expect(ev?.organizerName).toBeNull();
+  });
+
   it('returns an empty array for a feed with no VEVENTs', () => {
     expect(parseICalFeed('BEGIN:VCALENDAR\nVERSION:2.0\nEND:VCALENDAR')).toEqual([]);
   });

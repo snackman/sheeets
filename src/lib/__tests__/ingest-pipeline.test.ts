@@ -181,6 +181,7 @@ const DEFAULT_VEVENT = {
   sequence: 0,
   status: 'CONFIRMED',
   dtstamp: '2027-03-01T00:00:00.000Z',
+  organizerName: null,
 };
 // Named so individual tests (e.g. the publish-cap test below, which needs
 // TWO distinct events in one feed) can override the default single-event

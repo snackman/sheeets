@@ -21,6 +21,11 @@ export interface VEvent {
   sequence: number;
   status: string | null;
   dtstamp: string | null;
+  /** The `ORGANIZER` property's `CN=` param (display name), if the feed
+   *  sets one — organizer priority fallback, see `normalize.ts`'s
+   *  `resolveLumaOrganizer` (Bug: "Organizer column shows the source
+   *  calendar name"). `null` when there's no ORGANIZER line or no CN. */
+  organizerName: string | null;
 }
 
 /**
@@ -44,6 +49,12 @@ function unfoldLines(ics: string): string[] {
 /** Unescape §3.3.11 TEXT value: `\\` `\;` `\,` `\N`/`\n` -> literal chars. */
 function unescapeText(s: string): string {
   return s.replace(/\\([\\;,nN])/g, (_, c: string) => (c === 'n' || c === 'N' ? '\n' : c));
+}
+
+/** Strip one layer of surrounding double quotes from a §3.2 param-value
+ *  (e.g. `CN="Jane Doe, Esq."`), if both are present. */
+function stripQuotes(s: string): string {
+  return s.length >= 2 && s.startsWith('"') && s.endsWith('"') ? s.slice(1, -1) : s;
 }
 
 /** Split "NAME;PARAM=X;PARAM2=Y:VALUE" into { name, params, value }. Value may
@@ -102,7 +113,7 @@ export function parseICalFeed(ics: string): VEvent[] {
     const trimmed = line.trim();
     if (trimmed === 'BEGIN:VEVENT') {
       inEvent = true;
-      cur = { sequence: 0, status: null, geo: null, dtend: null, location: null, dtstamp: null };
+      cur = { sequence: 0, status: null, geo: null, dtend: null, location: null, dtstamp: null, organizerName: null };
       continue;
     }
     if (trimmed === 'END:VEVENT') {
@@ -119,6 +130,7 @@ export function parseICalFeed(ics: string): VEvent[] {
           sequence: cur.sequence ?? 0,
           status: cur.status ?? null,
           dtstamp: cur.dtstamp ?? null,
+          organizerName: cur.organizerName ?? null,
         });
       }
       inEvent = false;
@@ -155,6 +167,11 @@ export function parseICalFeed(ics: string): VEvent[] {
       case 'STATUS':
         cur.status = value.trim().toUpperCase();
         break;
+      case 'ORGANIZER': {
+        const cn = params.CN ? unescapeText(stripQuotes(params.CN)).trim() : '';
+        cur.organizerName = cn || null;
+        break;
+      }
       case 'DTSTART': {
         const parsedDt = parseDateTimeValue(value.trim(), params);
         if (parsedDt) {

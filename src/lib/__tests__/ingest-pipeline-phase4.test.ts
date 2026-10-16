@@ -61,6 +61,11 @@ vi.mock('../ingest/db', () => ({
   getSource: vi.fn(async (id: string) => sourceRows.get(id) ?? null),
   getProfile: vi.fn(async () => defaultProfile),
   getCandidateByKey: vi.fn(async () => null),
+  // `runDiscoveredLinksBatch` (X/Meetup/sponsor-pages) looks up its cheap
+  // pre-check via the alt-keys-aware lookup now (Bug: "short Luma links
+  // bypass dedupe") — `processDiscoveredLink` itself is mocked above, so
+  // this just needs to exist and resolve "no existing candidate".
+  getCandidateByKeyOrAltKey: vi.fn(async () => null),
   upsertCandidate: vi.fn(async (row: Record<string, unknown>) => row),
   updateCandidate: vi.fn(async () => {}),
   listRecentCandidatesForDedupe: vi.fn(async () => []),

@@ -34,6 +34,27 @@ describe('normalizeDiscoveredLumaEvent (Phase 3 §3.2 — discovered Luma links)
     expect(result!.isOnline).toBe(false);
   });
 
+  // Bug: "Organizer column shows the source calendar name" — a discovered
+  // link has no calendar at all, so the only question here is priority 1
+  // (hosts, joined) vs. priority 4 (empty) — see `resolveLumaOrganizer`.
+  it('joins multiple hosts\' names for the organizer, not just the first', () => {
+    const payload = {
+      ...basePayload,
+      hosts: [
+        { api_id: 'usr-1', name: 'Alice', username: 'alice', twitter_handle: null },
+        { api_id: 'usr-2', name: 'Bob', username: 'bob', twitter_handle: null },
+      ],
+    } as unknown as LumaEventPayload;
+    const result = normalizeDiscoveredLumaEvent({ payload, fallbackLink: 'https://lu.ma/ethcc-mixer' });
+    expect(result!.organizer).toBe('Alice, Bob');
+  });
+
+  it('organizer is empty (never a fallback label) when there are no hosts', () => {
+    const payload = { ...basePayload, hosts: [] } as unknown as LumaEventPayload;
+    const result = normalizeDiscoveredLumaEvent({ payload, fallbackLink: 'https://lu.ma/ethcc-mixer' });
+    expect(result!.organizer).toBe('');
+  });
+
   it('falls back to the discovered link when the payload has no stable api id', () => {
     const payload = { ...basePayload, api_id: undefined, event: { ...basePayload.event, api_id: undefined } } as unknown as LumaEventPayload;
     const result = normalizeDiscoveredLumaEvent({ payload, fallbackLink: 'https://lu.ma/ethcc-mixer' });

@@ -45,6 +45,7 @@ DTSTART:20260312T090000Z
 DTEND:20260312T110000Z
 SEQUENCE:0
 STATUS:CONFIRMED
+ORGANIZER;CN=Devcon Core Team:mailto:organizer@devcon.org
 LOCATION:https://luma.com/event/evt-NOGEO0001XY
 SUMMARY:Breakfast Builders Roundtable
 DESCRIPTION:Get up-to-date information at: https://luma.com/builders-breakfast\n\nHosted by Frank & Grace

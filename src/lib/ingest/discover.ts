@@ -16,7 +16,7 @@
 // without an admin's explicit Approve (§10 item 4).
 import type OpenAI from 'openai';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { normalizeEventLink, getValidLumaSlug, LUMA_EVENT_API_ID_RE } from '../luma';
+import { normalizeEventLink, getValidLumaSlug, getLumaEventApiId, LUMA_EVENT_API_ID_RE, type LumaEventPayload } from '../luma';
 import { parseEventbrite, parsePartiful, parseMeetup, parsePosh, UserFacingError, type EventResult } from '../event-extractors';
 import { SafeFetchError } from '../safe-fetch';
 import type { TabConfig } from '../conferences';
@@ -24,6 +24,7 @@ import { allowlistedPlatformFor, type Platform } from './allowlist';
 import { normalizeDiscoveredLumaEvent, normalizeExtractedEvent, computeContentHash } from './normalize';
 import { matchAgainstSheetAndCandidates, type SheetLinkIndex, type DedupeSheetEvent, type DedupeCandidatePool } from './dedupe';
 import { dateWindowFilter, geoFilter, geocodeAddressCached } from './filters';
+import { getCachedLumaApiId, setCachedLumaApiId, getCandidateByKeyOrAltKey } from './db';
 import type { EnrichLimiter } from './enrich';
 import { scoreCandidate } from './scoring';
 import { ClassifierError } from './classifier';
@@ -169,7 +170,7 @@ export interface DiscoveredLinkRow {
 
 export type DiscoveredLinkOutcome =
   | { kind: 'invalid' }
-  | { kind: 'skipped_final' }
+  | { kind: 'skipped_final'; existingId: string; canonicalKey: string }
   | { kind: 'unchanged'; existingId: string }
   | { kind: 'protected'; existingId: string; sources: CandidateSourceRef[] }
   | { kind: 'row'; row: DiscoveredLinkRow; classified: boolean; inputTokens: number; outputTokens: number; costUsd: number };
@@ -210,29 +211,16 @@ function mergeSourceRef(
   return alreadyHas ? existingSources : [...existingSources, next];
 }
 
-/**
- * Process one already-allowlisted URL end to end (enrich/extract ->
- * normalize -> dedupe -> filter -> classify -> route) and return what to
- * persist. Does NOT write to the DB and does NOT publish — see module
- * doc comment. `existing` should be the result of `getCandidateByKey`
- * looked up by the caller using `normalizeEventLink(url)` (this module uses
- * that same key consistently, see the file-level note in `normalize.ts`'s
- * discovered-link functions about not trying to unify Luma slug/evt-id keys
- * here the way the curated iCal path does — simpler, still idempotent per
- * literal URL).
- */
-export async function processDiscoveredLink(
-  url: string,
-  existing: IngestCandidateRow | null,
-  ctx: DiscoveredLinkContext
-): Promise<DiscoveredLinkOutcome> {
-  const canonicalKey = normalizeEventLink(url);
-  if (!canonicalKey) return { kind: 'invalid' };
-
-  if (existing && FINAL_CANDIDATE_STATUSES.includes(existing.status)) {
-    return { kind: 'skipped_final' };
+/** Either of the two "an existing candidate must not be touched" outcomes
+ *  for a given `existing` row, or `null` if processing may proceed. Run
+ *  once against the caller-supplied `existing` and, for a short Luma link,
+ *  a second time against whatever candidate the resolved `luma:evt-…` key
+ *  (and its `alt_keys`) turns up — see `processDiscoveredLink`. */
+function protectionOutcome(existing: IngestCandidateRow | null, ctx: DiscoveredLinkContext): DiscoveredLinkOutcome | null {
+  if (!existing) return null;
+  if (FINAL_CANDIDATE_STATUSES.includes(existing.status)) {
+    return { kind: 'skipped_final', existingId: existing.id, canonicalKey: existing.canonical_key };
   }
-
   // Review finding, MEDIUM item 4: a lower-trust discovery source (this
   // module only ever runs for `discovery`-trust sources today) must never
   // reclassify — let alone overwrite `event`/`source_kind`/`source_id`/
@@ -242,12 +230,105 @@ export async function processDiscoveredLink(
   // `auto_rejected` candidate must never "revive" it). Only append this
   // source's ref and bump `last_seen_at`; nothing else about the existing
   // row changes.
-  if (existing && existingOutranksIncoming(existing.source_kind, ctx.sourceTrust)) {
+  if (existingOutranksIncoming(existing.source_kind, ctx.sourceTrust)) {
     return {
       kind: 'protected',
       existingId: existing.id,
       sources: mergeSourceRef(existing.sources, { source_id: ctx.sourceId, kind: ctx.sourceKind, ref: ctx.sourceRef, seen_at: new Date().toISOString() }),
     };
+  }
+  return null;
+}
+
+/**
+ * Resolve a short `lu.ma/<slug>` canonical key (`luma:<slug>`, NOT already
+ * an `evt-…` api id) to its stable `luma:evt-…` form (Bug: "short Luma
+ * links bypass dedupe" — the curated iCal path has always keyed on the
+ * event's api id via its VEVENT UID, so a short link discovered elsewhere
+ * for the SAME event used to collapse to a different key and create a
+ * second, never-deduped candidate — including resurfacing ones an admin
+ * had already rejected).
+ *
+ * Resolution order:
+ *  1. `ingest_link_cache` (shared with `buildSheetLinkIndex`'s sheet-link
+ *     resolution — the same tri-state cache, keyed identically).
+ *  2. On a cold cache, one live lookup via the SAME rate-limited
+ *     `ctx.enrichLimiter` the main enrichment call below uses (`through
+ *     the shared rate limiter`) — its full payload is returned too, so the
+ *     caller can reuse it instead of enriching twice for the same event.
+ *
+ * Returns `null` (no resolution) if the slug doesn't parse, or Luma has no
+ * api id for it (cached miss, or the live lookup came back empty) — the
+ * original slug key is used as-is in that case, exactly as before this fix.
+ */
+async function resolveLumaShortLinkKey(
+  slugCanonicalKey: string,
+  url: string,
+  ctx: DiscoveredLinkContext
+): Promise<{ canonicalKey: string; altKeys: string[]; payload: LumaEventPayload | null } | null> {
+  const slug = getValidLumaSlug(url);
+  if (!slug) return null;
+
+  let apiId = await getCachedLumaApiId(slugCanonicalKey);
+  // Only non-null when THIS call actually fetched live (a cache miss) —
+  // `apiId` is derived directly from it, so it's always consistent with
+  // the returned `canonicalKey`, and callers can reuse it instead of
+  // enriching the same event twice.
+  let freshPayload: LumaEventPayload | null = null;
+  if (apiId === undefined) {
+    freshPayload = await ctx.enrichLimiter.enrich({ slug });
+    apiId = freshPayload ? getLumaEventApiId(freshPayload) : null;
+    await setCachedLumaApiId(slugCanonicalKey, apiId);
+  }
+  if (!apiId) return null;
+
+  return { canonicalKey: `luma:${apiId.toLowerCase()}`, altKeys: [slugCanonicalKey], payload: freshPayload };
+}
+
+/**
+ * Process one already-allowlisted URL end to end (enrich/extract ->
+ * normalize -> dedupe -> filter -> classify -> route) and return what to
+ * persist. Does NOT write to the DB and does NOT publish — see module
+ * doc comment. `existing` should be the result of `getCandidateByKey`
+ * looked up by the caller using `normalizeEventLink(url)` (this module uses
+ * that same key consistently, see the file-level note in `normalize.ts`'s
+ * discovered-link functions about not trying to unify Luma slug/evt-id keys
+ * here the way the curated iCal path does — simpler, still idempotent per
+ * literal URL). For a short Luma link, this function re-resolves and
+ * re-checks against the canonical `luma:evt-…` candidate itself (see
+ * `resolveLumaShortLinkKey`) — the caller's cheap `existing` lookup only
+ * needs to be a best effort.
+ */
+export async function processDiscoveredLink(
+  url: string,
+  existing: IngestCandidateRow | null,
+  ctx: DiscoveredLinkContext
+): Promise<DiscoveredLinkOutcome> {
+  let canonicalKey = normalizeEventLink(url);
+  if (!canonicalKey) return { kind: 'invalid' };
+
+  const earlyOutcome = protectionOutcome(existing, ctx);
+  if (earlyOutcome) return earlyOutcome;
+
+  let altKeys: string[] = [];
+  let prefetchedLumaPayload: LumaEventPayload | null = null;
+
+  if (canonicalKey.startsWith('luma:')) {
+    const slugPart = canonicalKey.slice('luma:'.length);
+    if (!LUMA_EVENT_API_ID_RE.test(slugPart)) {
+      const resolved = await resolveLumaShortLinkKey(canonicalKey, url, ctx);
+      if (resolved) {
+        canonicalKey = resolved.canonicalKey;
+        altKeys = resolved.altKeys;
+        prefetchedLumaPayload = resolved.payload;
+        const resolvedExisting = await getCandidateByKeyOrAltKey(ctx.conference, canonicalKey);
+        if (resolvedExisting) {
+          existing = resolvedExisting;
+          const resolvedOutcome = protectionOutcome(existing, ctx);
+          if (resolvedOutcome) return resolvedOutcome;
+        }
+      }
+    }
   }
 
   const platform = allowlistedPlatformFor(url);
@@ -260,7 +341,7 @@ export async function processDiscoveredLink(
     const apiId = slugKey && LUMA_EVENT_API_ID_RE.test(slugKey) ? slugKey : null;
     const slug = !apiId ? getValidLumaSlug(url) : null;
     if (!apiId && !slug) return { kind: 'invalid' };
-    const payload = await ctx.enrichLimiter.enrich(apiId ? { apiId } : { slug: slug as string });
+    const payload = prefetchedLumaPayload ?? (await ctx.enrichLimiter.enrich(apiId ? { apiId } : { slug: slug as string }));
     if (payload) normalized = normalizeDiscoveredLumaEvent({ payload, fallbackLink: url });
   } else {
     const paced = await ctx.linkFetchLimiter.throttle();
@@ -274,7 +355,7 @@ export async function processDiscoveredLink(
             row: {
               conference: ctx.conference,
               canonical_key: canonicalKey,
-              alt_keys: [],
+              alt_keys: altKeys,
               source_id: ctx.sourceId,
               source_kind: ctx.sourceKind,
               sources: [{ source_id: ctx.sourceId, kind: ctx.sourceKind, ref: ctx.sourceRef, seen_at: new Date().toISOString() }],
@@ -314,7 +395,7 @@ export async function processDiscoveredLink(
       row: {
         conference: ctx.conference,
         canonical_key: canonicalKey,
-        alt_keys: [],
+        alt_keys: altKeys,
         source_id: ctx.sourceId,
         source_kind: ctx.sourceKind,
         sources,
@@ -363,7 +444,7 @@ export async function processDiscoveredLink(
   const baseRow: DiscoveredLinkRow = {
     conference: ctx.conference,
     canonical_key: canonicalKey,
-    alt_keys: [],
+    alt_keys: altKeys,
     source_id: ctx.sourceId,
     source_kind: ctx.sourceKind,
     sources,
