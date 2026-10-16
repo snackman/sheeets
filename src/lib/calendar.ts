@@ -117,7 +117,7 @@ export function generateICS(events: ETHDenverEvent[]): string {
   return lines.join('\r\n');
 }
 
-export function downloadICS(events: ETHDenverEvent[], filename = 'sheeets-itinerary.ics') {
+export function downloadICS(events: ETHDenverEvent[], filename = 'plan-wtf-itinerary.ics') {
   const content = generateICS(events);
   const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);

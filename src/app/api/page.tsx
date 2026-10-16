@@ -3,9 +3,9 @@ import Link from 'next/link';
 import { CodeBlock, InlineCode } from './CodeBlock';
 
 export const metadata: Metadata = {
-  title: 'API Documentation - sheeets.xyz',
+  title: 'API Documentation - plan.wtf',
   description:
-    'RESTful API documentation for sheeets.xyz — browse events, manage itineraries, and build AI agent integrations.',
+    'RESTful API documentation for plan.wtf — browse events, manage itineraries, and build AI agent integrations.',
 };
 
 const BASE_URL =
@@ -190,7 +190,7 @@ export default function ApiDocsPage() {
             href="/"
             className="text-sm font-bold text-white hover:text-amber-400 transition-colors"
           >
-            sheeets.xyz
+            plan.wtf
           </Link>
           <span className="text-xs text-stone-500 font-mono">
             API v0.4.0
@@ -204,7 +204,7 @@ export default function ApiDocsPage() {
         {/* ============================================================ */}
         <div className="mb-12">
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-            sheeets API
+            plan.wtf API
           </h1>
           <p className="text-lg text-stone-400 max-w-2xl mb-6">
             A RESTful API for browsing crypto conference side events, managing
@@ -330,7 +330,7 @@ print(data["events"])`,
             </div>
             <p className="text-sm text-stone-300 mb-2">
               For most authenticated endpoints. Create an API key from the
-              sheeets app or via the{' '}
+              plan.wtf app or via the{' '}
               <a href="#api-keys" className="text-amber-400 hover:underline">
                 key management endpoints
               </a>
@@ -646,7 +646,7 @@ print(data)`,
           scopes="itinerary:read"
           description="Create a shareable link for the current itinerary. Returns an 8-character short code."
           response={`{
-  "url": "https://sheeets.vercel.app/itinerary/s/abc12345",
+  "url": "https://plan.wtf/itinerary/s/abc12345",
   "code": "abc12345"
 }`}
         />
@@ -1022,7 +1022,7 @@ Content-Type: application/json
         <SectionHeading id="mcp-server">MCP Server</SectionHeading>
 
         <p className="text-sm text-stone-300 mb-4">
-          The sheeets MCP server wraps this REST API as{' '}
+          The plan.wtf MCP server wraps this REST API as{' '}
           <a
             href="https://modelcontextprotocol.io"
             target="_blank"
@@ -1031,7 +1031,7 @@ Content-Type: application/json
           >
             Model Context Protocol
           </a>{' '}
-          tools, so AI assistants like Claude can interact with sheeets
+          tools, so AI assistants like Claude can interact with plan.wtf
           natively.
         </p>
 
@@ -1134,12 +1134,12 @@ Content-Type: application/json
               <p className="text-sm text-stone-400">
                 Built by{' '}
                 <a
-                  href="https://sheeets.xyz"
+                  href="https://plan.wtf"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-amber-400 hover:underline"
                 >
-                  sheeets.xyz
+                  plan.wtf
                 </a>
               </p>
               <p className="text-xs text-stone-500 mt-1">

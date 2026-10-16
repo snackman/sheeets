@@ -220,7 +220,7 @@ export function OnboardingWizard({
               <div className="flex flex-col items-center text-center space-y-5 py-4">
                 <Image
                   src="/logo.png"
-                  alt="sheeets"
+                  alt="plan.wtf"
                   width={160}
                   height={44}
                   style={{ filter: 'var(--theme-logo-filter)' }}
