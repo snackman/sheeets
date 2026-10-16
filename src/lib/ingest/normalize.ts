@@ -40,11 +40,8 @@ export interface NormalizeLumaOptions {
  *  duplicate it. These fields aren't on the narrow `LumaEventPayload.event`
  *  type (only what Phase 1b's enrichment needed), so this takes a loosely
  *  typed subset rather than widening that interface. */
-function addressFromLumaGeoFields(event: {
-  geo_address_json?: string | Record<string, unknown> | null;
-  geo_address_info?: string | Record<string, unknown> | null;
-}): string {
-  const parseMaybeJson = (v: string | Record<string, unknown> | null | undefined): Record<string, unknown> | null => {
+export function addressFromLumaGeoFields(event: Record<string, unknown>): string {
+  const parseMaybeJson = (v: unknown): Record<string, unknown> | null => {
     if (!v) return null;
     if (typeof v === 'string') {
       try {
@@ -53,7 +50,7 @@ function addressFromLumaGeoFields(event: {
         return null;
       }
     }
-    return v;
+    return v as Record<string, unknown>;
   };
   const json = parseMaybeJson(event.geo_address_json);
   if (json) {
@@ -65,6 +62,22 @@ function addressFromLumaGeoFields(event: {
     return (info.full_address as string) || (info.city_state as string) || (info.city as string) || '';
   }
   return '';
+}
+
+/** True if `text` looks like a real, displayable address/venue string
+ *  rather than a URL or placeholder (Bug: "addresses are always empty" —
+ *  priority 2 of the address resolution order: "use iCal LOCATION if it's
+ *  a real address, not a URL, not empty"). Luma's iCal LOCATION field is
+ *  sometimes a bare link (an online event, or a venue-hidden event that
+ *  only ever exposes its own event URL there) — those are exactly as
+ *  useless as an empty address, and `normalizeLumaEvent` already falls
+ *  back to `vevent.location` as the event LINK in that case, so treating
+ *  it as an address too would just duplicate the link in two columns. */
+export function looksLikeRealAddress(text: string | null | undefined): boolean {
+  if (!text) return false;
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  return !/^https?:\/\//i.test(trimmed);
 }
 
 function priceCentsFromTicketTypes(payload: LumaEventPayload): number | null {
@@ -115,6 +128,20 @@ export function normalizeLumaEvent(opts: NormalizeLumaOptions): NormalizedEvent 
 
   const geo = vevent.geo;
 
+  // Address resolution order (Bug: "addresses are always empty" — Luma
+  // often hides the venue until registration, and enrichment is
+  // rate-limited, so most candidates never get an enriched address):
+  //   1. The enriched Luma payload's own address fields, if present.
+  //   2. The iCal LOCATION field, if it looks like a real address (not a
+  //      URL, not empty) — Luma sometimes DOES put the plain venue text
+  //      there even when enrichment is skipped/fails.
+  //   3/4 (lat/lng-based reverse-geocode fallback, then a conference-city
+  //      fallback) happen one level up, in `pipeline.ts` — this function
+  //      has no Mapbox client/cache/conference context to do that here.
+  const enrichedAddress = enrichment?.event ? addressFromLumaGeoFields(enrichment.event as Record<string, unknown>) : '';
+  const icalAddress = looksLikeRealAddress(vevent.location) ? (vevent.location as string).trim() : '';
+  const address = enrichedAddress || icalAddress || '';
+
   return {
     name,
     startAt,
@@ -124,7 +151,7 @@ export function normalizeLumaEvent(opts: NormalizeLumaOptions): NormalizedEvent 
     sheetDate,
     startTime,
     endTime,
-    address: '', // Luma's payload doesn't expose a plain address string reliably; geo is used for the radius filter instead.
+    address,
     lat: geo?.lat ?? null,
     lng: geo?.lng ?? null,
     isOnline: !geo && !vevent.location,
@@ -222,7 +249,7 @@ export function normalizeDiscoveredLumaEvent(opts: NormalizeDiscoveredLumaOption
 
   const apiId = detail.api_id || payload.api_id || null;
   const link = apiId ? `https://luma.com/event/${apiId}` : fallbackLink;
-  const address = addressFromLumaGeoFields(detail);
+  const address = addressFromLumaGeoFields(detail as unknown as Record<string, unknown>);
 
   return {
     name,

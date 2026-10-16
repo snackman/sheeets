@@ -127,3 +127,117 @@ export async function geocodeAddressCached(
     return null;
   }
 }
+
+/**
+ * Cache an address's exact coordinates in the shared `geocoded_addresses`
+ * table — the SAME cache `geocodeAddressCached` (above) reads, and that
+ * `fetch-events.ts` prefers over the static `geocoded-addresses.json` bake
+ * (it calls these the "runtime addresses"). Used when a candidate is
+ * published/approved with BOTH an address string and real coordinates (iCal
+ * GEO, or a reverse-geocode hit — see `ReverseGeocodeLimiter` below): this
+ * way the map pin uses those exact coordinates immediately, rather than
+ * waiting for `/api/cron/geocode` to forward-geocode our own constructed
+ * "Neighborhood, City" text to a less precise point later.
+ *
+ * Best-effort, like every other writer of this table (`admin/submissions`,
+ * the pipeline's own forward-geocode fallback above) — a failure here must
+ * never fail the publish/approve it's attached to.
+ */
+export async function upsertGeocodedAddress(
+  supabase: SupabaseClient,
+  address: string,
+  lat: number,
+  lng: number,
+  conference: string
+): Promise<void> {
+  const trimmed = address.trim();
+  if (!trimmed) return;
+  try {
+    await supabase.from('geocoded_addresses').upsert({
+      normalized_address: normalizeAddress(trimmed),
+      lat,
+      lng,
+      matched_address: trimmed,
+      conference,
+    });
+  } catch {
+    // Swallow — the cron job will eventually forward-geocode this address
+    // itself if this best-effort write fails.
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Reverse geocoding (Bug: "addresses are always empty" — priority 3/4 of
+ * the address resolution order in `pipeline.ts`'s Luma iCal path): when a
+ * candidate has coordinates (iCal GEO) but no usable address text (Luma
+ * hides the venue until registration, or enrichment never ran), reverse-
+ * geocode a short "Neighborhood, City" label instead of leaving the Address
+ * column blank. Capped and cached PER RUN (not persisted across runs, since
+ * many candidates in the same feed/conference round to the same nearby
+ * point — e.g. Devcon 8's own venue cluster).
+ * ------------------------------------------------------------------ */
+
+export interface ReverseGeocodeResult {
+  /** "Neighborhood, City", or just "City" when Mapbox has no neighborhood
+   *  for this point. */
+  label: string;
+  /** The city/place component alone (for the conference-level fallback —
+   *  §priority 4, "<conference city> (venue on event page)"). */
+  city: string | null;
+}
+
+/** Default per-run cap on actual Mapbox reverse-geocode calls (cache hits
+ *  don't count) — generous enough for one conference's worth of distinct
+ *  venues, cheap enough to never meaningfully affect run time/cost. */
+const DEFAULT_MAX_REVERSE_GEOCODE_CALLS_PER_RUN = 40;
+
+export class ReverseGeocodeLimiter {
+  private readonly cache = new Map<string, ReverseGeocodeResult | null>();
+  private calls = 0;
+
+  constructor(private readonly maxCallsPerRun = DEFAULT_MAX_REVERSE_GEOCODE_CALLS_PER_RUN) {}
+
+  get used(): number {
+    return this.calls;
+  }
+
+  /** Round to ~1km so nearby venues (e.g. a conference center's several
+   *  side rooms/stages) share one cached Mapbox call. */
+  private key(lat: number, lng: number): string {
+    return `${lat.toFixed(2)},${lng.toFixed(2)}`;
+  }
+
+  /** Resolve a short place label for `(lat, lng)`, or `null` if unresolvable,
+   *  capped, or unconfigured (no Mapbox token). Never throws. */
+  async resolve(lat: number, lng: number): Promise<ReverseGeocodeResult | null> {
+    const key = this.key(lat, lng);
+    if (this.cache.has(key)) return this.cache.get(key) ?? null;
+
+    if (this.calls >= this.maxCallsPerRun) return null;
+    const token = process.env.MAPBOX_SECRET_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    if (!token) return null;
+
+    this.calls++;
+    try {
+      const url =
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json` +
+        `?access_token=${token}&types=neighborhood,place&limit=2`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) {
+        this.cache.set(key, null);
+        return null;
+      }
+      const json = await res.json();
+      const features: { place_type?: string[]; text?: string }[] = Array.isArray(json?.features) ? json.features : [];
+      const neighborhood = features.find((f) => f.place_type?.includes('neighborhood'))?.text || null;
+      const city = features.find((f) => f.place_type?.includes('place'))?.text || null;
+      const label = neighborhood && city ? `${neighborhood}, ${city}` : city || neighborhood;
+      const result: ReverseGeocodeResult | null = label ? { label, city } : null;
+      this.cache.set(key, result);
+      return result;
+    } catch {
+      this.cache.set(key, null);
+      return null;
+    }
+  }
+}

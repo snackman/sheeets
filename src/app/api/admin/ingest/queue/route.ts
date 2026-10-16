@@ -21,8 +21,10 @@ import {
   getProfile,
   upsertProfile,
   profileRowToThemeProfile,
+  getIngestSupabase,
 } from '@/lib/ingest/db';
 import { toEventRow, ThrottledSheetPublisher } from '@/lib/ingest/publish';
+import { upsertGeocodedAddress } from '@/lib/ingest/filters';
 import { scoreCandidate } from '@/lib/ingest/scoring';
 import { ClassifierError } from '@/lib/ingest/classifier';
 import { checkMonthlyBudget } from '@/lib/ingest/budget';
@@ -228,6 +230,15 @@ export async function POST(req: NextRequest) {
               // published (review finding, LOW "dedupe within a single run").
               const key = canonicalKeyForEvent(event);
               if (key) linkIndex.byKey.set(key, { id: publishedEventId, link: event.link });
+
+              // Bug: "addresses are always empty" — same as the pipeline's
+              // own auto-publish path: when this candidate has both an
+              // address and real coordinates, cache them in
+              // `geocoded_addresses` right away so the map pin uses the
+              // exact coordinates instead of waiting on the geocode cron.
+              if (event.address && event.lat != null && event.lng != null) {
+                await upsertGeocodedAddress(getIngestSupabase(), event.address, event.lat, event.lng, candidate.conference);
+              }
             }
 
             await updateCandidate(id, {

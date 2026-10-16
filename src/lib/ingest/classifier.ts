@@ -49,8 +49,14 @@ export const CLASSIFIER_MAX_TOKENS = 1200;
  * candidate re-classifies rather than reusing a `content_hash` match from
  * the old prompt shape (§5.5: "Re-classify only when ... prompt_version
  * changes").
+ *
+ * Bumped again (Bug: "instructions_in_content over-triggers"): the system
+ * prompt's security-rule paragraph was rewritten to explicitly exempt
+ * normal attendee-facing event copy ("register here", "bring your
+ * laptop", "DM us", ...) and only flag text that actually tries to address
+ * the classifier itself. Same re-classify-on-prompt-change rule applies.
  */
-export const PROMPT_VERSION = '2-v1-openai';
+export const PROMPT_VERSION = '2-v2-openai';
 
 export class ClassifierError extends Error {
   constructor(

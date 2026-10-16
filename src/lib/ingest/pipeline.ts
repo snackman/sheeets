@@ -32,7 +32,7 @@ import { resolveSponsorPageUrls, fetchSponsorPageLinks, createRobotsCache, SPONS
 import { isAllowlistedEventLink } from './allowlist';
 import { normalizeLumaEvent, computeContentHash } from './normalize';
 import { buildSheetLinkIndex, findSheetMatchByLink, fuzzyMatch, type DedupeCandidatePool } from './dedupe';
-import { dateWindowFilter, geoFilter, isPastEvent, geocodeAddressCached } from './filters';
+import { dateWindowFilter, geoFilter, isPastEvent, geocodeAddressCached, upsertGeocodedAddress, ReverseGeocodeLimiter } from './filters';
 import { LumaEnrichmentLimiter } from './enrich';
 import { scoreCandidate } from './scoring';
 import { processDiscoveredLink, PacedLinkLimiter, buildHostSignalComputer } from './discover';
@@ -314,6 +314,18 @@ async function processLumaIcalSource(args: {
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const supabase = getIngestSupabase();
 
+  // Bug: "addresses are always empty" — priority 3/4 of the address
+  // resolution order (`normalizeLumaEvent` already applied priorities 1/2:
+  // enriched Luma address, then iCal LOCATION). One limiter for the whole
+  // run: reverse-geocodes a candidate's own lat/lng into a short
+  // "Neighborhood, City" label (capped, cached by rounded coordinates), and
+  // also resolves this conference's OWN city once (from `tab.center`) for
+  // the last-resort "<city> (venue on event page)" fallback when a
+  // candidate has no coordinates at all.
+  const reverseGeocodeLimiter = new ReverseGeocodeLimiter();
+  const conferenceCenterResolved = await reverseGeocodeLimiter.resolve(tab.center.lat, tab.center.lng);
+  const conferenceCityLabel = conferenceCenterResolved?.city || tab.name;
+
   const sheetEvents = await fetchEvents(undefined, [tab]);
   const linkIndex = await buildSheetLinkIndex(
     sheetEvents.map((e) => ({ id: e.id, link: e.link })),
@@ -448,12 +460,31 @@ async function processLumaIcalSource(args: {
     const normalized = normalizeLumaEvent({ vevent, timezone: tab.timezone, enrichment, calendar: calendarRef, fallbackSlug: slug });
     const contentHash = computeContentHash(normalized);
 
+    // Address resolution priorities 1/2 (enriched Luma address, then iCal
+    // LOCATION) already ran inside `normalizeLumaEvent` above. If an address
+    // came out of THAT — real venue data — and it's missing lat/lng, forward-
+    // geocode it (existing behavior, unchanged).
     if (normalized.lat == null && normalized.lng == null && normalized.address) {
       const geocoded = await geocodeAddressCached(supabase, normalized.address, tab.center, source.conference);
       if (geocoded) {
         normalized.lat = geocoded.lat;
         normalized.lng = geocoded.lng;
       }
+    }
+
+    // Priorities 3/4: still no address (Luma hid the venue and enrichment
+    // didn't run/fill it) — reverse-geocode this candidate's own lat/lng if
+    // it has any, else fall back to "<conference city> (venue on event
+    // page)" so the Address column is never blank. Deliberately AFTER the
+    // forward-geocode step above and gated on real lat/lng (not a fallback
+    // label we just invented), so a fallback string is never itself sent
+    // back through Mapbox as if it were a real address.
+    if (!normalized.address) {
+      const resolved =
+        normalized.lat != null && normalized.lng != null
+          ? await reverseGeocodeLimiter.resolve(normalized.lat, normalized.lng)
+          : null;
+      normalized.address = resolved?.label || `${conferenceCityLabel} (venue on event page)`;
     }
 
     const baseRow = {
@@ -681,6 +712,16 @@ async function processLumaIcalSource(args: {
           // by the sheet-match dedupe check, not re-published too (review
           // finding, LOW "dedupe within a single run").
           linkIndex.byKey.set(canonicalKey, { id: publishedEventId, link: normalized.link });
+          // Bug: "addresses are always empty" — when we have BOTH an
+          // address and real coordinates at publish time, cache them in
+          // `geocoded_addresses` immediately so the map pin uses those
+          // EXACT coordinates (iCal GEO, or a reverse-geocode hit) rather
+          // than waiting for `/api/cron/geocode` to forward-geocode our own
+          // "Neighborhood, City" text later, which could land on a less
+          // precise point.
+          if (normalized.lat != null && normalized.lng != null) {
+            await upsertGeocodedAddress(supabase, normalized.address, normalized.lat, normalized.lng, source.conference);
+          }
         } catch {
           status = 'queued';
           bump(counts, 'queued');

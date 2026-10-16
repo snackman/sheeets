@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { dateWindowFilter, geoFilter, isPastEvent } from '../ingest/filters';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { dateWindowFilter, geoFilter, isPastEvent, ReverseGeocodeLimiter, upsertGeocodedAddress } from '../ingest/filters';
 
 describe('dateWindowFilter', () => {
   const conference = { startDate: '2026-04-11', endDate: '2026-04-17' };
@@ -51,6 +51,108 @@ describe('geoFilter', () => {
   it('passes an online event when allow_online is true', () => {
     const result = geoFilter({ lat: null, lng: null, isOnline: true }, center, { ...profile, allow_online: true });
     expect(result.pass).toBe(true);
+  });
+});
+
+// Bug: "addresses are always empty" — priority 3 of the address resolution
+// order (`pipeline.ts`): when a candidate has coordinates but no usable
+// address text, reverse-geocode a short label instead of leaving it blank.
+describe('ReverseGeocodeLimiter', () => {
+  const mapboxFeatures = (features: { place_type: string[]; text: string }[]) =>
+    Promise.resolve(new Response(JSON.stringify({ features }), { status: 200 }));
+
+  beforeEach(() => {
+    process.env.MAPBOX_SECRET_TOKEN = 'test-token';
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete process.env.MAPBOX_SECRET_TOKEN;
+  });
+
+  it('builds "Neighborhood, City" from a Mapbox response with both', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        mapboxFeatures([
+          { place_type: ['neighborhood'], text: 'Thonglor' },
+          { place_type: ['place'], text: 'Bangkok' },
+        ])
+      )
+    );
+    const limiter = new ReverseGeocodeLimiter();
+    const result = await limiter.resolve(13.7563, 100.5018);
+    expect(result).toEqual({ label: 'Thonglor, Bangkok', city: 'Bangkok' });
+  });
+
+  it('falls back to just the city when there is no neighborhood', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => mapboxFeatures([{ place_type: ['place'], text: 'Bangkok' }])));
+    const limiter = new ReverseGeocodeLimiter();
+    const result = await limiter.resolve(13.7563, 100.5018);
+    expect(result).toEqual({ label: 'Bangkok', city: 'Bangkok' });
+  });
+
+  it('returns null and never calls fetch again for the same rounded coordinates (per-run cache)', async () => {
+    const fetchMock = vi.fn(() => mapboxFeatures([{ place_type: ['place'], text: 'Bangkok' }]));
+    vi.stubGlobal('fetch', fetchMock);
+    const limiter = new ReverseGeocodeLimiter();
+    await limiter.resolve(13.7563, 100.5018);
+    await limiter.resolve(13.7563001, 100.5018001); // rounds to the same key
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops making real calls once the per-run cap is hit', async () => {
+    const fetchMock = vi.fn(() => mapboxFeatures([{ place_type: ['place'], text: 'Bangkok' }]));
+    vi.stubGlobal('fetch', fetchMock);
+    const limiter = new ReverseGeocodeLimiter(1);
+    await limiter.resolve(13.7563, 100.5018);
+    const second = await limiter.resolve(1.3521, 103.8198); // different point, cache miss
+    expect(second).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns null without calling fetch when no Mapbox token is configured', async () => {
+    delete process.env.MAPBOX_SECRET_TOKEN;
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const limiter = new ReverseGeocodeLimiter();
+    expect(await limiter.resolve(13.7563, 100.5018)).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('returns null (never throws) when Mapbox errors', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response('', { status: 500 }))));
+    const limiter = new ReverseGeocodeLimiter();
+    expect(await limiter.resolve(13.7563, 100.5018)).toBeNull();
+  });
+});
+
+describe('upsertGeocodedAddress', () => {
+  it('upserts the normalized address with the given coordinates', async () => {
+    const upsertMock = vi.fn(async () => ({ error: null }));
+    const supabase = { from: () => ({ upsert: upsertMock }) } as unknown as Parameters<typeof upsertGeocodedAddress>[0];
+    await upsertGeocodedAddress(supabase, '123 Main St, Bangkok', 13.75, 100.5, 'Devcon 8');
+    expect(upsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({ lat: 13.75, lng: 100.5, matched_address: '123 Main St, Bangkok', conference: 'Devcon 8' })
+    );
+  });
+
+  it('is a no-op for an empty address', async () => {
+    const upsertMock = vi.fn(async () => ({ error: null }));
+    const supabase = { from: () => ({ upsert: upsertMock }) } as unknown as Parameters<typeof upsertGeocodedAddress>[0];
+    await upsertGeocodedAddress(supabase, '   ', 13.75, 100.5, 'Devcon 8');
+    expect(upsertMock).not.toHaveBeenCalled();
+  });
+
+  it('swallows a write failure rather than throwing (best-effort cache)', async () => {
+    const supabase = {
+      from: () => ({
+        upsert: () => {
+          throw new Error('boom');
+        },
+      }),
+    } as unknown as Parameters<typeof upsertGeocodedAddress>[0];
+    await expect(upsertGeocodedAddress(supabase, '123 Main St', 13.75, 100.5, 'Devcon 8')).resolves.toBeUndefined();
   });
 });
 
