@@ -216,6 +216,40 @@ export async function writeCell(sheetName: string, cell: string, value: string):
   }
 }
 
+/**
+ * Write several ranges in one `values.batchUpdate` call (one HTTP request
+ * covering every range in `data`). Used by one-off repair scripts that need
+ * to rewrite many rows across a tab without one PUT per row.
+ *
+ * Defaults to `valueInputOption=RAW` — unlike the event-row writers above,
+ * callers here are expected to pass already-final literal text (e.g. a
+ * repaired "Mon, October 5" date string), so there's no USER_ENTERED
+ * formula/boolean coercion to opt into, and RAW guarantees Sheets/gviz can
+ * never re-type the written cells as a date/time/number value.
+ */
+export async function writeValuesBatch(
+  data: { range: string; values: string[][] }[],
+  valueInputOption: 'RAW' | 'USER_ENTERED' = 'RAW'
+): Promise<void> {
+  if (data.length === 0) return;
+  const token = await getAccessToken();
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values:batchUpdate`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ valueInputOption, data }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to batch-write values: ${res.status} ${text}`);
+  }
+}
+
 export interface EventRow {
   date: string;
   startTime: string;
@@ -235,26 +269,61 @@ export interface EventRow {
  * Neutralize spreadsheet formula injection in user-supplied text.
  *
  * Event rows are written with valueInputOption=USER_ENTERED (not RAW) on
- * purpose: the sheet relies on Sheets parsing "Mar 21" / "6:00 PM" into real
- * date/time values (gviz reads typed columns) and "TRUE"/"FALSE" into checkbox
- * booleans for Food/Bar. RAW would store those as plain strings and break
- * parsing, so instead any value that would be interpreted as a formula is
- * prefixed with an apostrophe, which Sheets treats as "literal text" and hides.
+ * purpose: "TRUE"/"FALSE" need to become real checkbox booleans for
+ * Food/Bar, and user-supplied text should keep normal Sheets autocorrect
+ * (e.g. smart quotes). Any value that would otherwise be interpreted as a
+ * formula is prefixed with an apostrophe, which Sheets treats as "literal
+ * text" and hides.
+ *
+ * Date/Start Time/End Time/Cost are handled separately by
+ * `forceSheetText` below — they must NEVER be allowed to parse as a real
+ * Sheets date/time/number value (see that function's comment for why).
  */
 export function escapeSheetValue(value: string): string {
   return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
 }
 
-/** Build the A:L cell values for an event row (user text escaped). */
-function eventRowValues(event: EventRow): string[] {
+/**
+ * Force a cell to be stored as plain TEXT, never a real Sheets date, time,
+ * or (for "$20"-style costs) currency number.
+ *
+ * Bug history: the event-row Date/Start Time/End Time columns used to be
+ * written as plain text like "Oct 31" / "12:00 PM" under
+ * valueInputOption=USER_ENTERED. Sheets happily parses those as real
+ * date/time values and stores them that way — which is exactly what broke
+ * `fetchEvents` for ingest-published tabs: gviz infers a column's type
+ * (`date`/`datetime`) from the sheet's stored values, and once it decides a
+ * column is typed, a literal text cell that can't be coerced to that type
+ * (e.g. the "Start Time" header text, sitting in a column gviz now thinks
+ * is `datetime`) comes back as `v: null` with no `f` either — so
+ * `findHeaderIndex` can never find the header row and the whole tab reads
+ * as zero events.
+ *
+ * The curated tabs avoid this because their Date/Start/End/Cost cells are
+ * already plain text (verified live against "Token2049 2026"/gid
+ * 357353145: column A has cells with real `Date(...)` values matched by a
+ * `ddd", "mmmm" "d` pattern, but columns B/C/G are typed `string` with bare
+ * text like "9:00a"/"Free" — no number format at all). A leading apostrophe
+ * forces the same "always literal text" behavior under USER_ENTERED,
+ * regardless of what the text looks like.
+ */
+export function forceSheetText(value: string): string {
+  if (!value) return value;
+  return value.startsWith("'") ? value : `'${value}`;
+}
+
+/** Build the A:L cell values for an event row (user text escaped; Date/Start
+ *  Time/End Time/Cost forced to literal text so Sheets/gviz never re-types
+ *  them as a date, time, or currency number — see `forceSheetText`). */
+export function eventRowValues(event: EventRow): string[] {
   return [
-    escapeSheetValue(event.date),
-    escapeSheetValue(event.startTime),
-    escapeSheetValue(event.endTime),
+    forceSheetText(event.date),
+    forceSheetText(event.startTime),
+    forceSheetText(event.endTime),
     escapeSheetValue(event.organizer),
     escapeSheetValue(event.name),
     escapeSheetValue(event.address),
-    escapeSheetValue(event.cost),
+    forceSheetText(event.cost),
     escapeSheetValue(event.tags),
     escapeSheetValue(event.link),
     event.food ? 'TRUE' : 'FALSE',

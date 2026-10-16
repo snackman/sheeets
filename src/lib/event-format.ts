@@ -79,14 +79,24 @@ export function guessTimezoneFromOffset(isoDate: string, fallback: string): stri
   return fallback;
 }
 
-const SHEET_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const SHEET_MONTHS_FULL = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+const SHEET_WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /**
- * Format a UTC ISO instant as the sheet's short date style in the given
- * timezone, e.g. "Oct 14" — matches `formatDateShort` in
- * `DateTimePicker.tsx`/`SubmitEventModal.tsx` (no weekday, no year), which
- * `insertEventRowSorted`'s `parseSheetDate` expects (§5.1, used by the
- * ingestion normalizer so Luma-sourced events sort correctly in the sheet).
+ * Format a UTC ISO instant as the sheet's curated date style in the given
+ * timezone, e.g. "Mon, October 5" — matches the live curated tabs' actual
+ * cell format (verified against "Token2049 2026"/gid 357353145, whose
+ * column A number-format pattern is literally `ddd", "mmmm" "d`). This
+ * value is written as plain TEXT (see `forceSheetText` in
+ * `google-sheets.ts`), not a real Sheets date value — a real date/time
+ * value is what broke `fetchEvents`'s header-row detection for
+ * ingest-published tabs (gviz infers the whole column as `date`/`datetime`
+ * once any row holds one, which makes the literal "Start Time"/"End Time"
+ * header cells in that column come back `null` instead of text).
+ * `insertEventRowSorted`'s `parseSheetDate` still parses this format fine.
  */
 export function sheetDateShort(isoInstant: string, timezone: string): string {
   const d = new Date(isoInstant);
@@ -99,14 +109,19 @@ export function sheetDateShort(isoInstant: string, timezone: string): string {
  *  (no timezone conversion) — for all-day / `VALUE=DATE` events, where
  *  converting through a UTC instant could shift the date by a day. */
 export function sheetDateShortFromISODate(isoDate: string): string {
-  const [, m, day] = isoDate.split('-').map(Number);
-  if (!m || !day) return '';
-  return `${SHEET_MONTHS[m - 1]} ${day}`;
+  const [y, m, day] = isoDate.split('-').map(Number);
+  if (!y || !m || !day) return '';
+  const d = new Date(Date.UTC(y, m - 1, day));
+  if (isNaN(d.getTime())) return '';
+  const weekday = SHEET_WEEKDAYS[d.getUTCDay()];
+  return `${weekday}, ${SHEET_MONTHS_FULL[m - 1]} ${day}`;
 }
 
 /**
- * Convert a 24h "HH:mm" string to "6:00 PM" — matches `format12Hour` in
- * `DateTimePicker.tsx`. Pulled out of `sheetTime12Hour` (Phase 3,
+ * Convert a 24h "HH:mm" string to "6:00p" — matches the live curated tabs'
+ * actual time cell text (verified against "Token2049 2026"/gid 357353145,
+ * whose Start/End Time columns are plain TEXT, e.g. "9:00a"/"11:30a", not a
+ * real Sheets time value). Pulled out of `sheetTime12Hour` (Phase 3,
  * plans/event-ingestion.md §7) so discovery sources that only have a local
  * 24h time string (no UTC instant to re-derive it from — e.g. a Telegram-
  * discovered Eventbrite/Partiful/Meetup/Posh link's `EventResult.startTime24`,
@@ -118,14 +133,15 @@ export function time12FromTime24(time24: string): string {
   if (!minutes) return '';
   const hours = Number(hoursStr);
   if (!Number.isFinite(hours)) return '';
-  const period = hours >= 12 ? 'PM' : 'AM';
+  const period = hours >= 12 ? 'p' : 'a';
   const h12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-  return `${h12}:${minutes} ${period}`;
+  return `${h12}:${minutes}${period}`;
 }
 
 /**
- * Format a UTC ISO instant as "6:00 PM" in the given timezone — matches
- * `format12Hour` in `DateTimePicker.tsx` applied to a 24h "HH:mm" string.
+ * Format a UTC ISO instant as "6:00p" in the given timezone — the curated
+ * tabs' plain-text time style (see `time12FromTime24`) applied to a 24h
+ * "HH:mm" string.
  */
 export function sheetTime12Hour(isoInstant: string, timezone: string): string {
   return time12FromTime24(formatTime24(isoInstant, timezone));

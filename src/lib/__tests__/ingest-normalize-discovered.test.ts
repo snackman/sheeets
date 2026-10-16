@@ -78,8 +78,8 @@ describe('normalizeExtractedEvent (Phase 3 §3.2 — Partiful/Eventbrite/Meetup/
     expect(normalized).not.toBeNull();
     expect(normalized!.name).toBe('Side Event Mixer');
     expect(normalized!.dateISO).toBe('2026-03-11');
-    expect(normalized!.startTime).toBe('7:00 PM');
-    expect(normalized!.endTime).toBe('9:00 PM');
+    expect(normalized!.startTime).toBe('7:00p');
+    expect(normalized!.endTime).toBe('9:00p');
     expect(normalized!.address).toBe('456 Side St');
     expect(normalized!.organizer).toBe('Side Collective');
     expect(normalized!.cost).toBe('$10');

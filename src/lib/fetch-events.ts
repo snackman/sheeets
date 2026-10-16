@@ -39,13 +39,27 @@ export function generateEventId(conference: string, date: string, startTime: str
   return `evt-${positiveHash}`;
 }
 
-/** Find the header row index (where col B = "Start Time") */
+/**
+ * Find the header row index (where col B = "Start Time", or — if gviz
+ * typed column B as `date`/`datetime`/`timeofday` because some data row
+ * below holds a real date/time value — col E = "Event Name" instead).
+ *
+ * Bug history: once gviz infers a column's type from the sheet's stored
+ * values, a literal text cell that doesn't fit that type (the "Start Time"
+ * header sitting in a column gviz now thinks is `datetime`) comes back as
+ * `v: null` with no `f`, so the col-B check alone can silently never match
+ * and the whole tab reads as zero events. Column E ("Event Name") is a
+ * free-text column that's never numeric/date-like, so it's typed `string`
+ * no matter what — a reliable fallback signal for the header row.
+ */
 function findHeaderIndex(rows: GVizRow[]): number {
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     if (!row.c) continue;
     const colB = getCellValue(row.c[1]).toLowerCase().trim();
     if (colB === 'start time') return i;
+    const colE = getCellValue(row.c[4]).toLowerCase().trim();
+    if (colE === 'event name') return i;
   }
   return -1;
 }
@@ -93,9 +107,13 @@ export async function fetchEvents(runtimeAddresses?: GeoAddressMap, tabs?: TabCo
     if (headerIdx === -1) {
       // If Google Sheets already consumed the header as column labels
       // (sheet has no promo rows above the header), all rows are data.
-      // headerIdx stays -1 so the loop below starts at index 0.
+      // headerIdx stays -1 so the loop below starts at index 0. Column
+      // labels are always the literal header text regardless of the
+      // column's inferred data type, but check col E too for the same
+      // reason `findHeaderIndex` does (belt and suspenders).
       const colBLabel = firstTableCols[1]?.label?.toLowerCase().trim();
-      if (colBLabel !== 'start time') continue;
+      const colELabel = firstTableCols[4]?.label?.toLowerCase().trim();
+      if (colBLabel !== 'start time' && colELabel !== 'event name') continue;
     }
 
     let currentDate = '';
