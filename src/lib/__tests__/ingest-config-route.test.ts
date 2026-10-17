@@ -572,6 +572,56 @@ describe('POST /api/admin/ingest/config: Phase 4 source kinds (§3.6/§3.7/§3.3
     expect(createSourceMock).toHaveBeenCalledWith(expect.objectContaining({ kind: 'sponsor_pages', config: { urls: [] } }));
   });
 
+  // Review finding, LOW item 6: always store an explicit `gid` so the same
+  // tab can't be added twice (once with no `gid` key, once with `gid: 0`
+  // — two different `ingest_sources_unique` discriminator values).
+  it('sheet_tracker: defaults gid to 0 (always stored explicitly) when the input has no gid', async () => {
+    const res = await POST(
+      postRequest({ password: 'config-test-password', conference: 'Test Conf', kind: 'sheet_tracker', input: '1MDHdcFf69FEk_Zm48mJmYjzgrePxxpptMyY7MlzMBgg' })
+    );
+    expect(res.status).toBe(200);
+    expect(createSourceMock).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'sheet_tracker', trust: 'discovery', config: { sheet_id: '1MDHdcFf69FEk_Zm48mJmYjzgrePxxpptMyY7MlzMBgg', gid: 0 } })
+    );
+  });
+
+  it('sheet_tracker: stores an explicit non-zero gid parsed from a full URL', async () => {
+    const res = await POST(
+      postRequest({
+        password: 'config-test-password',
+        conference: 'Test Conf',
+        kind: 'sheet_tracker',
+        input: 'https://docs.google.com/spreadsheets/d/1MDHdcFf69FEk_Zm48mJmYjzgrePxxpptMyY7MlzMBgg/edit#gid=101',
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(createSourceMock).toHaveBeenCalledWith(
+      expect.objectContaining({ config: { sheet_id: '1MDHdcFf69FEk_Zm48mJmYjzgrePxxpptMyY7MlzMBgg', gid: 101 } })
+    );
+  });
+
+  it('sheet_tracker: rejects an unparseable sheet id/URL', async () => {
+    const res = await POST(postRequest({ password: 'config-test-password', conference: 'Test Conf', kind: 'sheet_tracker', input: 'not a sheet' }));
+    expect(res.status).toBe(400);
+    expect(createSourceMock).not.toHaveBeenCalled();
+  });
+
+  it('mira_series: normalizes a miragather.com URL to its bare slug, always discovery trust', async () => {
+    const res = await POST(
+      postRequest({ password: 'config-test-password', conference: 'Test Conf', kind: 'mira_series', input: 'https://miragather.com/Devcon8SideEvents2026' })
+    );
+    expect(res.status).toBe(200);
+    expect(createSourceMock).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'mira_series', trust: 'discovery', config: { series_slug: 'Devcon8SideEvents2026' } })
+    );
+  });
+
+  it('mira_series: rejects an invalid slug', async () => {
+    const res = await POST(postRequest({ password: 'config-test-password', conference: 'Test Conf', kind: 'mira_series', input: '../etc/passwd' }));
+    expect(res.status).toBe(400);
+    expect(createSourceMock).not.toHaveBeenCalled();
+  });
+
   it('sponsor_pages: rejects input that is neither a URL nor "*"', async () => {
     const res = await POST(postRequest({ password: 'config-test-password', conference: 'Test Conf', kind: 'sponsor_pages', input: 'not a url' }));
     expect(res.status).toBe(400);

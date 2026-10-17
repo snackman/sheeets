@@ -22,9 +22,9 @@ import { SafeFetchError } from '../safe-fetch';
 import type { TabConfig } from '../conferences';
 import { allowlistedPlatformFor, type Platform } from './allowlist';
 import { normalizeDiscoveredLumaEvent, normalizeExtractedEvent, computeContentHash } from './normalize';
-import { matchAgainstSheetAndCandidates, type SheetLinkIndex, type DedupeSheetEvent, type DedupeCandidatePool } from './dedupe';
+import { matchAgainstSheetAndCandidates, STALE_NEGATIVE_CACHE_MS, type SheetLinkIndex, type DedupeSheetEvent, type DedupeCandidatePool } from './dedupe';
 import { dateWindowFilter, geoFilter, geocodeAddressCached } from './filters';
-import { getCachedLumaApiId, setCachedLumaApiId, getCandidateByKeyOrAltKey } from './db';
+import { getCachedLumaApiIdEntry, setCachedLumaApiId, getCandidateByKeyOrAltKey } from './db';
 import type { EnrichLimiter } from './enrich';
 import { scoreCandidate } from './scoring';
 import { ClassifierError } from './classifier';
@@ -251,15 +251,26 @@ function protectionOutcome(existing: IngestCandidateRow | null, ctx: DiscoveredL
  *
  * Resolution order:
  *  1. `ingest_link_cache` (shared with `buildSheetLinkIndex`'s sheet-link
- *     resolution — the same tri-state cache, keyed identically).
- *  2. On a cold cache, one live lookup via the SAME rate-limited
- *     `ctx.enrichLimiter` the main enrichment call below uses (`through
- *     the shared rate limiter`) — its full payload is returned too, so the
- *     caller can reuse it instead of enriching twice for the same event.
+ *     resolution — the same tri-state cache, keyed identically). A cached
+ *     MISS older than `STALE_NEGATIVE_CACHE_MS` is treated as "never
+ *     looked up" and re-resolved (#193's stale-negative-cache fix, applied
+ *     here too — this is the other write path into the same cache).
+ *  2. On a cold (or stale-miss) cache, one live lookup via the SAME
+ *     rate-limited `ctx.enrichLimiter` the main enrichment call below uses
+ *     — its full payload is returned too, so the caller can reuse it
+ *     instead of enriching twice for the same event.
+ *
+ * Bug: "exhausting the Luma limiter poisons `ingest_link_cache`" — a
+ * negative is only ever WRITTEN to the cache on `enrichResult`'s
+ * `'not_found'` (a CONFIRMED "Luma says this doesn't exist"). When the
+ * limiter is exhausted, or the lookup fails transiently (`'unavailable'`),
+ * this returns `null` (no resolution, same as before) WITHOUT writing
+ * anything — a stale/cold cache entry is left exactly as it was, so a
+ * later run with budget gets a fair, un-poisoned shot at it.
  *
  * Returns `null` (no resolution) if the slug doesn't parse, or Luma has no
- * api id for it (cached miss, or the live lookup came back empty) — the
- * original slug key is used as-is in that case, exactly as before this fix.
+ * api id for it (a confirmed miss, cached or fresh) — the original slug
+ * key is used as-is in that case, exactly as before this fix.
  */
 async function resolveLumaShortLinkKey(
   slugCanonicalKey: string,
@@ -269,16 +280,41 @@ async function resolveLumaShortLinkKey(
   const slug = getValidLumaSlug(url);
   if (!slug) return null;
 
-  let apiId = await getCachedLumaApiId(slugCanonicalKey);
-  // Only non-null when THIS call actually fetched live (a cache miss) —
-  // `apiId` is derived directly from it, so it's always consistent with
-  // the returned `canonicalKey`, and callers can reuse it instead of
-  // enriching the same event twice.
+  const cachedEntry = await getCachedLumaApiIdEntry(slugCanonicalKey);
+  let apiId: string | null | undefined;
+  if (cachedEntry === undefined) {
+    apiId = undefined;
+  } else if (cachedEntry.apiId !== null) {
+    apiId = cachedEntry.apiId;
+  } else {
+    const age = Date.now() - new Date(cachedEntry.resolvedAt).getTime();
+    apiId = age > STALE_NEGATIVE_CACHE_MS ? undefined : null;
+  }
+
+  // Only non-null when THIS call actually fetched live (a cache miss or a
+  // stale negative) — `apiId` is derived directly from it, so it's always
+  // consistent with the returned `canonicalKey`, and callers can reuse it
+  // instead of enriching the same event twice.
   let freshPayload: LumaEventPayload | null = null;
   if (apiId === undefined) {
-    freshPayload = await ctx.enrichLimiter.enrich({ slug });
-    apiId = freshPayload ? getLumaEventApiId(freshPayload) : null;
-    await setCachedLumaApiId(slugCanonicalKey, apiId);
+    const result = await ctx.enrichLimiter.enrichResult({ slug });
+    if (result.status === 'ok') {
+      freshPayload = result.payload;
+      apiId = getLumaEventApiId(result.payload);
+      // A genuine Luma response that just has no parseable api id in it is
+      // still a confirmed answer (apiId is legitimately null here) — cache it.
+      await setCachedLumaApiId(slugCanonicalKey, apiId);
+    } else if (result.status === 'not_found') {
+      apiId = null;
+      await setCachedLumaApiId(slugCanonicalKey, null);
+    } else {
+      // 'unavailable': limiter exhausted or a transient fetch error — we
+      // genuinely don't know. Never write a false negative; this call's
+      // `apiId` stays null so the caller falls through to "no resolution"
+      // for THIS attempt only, but the cache (if any row exists at all)
+      // is left completely untouched.
+      apiId = null;
+    }
   }
   if (!apiId) return null;
 

@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminPassword } from '@/lib/admin-auth';
 import { parseBody, IngestSourceProposalDecisionSchema } from '@/lib/api-validation';
-import { listSourceProposals, getSourceProposalById, decideSourceProposal, createSource, getProfile } from '@/lib/ingest/db';
+import { listSourceProposals, getSourceProposalById, decideSourceProposal, createLumaIcalSourceIdempotent, getProfile } from '@/lib/ingest/db';
 
 export const runtime = 'nodejs';
 
@@ -53,11 +53,16 @@ export async function POST(req: NextRequest) {
       // source is forced to `discovery` trust rather than refused outright.
       const profile = await getProfile(proposal.conference);
       const trust = profile?.auto_publish_enabled ? 'discovery' : 'curated';
-      await createSource({
+      // Review finding, LOW item 5: this calendar may already exist as a
+      // source (an admin added it by hand between the proposal's creation
+      // and this Accept click, or a prior Accept attempt created the
+      // source but failed before `decideSourceProposal` below) —
+      // idempotent, so that's a no-op success, not a 500.
+      await createLumaIcalSourceIdempotent({
         conference: proposal.conference,
-        kind: 'luma_ical',
         label: proposal.calendar_name || proposal.calendar_api_id,
-        config: { calendar_api_id: proposal.calendar_api_id, calendar_name: proposal.calendar_name },
+        calendar_api_id: proposal.calendar_api_id,
+        calendar_name: proposal.calendar_name,
         trust,
         added_by: 'admin',
       });

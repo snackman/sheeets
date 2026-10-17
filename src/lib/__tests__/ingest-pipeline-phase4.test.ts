@@ -246,6 +246,37 @@ vi.mock('../ingest/sources/telegram', () => ({
   isValidTelegramHandle: () => true,
 }));
 
+/** Controllable from a test — review finding, HIGH item 1 ("exhausting
+ *  the Luma limiter poisons ingest_link_cache", explicitly flagged against
+ *  the Telegram path too since it has its own inline loop predating
+ *  `runDiscoveredLinksBatch`). Default behavior (false/never-exhausted,
+ *  real-ish `enrich`/`enrichResult`) matches the real `LumaEnrichmentLimiter`
+ *  closely enough for every OTHER test in this file, which don't exercise
+ *  exhaustion at all. */
+let telegramEnrichLimiterExhausted = false;
+vi.mock('../ingest/enrich', () => ({
+  LumaEnrichmentLimiter: class {
+    get exhausted() {
+      return telegramEnrichLimiterExhausted;
+    }
+    async enrich() {
+      return null;
+    }
+    async enrichResult() {
+      return { status: 'unavailable' as const };
+    }
+  },
+  HourlyWindowLumaLimiter: class {
+    exhausted = false;
+    async enrich() {
+      return null;
+    }
+    async enrichResult() {
+      return { status: 'unavailable' as const };
+    }
+  },
+}));
+
 import { runSource } from '../ingest/pipeline';
 
 function makeXSource(cursor: Record<string, unknown> = {}) {
@@ -325,6 +356,7 @@ beforeEach(() => {
   isMeetupConfiguredMock.mockReset().mockReturnValue(true);
   resolveSponsorPageUrlsMock.mockReset();
   fetchSponsorPageLinksMock.mockReset();
+  telegramEnrichLimiterExhausted = false;
 });
 
 describe('runSource(x_account): cost accounting (re-review item 1, HIGH) and cursor/cost durability (item 2, MEDIUM)', () => {
@@ -600,5 +632,23 @@ describe('runSource(telegram_channel): persists LLM cost already spent when a LA
     expect(errorRun!.llm_input_tokens).toBe(100);
     expect(errorRun!.llm_output_tokens).toBe(20);
     expect(errorRun!.est_cost_usd).toBe(5);
+  });
+
+  // Review finding, HIGH item 1 ("exhausting the Luma limiter poisons
+  // ingest_link_cache ... also a live bug in the Telegram path, since
+  // discover.ts is shared"): Telegram's own inline loop must also stop
+  // once the shared Luma limiter is exhausted, rather than handing every
+  // remaining link to `processDiscoveredLink` and writing bogus error rows.
+  it('stops processing links once the Luma enrichment limiter is exhausted, marking the run partial', async () => {
+    makeTelegramSource();
+    parseTelegramChannelHtmlMock.mockReturnValueOnce([
+      { postRef: 'testchannel/1', url: 'https://t.me/testchannel/1', text: '', links: ['https://lu.ma/e1', 'https://lu.ma/e2'] },
+    ]);
+    telegramEnrichLimiterExhausted = true;
+
+    const result = await runSource('src-telegram', { trigger: 'cron' });
+
+    expect(processDiscoveredLinkMock).not.toHaveBeenCalled();
+    expect(result.status).toBe('partial');
   });
 });

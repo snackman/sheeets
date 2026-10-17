@@ -8,62 +8,80 @@ import {
   MIN_TOTAL_IN_WINDOW_EVENTS,
   type LumaCalendarItem,
 } from '../ingest/sources/calendar-discovery';
-import type { EnrichLimiter } from '../ingest/enrich';
+import type { EnrichLimiter, EnrichOutcome } from '../ingest/enrich';
 import type { IngestCandidateRow } from '../ingest/types';
 
 const getItemsFixture = JSON.parse(readFileSync(join(__dirname, 'fixtures', 'luma-calendar-get-items.json'), 'utf-8'));
 
-function makeCandidate(partial: Partial<IngestCandidateRow>): Pick<IngestCandidateRow, 'canonical_key' | 'event'> {
+function makeCandidate(partial: Partial<IngestCandidateRow>): Pick<IngestCandidateRow, 'canonical_key'> {
+  return { canonical_key: 'luma:evt-abc123', ...partial };
+}
+
+/** Minimal `EnrichLimiter` stub for these tests — `enrich`/`enrichResult`
+ *  both delegate to the SAME underlying fn so call-count assertions stay
+ *  simple; `exhausted` is always false (exhaustion has its own tests
+ *  elsewhere, e.g. `ingest-discover-calendars.test.ts`). */
+function stubLimiter(enrich: EnrichLimiter['enrich']): EnrichLimiter {
   return {
-    canonical_key: 'luma:evt-abc123',
-    event: { calendar: null } as IngestCandidateRow['event'],
-    ...partial,
-  } as Pick<IngestCandidateRow, 'canonical_key' | 'event'>;
+    enrich,
+    enrichResult: async (ref) => {
+      const payload = await enrich(ref);
+      return (payload ? { status: 'ok', payload } : { status: 'not_found' }) as EnrichOutcome;
+    },
+    exhausted: false,
+  };
 }
 
 describe('resolveCandidateCalendar', () => {
-  it('uses the cheap stored event.calendar.apiId path without calling the limiter', async () => {
-    const limiter: EnrichLimiter = { enrich: vi.fn(async () => null) };
-    const candidate = makeCandidate({
-      canonical_key: 'luma:evt-abc123',
-      event: { calendar: { apiId: 'cal-knownAlready', name: 'Known Calendar' } } as IngestCandidateRow['event'],
-    });
-    const resolved = await resolveCandidateCalendar(candidate, limiter);
-    expect(resolved).toEqual({ apiId: 'cal-knownAlready', name: 'Known Calendar', isPersonal: false });
-    expect(limiter.enrich).not.toHaveBeenCalled();
-  });
-
-  it('falls back to a live /event/get call (via the shared limiter) when no calendar is stored', async () => {
-    const limiter: EnrichLimiter = {
-      enrich: vi.fn(async () => ({
-        calendar: { api_id: 'cal-FU1X0TNBTO8ti2F', name: 'The Best Event', is_personal: false, personal_user_api_id: null },
-      }) as unknown as Awaited<ReturnType<EnrichLimiter['enrich']>>),
-    };
+  // Review finding, MEDIUM item 3 ("use the true hosting calendar"): this
+  // ALWAYS resolves live now — there is no more "cheap stored
+  // event.calendar.apiId" short-circuit, because that stored field is
+  // always the CURATED FEED's own calendar, not the event's true host, so
+  // trusting it meant a real, different host calendar could never be
+  // discovered for a `luma_ical` candidate.
+  it('resolves the live calendar for a Luma candidate via the shared limiter', async () => {
+    const enrich = vi.fn(async () => ({
+      calendar: { api_id: 'cal-FU1X0TNBTO8ti2F', name: 'The Best Event', is_personal: false, personal_user_api_id: null },
+    }) as unknown as Awaited<ReturnType<EnrichLimiter['enrich']>>);
+    const limiter = stubLimiter(enrich);
     const candidate = makeCandidate({ canonical_key: 'luma:evt-mHRDVyLOaHAfZ3t' });
     const resolved = await resolveCandidateCalendar(candidate, limiter);
-    expect(limiter.enrich).toHaveBeenCalledWith({ apiId: 'evt-mHRDVyLOaHAfZ3t' });
+    expect(enrich).toHaveBeenCalledWith({ apiId: 'evt-mHRDVyLOaHAfZ3t' });
     expect(resolved).toEqual({ apiId: 'cal-FU1X0TNBTO8ti2F', name: 'The Best Event', isPersonal: false });
   });
 
+  // Exactly the scenario this feature exists for: a candidate ingested via
+  // ONE calendar's feed (its stored `event.calendar.apiId`, if this test
+  // provided one, would point at that feed — irrelevant now) turns out to
+  // be truly HOSTED by a totally different calendar once resolved live.
+  it('resolves a DIFFERENT calendar than any feed the candidate might have been ingested through', async () => {
+    const enrich = vi.fn(async () => ({
+      calendar: { api_id: 'cal-TrueHost', name: 'True Host Calendar', is_personal: false, personal_user_api_id: null },
+    }) as unknown as Awaited<ReturnType<EnrichLimiter['enrich']>>);
+    const limiter = stubLimiter(enrich);
+    // This candidate's canonical key is all `resolveCandidateCalendar` is given.
+    const candidate = makeCandidate({ canonical_key: 'luma:evt-mHRDVyLOaHAfZ3t' });
+    const resolved = await resolveCandidateCalendar(candidate, limiter);
+    expect(resolved?.apiId).toBe('cal-TrueHost');
+  });
+
   it('flags a personal calendar via is_personal', async () => {
-    const limiter: EnrichLimiter = {
-      enrich: vi.fn(async () => ({
-        calendar: { api_id: 'cal-somePersonal', name: 'Jane Doe', is_personal: true, personal_user_api_id: 'usr-jane' },
-      }) as unknown as Awaited<ReturnType<EnrichLimiter['enrich']>>),
-    };
+    const limiter = stubLimiter(vi.fn(async () => ({
+      calendar: { api_id: 'cal-somePersonal', name: 'Jane Doe', is_personal: true, personal_user_api_id: 'usr-jane' },
+    }) as unknown as Awaited<ReturnType<EnrichLimiter['enrich']>>));
     const candidate = makeCandidate({ canonical_key: 'luma:evt-mHRDVyLOaHAfZ3t' });
     const resolved = await resolveCandidateCalendar(candidate, limiter);
     expect(resolved?.isPersonal).toBe(true);
   });
 
   it('returns null for a non-Luma canonical key', async () => {
-    const limiter: EnrichLimiter = { enrich: vi.fn(async () => null) };
+    const limiter = stubLimiter(vi.fn(async () => null));
     const candidate = makeCandidate({ canonical_key: 'eventbrite:12345' });
     expect(await resolveCandidateCalendar(candidate, limiter)).toBeNull();
   });
 
   it('returns null when the live lookup fails/returns nothing', async () => {
-    const limiter: EnrichLimiter = { enrich: vi.fn(async () => null) };
+    const limiter = stubLimiter(vi.fn(async () => null));
     const candidate = makeCandidate({ canonical_key: 'luma:evt-mHRDVyLOaHAfZ3t' });
     expect(await resolveCandidateCalendar(candidate, limiter)).toBeNull();
   });
@@ -112,33 +130,55 @@ describe('evaluateCalendarItems (threshold logic)', () => {
     return [
       { apiId: 'evt-mHRDVyLOaHAfZ3t', name: 'Afterdark', link: 'https://luma.com/event/evt-mHRDVyLOaHAfZ3t', dateISO: '2026-11-05', lat: 51.5072, lng: -0.1276 },
       { apiId: 'evt-9zQwErX2abCdEfG', name: 'Breakfast', link: 'https://luma.com/event/evt-9zQwErX2abCdEfG', dateISO: '2026-11-06', lat: 51.5074, lng: -0.1278 },
+      { apiId: 'evt-thirdInWindow', name: 'Lunch Mixer', link: 'https://luma.com/event/evt-thirdInWindow', dateISO: '2026-11-06', lat: 51.5073, lng: -0.1277 },
       { apiId: 'evt-outOfWindow1', name: 'Tokyo Meetup', link: null, dateISO: '2027-03-01', lat: 35.6762, lng: 139.6503 },
       { apiId: 'evt-noGeo1', name: 'Venue TBA', link: null, dateISO: '2026-11-05', lat: null, lng: null },
+      // No parseable api id at all — in-window, but can never be CONFIRMED
+      // new (review finding, MEDIUM item 2's second half).
+      { apiId: null, name: 'Unidentifiable Event', link: null, dateISO: '2026-11-05', lat: 51.5072, lng: -0.1276 },
     ];
   }
 
-  it('is eligible on >= 2 in-window events even when NONE are "new"', () => {
-    const existingKeys = new Set(['luma:evt-mhrdvyloahafz3t', 'luma:evt-9zqwerx2abcdefg']);
-    const evalResult = evaluateCalendarItems(items(), window, existingKeys);
-    expect(evalResult.inWindowCount).toBe(2); // Tokyo (out of window/area) and no-geo are both dropped.
+  // Review finding, MEDIUM item 2: thresholds raised from 1-new-or-2-total
+  // to 2-new-or-3-total.
+  it('is eligible on >= 3 in-window events even when NONE are "new"', () => {
+    const existingKeys = new Set(['luma:evt-mhrdvyloahafz3t', 'luma:evt-9zqwerx2abcdefg', 'luma:evt-thirdinwindow']);
+    const evalResult = evaluateCalendarItems(items().slice(0, 3), window, existingKeys);
+    expect(evalResult.inWindowCount).toBe(3);
     expect(evalResult.newCount).toBe(0);
     expect(evalResult.eligible).toBe(true);
-    expect(MIN_TOTAL_IN_WINDOW_EVENTS).toBe(2);
+    expect(MIN_TOTAL_IN_WINDOW_EVENTS).toBe(3);
   });
 
-  it('is eligible on >= 1 NEW in-window event even if the total in-window count is only 1', () => {
-    const onlyOneInWindow = items().slice(0, 1);
-    const evalResult = evaluateCalendarItems(onlyOneInWindow, window, new Set());
-    expect(evalResult.inWindowCount).toBe(1);
-    expect(evalResult.newCount).toBe(1);
+  it('is NOT eligible with only 2 in-window events, none of them new', () => {
+    const existingKeys = new Set(['luma:evt-mhrdvyloahafz3t', 'luma:evt-9zqwerx2abcdefg']);
+    const evalResult = evaluateCalendarItems(items().slice(0, 2), window, existingKeys);
+    expect(evalResult.inWindowCount).toBe(2);
+    expect(evalResult.newCount).toBe(0);
+    expect(evalResult.eligible).toBe(false);
+  });
+
+  it('is eligible on >= 2 NEW in-window events even if the total in-window count is only 2', () => {
+    const twoInWindow = items().slice(0, 2);
+    const evalResult = evaluateCalendarItems(twoInWindow, window, new Set());
+    expect(evalResult.inWindowCount).toBe(2);
+    expect(evalResult.newCount).toBe(2);
     expect(evalResult.eligible).toBe(true);
-    expect(MIN_NEW_IN_WINDOW_EVENTS).toBe(1);
+    expect(MIN_NEW_IN_WINDOW_EVENTS).toBe(2);
   });
 
-  it('is NOT eligible with 1 in-window event that is already a known candidate', () => {
-    const onlyOneInWindow = items().slice(0, 1);
-    const existingKeys = new Set(['luma:evt-mhrdvyloahafz3t']);
-    const evalResult = evaluateCalendarItems(onlyOneInWindow, window, existingKeys);
+  it('is NOT eligible with only 1 NEW in-window event (below the raised 2-new threshold) and fewer than 3 total', () => {
+    const existingKeys = new Set(['luma:evt-9zqwerx2abcdefg']);
+    const evalResult = evaluateCalendarItems(items().slice(0, 2), window, existingKeys);
+    expect(evalResult.inWindowCount).toBe(2);
+    expect(evalResult.newCount).toBe(1);
+    expect(evalResult.eligible).toBe(false);
+  });
+
+  it('an in-window item with no parseable api id counts toward inWindowCount but never toward newCount', () => {
+    const noApiIdItem = items()[5];
+    expect(noApiIdItem.apiId).toBeNull();
+    const evalResult = evaluateCalendarItems([noApiIdItem], window, new Set());
     expect(evalResult.inWindowCount).toBe(1);
     expect(evalResult.newCount).toBe(0);
     expect(evalResult.eligible).toBe(false);
@@ -146,11 +186,11 @@ describe('evaluateCalendarItems (threshold logic)', () => {
 
   it('drops events outside the date window or geo radius, and events with no coordinates', () => {
     const evalResult = evaluateCalendarItems(items(), window, new Set());
-    expect(evalResult.sample.map((s) => s.name)).toEqual(['Afterdark', 'Breakfast']);
+    expect(evalResult.sample.map((s) => s.name)).toEqual(['Afterdark', 'Breakfast', 'Lunch Mixer', 'Unidentifiable Event']);
   });
 
   it('is not eligible on zero in-window events', () => {
-    const evalResult = evaluateCalendarItems([items()[2], items()[3]], window, new Set());
+    const evalResult = evaluateCalendarItems([items()[3], items()[4]], window, new Set());
     expect(evalResult.eligible).toBe(false);
     expect(evalResult.inWindowCount).toBe(0);
   });

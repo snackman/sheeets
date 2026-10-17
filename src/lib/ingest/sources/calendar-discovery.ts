@@ -39,27 +39,28 @@ export interface ResolvedEventCalendar {
 }
 
 /**
- * Resolve one Luma candidate's true hosting calendar. Cheap path first:
- * `event->'calendar'->'apiId'` (the stored `NormalizedEvent.calendar`
- * field) when present — this is always the calendar a `luma_ical` source
- * fetched the event FROM (`normalize.ts#normalizeLumaEvent`), so it's only
- * ever an already-configured calendar, but checking it first means we
- * never spend a live call just to rediscover something we already know.
- * Every OTHER case (discovery-sourced candidates always have
- * `calendar: null` — `normalize.ts`'s discovered-link normalizers — and a
- * `luma_ical` candidate's event may genuinely be HOSTED by a different
- * calendar than the one we found it through) falls back to one
- * rate-limited `/event/get` call via the shared `limiter`.
+ * Resolve one Luma candidate's TRUE hosting calendar via one rate-limited
+ * `/event/get` call through the shared `limiter`.
+ *
+ * Review finding, MEDIUM item 3 ("use the true hosting calendar"): this
+ * used to short-circuit on the candidate's STORED `event.calendar.apiId`
+ * when present, reasoning that it was "cheap" — but for a `luma_ical`
+ * candidate, that stored field is always the calendar the CURATED FEED
+ * fetched the event FROM (`normalize.ts#normalizeLumaEvent` sets it to the
+ * source calendar, not anything Luma itself returns), which is by
+ * definition already a configured `ingest_sources` row. Trusting it meant
+ * a `luma_ical` candidate's event could NEVER surface a different, real
+ * host calendar — exactly the case this feature exists for (verified
+ * live: an event found via ETHDenver's own community calendar had its OWN
+ * `calendar.api_id` pointing at a completely different calendar, "The
+ * Best Event"). Always resolving live is the only way to see the event's
+ * actual calendar, for every candidate regardless of how it was first
+ * discovered.
  */
 export async function resolveCandidateCalendar(
-  candidate: Pick<IngestCandidateRow, 'canonical_key' | 'event'>,
+  candidate: Pick<IngestCandidateRow, 'canonical_key'>,
   limiter: EnrichLimiter
 ): Promise<ResolvedEventCalendar | null> {
-  const storedApiId = candidate.event?.calendar?.apiId;
-  if (storedApiId && LUMA_CALENDAR_ID_RE.test(storedApiId)) {
-    return { apiId: storedApiId, name: candidate.event.calendar?.name ?? null, isPersonal: false };
-  }
-
   const key = candidate.canonical_key;
   const evtApiId = key?.startsWith('luma:') ? key.slice('luma:'.length) : null;
   if (!evtApiId || !LUMA_EVENT_API_ID_RE.test(evtApiId)) return null;
@@ -139,10 +140,13 @@ export async function fetchLumaCalendarItems(calendarApiId: string): Promise<Lum
   return entries.map(toLumaCalendarItem).filter((e): e is LumaCalendarItem => e !== null);
 }
 
-/** Keep a calendar only with >= 1 in-window event that isn't already a
- *  candidate, OR >= 2 in-window events total (plan item 3's threshold). */
-export const MIN_NEW_IN_WINDOW_EVENTS = 1;
-export const MIN_TOTAL_IN_WINDOW_EVENTS = 2;
+/** Keep a calendar only with >= 2 in-window events that aren't already a
+ *  candidate, OR >= 3 in-window events total (review finding, MEDIUM item
+ *  2 — raised from the original 1-new-or-2-total thresholds, which
+ *  proposed a calendar too eagerly off a single coincidental in-window
+ *  event). */
+export const MIN_NEW_IN_WINDOW_EVENTS = 2;
+export const MIN_TOTAL_IN_WINDOW_EVENTS = 3;
 /** Cap how many sample events are stored as evidence per proposal. */
 const MAX_EVIDENCE_SAMPLES = 5;
 
@@ -194,7 +198,11 @@ export function evaluateCalendarItems(
     return geoCheck.pass === true;
   });
 
-  const newItems = inWindow.filter((item) => !item.apiId || !existingCandidateKeys.has(`luma:${item.apiId.toLowerCase()}`));
+  // Review finding, MEDIUM item 2: an item with no parseable api id can
+  // never be CONFIRMED new (we have no key to check against
+  // `existingCandidateKeys` at all) — it must not count toward `newCount`
+  // just because it's unmatchable. It still counts toward `inWindowCount`.
+  const newItems = inWindow.filter((item) => item.apiId && !existingCandidateKeys.has(`luma:${item.apiId.toLowerCase()}`));
 
   return {
     eligible: newItems.length >= MIN_NEW_IN_WINDOW_EVENTS || inWindow.length >= MIN_TOTAL_IN_WINDOW_EVENTS,

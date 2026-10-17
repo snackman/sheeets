@@ -51,6 +51,8 @@ vi.mock('../ingest/budget', () => ({
   checkMonthlyXBudget: vi.fn(async () => ({ spentUsd: 0, capUsd: 15, exceeded: false })),
 }));
 
+const listRecentCandidatesForDedupeMock = vi.fn(async (..._args: unknown[]) => [] as { id: string; canonical_key: string; event: unknown }[]);
+
 vi.mock('../ingest/db', () => ({
   getSource: vi.fn(async (id: string) => sourceRows.get(id) ?? null),
   getProfile: vi.fn(async () => defaultProfile),
@@ -61,7 +63,7 @@ vi.mock('../ingest/db', () => ({
     return row;
   }),
   updateCandidate: vi.fn(async () => {}),
-  listRecentCandidatesForDedupe: vi.fn(async () => []),
+  listRecentCandidatesForDedupe: (...a: unknown[]) => listRecentCandidatesForDedupeMock(...a),
   createRun: vi.fn(async () => {
     const run: FakeRunRow = { id: `run-${runRows.length + 1}`, status: 'running' };
     runRows.push(run);
@@ -133,6 +135,34 @@ vi.mock('../fetch-events-cached', () => ({
 
 vi.mock('../ingest/reconcile', () => ({
   reconcileConference: vi.fn(async () => ({ checked: 0, linked: 0, unpublishedExternal: 0, skipped: true })),
+}));
+
+/** Controllable from a test, read by the mocked `LumaEnrichmentLimiter`
+ *  below so `runDiscoveredLinksBatch`'s "stop once exhausted" check (review
+ *  finding, HIGH item 1) can be exercised through the real `runSource`
+ *  black-box path, without needing to export that internal helper. */
+let enrichLimiterExhausted = false;
+vi.mock('../ingest/enrich', () => ({
+  LumaEnrichmentLimiter: class {
+    get exhausted() {
+      return enrichLimiterExhausted;
+    }
+    async enrich() {
+      return null;
+    }
+    async enrichResult() {
+      return { status: 'unavailable' as const };
+    }
+  },
+  HourlyWindowLumaLimiter: class {
+    exhausted = false;
+    async enrich() {
+      return null;
+    }
+    async enrichResult() {
+      return { status: 'unavailable' as const };
+    }
+  },
 }));
 
 let processDiscoveredLinkCalls: { url: string; sourceKind: string; sourceRef: string | null }[];
@@ -212,6 +242,8 @@ beforeEach(() => {
   processDiscoveredLinkMock.mockClear();
   fetchMiraSeriesEventsMock.mockReset();
   fetchSheetTrackerLinksMock.mockReset();
+  listRecentCandidatesForDedupeMock.mockReset().mockResolvedValue([]);
+  enrichLimiterExhausted = false;
 });
 
 describe('runSource(mira_series)', () => {
@@ -283,5 +315,126 @@ describe('runSource(sheet_tracker)', () => {
     expect(upsertedCandidates).toHaveLength(0);
     expect(result.previews).toHaveLength(1);
     expect(result.previews?.[0].canonical_key).toBe('https://luma.com/bittensor-hh');
+  });
+});
+
+// Review finding, HIGH ("exhausting the Luma limiter poisons
+// ingest_link_cache"): once the shared Luma limiter is exhausted,
+// `runDiscoveredLinksBatch` must stop rather than keep handing links to
+// `processDiscoveredLink` (which would otherwise write bogus `status:
+// 'error'` rows for links it never actually got a fair shot at).
+describe('runSource(mira_series / sheet_tracker): stops once the Luma enrichment limiter is exhausted', () => {
+  it('mira_series: stops after the first link once the limiter reports exhausted, marking the run partial', async () => {
+    makeMiraSource();
+    fetchMiraSeriesEventsMock.mockResolvedValue([
+      { id: 'rec1', name: 'First', startDate: '2026-11-01', endDate: null, city: 'London', website: 'https://luma.com/first', tags: null, seriesSlug: 'Devcon8SideEvents2026' },
+      { id: 'rec2', name: 'Second', startDate: '2026-11-02', endDate: null, city: 'London', website: 'https://luma.com/second', tags: null, seriesSlug: 'Devcon8SideEvents2026' },
+      { id: 'rec3', name: 'Third', startDate: '2026-11-03', endDate: null, city: 'London', website: 'https://luma.com/third', tags: null, seriesSlug: 'Devcon8SideEvents2026' },
+    ]);
+    // Exhausted from the very start — nothing should even be attempted.
+    enrichLimiterExhausted = true;
+
+    const result = await runSource('src-mira', { trigger: 'manual' });
+
+    expect(processDiscoveredLinkCalls).toHaveLength(0);
+    expect(result.status).toBe('partial');
+  });
+
+  it('mira_series: stops mid-batch, after the link that tips the limiter over, not before it', async () => {
+    makeMiraSource();
+    fetchMiraSeriesEventsMock.mockResolvedValue([
+      { id: 'rec1', name: 'First', startDate: '2026-11-01', endDate: null, city: 'London', website: 'https://luma.com/first', tags: null, seriesSlug: 'Devcon8SideEvents2026' },
+      { id: 'rec2', name: 'Second', startDate: '2026-11-02', endDate: null, city: 'London', website: 'https://luma.com/second', tags: null, seriesSlug: 'Devcon8SideEvents2026' },
+      { id: 'rec3', name: 'Third', startDate: '2026-11-03', endDate: null, city: 'London', website: 'https://luma.com/third', tags: null, seriesSlug: 'Devcon8SideEvents2026' },
+    ]);
+    // Becomes exhausted only after the first link has been processed.
+    enrichLimiterExhausted = false;
+    processDiscoveredLinkMock.mockImplementationOnce(async (url, _existing, ctx) => {
+      processDiscoveredLinkCalls.push({ url, sourceKind: ctx.sourceKind, sourceRef: ctx.sourceRef });
+      enrichLimiterExhausted = true;
+      return {
+        kind: 'row',
+        row: { conference: ctx.conference, canonical_key: url, alt_keys: [], source_id: null, source_kind: ctx.sourceKind, sources: [], source_ref: ctx.sourceRef, event: { name: url, link: url, dateISO: '2027-03-10' }, content_hash: `h-${url}`, status: 'queued' },
+        classified: true,
+        inputTokens: 1,
+        outputTokens: 1,
+        costUsd: 0.001,
+      };
+    });
+
+    const result = await runSource('src-mira', { trigger: 'manual' });
+
+    expect(processDiscoveredLinkCalls).toHaveLength(1);
+    expect(result.status).toBe('partial');
+  });
+
+  it('sheet_tracker: stops once exhausted too (same shared runDiscoveredLinksBatch code path)', async () => {
+    makeSheetTrackerSource();
+    fetchSheetTrackerLinksMock.mockResolvedValue(['https://luma.com/a', 'https://luma.com/b']);
+    enrichLimiterExhausted = true;
+
+    const result = await runSource('src-sheet', { trigger: 'manual' });
+
+    expect(processDiscoveredLinkCalls).toHaveLength(0);
+    expect(result.status).toBe('partial');
+  });
+});
+
+// Review finding, HIGH ("...so the same top links don't starve the tail
+// every run"): links not already known as a candidate for this conference
+// are tried BEFORE ones that are, so a big source's budget isn't
+// re-spent re-enriching the same already-seen links at the front of the
+// list every single run.
+describe('runSource(mira_series): orders unseen links before already-known ones', () => {
+  it('processes an unseen link before one that is already a known candidate, even though the known one appears first in the source list', async () => {
+    makeMiraSource();
+    // "https://luma.com/already-known" normalizes to canonical key
+    // "luma:already-known" — seed otherCandidates with exactly that, so
+    // the OTHER link ("brand-new") is the one treated as unseen.
+    listRecentCandidatesForDedupeMock.mockResolvedValue([
+      { id: 'cand-1', canonical_key: 'luma:already-known', event: { name: 'Old' } },
+    ]);
+    fetchMiraSeriesEventsMock.mockResolvedValue([
+      { id: 'rec1', name: 'Already known', startDate: '2026-11-01', endDate: null, city: 'London', website: 'https://luma.com/already-known', tags: null, seriesSlug: 'Devcon8SideEvents2026' },
+      { id: 'rec2', name: 'Brand new', startDate: '2026-11-02', endDate: null, city: 'London', website: 'https://luma.com/brand-new', tags: null, seriesSlug: 'Devcon8SideEvents2026' },
+    ]);
+
+    await runSource('src-mira', { trigger: 'manual' });
+
+    expect(processDiscoveredLinkCalls.map((c) => c.url)).toEqual(['https://luma.com/brand-new', 'https://luma.com/already-known']);
+  });
+});
+
+// Review finding, MEDIUM ("a dedicated, larger budget for these big-list
+// sources, with a per-run cap on links"): a source that returns more links
+// than one run should attempt is truncated, not processed in full.
+describe('runSource(mira_series / sheet_tracker): per-run link cap for big-list sources', () => {
+  it('mira_series: truncates to the per-run cap, keeping unseen links over already-known ones', async () => {
+    makeMiraSource();
+    // One already-known link, plus more unseen links than the cap allows.
+    listRecentCandidatesForDedupeMock.mockResolvedValue([
+      { id: 'cand-1', canonical_key: 'luma:already-known', event: { name: 'Old' } },
+    ]);
+    const unseenCount = 160; // above BIG_LIST_SOURCE_MAX_LINKS_PER_RUN (150)
+    const events = Array.from({ length: unseenCount }, (_, i) => ({
+      id: `rec${i}`,
+      name: `Event ${i}`,
+      startDate: '2026-11-01',
+      endDate: null,
+      city: 'London',
+      website: `https://luma.com/unseen-${i}`,
+      tags: null,
+      seriesSlug: 'Devcon8SideEvents2026',
+    }));
+    events.push({ id: 'recKnown', name: 'Already known', startDate: '2026-11-01', endDate: null, city: 'London', website: 'https://luma.com/already-known', tags: null, seriesSlug: 'Devcon8SideEvents2026' });
+    fetchMiraSeriesEventsMock.mockResolvedValue(events);
+
+    await runSource('src-mira', { trigger: 'manual' });
+
+    expect(processDiscoveredLinkCalls.length).toBe(150);
+    // The cap truncates from the END of the unseen-first-ordered list, so
+    // the already-known link (sorted last) never gets a turn, and every
+    // processed link is one of the unseen ones.
+    expect(processDiscoveredLinkCalls.some((c) => c.url === 'https://luma.com/already-known')).toBe(false);
   });
 });

@@ -1,8 +1,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+const { LumaFetchErrorMock } = vi.hoisted(() => ({
+  LumaFetchErrorMock: class LumaFetchError extends Error {
+    constructor(
+      message: string,
+      public readonly code: 'not_found' | 'invalid' | 'upstream' = 'upstream'
+    ) {
+      super(message);
+      this.name = 'LumaFetchError';
+    }
+  },
+}));
+
 vi.mock('../luma-server', () => ({
   fetchLumaEvent: vi.fn(async ({ slug }: { slug?: string; apiId?: string }) => ({ event: { api_id: `evt-${slug ?? 'x'}` } })),
-  LumaFetchError: class LumaFetchError extends Error {},
+  LumaFetchError: LumaFetchErrorMock,
 }));
 
 import { LumaEnrichmentLimiter, HourlyWindowLumaLimiter } from '../ingest/enrich';
@@ -10,6 +22,44 @@ import { fetchLumaEvent } from '../luma-server';
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+// Review finding, HIGH ("exhausting the Luma limiter poisons
+// ingest_link_cache"): `enrichResult` must let a caller tell a CONFIRMED
+// Luma "not found" apart from "we genuinely don't know" (exhausted budget
+// or a transient error) — only the former is safe to cache as a negative.
+describe('LumaEnrichmentLimiter#enrichResult', () => {
+  it('returns {status: "ok", payload} on a successful lookup', async () => {
+    const limiter = new LumaEnrichmentLimiter(5, 0);
+    const result = await limiter.enrichResult({ slug: 'a' });
+    expect(result.status).toBe('ok');
+    if (result.status === 'ok') expect(result.payload).toEqual({ event: { api_id: 'evt-a' } });
+  });
+
+  it('returns {status: "not_found"} ONLY for a confirmed Luma 404 (LumaFetchError code "not_found")', async () => {
+    (fetchLumaEvent as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new LumaFetchErrorMock('gone', 'not_found'));
+    const limiter = new LumaEnrichmentLimiter(5, 0);
+    expect(await limiter.enrichResult({ slug: 'a' })).toEqual({ status: 'not_found' });
+  });
+
+  it('returns {status: "unavailable"} (never "not_found") for a transient/invalid LumaFetchError', async () => {
+    (fetchLumaEvent as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new LumaFetchErrorMock('network blip', 'upstream'));
+    const limiter = new LumaEnrichmentLimiter(5, 0);
+    expect(await limiter.enrichResult({ slug: 'a' })).toEqual({ status: 'unavailable' });
+  });
+
+  it('returns {status: "unavailable"} once the limiter is exhausted, WITHOUT calling fetchLumaEvent at all', async () => {
+    const limiter = new LumaEnrichmentLimiter(0, 0);
+    expect(limiter.exhausted).toBe(true);
+    expect(await limiter.enrichResult({ slug: 'a' })).toEqual({ status: 'unavailable' });
+    expect(fetchLumaEvent).not.toHaveBeenCalled();
+  });
+
+  it('enrich() collapses both "not_found" and "unavailable" to null, same as before', async () => {
+    (fetchLumaEvent as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new LumaFetchErrorMock('gone', 'not_found'));
+    const limiter = new LumaEnrichmentLimiter(5, 0);
+    expect(await limiter.enrich({ slug: 'a' })).toBeNull();
+  });
 });
 
 describe('LumaEnrichmentLimiter', () => {

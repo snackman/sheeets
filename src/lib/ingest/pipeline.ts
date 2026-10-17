@@ -920,13 +920,19 @@ async function processTelegramSource(args: {
   let hitDeadline = false;
 
   outer: for (const message of messages) {
-    if (Date.now() > deadline) {
+    if (Date.now() > deadline || enrichLimiter.exhausted) {
       hitDeadline = true;
       break;
     }
     const links = Array.from(new Set(message.links)).filter(isAllowlistedEventLink);
     for (const url of links) {
-      if (Date.now() > deadline) {
+      // Review finding, HIGH ("exhausting the Luma limiter poisons
+      // ingest_link_cache"): stop rather than let `processDiscoveredLink`
+      // fall through to its generic enrichment-failure handling and write
+      // a bogus `status: 'error'` row for a link we never actually tried
+      // — same fix as `runDiscoveredLinksBatch`'s doc comment, applied
+      // here since Telegram predates that helper and has its own loop.
+      if (Date.now() > deadline || enrichLimiter.exhausted) {
         hitDeadline = true;
         break outer;
       }
@@ -1057,10 +1063,16 @@ interface DiscoverySourceRunContext {
 async function buildDiscoverySourceContext(
   source: Awaited<ReturnType<typeof getSource>>,
   profile: IngestProfileRow,
-  tab: TabConfig
+  tab: TabConfig,
+  opts: { enrichLimiterCap?: number } = {}
 ): Promise<DiscoverySourceRunContext> {
   const src = source!;
-  const enrichLimiter = new LumaEnrichmentLimiter(100, 1000);
+  // Review finding, MEDIUM ("a dedicated, larger budget for these big-list
+  // sources"): Mira series / sheet trackers can return far more candidate
+  // links in one fetch than X/Meetup/sponsor-pages ever do (a single Mira
+  // series page can list hundreds of events) — those two callers pass a
+  // higher cap; every other caller keeps the original default of 100.
+  const enrichLimiter = new LumaEnrichmentLimiter(opts.enrichLimiterCap ?? 100, 1000);
   const linkFetchLimiter = new PacedLinkLimiter(30, 500);
   const resolveSlugViaLimiter = async (slug: string): Promise<string | null> => {
     const payload = await enrichLimiter.enrich({ slug });
@@ -1158,6 +1170,29 @@ function hasAnyAllowlistedLink(urls: string[]): boolean {
  * a value itself, specifically so a LATER candidate throwing still leaves
  * every EARLIER candidate's already-billed cost visible to `runSource`'s
  * `catch` block, which reads the same object directly.
+ *
+ * Review finding, HIGH ("exhausting the Luma limiter poisons
+ * ingest_link_cache", also flagged against the Telegram path since
+ * `discover.ts` is shared): once `args.ctx.enrichLimiter.exhausted`, this
+ * loop STOPS rather than keeps calling `processDiscoveredLink` for every
+ * remaining url — before this fix, a brand-new Luma link hitting an
+ * exhausted limiter fell through to `processDiscoveredLink`'s generic
+ * "enrichment failed, no existing candidate" branch and got written as a
+ * bogus `status: 'error'` row keyed on its SLUG (not even its stable
+ * `evt-…` id, since resolution itself never ran) — pure noise for an admin,
+ * and a wasted write for something that was never actually tried. Leaving
+ * it unprocessed means the NEXT run picks it up for real.
+ *
+ * Also orders `urls` so links NOT already a known candidate for this
+ * conference (per `args.ctx.otherCandidates`, loaded once at the top of
+ * the run) are tried BEFORE ones that are — otherwise a big, stably-ordered
+ * list (a Mira series, a sheet tracker) would re-spend the Luma budget
+ * re-enriching the same already-seen links at the front every single run
+ * (enrichment happens before the content-hash-unchanged check, so even a
+ * no-op re-visit costs a real Luma call) and the genuinely new tail would
+ * starve forever. Once a link is successfully processed it becomes "seen"
+ * for the NEXT run, so this naturally rotates through a big source's full
+ * list over successive runs without needing a separate persisted offset.
  */
 async function runDiscoveredLinksBatch(
   urls: string[],
@@ -1182,6 +1217,12 @@ async function runDiscoveredLinksBatch(
      *  drift apart. */
     costAcc: CostAccumulator;
     llmCallsThisRunRef: { value: number };
+    /** Cap on how many links THIS call will even attempt, applied AFTER
+     *  the unseen-first ordering (so truncation drops already-seen links
+     *  first) — a big-list source (Mira, a sheet tracker) shouldn't be
+     *  allowed to spend an entire run's time/budget on one fetch.
+     *  Undefined (every other caller) means no cap. */
+    maxLinksPerRun?: number;
   }
 ): Promise<{ hitDeadline: boolean }> {
   const src = args.source!;
@@ -1190,8 +1231,21 @@ async function runDiscoveredLinksBatch(
     args.llmCallsThisRunRef.value < args.profile.max_llm_calls_per_run;
 
   const allowlisted = Array.from(new Set(urls)).filter(isAllowlistedEventLink);
+  const knownKeys = new Set(args.ctx.otherCandidates.map((c) => c.canonical_key));
+  const unseen: string[] = [];
+  const seen: string[] = [];
   for (const url of allowlisted) {
+    const key = normalizeEventLink(url);
+    (key && knownKeys.has(key) ? seen : unseen).push(url);
+  }
+  let ordered = [...unseen, ...seen];
+  if (args.maxLinksPerRun !== undefined) ordered = ordered.slice(0, args.maxLinksPerRun);
+
+  for (const url of ordered) {
     if (Date.now() > args.deadline) return { hitDeadline: true };
+    // See this function's doc comment — stop rather than create bogus
+    // error rows for links we never actually got to try.
+    if (args.ctx.enrichLimiter.exhausted) return { hitDeadline: true };
 
     const cheapKey = normalizeEventLink(url);
     const existing = cheapKey ? await getCandidateByKeyOrAltKey(src.conference, cheapKey) : null;
@@ -1615,6 +1669,18 @@ async function processSponsorPagesSource(args: {
   };
 }
 
+// Review finding, MEDIUM ("a dedicated, larger budget for these big-list
+// sources, with a per-run cap on links"): Mira series pages and sheet
+// trackers can list far more candidate links in one fetch than any other
+// discovery source (a single Mira series can have hundreds of events) —
+// a bigger Luma-enrichment budget plus a hard per-run cap on how many
+// links are even attempted, so one huge source can't burn an entire run
+// on itself. Combined with `runDiscoveredLinksBatch`'s unseen-first
+// ordering, this rotates through a big source's full list over
+// successive runs instead of the same front-of-list links winning forever.
+const BIG_LIST_SOURCE_ENRICH_LIMITER_CAP = 200;
+const BIG_LIST_SOURCE_MAX_LINKS_PER_RUN = 150;
+
 /**
  * Mira (miragather.com) series source: one series page's `mainEvents` +
  * `sideEvents`, each event's `website` link run through the shared
@@ -1652,7 +1718,7 @@ async function processMiraSource(args: {
   }
 
   const budgetStatus = await checkMonthlyBudget();
-  const ctx = await buildDiscoverySourceContext(source, profile, tab);
+  const ctx = await buildDiscoverySourceContext(source, profile, tab, { enrichLimiterCap: BIG_LIST_SOURCE_ENRICH_LIMITER_CAP });
   const llmCallsThisRunRef = { value: 0 };
   const { hitDeadline } = await runDiscoveredLinksBatch(candidateUrls, {
     source,
@@ -1668,6 +1734,7 @@ async function processMiraSource(args: {
     budgetStatus,
     costAcc,
     llmCallsThisRunRef,
+    maxLinksPerRun: BIG_LIST_SOURCE_MAX_LINKS_PER_RUN,
   });
 
   return {
@@ -1714,7 +1781,7 @@ async function processSheetTrackerSource(args: {
   }
 
   const budgetStatus = await checkMonthlyBudget();
-  const ctx = await buildDiscoverySourceContext(source, profile, tab);
+  const ctx = await buildDiscoverySourceContext(source, profile, tab, { enrichLimiterCap: BIG_LIST_SOURCE_ENRICH_LIMITER_CAP });
   const llmCallsThisRunRef = { value: 0 };
   const { hitDeadline } = await runDiscoveredLinksBatch(candidateUrls, {
     source,
@@ -1730,6 +1797,7 @@ async function processSheetTrackerSource(args: {
     budgetStatus,
     costAcc,
     llmCallsThisRunRef,
+    maxLinksPerRun: BIG_LIST_SOURCE_MAX_LINKS_PER_RUN,
   });
 
   return {

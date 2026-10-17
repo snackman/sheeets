@@ -3,7 +3,7 @@
 // every function here must run server-side with SUPABASE_SERVICE_ROLE_KEY.
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { getDefaultProfile } from './profiles';
-import { FINAL_CANDIDATE_STATUSES } from './types';
+import { FINAL_CANDIDATE_STATUSES, THEME_REJECT_REASONS } from './types';
 import type {
   CandidateRoute,
   CandidateStatus,
@@ -368,6 +368,50 @@ export async function createSource(row: {
   const { data, error } = await supabase.from('ingest_sources').insert(row).select('*').single();
   if (error) throw new Error(`Failed to create ingest source: ${error.message}`);
   return data as IngestSourceRow;
+}
+
+/**
+ * Create a curated `luma_ical` source for a calendar, or — if one already
+ * exists for this exact (conference, calendar_api_id) pair (collided on
+ * `ingest_sources_unique`, e.g. an admin manually added it between a
+ * proposal's creation and its Accept, or a previous Accept attempt
+ * partially succeeded) — return the EXISTING row instead of throwing.
+ * Same "insert, tolerate 23505, re-select" idiom as
+ * `getOrCreateHostSubmissionSource`. Used by the "Accept a calendar
+ * proposal" flow (review finding, LOW item 5), so accepting an
+ * already-configured calendar is a no-op success, not a 500.
+ */
+export async function createLumaIcalSourceIdempotent(row: {
+  conference: string;
+  label: string;
+  calendar_api_id: string;
+  calendar_name: string | null;
+  trust: 'curated' | 'host' | 'discovery';
+  added_by?: string;
+}): Promise<IngestSourceRow> {
+  const supabase = getIngestSupabase();
+  const { data, error } = await supabase
+    .from('ingest_sources')
+    .insert({
+      conference: row.conference,
+      kind: 'luma_ical',
+      label: row.label,
+      config: { calendar_api_id: row.calendar_api_id, calendar_name: row.calendar_name },
+      trust: row.trust,
+      added_by: row.added_by ?? 'admin',
+    })
+    .select('*')
+    .single();
+  if (!error) return data as IngestSourceRow;
+
+  if ((error as { code?: string }).code === '23505') {
+    const existingSources = await listSources(row.conference);
+    const existing = existingSources.find(
+      (s) => s.kind === 'luma_ical' && (s.config as { calendar_api_id?: string }).calendar_api_id === row.calendar_api_id
+    );
+    if (existing) return existing;
+  }
+  throw new Error(`Failed to create ingest source: ${error.message}`);
 }
 
 export async function updateSource(id: string, patch: Partial<IngestSourceRow>): Promise<void> {
@@ -1167,7 +1211,14 @@ export async function listRecentLabelMismatches(
 /** Luma candidates for a conference (any status, any source kind) — the
  *  pool `discover-calendars.ts` walks to find each event's true hosting
  *  calendar. Capped generously; the caller (the daily job) applies its own
- *  rate-limited-call and deadline caps on top of this. */
+ *  rate-limited-call and deadline caps on top of this.
+ *
+ *  Review finding, MEDIUM item 2: excludes a candidate an admin already
+ *  rejected as `off_theme` or `spam` (`THEME_REJECT_REASONS`) — that's a
+ *  bad signal that its calendar is "worth proposing" as a new source, so
+ *  it's dropped from the pool entirely rather than letting its calendar
+ *  get resolved/evaluated at all. Filtered client-side (not in the
+ *  query) since this list is already capped to `limit` rows. */
 export async function listLumaCandidatesForConference(conference: string, limit = 500): Promise<IngestCandidateRow[]> {
   const supabase = getIngestSupabase();
   const { data, error } = await supabase
@@ -1178,27 +1229,47 @@ export async function listLumaCandidatesForConference(conference: string, limit 
     .order('last_seen_at', { ascending: false })
     .limit(limit);
   if (error) throw new Error(`Failed to list Luma candidates: ${error.message}`);
-  return (data as IngestCandidateRow[]) ?? [];
+  return ((data as IngestCandidateRow[]) ?? []).filter(
+    (c) => !(c.status === 'rejected' && c.reject_reason && (THEME_REJECT_REASONS as readonly string[]).includes(c.reject_reason))
+  );
 }
+
+/** Rows per page for `listKnownLumaCandidateKeys`'s pagination (review
+ *  finding, LOW item 4 — PostgREST's own default row cap is 1000, so a
+ *  conference with more Luma candidates than that silently lost everything
+ *  past the first page). */
+const KNOWN_LUMA_KEYS_PAGE_SIZE = 1000;
+/** Hard ceiling on total pages fetched, so a pathological conference can't
+ *  turn this into an unbounded loop. 50 * 1000 rows is far more than any
+ *  real conference's Luma candidate pool. */
+const KNOWN_LUMA_KEYS_MAX_PAGES = 50;
 
 /** Every `luma:…` canonical/alt key already known for a conference,
  *  regardless of status — used to tell "genuinely new" calendar events
  *  apart from ones we've already discovered (possibly already rejected)
  *  through some other source. Deliberately unfiltered by status (unlike
  *  `listRecentCandidatesForDedupe`): an already-`rejected` candidate is
- *  still "already discovered", not new. */
+ *  still "already discovered", not new. Pages past PostgREST's 1000-row
+ *  default limit (review finding, LOW item 4). */
 export async function listKnownLumaCandidateKeys(conference: string): Promise<Set<string>> {
   const supabase = getIngestSupabase();
-  const { data, error } = await supabase
-    .from('ingest_candidates')
-    .select('canonical_key, alt_keys')
-    .eq('conference', conference)
-    .like('canonical_key', 'luma:%');
-  if (error) throw new Error(`Failed to list known Luma candidate keys: ${error.message}`);
   const keys = new Set<string>();
-  for (const row of (data ?? []) as { canonical_key: string; alt_keys: string[] | null }[]) {
-    keys.add(row.canonical_key);
-    for (const alt of row.alt_keys ?? []) keys.add(alt);
+  for (let page = 0; page < KNOWN_LUMA_KEYS_MAX_PAGES; page++) {
+    const from = page * KNOWN_LUMA_KEYS_PAGE_SIZE;
+    const to = from + KNOWN_LUMA_KEYS_PAGE_SIZE - 1;
+    const { data, error } = await supabase
+      .from('ingest_candidates')
+      .select('canonical_key, alt_keys')
+      .eq('conference', conference)
+      .like('canonical_key', 'luma:%')
+      .range(from, to);
+    if (error) throw new Error(`Failed to list known Luma candidate keys: ${error.message}`);
+    const rows = (data ?? []) as { canonical_key: string; alt_keys: string[] | null }[];
+    for (const row of rows) {
+      keys.add(row.canonical_key);
+      for (const alt of row.alt_keys ?? []) keys.add(alt);
+    }
+    if (rows.length < KNOWN_LUMA_KEYS_PAGE_SIZE) break; // last page.
   }
   return keys;
 }

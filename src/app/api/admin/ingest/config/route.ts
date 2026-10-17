@@ -398,17 +398,24 @@ export async function POST(req: NextRequest) {
 
     // A `sheet_tracker` source is ALWAYS discovery trust. Accepts a bare
     // sheet id or a full spreadsheet URL (optionally with `gid=`) — see
-    // `parseSheetTrackerInput`.
+    // `parseSheetTrackerInput`. Review finding, LOW item 6: always store an
+    // explicit `gid` (defaulting to 0, same default `pipeline.ts` reads
+    // back) rather than omitting the key when the admin didn't type one —
+    // otherwise the SAME tab added once without a gid and once with an
+    // explicit `gid=0` produces two different `ingest_sources_unique`
+    // discriminator values (`coalesce(config->>'gid','')` sees `''` vs
+    // `'0'`) and the same tab can be added twice.
     if (kind === 'sheet_tracker') {
       const parsed = parseSheetTrackerInput(input);
       if (!parsed) {
         return NextResponse.json({ error: 'Invalid Google Sheet. Use a sheet id or a docs.google.com/spreadsheets/d/<id>/... link.' }, { status: 400 });
       }
+      const gid = parsed.gid ?? 0;
       const source = await createSource({
         conference,
         kind,
-        label: label || `Sheet ${parsed.sheetId.slice(0, 8)}…${parsed.gid != null ? ` (gid ${parsed.gid})` : ''}`,
-        config: { sheet_id: parsed.sheetId, ...(parsed.gid != null ? { gid: parsed.gid } : {}) },
+        label: label || `Sheet ${parsed.sheetId.slice(0, 8)}… (gid ${gid})`,
+        config: { sheet_id: parsed.sheetId, gid },
         trust: 'discovery',
         added_by: 'admin',
       });
