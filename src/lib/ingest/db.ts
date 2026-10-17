@@ -938,6 +938,31 @@ export async function setCachedLumaApiId(linkKey: string, apiId: string | null):
   if (error) throw new Error(`Failed to write link cache: ${error.message}`);
 }
 
+/** A cache row's api id AND when it was resolved — `getCachedLumaApiId`
+ *  collapses away `resolved_at`, which is fine for the "already resolved,
+ *  found an id" case but not for a cached MISS: a stale negative is
+ *  indistinguishable from a trustworthy one once the timestamp is gone.
+ *  Used by `dedupe.ts#buildSheetLinkIndex` to decide whether a cached miss
+ *  is still worth trusting (2026-10-16 incident: a buggy script wrote 63
+ *  false "no api id" rows, which hid real duplicates from the sheet-link
+ *  index for as long as those rows existed). */
+export interface LumaApiIdCacheEntry {
+  apiId: string | null;
+  resolvedAt: string;
+}
+
+export async function getCachedLumaApiIdEntry(linkKey: string): Promise<LumaApiIdCacheEntry | undefined> {
+  const supabase = getIngestSupabase();
+  const { data, error } = await supabase
+    .from('ingest_link_cache')
+    .select('luma_api_id, resolved_at')
+    .eq('link_key', linkKey)
+    .maybeSingle();
+  if (error) throw new Error(`Failed to read link cache: ${error.message}`);
+  if (!data) return undefined;
+  return { apiId: (data.luma_api_id as string | null) ?? null, resolvedAt: data.resolved_at as string };
+}
+
 /* ------------------------------------------------------------------ */
 /* Phase 2: learning loop + precision dashboard + auto-publish gate    */
 /* ------------------------------------------------------------------ */

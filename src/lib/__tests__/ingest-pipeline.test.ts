@@ -122,6 +122,12 @@ vi.mock('../ingest/db', () => ({
   getPrecisionRows: vi.fn(async () => []),
   upsertProfile: vi.fn(async () => ({})),
   updateProfilePatch: (...a: unknown[]) => updateProfilePatchMock(...(a as [])),
+  // Luma slug->api-id cache (`dedupe.ts#buildSheetLinkIndex`) — "never
+  // looked up" every time, so a non-empty sheet in a test always goes
+  // through the live `resolveSlug` path (stubbed via `fetchLumaEventMock`)
+  // rather than throwing on a cache shape this mock doesn't model.
+  getCachedLumaApiIdEntry: vi.fn(async () => undefined),
+  setCachedLumaApiId: vi.fn(async () => undefined),
 }));
 
 vi.mock('../ingest/budget', () => ({
@@ -158,12 +164,21 @@ vi.mock('../fetch-events-cached', () => ({
   invalidateEventsCache: vi.fn(),
 }));
 
-const fetchLumaEventMock = vi.fn(async (..._args: unknown[]) => ({
-  api_id: 'evt-ABC123DEF456',
-  event: { api_id: 'evt-ABC123DEF456', name: 'ETH Builders Mixer' },
-  hosts: [{ api_id: 'usr-1', name: 'Alice' }],
-  description_mirror: null,
-}));
+interface FakeLumaPayload {
+  api_id: string | null;
+  event: { api_id: string; name: string } | null;
+  hosts: { api_id: string; name: string }[];
+  description_mirror: null;
+}
+async function defaultFetchLumaEventImpl(..._args: unknown[]): Promise<FakeLumaPayload> {
+  return {
+    api_id: 'evt-ABC123DEF456',
+    event: { api_id: 'evt-ABC123DEF456', name: 'ETH Builders Mixer' },
+    hosts: [{ api_id: 'usr-1', name: 'Alice' }],
+    description_mirror: null,
+  };
+}
+const fetchLumaEventMock = vi.fn(defaultFetchLumaEventImpl);
 vi.mock('../luma-server', () => ({
   fetchLumaEvent: (...args: unknown[]) => fetchLumaEventMock(...args),
   LumaFetchError: class LumaFetchError extends Error {},
@@ -220,19 +235,44 @@ vi.mock('../ingest/reconcile', () => ({
   reconcileConference: vi.fn(async () => ({ checked: 0, linked: 0, unpublishedExternal: 0, skipped: true })),
 }));
 
+// `fuzzyMatch` always returns null here (every other test in this file
+// feeds an empty `sheetEvents`/`fetchEvents` mock by default, so it never
+// had anything to match against anyway) — this isolates the NEW Part A
+// item 2 fallback check (`findDuplicateByNameAndDate`, real implementation
+// below) from the PRE-EXISTING discovery-time fuzzy dedupe, which would
+// otherwise also catch an exact name+date match and short-circuit before
+// ever reaching the auto-publish step this test targets.
+vi.mock('../ingest/dedupe', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../ingest/dedupe')>();
+  return { ...actual, fuzzyMatch: vi.fn(() => null) };
+});
+
 import { runSource } from '../ingest/pipeline';
 import { finishRun as finishRunMocked, upsertCandidate as upsertCandidateMocked } from '../ingest/db';
 
-beforeEach(() => {
+beforeEach(async () => {
   candidateStore = new Map();
   runRows = [];
   runningGuard = false;
-  fetchLumaEventMock.mockClear();
+  // `.mockReset()` (not just `.mockClear()`) so a test that overrides the
+  // implementation (e.g. the name+date fallback test below, which makes
+  // one specific slug unresolvable) can't leak it into a later test.
+  fetchLumaEventMock.mockReset().mockImplementation(defaultFetchLumaEventImpl);
   scoreCandidateMock.mockClear();
   getProfileMock.mockReset().mockResolvedValue(defaultProfile);
   getRecentAutoPublishOutcomesMock.mockReset().mockResolvedValue([]);
   updateProfilePatchMock.mockClear();
   fetchLumaIcalFeedMock.mockReset().mockResolvedValue([DEFAULT_VEVENT]);
+  // `fetchEvents` (sheetEvents) and `insertEventRowSorted` aren't named
+  // top-level consts (defined inline in their `vi.mock` factories) — reset
+  // them via a fresh import each time so a test that overrides
+  // `fetchEvents`'s return value (the name+date fallback test below)
+  // can't leak a non-empty sheet into a later test, and so every test's
+  // publish-call assertions start from zero.
+  const { fetchEvents } = await import('../fetch-events');
+  (fetchEvents as ReturnType<typeof vi.fn>).mockReset().mockResolvedValue([]);
+  const { insertEventRowSorted } = await import('../google-sheets');
+  (insertEventRowSorted as ReturnType<typeof vi.fn>).mockReset().mockResolvedValue(1);
 });
 
 describe('runSource: change detection (CRITICAL item 1 — ical_hash vs content_hash)', () => {
@@ -382,6 +422,58 @@ describe('runSource: auto-publish records the real sheet event id (LOW item 3)',
     // (or the sheet) would ever produce (review finding, LOW item 3).
     expect(row?.published_event_id).not.toBe('luma:evt-abc123def456');
     expect(String(row?.published_event_id)).toMatch(/^evt-/);
+  });
+});
+
+describe('runSource: fallback name+date dedupe guard right before auto-publish (Part A item 2)', () => {
+  it('refuses to auto-publish and marks the candidate duplicate when a sheet row matches on normalized name + date, even when the discovery-time fuzzy check misses it', async () => {
+    const { fetchEvents } = await import('../fetch-events');
+    // A curator's hand-added row for the SAME event, SAME date, under a
+    // short Luma link the pipeline's own evt- link doesn't match — the
+    // Devcon 8 / Breakpoint incident shape. `fuzzyMatch` is stubbed to
+    // null above, so only the NEW fallback (exact normalized name + date)
+    // can catch this. The short link's slug deliberately fails to resolve
+    // (unlike every other slug/apiId in this file, which resolves to
+    // evt-ABC123DEF456) so the LINK index also can't match it — isolating
+    // the new name+date fallback as the only thing that can.
+    fetchLumaEventMock.mockImplementation(async (...args: unknown[]): Promise<FakeLumaPayload> => {
+      const ref = args[0] as { slug?: string; apiId?: string } | undefined;
+      if (ref?.slug === '3doehm1b') return { api_id: null, event: null, hosts: [], description_mirror: null };
+      return {
+        api_id: 'evt-ABC123DEF456',
+        event: { api_id: 'evt-ABC123DEF456', name: 'ETH Builders Mixer' },
+        hosts: [{ api_id: 'usr-1', name: 'Alice' }],
+        description_mirror: null,
+      };
+    });
+    (fetchEvents as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'evt-curator-row', link: 'https://luma.com/3doehm1b', name: 'ETH Builders Mixer', dateISO: '2027-03-10', organizer: 'Alice' },
+    ]);
+    getProfileMock.mockResolvedValue({ ...defaultProfile, auto_publish_enabled: true });
+    scoreCandidateMock.mockResolvedValueOnce({
+      classifier: {
+        output: { theme_score: 95, reason: 'great fit', suggested_tags: [], flags: [], is_event: true, data_quality: 'sufficient' },
+        injectionDetected: false,
+        inputTokens: 100,
+        outputTokens: 20,
+        model: 'gpt-5-mini',
+        promptVersion: '1a-v2-openai',
+      },
+      signals: { breakdown: {}, total: 0, hardReject: false, capRouteAtReview: false },
+      finalScore: 95,
+      route: 'publish',
+      shadowRoute: 'publish',
+    });
+
+    const result = await runSource('src-1', { trigger: 'manual' });
+    expect(result.counts.published).toBe(0);
+    expect(result.counts.duplicates).toBe(1);
+
+    const row = candidateStore.get('Test Conf::luma:evt-abc123def456');
+    expect(row?.status).toBe('duplicate');
+    expect(row?.duplicate_of).toBe('evt-curator-row');
+    const { insertEventRowSorted } = await import('../google-sheets');
+    expect(insertEventRowSorted).not.toHaveBeenCalled();
   });
 });
 

@@ -1,9 +1,20 @@
 // Canonical keys + dedupe against the sheet and other candidates (§5.2).
 import { normalizeEventLink, getValidLumaSlug, LUMA_EVENT_API_ID_RE } from '../luma';
 import { fetchLumaEvent } from '../luma-server';
-import { getCachedLumaApiId, setCachedLumaApiId } from './db';
+import { getCachedLumaApiIdEntry, setCachedLumaApiId } from './db';
 import { haversineKm } from './geo';
 import type { NormalizedEvent } from './types';
+
+/**
+ * How long a cached "no api id" miss for a short Luma link is trusted
+ * before `buildSheetLinkIndex` re-resolves it instead (2026-10-16 incident:
+ * a buggy script wrote 63 false misses into `ingest_link_cache`, which hid
+ * real sheet duplicates — Devcon 8 / Breakpoint — from the publish/approve
+ * dedupe guard for as long as those rows existed, because a cached miss was
+ * trusted forever). A resolved HIT (a string api id) is never re-checked —
+ * only misses go stale, since a confirmed id can't un-resolve.
+ */
+export const STALE_NEGATIVE_CACHE_MS = 6 * 60 * 60 * 1000; // ~6h
 
 export type SlugResolver = (slug: string) => Promise<string | null>;
 
@@ -82,7 +93,22 @@ export async function buildSheetLinkIndex(
     // it every run); a string = resolved. Collapsing these (as the
     // original version did) meant a confirmed miss burned a rate-limited
     // request on every single run forever (review finding, MEDIUM item 7).
-    let apiId = await getCachedLumaApiId(key);
+    //
+    // A cached miss is only trusted for `STALE_NEGATIVE_CACHE_MS` — past
+    // that, treat it the same as `undefined` (never looked up) so a bad
+    // write to `ingest_link_cache` can't hide a duplicate forever. A
+    // resolved hit (a string) is always trusted; there's no "resolved_at"
+    // for it to go stale against.
+    const cached = await getCachedLumaApiIdEntry(key);
+    let apiId: string | null | undefined;
+    if (cached === undefined) {
+      apiId = undefined;
+    } else if (cached.apiId !== null) {
+      apiId = cached.apiId;
+    } else {
+      const age = Date.now() - new Date(cached.resolvedAt).getTime();
+      apiId = age > STALE_NEGATIVE_CACHE_MS ? undefined : null;
+    }
     if (apiId === undefined) {
       if (resolutions < maxResolutions) {
         resolutions++;
@@ -108,6 +134,43 @@ export function findSheetMatchByLink(index: SheetLinkIndex, event: Pick<Normaliz
   const key = canonicalKeyForEvent(event);
   if (!key) return null;
   return index.byKey.get(key) ?? null;
+}
+
+/** Lowercase, strip emoji/punctuation, collapse whitespace. Deliberately
+ *  simpler than `nameTokens` below (no stopword/conference-name/year
+ *  stripping, no tokenization) — this feeds the name+date fallback
+ *  duplicate check, a conservative last line of defense before every
+ *  insert, not a judgment call about look-alike events. */
+export function normalizeNameForDuplicateCheck(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}]/gu, ' ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Fallback duplicate check (Part A item 2 — stale-negative-cache
+ * mitigation): same normalized name AND same date in the target tab,
+ * independent of any link match. Run this right before every insert
+ * (approve, auto-publish), in ADDITION to the link-index check — it exists
+ * to catch the exact same event that link matching missed (e.g. because a
+ * bad write to `ingest_link_cache` hid a short link's resolution), so it's
+ * a hard refusal, not a `possible_duplicate` flag like `fuzzyMatch`'s
+ * looser venue/time scoring.
+ */
+export function findDuplicateByNameAndDate<T extends { name: string; dateISO: string }>(
+  event: Pick<NormalizedEvent, 'name' | 'dateISO'>,
+  sheetEvents: T[]
+): T | null {
+  const targetName = normalizeNameForDuplicateCheck(event.name);
+  if (!targetName) return null;
+  for (const se of sheetEvents) {
+    if (se.dateISO !== event.dateISO) continue;
+    if (normalizeNameForDuplicateCheck(se.name) === targetName) return se;
+  }
+  return null;
 }
 
 /* ------------------------------------------------------------------ */

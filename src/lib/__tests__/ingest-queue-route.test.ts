@@ -67,6 +67,12 @@ vi.mock('@/lib/ingest/db', () => ({
   // pools here, same as `ingest-pipeline.test.ts`'s db mock.
   listLabelsForFewShot: vi.fn(async () => []),
   listLabelsForHostSignals: vi.fn(async () => []),
+  // Luma slug->api-id cache (`dedupe.ts#buildSheetLinkIndex`, Part A item
+  // 1) — "never looked up" every time; the approve route builds its link
+  // index with `maxResolutions: 0` regardless, so this is never actually
+  // resolved live in these tests, just read.
+  getCachedLumaApiIdEntry: vi.fn(async () => undefined),
+  setCachedLumaApiId: vi.fn(async () => undefined),
   getIngestSupabase: vi.fn(() => ({
     from: () => ({
       select: () => ({
@@ -82,7 +88,7 @@ vi.mock('@/lib/get-conferences', () => ({
   ]),
 }));
 
-const fetchEventsMock = vi.fn(async (..._args: unknown[]) => [] as { id: string; link: string }[]);
+const fetchEventsMock = vi.fn(async (..._args: unknown[]) => [] as { id: string; link: string; name?: string; dateISO?: string }[]);
 vi.mock('@/lib/fetch-events', () => ({
   fetchEvents: (...a: unknown[]) => fetchEventsMock(...a),
   generateEventId: vi.fn((conference: string, date: string, time: string, name: string) => `evt-generated-${name.length}`),
@@ -186,6 +192,28 @@ describe('POST /api/admin/ingest/queue: approve (HIGH item 3)', () => {
     expect(json.results[0].ok).toBe(true);
     expect(insertEventRowSortedMock).not.toHaveBeenCalled();
     expect(updateCandidateMock).toHaveBeenCalledWith('3fa85f64-5717-4562-b3fc-2c963f66afa6', expect.objectContaining({ published_event_id: 'evt-already-there' }));
+  });
+
+  it('refuses and marks duplicate when name+date matches a sheet row even though the link differs (Part A item 2 — fallback dedupe guard)', async () => {
+    getCandidateMock.mockResolvedValue(baseCandidate());
+    claimCandidateStatusMock.mockResolvedValue(baseCandidate({ status: 'approved' }));
+    // A curator already hand-added this event under a short Luma link that
+    // bears no resemblance to the candidate's canonical /event/evt-… link —
+    // exactly the Devcon 8 / Breakpoint incident shape. The link index
+    // alone would miss this; the name+date fallback must not.
+    fetchEventsMock.mockResolvedValue([
+      { id: 'evt-curator-row', link: 'https://luma.com/3doehm1b', name: 'ETH Builders Mixer', dateISO: '2027-03-10' },
+    ]);
+
+    const res = await POST(postRequest({ password: 'queue-test-password', action: 'approve', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'] }));
+    const json = await res.json();
+    expect(json.results[0].ok).toBe(false);
+    expect(json.results[0].error).toMatch(/Duplicate/);
+    expect(insertEventRowSortedMock).not.toHaveBeenCalled();
+    expect(updateCandidateMock).toHaveBeenCalledWith(
+      '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+      expect.objectContaining({ status: 'duplicate', duplicate_of: 'evt-curator-row' })
+    );
   });
 
   it('rolls back the claim to the original status when the publish fails', async () => {
