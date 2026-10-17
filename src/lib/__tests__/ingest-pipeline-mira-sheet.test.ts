@@ -52,6 +52,13 @@ vi.mock('../ingest/budget', () => ({
 }));
 
 const listRecentCandidatesForDedupeMock = vi.fn(async (..._args: unknown[]) => [] as { id: string; canonical_key: string; event: unknown }[]);
+// Review finding, HIGH item A: the FULL conference-wide known-key set
+// (canonical_key + alt_keys, every status) `runDiscoveredLinksBatch`'s
+// unseen-first ordering now actually relies on. Controllable per test so
+// production-shaped scenarios (a short-link canonical key resolved to its
+// stable `evt-…` form, with the short slug recorded ONLY in `alt_keys`)
+// can be modeled directly.
+const listAllCandidateKeysForConferenceMock = vi.fn(async (..._args: unknown[]) => new Set<string>());
 
 vi.mock('../ingest/db', () => ({
   getSource: vi.fn(async (id: string) => sourceRows.get(id) ?? null),
@@ -64,6 +71,7 @@ vi.mock('../ingest/db', () => ({
   }),
   updateCandidate: vi.fn(async () => {}),
   listRecentCandidatesForDedupe: (...a: unknown[]) => listRecentCandidatesForDedupeMock(...a),
+  listAllCandidateKeysForConference: (...a: unknown[]) => listAllCandidateKeysForConferenceMock(...a),
   createRun: vi.fn(async () => {
     const run: FakeRunRow = { id: `run-${runRows.length + 1}`, status: 'running' };
     runRows.push(run);
@@ -243,6 +251,7 @@ beforeEach(() => {
   fetchMiraSeriesEventsMock.mockReset();
   fetchSheetTrackerLinksMock.mockReset();
   listRecentCandidatesForDedupeMock.mockReset().mockResolvedValue([]);
+  listAllCandidateKeysForConferenceMock.mockReset().mockResolvedValue(new Set());
   enrichLimiterExhausted = false;
 });
 
@@ -436,5 +445,81 @@ describe('runSource(mira_series / sheet_tracker): per-run link cap for big-list 
     // the already-known link (sorted last) never gets a turn, and every
     // processed link is one of the unseen ones.
     expect(processDiscoveredLinkCalls.some((c) => c.url === 'https://luma.com/already-known')).toBe(false);
+  });
+});
+
+// Re-review (production-shaped data): a real Luma candidate for a short
+// link is keyed by its STABLE `luma:evt-…` canonical_key, with the short
+// slug recorded ONLY in `alt_keys` — never as its own canonical_key. The
+// in-run dedupe pool (`otherCandidates`/`listRecentCandidatesForDedupe`)
+// drops `alt_keys` entirely and excludes final/rejected candidates, so it
+// can NEVER recognize a short link as "already known" — before this fix,
+// that meant almost every short link counted as "unseen" every run, and
+// `.slice(0, maxLinksPerRun)` kept the SAME first `maxLinksPerRun` links
+// (in the source's own stable order) forever; anything past that index
+// was never tried, no matter how many runs passed.
+describe('runSource(mira_series): unseen-first ordering against PRODUCTION-SHAPED known keys (alt_keys, not canonical_key)', () => {
+  function makeLinks(count: number) {
+    return Array.from({ length: count }, (_, i) => ({
+      id: `rec${i}`,
+      name: `Event ${i}`,
+      startDate: '2026-11-01',
+      endDate: null,
+      city: 'London',
+      website: `https://luma.com/link-${i}`,
+      tags: null,
+      seriesSlug: 'Devcon8SideEvents2026',
+    }));
+  }
+
+  it('300 links, the first 150 already known ONLY via alt_keys (resolved to a luma:evt-… canonical key, never as their own canonical_key) — processes links 151-300, not 1-150 again', async () => {
+    makeMiraSource();
+    // Production shape: each of links 0..149's short-slug key
+    // ("luma:link-0" .. "luma:link-149") is a known ALT key on some
+    // OTHER candidate row keyed "luma:evt-…" — never its own
+    // canonical_key. `otherCandidates`/the dedupe pool (which only ever
+    // maps `canonical_key`) is left completely empty on purpose, so this
+    // test can only pass if the ordering logic consults the real
+        // alt-keys-aware known-key set.
+    listRecentCandidatesForDedupeMock.mockResolvedValue([]);
+    const knownAltKeys = new Set(Array.from({ length: 150 }, (_, i) => `luma:link-${i}`));
+    listAllCandidateKeysForConferenceMock.mockResolvedValue(knownAltKeys);
+    fetchMiraSeriesEventsMock.mockResolvedValue(makeLinks(300));
+
+    const result = await runSource('src-mira', { trigger: 'manual' });
+
+    expect(result.counts.fetched).toBe(300);
+    expect(processDiscoveredLinkCalls).toHaveLength(150);
+    const processedUrls = new Set(processDiscoveredLinkCalls.map((c) => c.url));
+    for (let i = 0; i < 150; i++) expect(processedUrls.has(`https://luma.com/link-${i}`)).toBe(false);
+    for (let i = 150; i < 300; i++) expect(processedUrls.has(`https://luma.com/link-${i}`)).toBe(true);
+  });
+
+  it('rotation for safety: once EVERY link is known, successive runs still cycle through different slices instead of the same front-of-list 150 winning forever', async () => {
+    makeMiraSource();
+    listRecentCandidatesForDedupeMock.mockResolvedValue([]);
+    // Steady state: all 300 are already known (e.g. every one has long
+    // since been ingested under its evt- canonical key).
+    const allKnown = new Set(Array.from({ length: 300 }, (_, i) => `luma:link-${i}`));
+    listAllCandidateKeysForConferenceMock.mockResolvedValue(allKnown);
+    fetchMiraSeriesEventsMock.mockResolvedValue(makeLinks(300));
+
+    await runSource('src-mira', { trigger: 'manual' });
+    const firstRunUrls = processDiscoveredLinkCalls.map((c) => c.url);
+    expect(firstRunUrls).toHaveLength(150);
+    // Without rotation, every run would process exactly links 0-149 again.
+    expect(firstRunUrls[0]).toBe('https://luma.com/link-0');
+    // The offset cursor advanced past this run's slice, persisted on the
+    // source row for the NEXT run to pick up.
+    expect(sourceRows.get('src-mira')?.cursor.link_offset).toBeGreaterThan(0);
+
+    processDiscoveredLinkCalls.length = 0; // reset the shared call log for the second run.
+    await runSource('src-mira', { trigger: 'manual' });
+    const secondRunUrls = processDiscoveredLinkCalls.map((c) => c.url);
+    expect(secondRunUrls).toHaveLength(150);
+
+    // The persisted `cursor.link_offset` rotated which 150-slice got a
+    // turn — the second run's slice is NOT identical to the first's.
+    expect(secondRunUrls).not.toEqual(firstRunUrls);
   });
 });

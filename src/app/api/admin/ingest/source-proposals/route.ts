@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminPassword } from '@/lib/admin-auth';
 import { parseBody, IngestSourceProposalDecisionSchema } from '@/lib/api-validation';
-import { listSourceProposals, getSourceProposalById, decideSourceProposal, createLumaIcalSourceIdempotent, getProfile } from '@/lib/ingest/db';
+import { listSourceProposals, getSourceProposalById, decideSourceProposal, createLumaIcalSourceIdempotent, getProfile, updateSource } from '@/lib/ingest/db';
 
 export const runtime = 'nodejs';
 
@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `This proposal was already ${proposal.status}.` }, { status: 400 });
     }
 
+    let reenabled = false;
     if (decision === 'accepted') {
       // Same "a brand-new source with no track record never bypasses the
       // auto-publish gate" posture as `config/route.ts#POST`'s Luma-calendar
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
       // and this Accept click, or a prior Accept attempt created the
       // source but failed before `decideSourceProposal` below) —
       // idempotent, so that's a no-op success, not a 500.
-      await createLumaIcalSourceIdempotent({
+      const source = await createLumaIcalSourceIdempotent({
         conference: proposal.conference,
         label: proposal.calendar_name || proposal.calendar_api_id,
         calendar_api_id: proposal.calendar_api_id,
@@ -66,10 +67,21 @@ export async function POST(req: NextRequest) {
         trust,
         added_by: 'admin',
       });
+      // Minor review finding: the existing source Accept just resolved to
+      // (the idempotent-duplicate case above) might be DISABLED — an
+      // admin turned it off at some point, or a prior partial Accept left
+      // it that way. Accepting a proposal means "I want this calendar
+      // running," so re-enable it rather than silently leaving it off
+      // (the admin would otherwise see "accepted" and reasonably assume
+      // it's live).
+      if (!source.enabled) {
+        await updateSource(source.id, { enabled: true });
+        reenabled = true;
+      }
     }
 
     await decideSourceProposal(id, decision, 'admin');
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, ...(reenabled ? { reenabled: true } : {}) });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed to update proposal' }, { status: 500 });
   }

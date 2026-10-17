@@ -39,6 +39,26 @@ export interface ResolvedEventCalendar {
 }
 
 /**
+ * `resolveCandidateCalendar`'s outcome, distinguishing a DEFINITIVE answer
+ * (safe to cache forever in `event.hostCalendar` — review finding, HIGH
+ * item B) from "we genuinely don't know yet" (never cache):
+ *   - `'resolved'`: Luma gave a confirmed answer — `calendar` is the
+ *     resolved calendar, or `null` if the payload had no usable calendar
+ *     field. Cache this, even when `calendar` is null.
+ *   - `'not_applicable'`: the candidate's own canonical key isn't a
+ *     resolvable Luma `evt-…` id — can never change, cache as `null`.
+ *   - `'unavailable'`: the shared limiter was exhausted, or the live
+ *     lookup hit a transient error (NOT a confirmed Luma 404) — the exact
+ *     same "don't poison the cache" distinction `enrich.ts#EnrichOutcome`
+ *     already makes for `ingest_link_cache`. Never cache this outcome;
+ *     try again on a later run.
+ */
+export interface ResolveCandidateCalendarResult {
+  status: 'resolved' | 'not_applicable' | 'unavailable';
+  calendar: ResolvedEventCalendar | null;
+}
+
+/**
  * Resolve one Luma candidate's TRUE hosting calendar via one rate-limited
  * `/event/get` call through the shared `limiter`.
  *
@@ -55,24 +75,35 @@ export interface ResolvedEventCalendar {
  * `calendar.api_id` pointing at a completely different calendar, "The
  * Best Event"). Always resolving live is the only way to see the event's
  * actual calendar, for every candidate regardless of how it was first
- * discovered.
+ * discovered. The CALLER (`discover-calendars.ts`) is responsible for
+ * caching a `'resolved'`/`'not_applicable'` outcome into `event.hostCalendar`
+ * so it's never resolved live again — this function itself stays
+ * cache-agnostic.
  */
 export async function resolveCandidateCalendar(
   candidate: Pick<IngestCandidateRow, 'canonical_key'>,
   limiter: EnrichLimiter
-): Promise<ResolvedEventCalendar | null> {
+): Promise<ResolveCandidateCalendarResult> {
   const key = candidate.canonical_key;
   const evtApiId = key?.startsWith('luma:') ? key.slice('luma:'.length) : null;
-  if (!evtApiId || !LUMA_EVENT_API_ID_RE.test(evtApiId)) return null;
+  if (!evtApiId || !LUMA_EVENT_API_ID_RE.test(evtApiId)) {
+    return { status: 'not_applicable', calendar: null };
+  }
 
-  const payload = await limiter.enrich({ apiId: evtApiId });
-  if (!payload) return null;
-  const raw = payload as unknown as {
+  const result = await limiter.enrichResult({ apiId: evtApiId });
+  if (result.status === 'unavailable') return { status: 'unavailable', calendar: null };
+  if (result.status === 'not_found') return { status: 'resolved', calendar: null }; // confirmed gone — never re-check.
+
+  // result.status === 'ok'
+  const raw = result.payload as unknown as {
     calendar?: { api_id?: string; name?: string; is_personal?: boolean; personal_user_api_id?: string | null } | null;
   };
   const cal = raw.calendar;
-  if (!cal?.api_id || !LUMA_CALENDAR_ID_RE.test(cal.api_id)) return null;
-  return { apiId: cal.api_id, name: cal.name ?? null, isPersonal: !!cal.is_personal || !!cal.personal_user_api_id };
+  if (!cal?.api_id || !LUMA_CALENDAR_ID_RE.test(cal.api_id)) return { status: 'resolved', calendar: null };
+  return {
+    status: 'resolved',
+    calendar: { apiId: cal.api_id, name: cal.name ?? null, isPersonal: !!cal.is_personal || !!cal.personal_user_api_id },
+  };
 }
 
 export interface LumaCalendarItem {

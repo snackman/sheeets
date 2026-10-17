@@ -330,6 +330,28 @@ export interface NormalizedEvent {
   descriptionText: string;
   imageUrl?: string | null;
   platform: string;
+  /**
+   * Calendar auto-discovery cache ONLY (`discover-calendars.ts`, plan
+   * item 3) — NOT a real part of the normalized event, never read by the
+   * classifier, scorer, dedupe, or publisher. The Luma calendar this
+   * event's `/event/get` payload genuinely resolved to, written via a
+   * narrow `event`-only patch (`updateCandidate(id, { event })`, which
+   * leaves `status` and every other column untouched).
+   *
+   * Tri-state, same semantics as `ingest_link_cache`'s own cache (review
+   * finding, HIGH item B — "the daily discovery job evaluates nothing"):
+   * `undefined` (the key absent) = never resolved yet, still a candidate
+   * for phase 1's live `/event/get` call. `null` = resolved and CONFIRMED
+   * there's no usable calendar (not a Luma event, Luma genuinely returned
+   * no calendar field, or the candidate's canonical key isn't a resolvable
+   * `evt-…` id) — never re-resolved. An object = the resolved calendar,
+   * cached so phase 2 can use it on every later run without spending
+   * another rate-limited call. A limiter-exhausted or transient-error
+   * lookup must NEVER be cached here (same cache-poisoning class of bug
+   * `discover.ts`/`ingest_link_cache` already guards against) — it simply
+   * leaves this field unset for another attempt on a later run.
+   */
+  hostCalendar?: { apiId: string; name: string | null; isPersonal: boolean } | null;
 }
 
 /** `ingest_candidates` row. */

@@ -251,6 +251,60 @@ describe('listKnownLumaCandidateKeys (pagination)', () => {
     const rangeCalls = callsByTable.ingest_candidates.filter((c) => c.method === 'range');
     expect(rangeCalls).toHaveLength(1);
   });
+
+  // Minor review finding: an explicit `.order()` so `.range()` pagination
+  // is actually stable across pages — without it, Postgres makes no
+  // ordering guarantee for an unordered select, so two pages could
+  // overlap or skip rows non-deterministically.
+  it('applies an explicit .order() before paginating', async () => {
+    const { createClient } = await import('@supabase/supabase-js');
+    const { client, callsByTable } = makeFakeSupabase({
+      ingest_candidates: [{ data: [], error: null }],
+    });
+    (createClient as ReturnType<typeof vi.fn>).mockReturnValue(client);
+    const { listKnownLumaCandidateKeys } = await import('../ingest/db');
+    await listKnownLumaCandidateKeys('DAS London');
+    expect(callsByTable.ingest_candidates.some((c) => c.method === 'order')).toBe(true);
+  });
+});
+
+// Review finding, HIGH item A ("links can be starved"): the GENERAL,
+// un-prefixed version of the same pagination core, across every platform
+// and every status — what `pipeline.ts#runDiscoveredLinksBatch`'s
+// unseen-first ordering actually needs.
+describe('listAllCandidateKeysForConference', () => {
+  it('combines canonical_key + alt_keys across EVERY platform (no luma: prefix filter)', async () => {
+    const { createClient } = await import('@supabase/supabase-js');
+    const rows = [
+      { canonical_key: 'luma:evt-abc123', alt_keys: ['luma:short-slug'] },
+      { canonical_key: 'eventbrite:987654321', alt_keys: [] },
+      { canonical_key: 'partiful.com/e/xyz', alt_keys: [] },
+    ];
+    const { client, callsByTable } = makeFakeSupabase({ ingest_candidates: [{ data: rows, error: null }] });
+    (createClient as ReturnType<typeof vi.fn>).mockReturnValue(client);
+    const { listAllCandidateKeysForConference } = await import('../ingest/db');
+    const keys = await listAllCandidateKeysForConference('DAS London');
+    expect(keys).toEqual(new Set(['luma:evt-abc123', 'luma:short-slug', 'eventbrite:987654321', 'partiful.com/e/xyz']));
+    expect(callsByTable.ingest_candidates.some((c) => c.method === 'like')).toBe(false);
+  });
+
+  it('pages past 1000 rows the same way listKnownLumaCandidateKeys does', async () => {
+    const { createClient } = await import('@supabase/supabase-js');
+    const page1 = Array.from({ length: 1000 }, (_, i) => ({ canonical_key: `cal:${i}`, alt_keys: [] }));
+    const page2 = [{ canonical_key: 'cal:1000', alt_keys: [] }];
+    const { client, callsByTable } = makeFakeSupabase({
+      ingest_candidates: [
+        { data: page1, error: null },
+        { data: page2, error: null },
+      ],
+    });
+    (createClient as ReturnType<typeof vi.fn>).mockReturnValue(client);
+    const { listAllCandidateKeysForConference } = await import('../ingest/db');
+    const keys = await listAllCandidateKeysForConference('DAS London');
+    expect(keys.size).toBe(1001);
+    const rangeCalls = callsByTable.ingest_candidates.filter((c) => c.method === 'range');
+    expect(rangeCalls).toHaveLength(2);
+  });
 });
 
 // Review finding, LOW item 5: accepting a proposal whose calendar already

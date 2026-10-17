@@ -47,7 +47,10 @@ describe('resolveCandidateCalendar', () => {
     const candidate = makeCandidate({ canonical_key: 'luma:evt-mHRDVyLOaHAfZ3t' });
     const resolved = await resolveCandidateCalendar(candidate, limiter);
     expect(enrich).toHaveBeenCalledWith({ apiId: 'evt-mHRDVyLOaHAfZ3t' });
-    expect(resolved).toEqual({ apiId: 'cal-FU1X0TNBTO8ti2F', name: 'The Best Event', isPersonal: false });
+    expect(resolved).toEqual({
+      status: 'resolved',
+      calendar: { apiId: 'cal-FU1X0TNBTO8ti2F', name: 'The Best Event', isPersonal: false },
+    });
   });
 
   // Exactly the scenario this feature exists for: a candidate ingested via
@@ -62,7 +65,7 @@ describe('resolveCandidateCalendar', () => {
     // This candidate's canonical key is all `resolveCandidateCalendar` is given.
     const candidate = makeCandidate({ canonical_key: 'luma:evt-mHRDVyLOaHAfZ3t' });
     const resolved = await resolveCandidateCalendar(candidate, limiter);
-    expect(resolved?.apiId).toBe('cal-TrueHost');
+    expect(resolved.calendar?.apiId).toBe('cal-TrueHost');
   });
 
   it('flags a personal calendar via is_personal', async () => {
@@ -71,19 +74,53 @@ describe('resolveCandidateCalendar', () => {
     }) as unknown as Awaited<ReturnType<EnrichLimiter['enrich']>>));
     const candidate = makeCandidate({ canonical_key: 'luma:evt-mHRDVyLOaHAfZ3t' });
     const resolved = await resolveCandidateCalendar(candidate, limiter);
-    expect(resolved?.isPersonal).toBe(true);
+    expect(resolved.calendar?.isPersonal).toBe(true);
   });
 
-  it('returns null for a non-Luma canonical key', async () => {
-    const limiter = stubLimiter(vi.fn(async () => null));
+  it('"not_applicable" for a non-Luma canonical key — never calls the limiter', async () => {
+    const enrich = vi.fn(async () => null);
+    const limiter = stubLimiter(enrich);
     const candidate = makeCandidate({ canonical_key: 'eventbrite:12345' });
-    expect(await resolveCandidateCalendar(candidate, limiter)).toBeNull();
+    expect(await resolveCandidateCalendar(candidate, limiter)).toEqual({ status: 'not_applicable', calendar: null });
+    expect(enrich).not.toHaveBeenCalled();
   });
 
-  it('returns null when the live lookup fails/returns nothing', async () => {
-    const limiter = stubLimiter(vi.fn(async () => null));
+  // Review finding, HIGH item B / the same cache-poisoning class as
+  // `enrich.ts#EnrichOutcome`: a CONFIRMED Luma 404 is a definitive
+  // "resolved to nothing" (safe for the caller to cache forever), while an
+  // exhausted limiter or a transient error is "we don't know" (must never
+  // be cached) — these two cases must be distinguishable.
+  it('"resolved" with a null calendar on a CONFIRMED Luma not_found', async () => {
+    const limiter: EnrichLimiter = {
+      enrich: vi.fn(async () => null),
+      enrichResult: vi.fn(async () => ({ status: 'not_found' }) as EnrichOutcome),
+      exhausted: false,
+    };
     const candidate = makeCandidate({ canonical_key: 'luma:evt-mHRDVyLOaHAfZ3t' });
-    expect(await resolveCandidateCalendar(candidate, limiter)).toBeNull();
+    expect(await resolveCandidateCalendar(candidate, limiter)).toEqual({ status: 'resolved', calendar: null });
+  });
+
+  it('"unavailable" (never "resolved") when the limiter is exhausted', async () => {
+    const enrichResult = vi.fn(async () => ({ status: 'unavailable' }) as EnrichOutcome);
+    const limiter: EnrichLimiter = { enrich: vi.fn(async () => null), enrichResult, exhausted: true };
+    const candidate = makeCandidate({ canonical_key: 'luma:evt-mHRDVyLOaHAfZ3t' });
+    expect(await resolveCandidateCalendar(candidate, limiter)).toEqual({ status: 'unavailable', calendar: null });
+  });
+
+  it('"unavailable" on a transient fetch error (not a confirmed 404)', async () => {
+    const limiter: EnrichLimiter = {
+      enrich: vi.fn(async () => null),
+      enrichResult: vi.fn(async () => ({ status: 'unavailable' }) as EnrichOutcome),
+      exhausted: false,
+    };
+    const candidate = makeCandidate({ canonical_key: 'luma:evt-mHRDVyLOaHAfZ3t' });
+    expect(await resolveCandidateCalendar(candidate, limiter)).toEqual({ status: 'unavailable', calendar: null });
+  });
+
+  it('"resolved" with a null calendar when Luma responds but the payload has no usable calendar field', async () => {
+    const limiter = stubLimiter(vi.fn(async () => ({ no_calendar_here: true }) as unknown as Awaited<ReturnType<EnrichLimiter['enrich']>>));
+    const candidate = makeCandidate({ canonical_key: 'luma:evt-mHRDVyLOaHAfZ3t' });
+    expect(await resolveCandidateCalendar(candidate, limiter)).toEqual({ status: 'resolved', calendar: null });
   });
 });
 

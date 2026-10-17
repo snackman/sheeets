@@ -292,6 +292,10 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
       });
       const json = await res.json();
       if (!json.success) setMessage(`Error: ${json.error}`);
+      // Minor review finding: Accept re-enables an existing-but-disabled
+      // source rather than silently leaving it off — surface that so an
+      // admin isn't left wondering why "accepted" didn't seem to do much.
+      else if (json.reenabled) setMessage('Accepted — this source already existed and was disabled, so it has been re-enabled.');
       await load();
     } catch (err) {
       setMessage(`Error: ${err instanceof Error ? err.message : 'Failed'}`);

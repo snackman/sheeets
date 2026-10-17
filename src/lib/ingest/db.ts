@@ -1234,44 +1234,81 @@ export async function listLumaCandidatesForConference(conference: string, limit 
   );
 }
 
-/** Rows per page for `listKnownLumaCandidateKeys`'s pagination (review
+/** Rows per page for the paginated candidate-key queries below (review
  *  finding, LOW item 4 — PostgREST's own default row cap is 1000, so a
- *  conference with more Luma candidates than that silently lost everything
+ *  conference with more candidates than that silently lost everything
  *  past the first page). */
-const KNOWN_LUMA_KEYS_PAGE_SIZE = 1000;
+const CANDIDATE_KEYS_PAGE_SIZE = 1000;
 /** Hard ceiling on total pages fetched, so a pathological conference can't
  *  turn this into an unbounded loop. 50 * 1000 rows is far more than any
- *  real conference's Luma candidate pool. */
-const KNOWN_LUMA_KEYS_MAX_PAGES = 50;
+ *  real conference's candidate pool. */
+const CANDIDATE_KEYS_MAX_PAGES = 50;
+
+/**
+ * Shared pagination core: every `canonical_key` + `alt_keys` pair for a
+ * conference, regardless of status, optionally filtered to a
+ * `canonical_key` prefix (e.g. `'luma:%'`). Pages past PostgREST's
+ * 1000-row default limit (review finding, LOW item 4) via `.range()`,
+ * with an explicit `.order('id')` (Minor review finding) — `.range()`
+ * pagination over an UNORDERED select has no guarantee that two pages
+ * don't overlap or skip rows, since Postgres is free to return rows in
+ * any order absent an explicit sort; `id` is used (not `canonical_key`,
+ * which only `listKnownLumaCandidateKeys` even filters on) so every
+ * caller of this shared core gets the same stable order regardless of
+ * which prefix it passes.
+ */
+async function listCandidateKeysPaginated(conference: string, canonicalKeyPrefix?: string): Promise<Set<string>> {
+  const supabase = getIngestSupabase();
+  const keys = new Set<string>();
+  for (let page = 0; page < CANDIDATE_KEYS_MAX_PAGES; page++) {
+    const from = page * CANDIDATE_KEYS_PAGE_SIZE;
+    const to = from + CANDIDATE_KEYS_PAGE_SIZE - 1;
+    let query = supabase
+      .from('ingest_candidates')
+      .select('canonical_key, alt_keys')
+      .eq('conference', conference)
+      .order('id', { ascending: true })
+      .range(from, to);
+    if (canonicalKeyPrefix) query = query.like('canonical_key', canonicalKeyPrefix);
+    const { data, error } = await query;
+    if (error) throw new Error(`Failed to list candidate keys: ${error.message}`);
+    const rows = (data ?? []) as { canonical_key: string; alt_keys: string[] | null }[];
+    for (const row of rows) {
+      keys.add(row.canonical_key);
+      for (const alt of row.alt_keys ?? []) keys.add(alt);
+    }
+    if (rows.length < CANDIDATE_KEYS_PAGE_SIZE) break; // last page.
+  }
+  return keys;
+}
 
 /** Every `luma:…` canonical/alt key already known for a conference,
  *  regardless of status — used to tell "genuinely new" calendar events
  *  apart from ones we've already discovered (possibly already rejected)
  *  through some other source. Deliberately unfiltered by status (unlike
  *  `listRecentCandidatesForDedupe`): an already-`rejected` candidate is
- *  still "already discovered", not new. Pages past PostgREST's 1000-row
- *  default limit (review finding, LOW item 4). */
+ *  still "already discovered", not new. */
 export async function listKnownLumaCandidateKeys(conference: string): Promise<Set<string>> {
-  const supabase = getIngestSupabase();
-  const keys = new Set<string>();
-  for (let page = 0; page < KNOWN_LUMA_KEYS_MAX_PAGES; page++) {
-    const from = page * KNOWN_LUMA_KEYS_PAGE_SIZE;
-    const to = from + KNOWN_LUMA_KEYS_PAGE_SIZE - 1;
-    const { data, error } = await supabase
-      .from('ingest_candidates')
-      .select('canonical_key, alt_keys')
-      .eq('conference', conference)
-      .like('canonical_key', 'luma:%')
-      .range(from, to);
-    if (error) throw new Error(`Failed to list known Luma candidate keys: ${error.message}`);
-    const rows = (data ?? []) as { canonical_key: string; alt_keys: string[] | null }[];
-    for (const row of rows) {
-      keys.add(row.canonical_key);
-      for (const alt of row.alt_keys ?? []) keys.add(alt);
-    }
-    if (rows.length < KNOWN_LUMA_KEYS_PAGE_SIZE) break; // last page.
-  }
-  return keys;
+  return listCandidateKeysPaginated(conference, 'luma:%');
+}
+
+/**
+ * Every canonical/alt key already known for a conference, across EVERY
+ * platform and EVERY status (including final/rejected/unpublished/stale
+ * ones) — review finding, HIGH item A ("links can be starved"):
+ * `runDiscoveredLinksBatch`'s unseen-first ordering previously derived its
+ * "known" set from the in-run dedupe pool (`listRecentCandidatesForDedupe`),
+ * which (a) drops `alt_keys` entirely, mapping only `canonical_key`, and
+ * (b) excludes rejected/unpublished/stale candidates outright. In
+ * production, a short Luma link (`luma:short-slug`) almost always
+ * resolves to a candidate keyed by its stable `luma:evt-…` id, with the
+ * short slug recorded ONLY in `alt_keys` — so that pool could never
+ * recognize a short link as "already known," meaning nearly every short
+ * link counted as "unseen" on every run, and the ordering/cap logic that
+ * depends on telling unseen apart from seen was effectively a no-op.
+ */
+export async function listAllCandidateKeysForConference(conference: string): Promise<Set<string>> {
+  return listCandidateKeysPaginated(conference);
 }
 
 /** A conference's already-configured `luma_ical` calendar ids — a

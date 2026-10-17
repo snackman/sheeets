@@ -17,7 +17,18 @@ export const runtime = 'nodejs';
 export const maxDuration = 300;
 
 const OVERALL_DEADLINE_MS = 270_000; // leave margin under maxDuration=300
-const PER_CONFERENCE_DEADLINE_MS = 45_000;
+// Each conference's two phases (resolve candidates' calendars, then
+// evaluate them) get this much time EACH by default — see
+// `discoverCalendarSources`'s doc comment (review finding, HIGH item B:
+// phase 1 alone used to be able to consume an entire shared deadline,
+// so phase 2 never ran at all).
+const PHASE_DEADLINE_MS = 20_000;
+/** Floor so neither phase is ever squeezed to ~0ms when the OVERALL
+ *  cron deadline is running low across many conferences — a late
+ *  conference in the loop still gets a meaningful (if reduced) shot at
+ *  both phases rather than phase 2 being starved again, just by a
+ *  different cause. */
+const MIN_PHASE_DEADLINE_MS = 2500;
 
 export async function GET(req: Request) {
   if (!isCronSecret(req.headers.get('authorization'))) {
@@ -48,9 +59,16 @@ export async function GET(req: Request) {
         results.push({ conference: tab.name, status: 'skipped', skippedReason: 'ingestion_not_enabled' });
         continue;
       }
+      // Split whatever's left of the OVERALL budget evenly between this
+      // conference's two phases, each floored at `MIN_PHASE_DEADLINE_MS`
+      // — so a late conference (overall budget running low) still gets a
+      // real, non-zero shot at phase 2, instead of phase 1 alone eating
+      // whatever's left (review finding, HIGH item B).
       const remaining = OVERALL_DEADLINE_MS - (Date.now() - startedAt);
+      const perPhaseBudget = Math.max(MIN_PHASE_DEADLINE_MS, Math.min(PHASE_DEADLINE_MS, remaining / 2));
       const result = await discoverCalendarSources(tab.name, tab, profile, {
-        deadlineMs: Math.min(PER_CONFERENCE_DEADLINE_MS, Math.max(5000, remaining)),
+        phase1DeadlineMs: perPhaseBudget,
+        phase2DeadlineMs: perPhaseBudget,
       });
       results.push({ conference: tab.name, status: 'ok', proposalsWritten: result.proposalsWritten.length });
     } catch (err) {
