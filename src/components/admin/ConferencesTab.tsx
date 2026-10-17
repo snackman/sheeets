@@ -75,7 +75,7 @@ export default function ConferencesTab({ conferences, setConferences, configLoad
   const [addingConference, setAddingConference] = useState(false);
   const [newConference, setNewConference] = useState<ConferenceConfig>({
     gid: 0, name: '', slug: '', timezone: 'America/New_York',
-    startDate: '', endDate: '', center: { lat: 0, lng: 0 },
+    startDate: '', endDate: '', center: { lat: 0, lng: 0 }, city: '',
   });
   const [showGidDropdown, setShowGidDropdown] = useState(false);
   const [newConfShowGidDropdown, setNewConfShowGidDropdown] = useState(false);
@@ -100,7 +100,7 @@ export default function ConferencesTab({ conferences, setConferences, configLoad
                   setAddingConference(true);
                   setNewConference({
                     gid: 0, name: '', slug: '', timezone: 'America/New_York',
-                    startDate: '', endDate: '', center: { lat: 0, lng: 0 },
+                    startDate: '', endDate: '', center: { lat: 0, lng: 0 }, city: '',
                   });
                 }}
                 className={`${btnPrimary} flex items-center gap-1.5`}
@@ -221,6 +221,16 @@ export default function ConferencesTab({ conferences, setConferences, configLoad
                   onChange={(center) => setNewConference({ ...newConference, center })}
                   inputClass={inputClass}
                 />
+                <div>
+                  <label className="block text-xs text-stone-400 mb-1">City (optional, shown on the home page card)</label>
+                  <input
+                    type="text"
+                    value={newConference.city || ''}
+                    onChange={(e) => setNewConference({ ...newConference, city: e.target.value })}
+                    placeholder="Falls back to a coordinate/timezone guess if left blank"
+                    className={inputClass}
+                  />
+                </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
@@ -393,6 +403,20 @@ export default function ConferencesTab({ conferences, setConferences, configLoad
                                 }}
                                 inputClass={inputClass}
                               />
+                              <div>
+                                <label className="block text-xs text-stone-400 mb-1">City (optional, shown on the home page card)</label>
+                                <input
+                                  type="text"
+                                  value={conf.city || ''}
+                                  onChange={(e) => {
+                                    const updated = [...conferences];
+                                    updated[idx] = { ...updated[idx], city: e.target.value };
+                                    setConferences(updated);
+                                  }}
+                                  placeholder="Falls back to a coordinate/timezone guess if left blank"
+                                  className={inputClass}
+                                />
+                              </div>
                               <button
                                 onClick={() => { setEditingConfIdx(null); setShowGidDropdown(false); }}
                                 className="text-green-400 hover:text-green-300 cursor-pointer p-1 flex items-center gap-1 text-sm"
@@ -412,6 +436,7 @@ export default function ConferencesTab({ conferences, setConferences, configLoad
                                 </p>
                                 <p className="text-xs text-stone-500 mt-0.5">
                                   Center: {conf.center.lat}, {conf.center.lng}
+                                  {conf.city && <> &middot; City: {conf.city}</>}
                                 </p>
                               </div>
                               <button

@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { Loader2, BarChart3, MousePointer, Download, ClipboardCopy, Check } from 'lucide-react';
 import type { TabConfig } from '@/lib/conferences';
 import { inputClass, btnPrimary } from './styles';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface EventReportRow {
   event_id: string;
@@ -65,7 +66,7 @@ export default function EventAnalyticsTab({ password, allConferenceTabs }: Props
   const fetchEventReport = useCallback(async () => {
     setEventReportLoading(true);
     try {
-      const params = new URLSearchParams({ password });
+      const params = new URLSearchParams();
       if (eventReportConference) params.set('conference', eventReportConference);
       if (eventReportRange !== 'all') {
         const now = new Date();
@@ -77,7 +78,7 @@ export default function EventAnalyticsTab({ password, allConferenceTabs }: Props
         params.set('start_date', '2020-01-01T00:00:00.000Z');
         params.set('end_date', new Date().toISOString());
       }
-      const res = await fetch(`/api/events/report?${params.toString()}`);
+      const res = await adminFetch(`/api/events/report?${params.toString()}`, password);
       if (res.ok) {
         const data = await res.json();
         setEventReport(data);

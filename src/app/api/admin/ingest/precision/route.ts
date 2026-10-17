@@ -4,7 +4,7 @@
 // the review-queue approval rate, volume per source, LLM spend vs the
 // monthly cap, and recent false positives/negatives for spot-checking.
 import { NextRequest, NextResponse } from 'next/server';
-import { isAdminPassword } from '@/lib/admin-auth';
+import { isAdminPassword, getAdminPassword } from '@/lib/admin-auth';
 import {
   getPrecisionRows,
   getRecentAutoPublishOutcomes,
@@ -25,7 +25,7 @@ import {
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
-  const password = req.nextUrl.searchParams.get('password');
+  const password = getAdminPassword(req);
   if (!isAdminPassword(password)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

@@ -5,6 +5,7 @@ import { Loader2, Check, X, Ban, Link2, ChevronDown, ChevronUp, ExternalLink, Al
 import type { TabConfig } from '@/lib/conferences';
 import { inputClass } from './styles';
 import { isSafeHttpUrl } from '@/lib/utils';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface HostSnapshot {
   api_id: string;
@@ -91,9 +92,9 @@ export default function ClaimsTab({ allConferenceTabs, password }: Props) {
   const fetchClaims = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ password, status: statusFilter });
+      const params = new URLSearchParams({ status: statusFilter });
       if (conferenceFilter) params.set('conference', conferenceFilter);
-      const res = await fetch(`/api/admin/claims?${params}`);
+      const res = await adminFetch(`/api/admin/claims?${params}`, password);
       const json = await res.json();
       setClaims(json.claims ?? []);
       setNote(json.note ?? (json.error ? `Error: ${json.error}` : null));

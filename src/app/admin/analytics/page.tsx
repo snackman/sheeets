@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Script from 'next/script';
 import Link from 'next/link';
+import { adminFetch } from '@/lib/admin-fetch';
 
 const SESSION_KEY = 'sheeets-admin-auth';
 
@@ -99,8 +100,8 @@ export default function AnalyticsPage() {
     setError(null);
     try {
       const [analyticsRes, eventsRes] = await Promise.all([
-        fetch(`/api/admin/analytics?password=${encodeURIComponent(password)}`),
-        fetch(`/api/events/report?password=${encodeURIComponent(password)}`),
+        adminFetch('/api/admin/analytics', password),
+        adminFetch('/api/events/report', password),
       ]);
       if (!analyticsRes.ok) {
         const err = await analyticsRes.json();

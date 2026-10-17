@@ -1037,17 +1037,20 @@ Content-Type: application/json
 
         <SubHeading id="mcp-install">Installation</SubHeading>
 
+        <p className="text-sm text-stone-300 mb-4">
+          <code className="text-xs font-mono text-amber-300">@sheeets/mcp</code>{' '}
+          isn&apos;t published to npm yet -- build it from the source repo instead:
+        </p>
+
         <CodeBlock
           tabs={[
             {
-              label: 'npm',
+              label: 'bash',
               language: 'bash',
-              code: `npm install @sheeets/mcp`,
-            },
-            {
-              label: 'npx',
-              language: 'bash',
-              code: `npx @sheeets/mcp`,
+              code: `git clone https://github.com/snackman/sheeets.git
+cd sheeets/packages/mcp-server
+npm install
+npm run build`,
             },
           ]}
         />
@@ -1055,7 +1058,9 @@ Content-Type: application/json
         <SubHeading id="mcp-config">Configuration</SubHeading>
 
         <p className="text-sm text-stone-300 mb-4">
-          Add the server to your MCP client config (e.g. Claude Desktop):
+          Point your MCP client (e.g. Claude Desktop) at the built file with{' '}
+          <code className="text-xs font-mono text-amber-300">node</code>, using
+          the absolute path from where you cloned the repo above:
         </p>
 
         <CodeBlock
@@ -1066,8 +1071,8 @@ Content-Type: application/json
               code: `{
   "mcpServers": {
     "sheeets": {
-      "command": "npx",
-      "args": ["@sheeets/mcp"],
+      "command": "node",
+      "args": ["/absolute/path/to/sheeets/packages/mcp-server/dist/index.js"],
       "env": {
         "SHEEETS_API_KEY": "shts_your_api_key_here"
       }

@@ -41,6 +41,7 @@ export interface TabConfig {
   timezone: string;
   dates: string[];
   center: { lat: number; lng: number };
+  city?: string;
 }
 
 /**
@@ -54,6 +55,7 @@ export function conferenceToTab(conf: ConferenceConfig): TabConfig {
     timezone: conf.timezone,
     dates: datesToArray(conf.startDate, conf.endDate),
     center: conf.center,
+    city: conf.city,
   };
 }
 

@@ -134,7 +134,7 @@ export function MultiEventPopup({
       <div className="w-[300px] max-w-[calc(100vw-3rem)]">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-bold text-sm text-[var(--theme-text-primary)]">
-            {events.length} events at this location
+            {events.length} {events.length === 1 ? 'event' : 'events'} at this location
           </h3>
           <button
             onClick={onClose}

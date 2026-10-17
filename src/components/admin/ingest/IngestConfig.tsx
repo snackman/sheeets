@@ -12,6 +12,7 @@ import type {
   MiraSeriesMenuItemClient,
   IngestSourceProposalClient,
 } from './types';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface Props {
   allConferenceTabs: TabConfig[];
@@ -77,10 +78,10 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ password, conference });
+      const params = new URLSearchParams({ conference });
       const [res, proposalsRes] = await Promise.all([
-        fetch(`/api/admin/ingest/config?${params}`),
-        fetch(`/api/admin/ingest/source-proposals?${params}`),
+        adminFetch(`/api/admin/ingest/config?${params}`, password),
+        adminFetch(`/api/admin/ingest/source-proposals?${params}`, password),
       ]);
       const json = await res.json();
       const found = (json.profiles ?? []).find((p: IngestProfileClient) => p.conference === conference);
@@ -104,8 +105,8 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
   async function loadMiraSeriesMenu() {
     if (miraSeriesMenu) return; // fetched once per page load — the list barely changes.
     try {
-      const params = new URLSearchParams({ password, listMiraSeries: '1' });
-      const res = await fetch(`/api/admin/ingest/config?${params}`);
+      const params = new URLSearchParams({ listMiraSeries: '1' });
+      const res = await adminFetch(`/api/admin/ingest/config?${params}`, password);
       const json = await res.json();
       setMiraSeriesMenu(json.series ?? []);
     } catch {
@@ -145,8 +146,8 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
     setResolving(true);
     setResolvePreview(null);
     try {
-      const params = new URLSearchParams({ password, resolveCalendar: calendarInput.trim() });
-      const res = await fetch(`/api/admin/ingest/config?${params}`);
+      const params = new URLSearchParams({ resolveCalendar: calendarInput.trim() });
+      const res = await adminFetch(`/api/admin/ingest/config?${params}`, password);
       const json = await res.json();
       if (json.resolved) {
         setResolvePreview({ apiId: json.resolved.apiId, name: json.resolved.name, upcomingCount: json.upcomingCount });

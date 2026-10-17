@@ -36,7 +36,7 @@ export function ClusterMarker({
           backgroundColor: 'rgba(249, 115, 22, 0.75)',
         }}
         onClick={handleClick}
-        aria-label={`Cluster of ${pointCount} events`}
+        aria-label={`Cluster of ${pointCount} ${pointCount === 1 ? 'event' : 'events'}`}
       >
         <span className="text-white font-bold text-sm">{pointCount}</span>
       </button>

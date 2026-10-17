@@ -7,6 +7,11 @@ export interface ConferenceConfig {
   endDate: string;       // ISO date: "2026-04-17"
   center: { lat: number; lng: number }; // Map center + geocoding proximity
   hidden?: boolean;      // Manually hidden by admin
+  city?: string;         // Display city for the home page card, e.g. "Mumbai".
+                          // Optional: falls back to a coordinate lookup, then
+                          // the IANA timezone's city segment (which is often
+                          // wrong -- e.g. "Asia/Kolkata" reads as "Kolkata"
+                          // for a Mumbai conference).
 }
 
 export interface ETHDenverEvent {

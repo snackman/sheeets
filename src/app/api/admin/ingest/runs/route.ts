@@ -1,13 +1,13 @@
 // Admin Ingest Log sub-tab data (§9.3): recent runs + monthly cost vs cap.
 import { NextRequest, NextResponse } from 'next/server';
-import { isAdminPassword } from '@/lib/admin-auth';
+import { isAdminPassword, getAdminPassword } from '@/lib/admin-auth';
 import { listRuns } from '@/lib/ingest/db';
 import { checkMonthlyBudget } from '@/lib/ingest/budget';
 
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
-  const password = req.nextUrl.searchParams.get('password');
+  const password = getAdminPassword(req);
   if (!isAdminPassword(password)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

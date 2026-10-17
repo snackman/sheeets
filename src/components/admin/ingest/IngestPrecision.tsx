@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import type { TabConfig } from '@/lib/conferences';
 import type { IngestPrecisionResponseClient } from './types';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface Props {
   allConferenceTabs: TabConfig[];
@@ -42,8 +43,8 @@ export default function IngestPrecision({ allConferenceTabs, password }: Props) 
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({ password, conference });
-      const res = await fetch(`/api/admin/ingest/precision?${params}`);
+      const params = new URLSearchParams({ conference });
+      const res = await adminFetch(`/api/admin/ingest/precision?${params}`, password);
       const json = await res.json();
       if (json.error) {
         setError(json.error);

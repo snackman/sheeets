@@ -269,7 +269,7 @@ export const FilterBar = memo(function FilterBar({
           {/* Itinerary toggle */}
           <button
             onClick={onItineraryToggle}
-            aria-label={`Itinerary: ${itineraryCount} events`}
+            aria-label={`Itinerary: ${itineraryCount} ${itineraryCount === 1 ? 'event' : 'events'}`}
             className={clsx(
               'group shrink-0 flex items-center gap-1 px-2.5 h-9 rounded-lg text-sm font-medium transition-colors cursor-pointer',
               isItineraryActive

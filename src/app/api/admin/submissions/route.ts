@@ -5,7 +5,7 @@ import { insertEventRowSorted, getSheetTitle, findReviewRow, deleteSheetRow, wri
 import { FALLBACK_TABS } from '@/lib/conferences';
 import { getConferenceTabs } from '@/lib/get-conferences';
 import { normalizeAddress } from '@/lib/utils';
-import { isAdminPassword } from '@/lib/admin-auth';
+import { isAdminPassword, getAdminPassword } from '@/lib/admin-auth';
 import { invalidateEventsCache } from '@/lib/fetch-events-cached';
 
 function getSupabase() {
@@ -16,7 +16,7 @@ function getSupabase() {
 }
 
 export async function GET(req: NextRequest) {
-  const password = req.nextUrl.searchParams.get('password');
+  const password = getAdminPassword(req);
   if (!isAdminPassword(password)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

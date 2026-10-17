@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { Loader2, Pencil, Save, X, Trash2, BarChart3, List, BookOpen, FileText, Search, Database } from 'lucide-react';
 import type { EventSponsor, SponsorDataSummary, SponsorCrawlLogEntry } from '@/lib/types';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface TabConfig {
   gid: number;
@@ -87,7 +88,7 @@ export default function SponsorDataTab({ allConferenceTabs, password }: Props) {
   // --- Fetch sponsor list ---
   const fetchSponsors = useCallback(async (page = 0) => {
     setSponsorLoading(true);
-    const params = new URLSearchParams({ password, view: 'list', limit: String(PAGE_SIZE), offset: String(page * PAGE_SIZE) });
+    const params = new URLSearchParams({ view: 'list', limit: String(PAGE_SIZE), offset: String(page * PAGE_SIZE) });
     if (listConference) params.set('conference', listConference);
     if (listSearch) params.set('search', listSearch);
     if (listConfidence) params.set('confidence', listConfidence);
@@ -95,7 +96,7 @@ export default function SponsorDataTab({ allConferenceTabs, password }: Props) {
     if (listType) params.set('type', listType);
 
     try {
-      const res = await fetch(`/api/admin/sponsor-data?${params}`);
+      const res = await adminFetch(`/api/admin/sponsor-data?${params}`, password);
       const data = await res.json();
       if (data.error) { console.error(data.error); return; }
       setSponsors(data.sponsors || []);
@@ -114,7 +115,7 @@ export default function SponsorDataTab({ allConferenceTabs, password }: Props) {
   const fetchSummary = useCallback(async () => {
     setSummaryLoading(true);
     try {
-      const res = await fetch(`/api/admin/sponsor-data?password=${password}&view=list&limit=1`);
+      const res = await adminFetch('/api/admin/sponsor-data?view=list&limit=1', password);
       const data = await res.json();
       if (data.summary) setSummary(data.summary);
     } catch (err) {
@@ -127,12 +128,12 @@ export default function SponsorDataTab({ allConferenceTabs, password }: Props) {
   // --- Fetch directory ---
   const fetchDirectory = useCallback(async () => {
     setDirectoryLoading(true);
-    const params = new URLSearchParams({ password, view: 'aggregate' });
+    const params = new URLSearchParams({ view: 'aggregate' });
     if (dirConference) params.set('conference', dirConference);
     if (dirSearch) params.set('search', dirSearch);
 
     try {
-      const res = await fetch(`/api/admin/sponsor-data?${params}`);
+      const res = await adminFetch(`/api/admin/sponsor-data?${params}`, password);
       const data = await res.json();
       if (data.error) { console.error(data.error); return; }
       setDirectory(data.directory || []);
@@ -148,12 +149,12 @@ export default function SponsorDataTab({ allConferenceTabs, password }: Props) {
   // --- Fetch crawl log ---
   const fetchCrawlLog = useCallback(async () => {
     setCrawlLoading(true);
-    const params = new URLSearchParams({ password });
+    const params = new URLSearchParams();
     if (crawlConference) params.set('conference', crawlConference);
     if (crawlStatus) params.set('status', crawlStatus);
 
     try {
-      const res = await fetch(`/api/admin/sponsor-data/crawl-log?${params}`);
+      const res = await adminFetch(`/api/admin/sponsor-data/crawl-log?${params}`, password);
       const data = await res.json();
       if (data.error) { console.error(data.error); return; }
       setCrawlLog(data.entries || []);
