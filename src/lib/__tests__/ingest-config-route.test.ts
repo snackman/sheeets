@@ -461,6 +461,8 @@ describe('GET /api/admin/ingest/config: sourceAvailability (Phase 4, §9.1 item 
       x_account: true,
       meetup_search: false,
       sponsor_pages: true,
+      mira_series: true,
+      sheet_tracker: true,
     });
   });
 });

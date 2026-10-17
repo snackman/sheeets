@@ -378,16 +378,20 @@ export const IngestProfileUpsertSchema = z.object({
 });
 
 /** Schema for POST /api/admin/ingest/config (add a Luma calendar, Telegram
- *  channel, X account, Meetup search or sponsor event-page source — Phase 3
- *  added `telegram_channel`, Phase 4 added the other three). */
+ *  channel, X account, Meetup search, sponsor event-page, Mira series or
+ *  sheet-tracker source — Phase 3 added `telegram_channel`, Phase 4 added
+ *  three more, and this round added `mira_series`/`sheet_tracker`). */
 export const IngestSourceCreateSchema = z.object({
   password: z.string(),
   conference: z.string().min(1),
-  kind: z.enum(['luma_ical', 'telegram_channel', 'x_account', 'meetup_search', 'sponsor_pages']),
+  kind: z.enum(['luma_ical', 'telegram_channel', 'x_account', 'meetup_search', 'sponsor_pages', 'mira_series', 'sheet_tracker']),
   /** Luma: a `luma.com/<slug>` calendar URL or raw `cal-…` id. Telegram: a
    *  handle, `@handle`, or `t.me/<handle>` URL. X: a handle, `@handle`, or
    *  `x.com/<handle>` URL. Meetup: a free-text topic query. Sponsor pages:
-   *  one or more event-page URLs, one per line or comma-separated. */
+   *  one or more event-page URLs, one per line or comma-separated. Mira: a
+   *  series slug or `miragather.com/<slug>` URL. Sheet tracker: a sheet id,
+   *  or a full `docs.google.com/spreadsheets/d/<id>/...` URL (optionally
+   *  with `gid=`). */
   input: z.string().min(1, 'A source identifier is required'),
   label: z.string().max(200).optional(),
   trust: z.enum(['curated', 'host', 'discovery']).optional(),
@@ -406,6 +410,14 @@ export const IngestSourceUpdateSchema = z.object({
 export const IngestSourceDeleteSchema = z.object({
   password: z.string(),
   id: z.string().uuid(),
+});
+
+/** Schema for POST /api/admin/ingest/source-proposals (accept/dismiss a
+ *  calendar auto-discovery proposal — plan item 3). */
+export const IngestSourceProposalDecisionSchema = z.object({
+  password: z.string(),
+  id: z.string().uuid(),
+  decision: z.enum(['accepted', 'dismissed']),
 });
 
 // ---------------------------------------------------------------------------

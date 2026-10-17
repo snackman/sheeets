@@ -30,6 +30,8 @@ import { fetchTelegramChannelHtml, parseTelegramChannelHtml, isValidTelegramHand
 import { isXConfigured, fetchXUserPosts, X_POST_READ_COST_USD, MAX_RESULTS_PER_ACCOUNT_PER_RUN, X_MAX_PAGES_PER_RUN, type XPostsPage } from './sources/x';
 import { isMeetupConfigured, searchMeetupEvents } from './sources/meetup';
 import { resolveSponsorPageUrls, fetchSponsorPageLinks, createRobotsCache, SPONSOR_PAGE_WORST_CASE_MS } from './sources/sponsor-pages';
+import { fetchMiraSeriesEvents } from './sources/mira';
+import { fetchSheetTrackerLinks } from './sources/sheet-tracker';
 import { isAllowlistedEventLink } from './allowlist';
 import { normalizeLumaEvent, computeContentHash } from './normalize';
 import { buildSheetLinkIndex, findSheetMatchByLink, fuzzyMatch, type DedupeCandidatePool } from './dedupe';
@@ -170,7 +172,7 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
       });
       return { runId: run.id, status: 'skipped', counts };
     }
-    const IMPLEMENTED_KINDS = ['luma_ical', 'telegram_channel', 'x_account', 'meetup_search', 'sponsor_pages'] as const;
+    const IMPLEMENTED_KINDS = ['luma_ical', 'telegram_channel', 'x_account', 'meetup_search', 'sponsor_pages', 'mira_series', 'sheet_tracker'] as const;
     if (!(IMPLEMENTED_KINDS as readonly string[]).includes(source.kind)) {
       throw new Error(`Source kind "${source.kind}" is not implemented until a later phase.`);
     }
@@ -225,7 +227,11 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
             ? await processXSource({ ...commonArgs, runId: run.id })
             : source.kind === 'meetup_search'
               ? await processMeetupSource(commonArgs)
-              : await processSponsorPagesSource(commonArgs);
+              : source.kind === 'sponsor_pages'
+                ? await processSponsorPagesSource(commonArgs)
+                : source.kind === 'mira_series'
+                  ? await processMiraSource(commonArgs)
+                  : await processSheetTrackerSource(commonArgs);
 
     if (!opts.dryRun) await updateSource(sourceId, { last_run_at: new Date().toISOString(), last_status: 'ok', last_error: null });
     await finishRun(run.id, {
@@ -1585,6 +1591,132 @@ async function processSponsorPagesSource(args: {
     llmOutputTokens: costAcc.outputTokens,
     costUsd: costAcc.costUsd,
     hitDeadline: sponsorPagesHitDeadline || hitDeadline,
+    previews: dryRun ? previews : undefined,
+  };
+}
+
+/**
+ * Mira (miragather.com) series source: one series page's `mainEvents` +
+ * `sideEvents`, each event's `website` link run through the shared
+ * discovery engine — same "fetch a batch, allowlist-filter, hand to
+ * `processDiscoveredLink`" shape as sponsor pages above. `sourceRef` is
+ * the series page itself; Mira has no stable per-event anchor to link
+ * back to more precisely than that.
+ */
+async function processMiraSource(args: {
+  source: Awaited<ReturnType<typeof getSource>>;
+  profile: IngestProfileRow;
+  tab: TabConfig;
+  deadlineMs?: number;
+  counts: RunCounts;
+  dryRun?: boolean;
+  costAcc: CostAccumulator;
+}): Promise<DiscoverySourceLoopResult> {
+  const { profile, tab, counts, dryRun, costAcc } = args;
+  const source = args.source!;
+  const deadline = Date.now() + (args.deadlineMs ?? 240_000);
+  const previews: CandidatePreview[] = [];
+  const persist = makeDiscoveryPersist(dryRun, previews);
+
+  const seriesSlug = (source.config as { series_slug?: string }).series_slug;
+  if (!seriesSlug) throw new Error('Source is missing series_slug.');
+
+  const events = await fetchMiraSeriesEvents(seriesSlug);
+  bump(counts, 'fetched', events.length);
+
+  const seriesPageUrl = `https://miragather.com/${seriesSlug}`;
+  const candidateUrls = Array.from(new Set(events.map((e) => e.website).filter((w): w is string => !!w)));
+
+  if (!hasAnyAllowlistedLink(candidateUrls)) {
+    return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline: false, previews: dryRun ? previews : undefined };
+  }
+
+  const budgetStatus = await checkMonthlyBudget();
+  const ctx = await buildDiscoverySourceContext(source, profile, tab);
+  const llmCallsThisRunRef = { value: 0 };
+  const { hitDeadline } = await runDiscoveredLinksBatch(candidateUrls, {
+    source,
+    profile,
+    tab,
+    sourceKind: 'mira_series',
+    sourceRef: () => seriesPageUrl,
+    ctx,
+    counts,
+    dryRun,
+    deadline,
+    persist,
+    budgetStatus,
+    costAcc,
+    llmCallsThisRunRef,
+  });
+
+  return {
+    llmInputTokens: costAcc.inputTokens,
+    llmOutputTokens: costAcc.outputTokens,
+    costUsd: costAcc.costUsd,
+    hitDeadline,
+    previews: dryRun ? previews : undefined,
+  };
+}
+
+/**
+ * Community-tracker Google Sheet source: one tab's `/htmlview/sheet?gid=`
+ * snapshot, every real (redirect-unwrapped) allowlisted hyperlink run
+ * through the shared discovery engine. Same shape as `processMiraSource`
+ * above — a single batch fetch, then `runDiscoveredLinksBatch`.
+ */
+async function processSheetTrackerSource(args: {
+  source: Awaited<ReturnType<typeof getSource>>;
+  profile: IngestProfileRow;
+  tab: TabConfig;
+  deadlineMs?: number;
+  counts: RunCounts;
+  dryRun?: boolean;
+  costAcc: CostAccumulator;
+}): Promise<DiscoverySourceLoopResult> {
+  const { profile, tab, counts, dryRun, costAcc } = args;
+  const source = args.source!;
+  const deadline = Date.now() + (args.deadlineMs ?? 240_000);
+  const previews: CandidatePreview[] = [];
+  const persist = makeDiscoveryPersist(dryRun, previews);
+
+  const config = source.config as { sheet_id?: string; gid?: number };
+  if (!config.sheet_id) throw new Error('Source is missing sheet_id.');
+  const gid = config.gid ?? 0;
+
+  const candidateUrls = await fetchSheetTrackerLinks(config.sheet_id, gid);
+  bump(counts, 'fetched', candidateUrls.length);
+
+  const sheetPageUrl = `https://docs.google.com/spreadsheets/d/${config.sheet_id}/htmlview/sheet?gid=${gid}`;
+
+  if (!hasAnyAllowlistedLink(candidateUrls)) {
+    return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline: false, previews: dryRun ? previews : undefined };
+  }
+
+  const budgetStatus = await checkMonthlyBudget();
+  const ctx = await buildDiscoverySourceContext(source, profile, tab);
+  const llmCallsThisRunRef = { value: 0 };
+  const { hitDeadline } = await runDiscoveredLinksBatch(candidateUrls, {
+    source,
+    profile,
+    tab,
+    sourceKind: 'sheet_tracker',
+    sourceRef: () => sheetPageUrl,
+    ctx,
+    counts,
+    dryRun,
+    deadline,
+    persist,
+    budgetStatus,
+    costAcc,
+    llmCallsThisRunRef,
+  });
+
+  return {
+    llmInputTokens: costAcc.inputTokens,
+    llmOutputTokens: costAcc.outputTokens,
+    costUsd: costAcc.costUsd,
+    hitDeadline,
     previews: dryRun ? previews : undefined,
   };
 }

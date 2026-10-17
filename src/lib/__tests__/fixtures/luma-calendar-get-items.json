@@ -1,0 +1,97 @@
+{
+  "entries": [
+    {
+      "api_id": "calev-DYxWI95e8hxuvSH",
+      "event": {
+        "api_id": "evt-mHRDVyLOaHAfZ3t",
+        "calendar_api_id": "cal-FU1X0TNBTO8ti2F",
+        "name": "The Best Event: BUIDL Mansion - Afterdark @ DASLondon",
+        "start_at": "2026-11-05T18:00:00.000Z",
+        "end_at": "2026-11-06T02:00:00.000Z",
+        "timezone": "Europe/London",
+        "url": "TBE-AFTERDARK-DASLondon26",
+        "visibility": "public",
+        "geo_address_info": { "city": "London", "city_state": "London, England", "country": "United Kingdom" },
+        "coordinate": { "latitude": 51.5072, "longitude": -0.1276 }
+      },
+      "calendar": {
+        "api_id": "cal-FU1X0TNBTO8ti2F",
+        "name": "The Best Event",
+        "is_personal": false,
+        "personal_user_api_id": null,
+        "location": null
+      },
+      "start_at": "2026-11-05T18:00:00.000Z"
+    },
+    {
+      "api_id": "calev-9zQwErX2abCdEfG",
+      "event": {
+        "api_id": "evt-9zQwErX2abCdEfG",
+        "calendar_api_id": "cal-FU1X0TNBTO8ti2F",
+        "name": "The Best Event: Builders Breakfast",
+        "start_at": "2026-11-06T08:00:00.000Z",
+        "end_at": "2026-11-06T10:00:00.000Z",
+        "timezone": "Europe/London",
+        "url": "TBE-BREAKFAST-DASLondon26",
+        "visibility": "public",
+        "geo_address_info": { "city": "London", "city_state": "London, England", "country": "United Kingdom" },
+        "coordinate": { "latitude": 51.5074, "longitude": -0.1278 }
+      },
+      "calendar": {
+        "api_id": "cal-FU1X0TNBTO8ti2F",
+        "name": "The Best Event",
+        "is_personal": false,
+        "personal_user_api_id": null,
+        "location": null
+      },
+      "start_at": "2026-11-06T08:00:00.000Z"
+    },
+    {
+      "api_id": "calev-outOfWindow1",
+      "event": {
+        "api_id": "evt-outOfWindow1",
+        "calendar_api_id": "cal-FU1X0TNBTO8ti2F",
+        "name": "The Best Event: Tokyo Meetup (different city/date)",
+        "start_at": "2027-03-01T08:00:00.000Z",
+        "end_at": "2027-03-01T10:00:00.000Z",
+        "timezone": "Asia/Tokyo",
+        "url": "TBE-TOKYO-2027",
+        "visibility": "public",
+        "geo_address_info": { "city": "Tokyo", "city_state": "Tokyo, Japan", "country": "Japan" },
+        "coordinate": { "latitude": 35.6762, "longitude": 139.6503 }
+      },
+      "calendar": {
+        "api_id": "cal-FU1X0TNBTO8ti2F",
+        "name": "The Best Event",
+        "is_personal": false,
+        "personal_user_api_id": null,
+        "location": null
+      },
+      "start_at": "2027-03-01T08:00:00.000Z"
+    },
+    {
+      "api_id": "calev-noGeo1",
+      "event": {
+        "api_id": "evt-noGeo1",
+        "calendar_api_id": "cal-FU1X0TNBTO8ti2F",
+        "name": "The Best Event: venue TBA (no coordinates yet)",
+        "start_at": "2026-11-05T20:00:00.000Z",
+        "end_at": null,
+        "timezone": "Europe/London",
+        "url": "TBE-TBA-DASLondon26",
+        "visibility": "public",
+        "geo_address_info": { "mode": "obfuscated" },
+        "coordinate": null
+      },
+      "calendar": {
+        "api_id": "cal-FU1X0TNBTO8ti2F",
+        "name": "The Best Event",
+        "is_personal": false,
+        "personal_user_api_id": null,
+        "location": null
+      },
+      "start_at": "2026-11-05T20:00:00.000Z"
+    }
+  ],
+  "has_more": false
+}

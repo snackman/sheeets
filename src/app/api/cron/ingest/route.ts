@@ -11,19 +11,12 @@ import { isCronSecret } from '@/lib/admin-auth';
 import { getAllConferenceTabs } from '@/lib/get-conferences';
 import { listDueSources, reapStaleRunningRuns } from '@/lib/ingest/db';
 import { runSource } from '@/lib/ingest/pipeline';
+import { isInActiveWindow } from '@/lib/ingest/active-window';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
 const OVERALL_DEADLINE_MS = 270_000; // leave margin under maxDuration=300
-const ACTIVE_WINDOW_PRE_DAYS = 60;
-
-function isInActiveWindow(startDate: string, endDate: string, todayISO: string): boolean {
-  const start = new Date(startDate + 'T00:00:00Z');
-  start.setUTCDate(start.getUTCDate() - ACTIVE_WINDOW_PRE_DAYS);
-  const windowStart = start.toISOString().slice(0, 10);
-  return todayISO >= windowStart && todayISO <= endDate;
-}
 
 export async function GET(req: Request) {
   if (!isCronSecret(req.headers.get('authorization'))) {
@@ -38,9 +31,10 @@ export async function GET(req: Request) {
   // configured, so listing them here is harmless even on a deploy with no
   // `X_BEARER_TOKEN`/Meetup OAuth set. `host_submission` sources are
   // intentionally excluded — they are passive (fed by
-  // `POST /api/host/submissions`), never polled.
+  // `POST /api/host/submissions`), never polled. Mira series and sheet
+  // trackers poll the same way as sponsor pages — no credentials needed.
   const [sources, tabs] = await Promise.all([
-    listDueSources(['luma_ical', 'telegram_channel', 'x_account', 'meetup_search', 'sponsor_pages']),
+    listDueSources(['luma_ical', 'telegram_channel', 'x_account', 'meetup_search', 'sponsor_pages', 'mira_series', 'sheet_tracker']),
     getAllConferenceTabs(),
   ]);
   const todayISO = new Date().toISOString().slice(0, 10);
