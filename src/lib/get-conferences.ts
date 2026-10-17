@@ -61,8 +61,10 @@ export async function getAllConferenceTabs(): Promise<TabConfig[]> {
 }
 
 /**
- * Server-side: fetch upcoming conferences — hidden but with future startDate.
- * These are conferences added by admin that aren't active yet.
+ * Server-side: fetch upcoming conferences — not yet active (future startDate,
+ * not in the active list) but NOT explicitly hidden by admin. Admin-hidden
+ * conferences must never appear in any public listing, so `!c.hidden` is
+ * filtered here too, not just inherited from `getActiveConferences`.
  */
 export async function getUpcomingConferences(): Promise<ConferenceConfig[]> {
   try {
@@ -70,7 +72,7 @@ export async function getUpcomingConferences(): Promise<ConferenceConfig[]> {
     const activeNames = getActiveConferences(allConfs).map((c) => c.name);
 
     return allConfs
-      .filter((c) => !activeNames.includes(c.name) && !isConferencePast(c))
+      .filter((c) => !c.hidden && !activeNames.includes(c.name) && !isConferencePast(c))
       .sort((a, b) => a.startDate.localeCompare(b.startDate));
   } catch {
     return [];
