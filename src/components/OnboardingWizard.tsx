@@ -283,7 +283,7 @@ export function OnboardingWizard({
                           </div>
                           {conferenceEventCounts[tab.name] != null && (
                             <div className={`text-xs ${isSelected ? 'text-[var(--theme-accent-link)]/70' : 'text-[var(--theme-text-muted)]'}`}>
-                              {conferenceEventCounts[tab.name]} events
+                              {conferenceEventCounts[tab.name]} {conferenceEventCounts[tab.name] === 1 ? 'event' : 'events'}
                             </div>
                           )}
                         </div>

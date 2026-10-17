@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-import { isAdminPassword } from '@/lib/admin-auth';
+import { isAdminPassword, getAdminPassword } from '@/lib/admin-auth';
 
 interface AdReportRpcRow {
   ad_id: string;
@@ -33,7 +33,7 @@ function getSupabase() {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const password = searchParams.get('password');
+  const password = getAdminPassword(req);
   if (!isAdminPassword(password)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

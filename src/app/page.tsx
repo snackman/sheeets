@@ -52,9 +52,15 @@ function formatConfDateRange(startDate: string, endDate: string): string {
 }
 
 /**
- * Derive a city name from the conference center coordinates.
+ * Derive a display city for a conference. Prefers an admin-set `city`
+ * (admin_config conferences entries), since neither the coordinate lookup
+ * nor the timezone fallback below is reliable -- e.g. Devcon 8's center is
+ * in Mumbai but its IANA timezone is "Asia/Kolkata", so the old
+ * timezone-only fallback showed "Kolkata" on the home page.
  */
-function getCity(center: { lat: number; lng: number }, timezone: string): string {
+function getCity(center: { lat: number; lng: number }, timezone: string, explicitCity?: string): string {
+  if (explicitCity) return explicitCity;
+
   const { lat, lng } = center;
 
   const cities: [number, number, string][] = [
@@ -209,7 +215,7 @@ export default async function Home() {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {tabs.map((tab) => {
-              const city = getCity(tab.center, tab.timezone);
+              const city = getCity(tab.center, tab.timezone, tab.city);
               const dateRange = formatDateRange(tab.dates);
               const count = eventCounts.get(tab.name) || 0;
               const startDate = tab.dates[0];
@@ -266,7 +272,7 @@ export default async function Home() {
                       className="text-sm font-medium mt-3"
                       style={{ color: 'var(--theme-landing-card-accent)' }}
                     >
-                      {count} events
+                      {count} {count === 1 ? 'event' : 'events'}
                     </p>
                   )}
                 </a>
@@ -296,7 +302,7 @@ export default async function Home() {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {upcoming.map((conf) => {
-              const city = getCity(conf.center, conf.timezone);
+              const city = getCity(conf.center, conf.timezone, conf.city);
               const dateRange = formatConfDateRange(conf.startDate, conf.endDate);
               const daysLabel = getDaysAwayLabel(conf.startDate, conf.endDate);
 

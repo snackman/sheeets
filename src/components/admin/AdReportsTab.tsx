@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { Loader2, BarChart3, Download, ClipboardCopy, Check } from 'lucide-react';
 import type { TabConfig } from '@/lib/conferences';
 import { inputClass, btnPrimary } from './styles';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface AdReportRow {
   ad_id: string;
@@ -39,7 +40,7 @@ export default function AdReportsTab({ password, allConferenceTabs }: Props) {
   const fetchAdReport = useCallback(async () => {
     setAdReportLoading(true);
     try {
-      const params = new URLSearchParams({ password });
+      const params = new URLSearchParams();
       if (adReportConference) params.set('conference', adReportConference);
       if (adReportRange !== 'all') {
         const now = new Date();
@@ -52,7 +53,7 @@ export default function AdReportsTab({ password, allConferenceTabs }: Props) {
         params.set('start_date', '2020-01-01T00:00:00.000Z');
         params.set('end_date', new Date().toISOString());
       }
-      const res = await fetch(`/api/ads/report?${params.toString()}`);
+      const res = await adminFetch(`/api/ads/report?${params.toString()}`, password);
       if (res.ok) {
         const data = await res.json();
         setAdReport(data);

@@ -2,7 +2,7 @@
 // auth, zod-validated body, service-role Supabase access.
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { isAdminPassword } from '@/lib/admin-auth';
+import { isAdminPassword, getAdminPassword } from '@/lib/admin-auth';
 import { parseBody, IngestQueueActionSchema } from '@/lib/api-validation';
 import { getAllConferenceTabs } from '@/lib/get-conferences';
 import type { TabConfig } from '@/lib/conferences';
@@ -60,7 +60,7 @@ export const maxDuration = 300;
 const MAX_BULK_APPROVE = 40;
 
 export async function GET(req: NextRequest) {
-  const password = req.nextUrl.searchParams.get('password');
+  const password = getAdminPassword(req);
   if (!isAdminPassword(password)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

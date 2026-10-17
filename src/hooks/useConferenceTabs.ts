@@ -6,11 +6,23 @@ import type { TabConfig } from '@/lib/conferences';
 
 /**
  * Client-side hook to fetch dynamic conference tabs from /api/conferences.
- * Falls back to FALLBACK_TABS if the fetch fails.
+ *
+ * `initialTabs` seeds the state with the server-fetched tab list (e.g. from
+ * `getAllConferenceTabs()` in a server component) so the very first render
+ * -- including the server-rendered HTML -- already has the real conference
+ * dates/timezone/center, instead of the hardcoded FALLBACK_TABS (which only
+ * covers a few long-past conferences). Without this, anything derived from
+ * `tabs` during that first render -- most importantly `useFilters`' default
+ * date range -- used the wrong conference's dates until the `/api/conferences`
+ * fetch below resolved, which made every event look filtered out ("0 events")
+ * on first load for any conference not in FALLBACK_TABS.
+ *
+ * Falls back to FALLBACK_TABS only when no `initialTabs` were provided.
  */
-export function useConferenceTabs(): { tabs: TabConfig[]; loading: boolean } {
-  const [tabs, setTabs] = useState<TabConfig[]>(FALLBACK_TABS);
-  const [loading, setLoading] = useState(true);
+export function useConferenceTabs(initialTabs?: TabConfig[]): { tabs: TabConfig[]; loading: boolean } {
+  const hasInitialTabs = !!initialTabs && initialTabs.length > 0;
+  const [tabs, setTabs] = useState<TabConfig[]>(hasInitialTabs ? initialTabs : FALLBACK_TABS);
+  const [loading, setLoading] = useState(!hasInitialTabs);
 
   useEffect(() => {
     fetch('/api/conferences')

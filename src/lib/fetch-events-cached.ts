@@ -1,6 +1,7 @@
 import { unstable_cache, revalidateTag } from 'next/cache';
 import { fetchEvents } from './fetch-events';
 import { getConferenceTabs } from './get-conferences';
+import { getRuntimeGeocodedAddresses } from './geocoded-addresses';
 import { ETHDenverEvent } from './types';
 
 /** Cache tag for the server-side events data (all conferences). */
@@ -22,8 +23,11 @@ export const EVENTS_CACHE_TAG = 'events';
  */
 export const fetchEventsCached: () => Promise<ETHDenverEvent[]> = unstable_cache(
   async () => {
-    const tabs = await getConferenceTabs();
-    return fetchEvents(undefined, tabs);
+    const [tabs, runtimeAddresses] = await Promise.all([
+      getConferenceTabs(),
+      getRuntimeGeocodedAddresses(),
+    ]);
+    return fetchEvents(runtimeAddresses, tabs);
   },
   ['events-all'],
   { revalidate: 300, tags: [EVENTS_CACHE_TAG] }, // 5 minutes

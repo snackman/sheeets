@@ -1,9 +1,9 @@
 import { Suspense } from 'react';
-import { redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { EventApp } from '@/components/EventApp';
-import { FALLBACK_TABS, getTabBySlug } from '@/lib/constants';
-import { getAllConferenceTabs } from '@/lib/get-conferences';
+import { FALLBACK_TABS, getTabBySlug, withCurrentTab } from '@/lib/constants';
+import { getAllConferenceTabs, getConferenceTabs } from '@/lib/get-conferences';
 import { fetchEventsCached } from '@/lib/fetch-events-cached';
 import { buildCollectionPageJsonLd, buildBreadcrumbJsonLd, serializeJsonLd } from '@/lib/json-ld';
 
@@ -42,9 +42,26 @@ export async function generateMetadata({
 
 export default async function ConferencePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const allTabs = await getAllConferenceTabs();
+  // `allTabs` (every conference, including hidden/past) is needed to
+  // resolve a slug for ROUTING -- a hidden/past conference's own page must
+  // still be directly reachable. But sending the full list down to the
+  // client as `initialConferenceTabs` shipped every hidden conference's
+  // name/dates/center in this page's RSC payload for EVERY conference
+  // page, public ones included (review finding, MEDIUM). `publicTabs`
+  // (active only) is what actually goes to the client, with the current
+  // tab merged in if it isn't already there -- so a hidden/past
+  // conference's OWN page still gets its own correct dates/center (fixes
+  // the map center / mini-calendar reverting to DEFAULT_TAB on those
+  // pages, too), without leaking every OTHER hidden conference.
+  const [allTabs, publicTabs] = await Promise.all([getAllConferenceTabs(), getConferenceTabs()]);
   const tab = getTabBySlug(slug, allTabs);
-  if (!tab) redirect('/');
+  // An unknown conference slug is a missing resource, not a redirect to
+  // home -- a 307-to-home on a typo'd/stale URL told crawlers and
+  // visitors the page "moved" to "/", which isn't true and can get a
+  // dead slug indexed as a duplicate of the home page.
+  if (!tab) notFound();
+
+  const initialConferenceTabs = withCurrentTab(publicTabs, tab);
 
   const allEvents = await fetchEventsCached();
   const conferenceEvents = allEvents.filter((e) => e.conference === tab.name);
@@ -63,7 +80,11 @@ export default async function ConferencePage({ params }: { params: Promise<{ slu
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
       <Suspense>
-        <EventApp initialConference={tab.name} initialEvents={conferenceEvents} />
+        <EventApp
+          initialConference={tab.name}
+          initialEvents={conferenceEvents}
+          initialConferenceTabs={initialConferenceTabs}
+        />
       </Suspense>
     </>
   );

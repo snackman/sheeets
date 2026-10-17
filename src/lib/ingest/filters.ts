@@ -4,6 +4,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { normalizeAddress } from '../utils';
 import { haversineKm } from './geo';
+import { writeGeocodedAddress } from '../geocoded-addresses';
 import type { NormalizedEvent } from './types';
 
 /** Add `days` (may be negative) to a "YYYY-MM-DD" string, returning "YYYY-MM-DD". */
@@ -115,13 +116,10 @@ export async function geocodeAddressCached(
     const coords = feature?.geometry?.coordinates;
     if (!Array.isArray(coords) || coords.length < 2) return null;
     const [lng, lat] = coords;
-    await supabase.from('geocoded_addresses').upsert({
-      normalized_address: normalized,
-      lat,
-      lng,
-      matched_address: trimmed,
-      conference,
-    });
+    // Best-effort: a write failure here shouldn't block returning the
+    // coordinates we just resolved (writeGeocodedAddress already logs on
+    // error -- see its doc comment).
+    await writeGeocodedAddress(supabase, { address: trimmed, lat, lng, conference, matchedAddress: trimmed });
     return { lat, lng };
   } catch {
     return null;
@@ -152,18 +150,12 @@ export async function upsertGeocodedAddress(
 ): Promise<void> {
   const trimmed = address.trim();
   if (!trimmed) return;
-  try {
-    await supabase.from('geocoded_addresses').upsert({
-      normalized_address: normalizeAddress(trimmed),
-      lat,
-      lng,
-      matched_address: trimmed,
-      conference,
-    });
-  } catch {
-    // Swallow — the cron job will eventually forward-geocode this address
-    // itself if this best-effort write fails.
-  }
+  // Best-effort, like every other writer of this table -- a failure here
+  // must never fail the publish/approve it's attached to. writeGeocodedAddress
+  // still logs the failure (review finding, HIGH) instead of swallowing it
+  // the way the old try/catch-with-no-error-check here did -- Supabase
+  // doesn't throw on a PostgREST error, so that catch never actually fired.
+  await writeGeocodedAddress(supabase, { address: trimmed, lat, lng, conference });
 }
 
 /* ------------------------------------------------------------------ */

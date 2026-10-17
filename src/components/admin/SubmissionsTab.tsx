@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Loader2, Check, X, Pencil, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import type { Submission } from '@/lib/types';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface TabConfig {
   gid: number;
@@ -78,9 +79,9 @@ export default function SubmissionsTab({ allConferenceTabs, password }: Props) {
   const fetchSubmissions = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ password, status: statusFilter });
+      const params = new URLSearchParams({ status: statusFilter });
       if (conferenceFilter) params.set('conference', conferenceFilter);
-      const res = await fetch(`/api/admin/submissions?${params}`);
+      const res = await adminFetch(`/api/admin/submissions?${params}`, password);
       const json = await res.json();
       if (json.submissions) {
         setSubmissions(json.submissions);

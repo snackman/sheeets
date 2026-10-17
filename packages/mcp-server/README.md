@@ -4,29 +4,31 @@ MCP (Model Context Protocol) server for **sheeets** -- a crypto event discovery 
 
 ## Installation
 
-```bash
-npx @sheeets/mcp
-```
-
-Or install globally:
+`@sheeets/mcp` is **not published to npm yet** -- `npx @sheeets/mcp` /
+`npm install @sheeets/mcp` will not work. Build it from this repo instead:
 
 ```bash
-npm install -g @sheeets/mcp
-sheeets-mcp
+git clone https://github.com/snackman/sheeets.git
+cd sheeets/packages/mcp-server
+npm install
+npm run build
 ```
+
+This produces `dist/index.js`, runnable with `node dist/index.js` or `npm start`.
 
 ## Configuration
 
 ### Claude Code
 
-Add to your `.claude.json` or project settings:
+Add to your `.claude.json` or project settings, using the absolute path to
+`dist/index.js` from where you cloned the repo above:
 
 ```json
 {
   "mcpServers": {
     "sheeets": {
-      "command": "npx",
-      "args": ["@sheeets/mcp"],
+      "command": "node",
+      "args": ["/absolute/path/to/sheeets/packages/mcp-server/dist/index.js"],
       "env": {
         "SHEEETS_API_KEY": "$SHEEETS_API_KEY"
       }
@@ -43,8 +45,8 @@ Add to your `claude_desktop_config.json`:
 {
   "mcpServers": {
     "sheeets": {
-      "command": "npx",
-      "args": ["@sheeets/mcp"],
+      "command": "node",
+      "args": ["/absolute/path/to/sheeets/packages/mcp-server/dist/index.js"],
       "env": {
         "SHEEETS_API_KEY": "shts_your_key_here"
       }

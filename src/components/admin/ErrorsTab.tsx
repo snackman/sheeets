@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Loader2, RefreshCw, Check, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface AppError {
   id: string;
@@ -57,8 +58,8 @@ export default function ErrorsTab({ password }: Props) {
   const fetchErrors = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ password, status, source });
-      const res = await fetch(`/api/admin/errors?${params}`);
+      const params = new URLSearchParams({ status, source });
+      const res = await adminFetch(`/api/admin/errors?${params}`, password);
       const json = await res.json();
       setErrors(json.errors ?? []);
       setNote(json.note ?? json.error ?? '');

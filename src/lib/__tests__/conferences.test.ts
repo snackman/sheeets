@@ -4,8 +4,10 @@ import {
   DEFAULT_TAB,
   getTabConfig,
   getTabBySlug,
+  withCurrentTab,
   TIME_RANGES,
 } from '../conferences';
+import type { TabConfig } from '../conferences';
 
 describe('conferences', () => {
   describe('EVENT_TABS', () => {
@@ -55,30 +57,43 @@ describe('conferences', () => {
   describe('getTabConfig', () => {
     it('returns correct tab for exact conference name', () => {
       const tab = getTabConfig('Paris Blockchain Week 2026');
-      expect(tab.name).toBe('Paris Blockchain Week 2026');
-      expect(tab.slug).toBe('pbw');
+      expect(tab?.name).toBe('Paris Blockchain Week 2026');
+      expect(tab?.slug).toBe('pbw');
     });
 
     it('returns correct tab for Bitcoin Vegas', () => {
       const tab = getTabConfig('Bitcoin Vegas');
-      expect(tab.name).toBe('Bitcoin Vegas');
-      expect(tab.timezone).toBe('America/Los_Angeles');
+      expect(tab?.name).toBe('Bitcoin Vegas');
+      expect(tab?.timezone).toBe('America/Los_Angeles');
     });
 
     it('returns correct tab for Consensus Miami', () => {
       const tab = getTabConfig('Consensus Miami');
-      expect(tab.slug).toBe('consensus');
-      expect(tab.timezone).toBe('America/New_York');
+      expect(tab?.slug).toBe('consensus');
+      expect(tab?.timezone).toBe('America/New_York');
     });
 
-    it('returns DEFAULT_TAB for unknown conference name', () => {
+    // Callers must handle a miss themselves (usually `?? DEFAULT_TAB`)
+    // instead of getTabConfig silently guessing -- see the regression this
+    // fixed: a conference not in the fallback list briefly inherited
+    // whatever conference happened to be first in the list it was passed,
+    // including that conference's dates, which filtered out every event.
+    it('returns undefined for an unknown conference name instead of guessing', () => {
       const tab = getTabConfig('Nonexistent Conference');
-      expect(tab).toBe(DEFAULT_TAB);
+      expect(tab).toBeUndefined();
     });
 
-    it('returns DEFAULT_TAB for empty string', () => {
+    it('returns undefined for an empty string instead of guessing', () => {
       const tab = getTabConfig('');
-      expect(tab).toBe(DEFAULT_TAB);
+      expect(tab).toBeUndefined();
+    });
+
+    it('looks up against a provided tab list, not just EVENT_TABS', () => {
+      const customTabs = [
+        { gid: 999, name: 'DevCon 8', slug: 'devcon8', timezone: 'Asia/Kolkata', dates: ['2026-11-17'], center: { lat: 19.076, lng: 72.8777 } },
+      ];
+      expect(getTabConfig('DevCon 8', customTabs)?.slug).toBe('devcon8');
+      expect(getTabConfig('Paris Blockchain Week 2026', customTabs)).toBeUndefined();
     });
   });
 
@@ -115,6 +130,38 @@ describe('conferences', () => {
       const tab = getTabBySlug('consensus');
       expect(tab).toBeDefined();
       expect(tab!.name).toBe('Consensus Miami');
+    });
+  });
+
+  describe('withCurrentTab', () => {
+    const hiddenTab: TabConfig = {
+      gid: 1,
+      name: 'ETHDenver 2027',
+      slug: 'ethdenver2027',
+      timezone: 'America/Denver',
+      dates: ['2027-02-17'],
+      center: { lat: 39.7392, lng: -104.9903 },
+    };
+    const publicTabs = EVENT_TABS; // PBW/Bitcoin/Consensus -- none named 'ETHDenver 2027'
+
+    it('appends the current tab when it is not already in the public list (a hidden/past conference viewing its own page)', () => {
+      const merged = withCurrentTab(publicTabs, hiddenTab);
+      expect(merged).toHaveLength(publicTabs.length + 1);
+      expect(merged.map((t) => t.name)).toContain('ETHDenver 2027');
+      // Every public tab is still present, unchanged.
+      for (const t of publicTabs) expect(merged).toContain(t);
+    });
+
+    it('does not duplicate a tab that is already in the public list', () => {
+      const merged = withCurrentTab(publicTabs, publicTabs[0]);
+      expect(merged).toHaveLength(publicTabs.length);
+      expect(merged).toEqual(publicTabs);
+    });
+
+    it('never includes any OTHER hidden conference beyond the one merged in', () => {
+      const otherHidden: TabConfig = { ...hiddenTab, name: 'EthCC[10]', slug: 'ethcc10' };
+      const merged = withCurrentTab(publicTabs, hiddenTab);
+      expect(merged.map((t) => t.name)).not.toContain(otherHidden.name);
     });
   });
 

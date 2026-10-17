@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { isAdminPassword } from '@/lib/admin-auth';
+import { isAdminPassword, getAdminPassword } from '@/lib/admin-auth';
 import { AdminErrorActionSchema, parseBody } from '@/lib/api-validation';
 import { isMissingSchemaError } from '@/lib/error-store';
 
@@ -17,7 +17,7 @@ function getSupabase() {
  */
 export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
-  if (!isAdminPassword(params.get('password'))) {
+  if (!isAdminPassword(getAdminPassword(req))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

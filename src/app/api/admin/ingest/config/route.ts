@@ -1,7 +1,7 @@
 // Admin Ingest config: profiles + sources CRUD, and resolving a Luma
 // calendar URL before saving it as a source (§9.1).
 import { NextRequest, NextResponse } from 'next/server';
-import { isAdminPassword } from '@/lib/admin-auth';
+import { isAdminPassword, getAdminPassword } from '@/lib/admin-auth';
 import {
   parseBody,
   IngestProfileUpsertSchema,
@@ -90,7 +90,7 @@ function hasAddedHostEntries(existing: TrustedHostEntry[], next: TrustedHostEntr
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
-  const password = req.nextUrl.searchParams.get('password');
+  const password = getAdminPassword(req);
   if (!isAdminPassword(password)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

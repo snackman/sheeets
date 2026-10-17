@@ -7,15 +7,18 @@
  * (itinerary, friends, RSVPs, recommendations). Public endpoints (event
  * search, conferences, tags) work without a key.
  *
+ * Not published to npm -- build from source (see ../README.md) and run the
+ * built file directly:
+ *
  * Usage:
- *   SHEEETS_API_KEY=shts_... npx @sheeets/mcp
+ *   SHEEETS_API_KEY=shts_... node dist/index.js
  *
  * Or configure in Claude Code / Claude Desktop:
  *   {
  *     "mcpServers": {
  *       "sheeets": {
- *         "command": "npx",
- *         "args": ["@sheeets/mcp"],
+ *         "command": "node",
+ *         "args": ["/absolute/path/to/sheeets/packages/mcp-server/dist/index.js"],
  *         "env": { "SHEEETS_API_KEY": "shts_..." }
  *       }
  *     }

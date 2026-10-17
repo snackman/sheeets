@@ -7,6 +7,7 @@ import { inputClass } from '../styles';
 import { isSafeHttpUrl } from '@/lib/utils';
 import type { IngestCandidateClient } from './types';
 import { REJECT_REASON_OPTIONS } from './types';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface Props {
   allConferenceTabs: TabConfig[];
@@ -62,9 +63,9 @@ export default function IngestQueue({ allConferenceTabs, password }: Props) {
   const fetchQueue = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ password, status: statusFilter });
+      const params = new URLSearchParams({ status: statusFilter });
       if (conferenceFilter) params.set('conference', conferenceFilter);
-      const res = await fetch(`/api/admin/ingest/queue?${params}`);
+      const res = await adminFetch(`/api/admin/ingest/queue?${params}`, password);
       const json = await res.json();
       setCandidates(json.candidates ?? []);
       setNote(json.error ? `Error: ${json.error}` : null);

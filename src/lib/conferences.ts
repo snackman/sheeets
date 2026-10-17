@@ -41,6 +41,7 @@ export interface TabConfig {
   timezone: string;
   dates: string[];
   center: { lat: number; lng: number };
+  city?: string;
 }
 
 /**
@@ -54,6 +55,7 @@ export function conferenceToTab(conf: ConferenceConfig): TabConfig {
     timezone: conf.timezone,
     dates: datesToArray(conf.startDate, conf.endDate),
     center: conf.center,
+    city: conf.city,
   };
 }
 
@@ -102,16 +104,40 @@ export const EVENT_TABS = FALLBACK_TABS;
 
 export const DEFAULT_TAB = EVENT_TABS[0];
 
-/** Get tab config by conference name */
-export function getTabConfig(conference: string, tabs?: TabConfig[]) {
+/**
+ * Get tab config by conference name. Returns undefined when there's no
+ * exact match -- callers must decide their own fallback (usually
+ * `?? DEFAULT_TAB`) rather than silently getting whatever tab happens to
+ * be first in the list, which previously masked bugs like a conference
+ * page using another conference's dates while the real tab list was still
+ * loading.
+ */
+export function getTabConfig(conference: string, tabs?: TabConfig[]): TabConfig | undefined {
   const list = tabs || EVENT_TABS;
-  return list.find((t) => t.name === conference) ?? list[0] ?? DEFAULT_TAB;
+  return list.find((t) => t.name === conference);
 }
 
 /** Get tab config by URL slug */
 export function getTabBySlug(slug: string, tabs?: TabConfig[]) {
   const list = tabs || EVENT_TABS;
   return list.find((t) => t.slug === slug.toLowerCase());
+}
+
+/**
+ * Merge the currently-viewed conference's tab into a public (active-only)
+ * tab list, without leaking any OTHER hidden/past conference.
+ *
+ * Used by `[slug]/page.tsx`: sending the FULL tab list (every conference,
+ * including hidden ones) to the client as `initialConferenceTabs` shipped
+ * every hidden conference's name/dates/center in every conference page's
+ * RSC payload (review finding, MEDIUM). Sending only the active list would
+ * fix that, but would also make a hidden/past conference's OWN page lose
+ * its correct dates/timezone/center (reverting to DEFAULT_TAB) -- this
+ * keeps that page correct while still never including any OTHER
+ * hidden/past conference.
+ */
+export function withCurrentTab(publicTabs: TabConfig[], tab: TabConfig): TabConfig[] {
+  return publicTabs.some((t) => t.name === tab.name) ? publicTabs : [...publicTabs, tab];
 }
 
 /** @deprecated Use getTabConfig(conference).timezone */

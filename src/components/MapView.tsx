@@ -7,7 +7,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import './MapView.css';
 import { LocateFixed } from 'lucide-react';
 import type { ETHDenverEvent, POI, POICategory, ReactionEmoji, FriendLocation, FriendInfo } from '@/lib/types';
-import { getTabConfig } from '@/lib/constants';
+import { getTabConfig, DEFAULT_TAB } from '@/lib/constants';
 import type { TabConfig } from '@/lib/conferences';
 import { parseTimeToMinutes } from '@/lib/filters';
 import { trackLocateMe } from '@/lib/analytics';
@@ -90,7 +90,7 @@ export function MapView({
   getRsvpStatus,
   onRsvp,
 }: MapViewProps) {
-  const mapCenter = getTabConfig(conference ?? '', conferenceTabs).center;
+  const mapCenter = (getTabConfig(conference ?? '', conferenceTabs) ?? DEFAULT_TAB).center;
   const { user } = useAuth();
   const { theme } = useTheme();
   const mapStyle = (theme === 'paper' || theme === 'light' || theme === 'light-blue')

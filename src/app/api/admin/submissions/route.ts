@@ -4,9 +4,9 @@ import { parseBody, SubmissionActionSchema } from '@/lib/api-validation';
 import { insertEventRowSorted, getSheetTitle, findReviewRow, deleteSheetRow, writeCell } from '@/lib/google-sheets';
 import { FALLBACK_TABS } from '@/lib/conferences';
 import { getConferenceTabs } from '@/lib/get-conferences';
-import { normalizeAddress } from '@/lib/utils';
-import { isAdminPassword } from '@/lib/admin-auth';
+import { isAdminPassword, getAdminPassword } from '@/lib/admin-auth';
 import { invalidateEventsCache } from '@/lib/fetch-events-cached';
+import { writeGeocodedAddress } from '@/lib/geocoded-addresses';
 
 function getSupabase() {
   return createClient(
@@ -16,7 +16,7 @@ function getSupabase() {
 }
 
 export async function GET(req: NextRequest) {
-  const password = req.nextUrl.searchParams.get('password');
+  const password = getAdminPassword(req);
   if (!isAdminPassword(password)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -174,19 +174,18 @@ export async function POST(req: NextRequest) {
     // Sheet changed: drop the cached events so the new event shows immediately
     invalidateEventsCache();
 
-    // 4. Upsert geocoded address if coords exist
+    // 4. Upsert geocoded address if coords exist. Best-effort -- a failure
+    // here must never fail the approval -- but writeGeocodedAddress checks
+    // `{ error }` and logs it (review finding, HIGH: the old raw `.upsert()`
+    // call here never threw on a PostgREST error, so the try/catch around
+    // it never actually caught the months-long silent failure).
     if (submission.coords_lat && submission.coords_lng && eventFields.address) {
-      try {
-        await supabase.from('geocoded_addresses').upsert({
-          normalized_address: normalizeAddress(eventFields.address),
-          lat: submission.coords_lat,
-          lng: submission.coords_lng,
-          matched_address: eventFields.address,
-          conference: submission.conference,
-        });
-      } catch (geoErr) {
-        console.error('Failed to save geocoded address:', geoErr);
-      }
+      await writeGeocodedAddress(supabase, {
+        address: eventFields.address,
+        lat: submission.coords_lat,
+        lng: submission.coords_lng,
+        conference: submission.conference,
+      });
     }
 
     // 5. Update Supabase status

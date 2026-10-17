@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { TabConfig } from '@/lib/conferences';
 import type { IngestRunClient } from './types';
+import { adminFetch } from '@/lib/admin-fetch';
 
 interface Props {
   allConferenceTabs: TabConfig[];
@@ -27,9 +28,9 @@ export default function IngestLog({ allConferenceTabs, password }: Props) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ password });
+      const params = new URLSearchParams();
       if (conference) params.set('conference', conference);
-      const res = await fetch(`/api/admin/ingest/runs?${params}`);
+      const res = await adminFetch(`/api/admin/ingest/runs?${params}`, password);
       const json = await res.json();
       setRuns(json.runs ?? []);
       setBudget(json.budget ?? null);

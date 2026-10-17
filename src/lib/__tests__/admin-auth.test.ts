@@ -1,5 +1,13 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { isCronSecret } from '../admin-auth';
+import { isCronSecret, getAdminPassword, isAdminPassword } from '../admin-auth';
+
+function makeReq(opts: { header?: string | null; query?: string | null }) {
+  const headers = new Headers();
+  if (opts.header != null) headers.set('x-admin-password', opts.header);
+  const searchParams = new URLSearchParams();
+  if (opts.query != null) searchParams.set('password', opts.query);
+  return { headers, nextUrl: { searchParams } };
+}
 
 const SECRET = 'cron-test-secret-value';
 
@@ -33,5 +41,32 @@ describe('isCronSecret (LOW: timing-safe cron secret check)', () => {
     delete process.env.CRON_SECRET;
     expect(isCronSecret(`Bearer ${SECRET}`)).toBe(false);
     process.env.CRON_SECRET = prev;
+  });
+});
+
+describe('getAdminPassword (admin GET routes: header over query-param)', () => {
+  it('prefers the x-admin-password header when both are present', () => {
+    const req = makeReq({ header: 'from-header', query: 'from-query' });
+    expect(getAdminPassword(req)).toBe('from-header');
+  });
+
+  it('falls back to the ?password= query param for one release', () => {
+    const req = makeReq({ header: null, query: 'from-query' });
+    expect(getAdminPassword(req)).toBe('from-query');
+  });
+
+  it('returns null when neither is present', () => {
+    const req = makeReq({ header: null, query: null });
+    expect(getAdminPassword(req)).toBeNull();
+  });
+
+  it('round-trips through isAdminPassword the same way either source would', () => {
+    const prev = process.env.ADMIN_PASSWORD;
+    process.env.ADMIN_PASSWORD = 'super-secret';
+    const headerReq = makeReq({ header: 'super-secret', query: null });
+    const queryReq = makeReq({ header: null, query: 'super-secret' });
+    expect(isAdminPassword(getAdminPassword(headerReq))).toBe(true);
+    expect(isAdminPassword(getAdminPassword(queryReq))).toBe(true);
+    process.env.ADMIN_PASSWORD = prev;
   });
 });

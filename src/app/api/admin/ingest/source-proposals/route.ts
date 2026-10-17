@@ -6,14 +6,14 @@
 // re-proposes it again, no matter how many future daily runs still find it
 // eligible.
 import { NextRequest, NextResponse } from 'next/server';
-import { isAdminPassword } from '@/lib/admin-auth';
+import { isAdminPassword, getAdminPassword } from '@/lib/admin-auth';
 import { parseBody, IngestSourceProposalDecisionSchema } from '@/lib/api-validation';
 import { listSourceProposals, getSourceProposalById, decideSourceProposal, createLumaIcalSourceIdempotent, getProfile, updateSource } from '@/lib/ingest/db';
 
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
-  const password = req.nextUrl.searchParams.get('password');
+  const password = getAdminPassword(req);
   if (!isAdminPassword(password)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
