@@ -1,13 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Tri-state, matching the real `getCachedLumaApiId` (MEDIUM item 7):
-// `undefined` = never looked up, `null` = looked up, confirmed no id.
-const cacheStore = new Map<string, string | null>();
+// Tri-state, matching the real `getCachedLumaApiIdEntry` (MEDIUM item 7 +
+// Part A item 1): no entry = never looked up; an entry with `apiId: null`
+// = a confirmed miss, timestamped via `resolvedAt` so `buildSheetLinkIndex`
+// can tell a fresh miss from a stale one; a string `apiId` = resolved.
+const cacheStore = new Map<string, { apiId: string | null; resolvedAt: string }>();
+
+function setMiss(key: string, resolvedAt: Date) {
+  cacheStore.set(key, { apiId: null, resolvedAt: resolvedAt.toISOString() });
+}
 
 vi.mock('../ingest/db', () => ({
-  getCachedLumaApiId: vi.fn(async (key: string) => (cacheStore.has(key) ? cacheStore.get(key)! : undefined)),
+  getCachedLumaApiIdEntry: vi.fn(async (key: string) => cacheStore.get(key)),
   setCachedLumaApiId: vi.fn(async (key: string, apiId: string | null) => {
-    cacheStore.set(key, apiId);
+    cacheStore.set(key, { apiId, resolvedAt: new Date().toISOString() });
   }),
 }));
 
@@ -29,10 +35,13 @@ import {
   canonicalKeyForEvent,
   buildSheetLinkIndex,
   findSheetMatchByLink,
+  findDuplicateByNameAndDate,
+  normalizeNameForDuplicateCheck,
   nameTokens,
   jaccardSimilarity,
   fuzzyMatch,
   matchAgainstSheetAndCandidates,
+  STALE_NEGATIVE_CACHE_MS,
 } from '../ingest/dedupe';
 
 beforeEach(() => {
@@ -90,14 +99,50 @@ describe('buildSheetLinkIndex', () => {
     expect(findSheetMatchByLink(index, { link: 'https://luma.com/some-other-event' })).toBeNull();
   });
 
-  it('never re-fetches a CONFIRMED miss (cached null) — only a never-looked-up (undefined) slug burns a lookup (MEDIUM item 7)', async () => {
+  it('never re-fetches a FRESH confirmed miss (cached null, recently resolved) — only a never-looked-up (undefined) slug burns a lookup (MEDIUM item 7)', async () => {
     const { fetchLumaEvent } = await import('../luma-server');
-    // Pre-seed the cache with a confirmed miss for this slug.
-    cacheStore.set('luma:no-such-slug', null);
+    // Pre-seed the cache with a confirmed miss for this slug, resolved just now.
+    setMiss('luma:no-such-slug', new Date());
     const index = await buildSheetLinkIndex([{ id: 'evt-3', link: 'https://luma.com/no-such-slug' }]);
     expect(fetchLumaEvent).not.toHaveBeenCalled();
     // Still matches by its own raw key even with no resolved alt key.
     expect(findSheetMatchByLink(index, { link: 'https://luma.com/no-such-slug' })?.id).toBe('evt-3');
+  });
+
+  describe('stale negative cache (Part A item 1 — 2026-10-16 incident)', () => {
+    it('re-resolves a cached miss older than the staleness window instead of trusting it forever', async () => {
+      const { fetchLumaEvent } = await import('../luma-server');
+      // A buggy script wrote this "no api id" row long ago; it should no
+      // longer be trusted, so the short link (which DOES resolve, per the
+      // `fetchLumaEvent` mock) re-resolves and finds the duplicate.
+      const staleAt = new Date(Date.now() - (STALE_NEGATIVE_CACHE_MS + 60_000));
+      setMiss('luma:ethcc-mixer', staleAt);
+      const index = await buildSheetLinkIndex([{ id: 'evt-6', link: 'https://luma.com/ethcc-mixer' }]);
+      expect(fetchLumaEvent).toHaveBeenCalledTimes(1);
+      expect(findSheetMatchByLink(index, { link: 'https://luma.com/event/evt-ABC123DEF456' })?.id).toBe('evt-6');
+    });
+
+    it('still trusts a cached miss just inside the staleness window', async () => {
+      const { fetchLumaEvent } = await import('../luma-server');
+      const almostStaleAt = new Date(Date.now() - (STALE_NEGATIVE_CACHE_MS - 60_000));
+      setMiss('luma:ethcc-mixer', almostStaleAt);
+      const index = await buildSheetLinkIndex([{ id: 'evt-7', link: 'https://luma.com/ethcc-mixer' }]);
+      expect(fetchLumaEvent).not.toHaveBeenCalled();
+      expect(findSheetMatchByLink(index, { link: 'https://luma.com/event/evt-ABC123DEF456' })).toBeNull();
+    });
+
+    it('leaves a stale miss uncached (not re-written as a fresh miss) when the run is out of resolution budget, so a later run retries it', async () => {
+      const { fetchLumaEvent } = await import('../luma-server');
+      const { setCachedLumaApiId } = await import('../ingest/db');
+      const staleAt = new Date(Date.now() - (STALE_NEGATIVE_CACHE_MS + 60_000));
+      setMiss('luma:ethcc-mixer', staleAt);
+      const index = await buildSheetLinkIndex([{ id: 'evt-8', link: 'https://luma.com/ethcc-mixer' }], { maxResolutions: 0 });
+      expect(fetchLumaEvent).not.toHaveBeenCalled();
+      expect(setCachedLumaApiId).not.toHaveBeenCalled();
+      // Treated conservatively: no resolved alt key, so a link-only check
+      // would miss it — this is exactly why the name+date fallback exists.
+      expect(findSheetMatchByLink(index, { link: 'https://luma.com/event/evt-ABC123DEF456' })).toBeNull();
+    });
   });
 
   it('uses an injected resolveSlug instead of the default fetchLumaEvent path, so a caller can share its own rate limiter (MEDIUM item 7)', async () => {
@@ -231,5 +276,52 @@ describe('matchAgainstSheetAndCandidates (Phase 3 §5.2, shared by discovery sou
     const result = matchAgainstSheetAndCandidates(event, { linkIndex, sheetEvents: [], otherCandidates: [] });
     expect(result.duplicateOf).toBeNull();
     expect(result.possibleDuplicateOf).toBeNull();
+  });
+});
+
+describe('findDuplicateByNameAndDate (Part A item 2 — fallback dedupe guard)', () => {
+  it('matches on normalized name + same date, independent of link', () => {
+    const sheetEvents = [{ id: 'evt-curator-1', name: 'Devcon Builders Mixer', dateISO: '2026-11-16' }];
+    const match = findDuplicateByNameAndDate({ name: 'Devcon Builders Mixer', dateISO: '2026-11-16' }, sheetEvents);
+    expect(match?.id).toBe('evt-curator-1');
+  });
+
+  it('is case/punctuation/emoji insensitive', () => {
+    const sheetEvents = [{ id: 'evt-curator-2', name: 'Devcon Builders Mixer 🎉', dateISO: '2026-11-16' }];
+    const match = findDuplicateByNameAndDate({ name: '  DEVCON, builders--mixer!! ', dateISO: '2026-11-16' }, sheetEvents);
+    expect(match?.id).toBe('evt-curator-2');
+  });
+
+  it('does not match the same name on a different date', () => {
+    const sheetEvents = [{ id: 'evt-curator-3', name: 'Devcon Builders Mixer', dateISO: '2026-11-17' }];
+    const match = findDuplicateByNameAndDate({ name: 'Devcon Builders Mixer', dateISO: '2026-11-16' }, sheetEvents);
+    expect(match).toBeNull();
+  });
+
+  it('does not match a different name on the same date', () => {
+    const sheetEvents = [{ id: 'evt-curator-4', name: 'Yoga and Mindfulness Retreat', dateISO: '2026-11-16' }];
+    const match = findDuplicateByNameAndDate({ name: 'Devcon Builders Mixer', dateISO: '2026-11-16' }, sheetEvents);
+    expect(match).toBeNull();
+  });
+
+  it('returns null when the sheet is empty', () => {
+    expect(findDuplicateByNameAndDate({ name: 'Devcon Builders Mixer', dateISO: '2026-11-16' }, [])).toBeNull();
+  });
+
+  it('reproduces the Devcon 8 / Breakpoint incident: a short-link row and a pipeline evt- row with the same name+date are caught even though their links differ entirely', () => {
+    // The curator's hand-added short-link row — exactly the shape that hid
+    // behind the stale `ingest_link_cache` miss in the 2026-10-16 incident.
+    const sheetEvents = [{ id: 'evt-curator-5', name: 'Devcon 8 Welcome Reception', dateISO: '2026-11-16' }];
+    // The pipeline's candidate, about to be inserted with the canonical
+    // /event/evt-… link — the link-index check alone would miss this if
+    // the short link's cache entry was a bad miss.
+    const candidate = { name: 'Devcon 8 Welcome Reception', dateISO: '2026-11-16' };
+    expect(findDuplicateByNameAndDate(candidate, sheetEvents)?.id).toBe('evt-curator-5');
+  });
+});
+
+describe('normalizeNameForDuplicateCheck', () => {
+  it('lowercases, strips punctuation/emoji and collapses whitespace', () => {
+    expect(normalizeNameForDuplicateCheck('  Devcon 8 — Welcome Reception!! 🎉 ')).toBe('devcon 8 welcome reception');
   });
 });

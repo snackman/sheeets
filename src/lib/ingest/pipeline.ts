@@ -34,7 +34,7 @@ import { fetchMiraSeriesEvents } from './sources/mira';
 import { fetchSheetTrackerLinks } from './sources/sheet-tracker';
 import { isAllowlistedEventLink } from './allowlist';
 import { normalizeLumaEvent, computeContentHash } from './normalize';
-import { buildSheetLinkIndex, findSheetMatchByLink, fuzzyMatch, type DedupeCandidatePool } from './dedupe';
+import { buildSheetLinkIndex, findSheetMatchByLink, findDuplicateByNameAndDate, fuzzyMatch, type DedupeCandidatePool } from './dedupe';
 import { dateWindowFilter, geoFilter, isPastEvent, geocodeAddressCached, upsertGeocodedAddress, ReverseGeocodeLimiter } from './filters';
 import { LumaEnrichmentLimiter } from './enrich';
 import { scoreCandidate } from './scoring';
@@ -710,7 +710,22 @@ async function processLumaIcalSource(args: {
       const kill = await checkAutoPublishKillSwitch(source.conference, { enabledAt: profile.auto_publish_enabled_at });
       if (kill.killed) profile.auto_publish_enabled = false;
 
-      if (profile.auto_publish_enabled) {
+      // Fallback duplicate check (Part A item 2 — stale-negative-cache
+      // mitigation): same normalized name + same date in the sheet,
+      // independent of the link index, run right before THIS specific
+      // insert. This candidate may have cleared the earlier dedupe check
+      // (above, at discovery time) runs or even days ago — if it sat as
+      // `pending_classify` waiting on budget, the sheet could have gained
+      // a matching row (e.g. a human curator's short-link add) since then.
+      // Unlike the link index, this check never touches `ingest_link_cache`,
+      // so a bad cache write (2026-10-16 incident) can't hide it here too.
+      const fallbackDupe = profile.auto_publish_enabled ? findDuplicateByNameAndDate(normalized, sheetEvents) : null;
+
+      if (fallbackDupe) {
+        status = 'duplicate';
+        duplicateOf = fallbackDupe.id;
+        bump(counts, 'duplicates');
+      } else if (profile.auto_publish_enabled) {
         try {
           const row = toEventRow(normalized, scoreResult.classifier.output.suggested_tags);
           sheetRow = await publisher.publish(row);
@@ -773,7 +788,12 @@ async function processLumaIcalSource(args: {
       auto_published_at: autoPublishedAt,
       published_event_id: publishedEventId,
       sheet_row: sheetRow,
+      duplicate_of: duplicateOf,
       possible_duplicate_of: possibleDuplicateOf,
+      review_note:
+        status === 'duplicate' && duplicateOf
+          ? `Fallback name+date dedupe: matches sheet row id ${duplicateOf} on ${normalized.dateISO}. Refused to auto-publish a likely duplicate.`
+          : null,
     });
   }
   } finally {

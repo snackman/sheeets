@@ -241,3 +241,32 @@ describe('getCachedLumaApiId: tri-state (MEDIUM item 7)', () => {
     expect(await getCachedLumaApiId('luma:some-slug')).toBe('evt-ABC');
   });
 });
+
+describe('getCachedLumaApiIdEntry (Part A item 1 — carries resolved_at so a miss can go stale)', () => {
+  it('returns undefined when no cache row exists', async () => {
+    const { createClient } = await import('@supabase/supabase-js');
+    const { client } = makeFakeSupabase(() => ({ data: null, error: null }));
+    (createClient as ReturnType<typeof vi.fn>).mockReturnValue(client);
+
+    const { getCachedLumaApiIdEntry } = await import('../ingest/db');
+    expect(await getCachedLumaApiIdEntry('luma:never-looked-up')).toBeUndefined();
+  });
+
+  it('returns {apiId: null, resolvedAt} for a confirmed miss', async () => {
+    const { createClient } = await import('@supabase/supabase-js');
+    const { client } = makeFakeSupabase(() => ({ data: { luma_api_id: null, resolved_at: '2026-10-16T00:00:00.000Z' }, error: null }));
+    (createClient as ReturnType<typeof vi.fn>).mockReturnValue(client);
+
+    const { getCachedLumaApiIdEntry } = await import('../ingest/db');
+    expect(await getCachedLumaApiIdEntry('luma:confirmed-miss')).toEqual({ apiId: null, resolvedAt: '2026-10-16T00:00:00.000Z' });
+  });
+
+  it('returns the resolved id with its resolvedAt when cached', async () => {
+    const { createClient } = await import('@supabase/supabase-js');
+    const { client } = makeFakeSupabase(() => ({ data: { luma_api_id: 'evt-ABC', resolved_at: '2026-10-16T00:00:00.000Z' }, error: null }));
+    (createClient as ReturnType<typeof vi.fn>).mockReturnValue(client);
+
+    const { getCachedLumaApiIdEntry } = await import('../ingest/db');
+    expect(await getCachedLumaApiIdEntry('luma:some-slug')).toEqual({ apiId: 'evt-ABC', resolvedAt: '2026-10-16T00:00:00.000Z' });
+  });
+});
