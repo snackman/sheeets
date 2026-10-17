@@ -123,6 +123,23 @@ export function getTabBySlug(slug: string, tabs?: TabConfig[]) {
   return list.find((t) => t.slug === slug.toLowerCase());
 }
 
+/**
+ * Merge the currently-viewed conference's tab into a public (active-only)
+ * tab list, without leaking any OTHER hidden/past conference.
+ *
+ * Used by `[slug]/page.tsx`: sending the FULL tab list (every conference,
+ * including hidden ones) to the client as `initialConferenceTabs` shipped
+ * every hidden conference's name/dates/center in every conference page's
+ * RSC payload (review finding, MEDIUM). Sending only the active list would
+ * fix that, but would also make a hidden/past conference's OWN page lose
+ * its correct dates/timezone/center (reverting to DEFAULT_TAB) -- this
+ * keeps that page correct while still never including any OTHER
+ * hidden/past conference.
+ */
+export function withCurrentTab(publicTabs: TabConfig[], tab: TabConfig): TabConfig[] {
+  return publicTabs.some((t) => t.name === tab.name) ? publicTabs : [...publicTabs, tab];
+}
+
 /** @deprecated Use getTabConfig(conference).timezone */
 export const CONFERENCE_TIMEZONE = DEFAULT_TAB.timezone;
 

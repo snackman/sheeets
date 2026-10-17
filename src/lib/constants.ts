@@ -14,6 +14,7 @@ export {
   DEFAULT_TAB,
   getTabConfig,
   getTabBySlug,
+  withCurrentTab,
   CONFERENCE_TIMEZONE,
   EVENT_DATES,
   DENVER_CENTER,

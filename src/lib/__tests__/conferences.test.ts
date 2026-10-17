@@ -4,8 +4,10 @@ import {
   DEFAULT_TAB,
   getTabConfig,
   getTabBySlug,
+  withCurrentTab,
   TIME_RANGES,
 } from '../conferences';
+import type { TabConfig } from '../conferences';
 
 describe('conferences', () => {
   describe('EVENT_TABS', () => {
@@ -128,6 +130,38 @@ describe('conferences', () => {
       const tab = getTabBySlug('consensus');
       expect(tab).toBeDefined();
       expect(tab!.name).toBe('Consensus Miami');
+    });
+  });
+
+  describe('withCurrentTab', () => {
+    const hiddenTab: TabConfig = {
+      gid: 1,
+      name: 'ETHDenver 2027',
+      slug: 'ethdenver2027',
+      timezone: 'America/Denver',
+      dates: ['2027-02-17'],
+      center: { lat: 39.7392, lng: -104.9903 },
+    };
+    const publicTabs = EVENT_TABS; // PBW/Bitcoin/Consensus -- none named 'ETHDenver 2027'
+
+    it('appends the current tab when it is not already in the public list (a hidden/past conference viewing its own page)', () => {
+      const merged = withCurrentTab(publicTabs, hiddenTab);
+      expect(merged).toHaveLength(publicTabs.length + 1);
+      expect(merged.map((t) => t.name)).toContain('ETHDenver 2027');
+      // Every public tab is still present, unchanged.
+      for (const t of publicTabs) expect(merged).toContain(t);
+    });
+
+    it('does not duplicate a tab that is already in the public list', () => {
+      const merged = withCurrentTab(publicTabs, publicTabs[0]);
+      expect(merged).toHaveLength(publicTabs.length);
+      expect(merged).toEqual(publicTabs);
+    });
+
+    it('never includes any OTHER hidden conference beyond the one merged in', () => {
+      const otherHidden: TabConfig = { ...hiddenTab, name: 'EthCC[10]', slug: 'ethcc10' };
+      const merged = withCurrentTab(publicTabs, hiddenTab);
+      expect(merged.map((t) => t.name)).not.toContain(otherHidden.name);
     });
   });
 
