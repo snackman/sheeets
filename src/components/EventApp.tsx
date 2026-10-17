@@ -43,6 +43,7 @@ import { AutoCheckInToast } from './AutoCheckInToast';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { trackAuthPrompt, trackRsvpOpen, trackRsvpConfirm, setConferenceProperty } from '@/lib/analytics';
 import { getTabConfig } from '@/lib/conferences';
+import type { TabConfig } from '@/lib/conferences';
 import { extractFeaturedEvents } from '@/lib/featured';
 import { passesNowFilter, getConferenceNow, applyFilters, computeTagCounts } from '@/lib/filters';
 import { parseTimeToMinutes } from '@/lib/time-parse';
@@ -71,9 +72,9 @@ const RsvpOverlay = dynamic(
   { ssr: false }
 );
 
-export function EventApp({ initialConference, initialEvents }: { initialConference?: string; initialEvents?: ETHDenverEvent[] }) {
+export function EventApp({ initialConference, initialEvents, initialConferenceTabs }: { initialConference?: string; initialEvents?: ETHDenverEvent[]; initialConferenceTabs?: TabConfig[] }) {
   const { config } = useAdminConfig();
-  const { tabs: conferenceTabs } = useConferenceTabs();
+  const { tabs: conferenceTabs } = useConferenceTabs(initialConferenceTabs);
   const {
     filters,
     setFilter,

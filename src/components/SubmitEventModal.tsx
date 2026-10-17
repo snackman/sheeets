@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Loader2, Check, Link as LinkIcon, ExternalLink } from 'lucide-react';
-import { VIBE_COLORS, TYPE_TAGS, SHEET_ID, getTabConfig } from '@/lib/constants';
+import { VIBE_COLORS, TYPE_TAGS, SHEET_ID, getTabConfig, DEFAULT_TAB } from '@/lib/constants';
 import type { TabConfig } from '@/lib/conferences';
 import { trackSubmitEventOpen, trackSubmitEventSuccess, trackSubmitEventFetch, trackSubmitEventTagToggle, trackModalDismiss } from '@/lib/analytics';
 import type { UpsellCopy } from '@/lib/types';
@@ -157,7 +157,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
   }, [lumaUrl, step, handleFetchLuma]);
 
   function handleEnterManually() {
-    const tab = getTabConfig(conference, conferenceTabs);
+    const tab = getTabConfig(conference, conferenceTabs) ?? DEFAULT_TAB;
     if (!dateISO && tab.dates.length > 0) setDateISO(tab.dates[0]);
     setLink(lumaUrl.trim());
     setStep('form');

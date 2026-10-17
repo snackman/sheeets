@@ -22,7 +22,7 @@ import { useDragReorder } from '@/hooks/useDragReorder';
 import { useProfile } from '@/hooks/useProfile';
 import { ShareCardModal } from '@/components/ShareCardModal';
 import { GoogleCalendarButton } from '@/components/GoogleCalendarButton';
-import { getTabConfig, getTabBySlug } from '@/lib/conferences';
+import { getTabConfig, getTabBySlug, DEFAULT_TAB } from '@/lib/conferences';
 import { useConferenceTabs } from '@/hooks/useConferenceTabs';
 
 const MapView = dynamic(
@@ -113,7 +113,7 @@ function ItineraryPageContent() {
 
   // Timezone for the active conference (used for Google Calendar export)
   const conferenceTimezone = useMemo(
-    () => getTabConfig(activeConference, tabs).timezone,
+    () => (getTabConfig(activeConference, tabs) ?? DEFAULT_TAB).timezone,
     [activeConference, tabs]
   );
 

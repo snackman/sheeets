@@ -12,7 +12,7 @@ import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryReorder
 import { ShareCardModal } from '@/components/ShareCardModal';
 import { EventCard } from '@/components/EventCard';
 import { useConferenceTabs } from '@/hooks/useConferenceTabs';
-import { getTabConfig } from '@/lib/conferences';
+import { getTabConfig, DEFAULT_TAB } from '@/lib/conferences';
 
 interface ItineraryPanelProps {
   isOpen: boolean;
@@ -173,7 +173,7 @@ export function ItineraryPanel({
   // Slug for the currently selected conference, so "open full page" carries it over.
   const { tabs } = useConferenceTabs();
   const itineraryHref = selectedConference
-    ? `/itinerary?conf=${getTabConfig(selectedConference, tabs).slug}`
+    ? `/itinerary?conf=${(getTabConfig(selectedConference, tabs) ?? DEFAULT_TAB).slug}`
     : '/itinerary';
 
   return (

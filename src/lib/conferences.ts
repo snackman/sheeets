@@ -102,10 +102,17 @@ export const EVENT_TABS = FALLBACK_TABS;
 
 export const DEFAULT_TAB = EVENT_TABS[0];
 
-/** Get tab config by conference name */
-export function getTabConfig(conference: string, tabs?: TabConfig[]) {
+/**
+ * Get tab config by conference name. Returns undefined when there's no
+ * exact match -- callers must decide their own fallback (usually
+ * `?? DEFAULT_TAB`) rather than silently getting whatever tab happens to
+ * be first in the list, which previously masked bugs like a conference
+ * page using another conference's dates while the real tab list was still
+ * loading.
+ */
+export function getTabConfig(conference: string, tabs?: TabConfig[]): TabConfig | undefined {
   const list = tabs || EVENT_TABS;
-  return list.find((t) => t.name === conference) ?? list[0] ?? DEFAULT_TAB;
+  return list.find((t) => t.name === conference);
 }
 
 /** Get tab config by URL slug */

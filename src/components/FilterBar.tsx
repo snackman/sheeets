@@ -5,7 +5,7 @@ import clsx from 'clsx';
 import { X, ListFilter, Clock, Users, MapPin, Plus, Link2, Check, Loader2, ChevronDown } from 'lucide-react';
 import { CalendarIcon } from './icons/CalendarIcon';
 import type { FilterState } from '@/lib/types';
-import { VIBE_COLORS, getTabConfig, TAG_GROUPS } from '@/lib/constants';
+import { VIBE_COLORS, getTabConfig, DEFAULT_TAB, TAG_GROUPS } from '@/lib/constants';
 import type { TabConfig } from '@/lib/conferences';
 import { TAG_ICONS } from './TagBadge';
 import { OrgDropdown } from './OrgDropdown';
@@ -311,7 +311,7 @@ export const FilterBar = memo(function FilterBar({
           <div className="space-y-3 pt-1 sm:relative absolute left-0 right-0 sm:bg-transparent bg-[var(--theme-bg-filter)] sm:px-0 px-2 sm:pb-0 pb-4 sm:shadow-none shadow-lg shadow-black/40 sm:max-h-none max-h-[70vh] overflow-y-auto">
             {/* Mini calendar date selector */}
             {(() => {
-              const tab = getTabConfig(filters.conference, conferenceTabs);
+              const tab = getTabConfig(filters.conference, conferenceTabs) ?? DEFAULT_TAB;
               let calStart = filters.startDateTime;
               let calEnd = filters.endDateTime;
               if (filters.timeMode !== 'off') {

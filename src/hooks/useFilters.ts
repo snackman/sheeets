@@ -6,7 +6,7 @@ import { DEFAULT_TAB, getTabConfig } from '@/lib/constants';
 import type { TabConfig } from '@/lib/conferences';
 
 function getDateTimeRangeForConference(conference: string, tabs?: TabConfig[]): { startDateTime: string; endDateTime: string } {
-  const tab = getTabConfig(conference, tabs);
+  const tab = getTabConfig(conference, tabs) ?? DEFAULT_TAB;
   const dates = tab.dates;
   const now = new Date(new Date().toLocaleString('en-US', { timeZone: tab.timezone }));
   const pad = (n: number) => String(n).padStart(2, '0');
