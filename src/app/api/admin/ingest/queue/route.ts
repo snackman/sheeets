@@ -31,7 +31,13 @@ import { checkMonthlyBudget } from '@/lib/ingest/budget';
 import { estimateCostUsd } from '@/lib/ingest/pricing';
 import { getSponsorNamesForConference, matchSponsorName } from '@/lib/ingest/sponsors';
 import { loadLearningContext } from '@/lib/ingest/learning';
-import { buildSheetLinkIndex, findSheetMatchByLink, canonicalKeyForEvent, type SheetLinkIndex } from '@/lib/ingest/dedupe';
+import {
+  buildSheetLinkIndex,
+  findSheetMatchByLink,
+  findDuplicateByNameAndDate,
+  canonicalKeyForEvent,
+  type SheetLinkIndex,
+} from '@/lib/ingest/dedupe';
 import {
   THEME_REJECT_REASONS,
   FINAL_CANDIDATE_STATUSES,
@@ -146,11 +152,16 @@ export async function POST(req: NextRequest) {
   // insert so a race (or a retried request) can never double-publish the
   // same event (review finding, HIGH item 3).
   const linkIndexes = new Map<string, SheetLinkIndex>();
+  // Name+date fallback pool per conference (Part A item 2) — kept in sync
+  // with `linkIndexes` so a bulk approve's own in-run inserts are visible
+  // to later ids in the same batch, same as the link index above.
+  const nameDatePools = new Map<string, { id: string; name: string; dateISO: string }[]>();
 
   async function getLinkIndex(tab: TabConfig): Promise<SheetLinkIndex> {
     const cached = linkIndexes.get(tab.name);
     if (cached) return cached;
     const sheetEvents = await fetchEvents(undefined, [tab]);
+    nameDatePools.set(tab.name, sheetEvents.map((e) => ({ id: e.id, name: e.name, dateISO: e.dateISO })));
     // maxResolutions: 0 — this is a hot admin-action path, not a bulk
     // ingestion run; an exact link match is enough here, so skip spending
     // rate-limited Luma calls resolving vanity slugs.
@@ -210,6 +221,30 @@ export async function POST(req: NextRequest) {
             const linkIndex = await getLinkIndex(tab);
             const existingMatch = findSheetMatchByLink(linkIndex, event);
 
+            // Fallback duplicate check (Part A item 2): normalized name +
+            // same date in the target tab, independent of the link index.
+            // Exists specifically so a bad/stale `ingest_link_cache` miss
+            // (2026-10-16 incident) can't let a duplicate through just
+            // because the short-link resolution it relied on was wrong —
+            // this check doesn't touch that cache at all. Refuse the
+            // publish outright rather than inserting.
+            if (!existingMatch) {
+              const nameDateMatch = findDuplicateByNameAndDate(event, nameDatePools.get(tab.name) ?? []);
+              if (nameDateMatch) {
+                await updateCandidate(id, {
+                  status: 'duplicate',
+                  duplicate_of: nameDateMatch.id,
+                  review_note: `Fallback name+date dedupe: matches sheet row "${nameDateMatch.name}" on ${nameDateMatch.dateISO} (event id ${nameDateMatch.id}). Refused to publish a likely duplicate.`,
+                });
+                results.push({
+                  id,
+                  ok: false,
+                  error: `Duplicate: matches existing sheet event "${nameDateMatch.name}" on ${nameDateMatch.dateISO}. Marked as duplicate of ${nameDateMatch.id}, not published.`,
+                });
+                continue;
+              }
+            }
+
             let sheetRow: number | null = null;
             let publishedEventId: string;
             if (existingMatch) {
@@ -230,6 +265,7 @@ export async function POST(req: NextRequest) {
               // published (review finding, LOW "dedupe within a single run").
               const key = canonicalKeyForEvent(event);
               if (key) linkIndex.byKey.set(key, { id: publishedEventId, link: event.link });
+              nameDatePools.get(tab.name)?.push({ id: publishedEventId, name: event.name, dateISO: event.dateISO });
 
               // Bug: "addresses are always empty" — same as the pipeline's
               // own auto-publish path: when this candidate has both an
