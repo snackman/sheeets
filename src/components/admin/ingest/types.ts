@@ -169,6 +169,35 @@ export interface IngestSourceAvailabilityClient {
   x_account: boolean;
   meetup_search: boolean;
   sponsor_pages: boolean;
+  mira_series: boolean;
+  sheet_tracker: boolean;
+}
+
+/** One entry in the Mira homepage's series menu (`GET
+ *  /api/admin/ingest/config?listMiraSeries=1`) — populates the "add a
+ *  Mira series" dropdown. */
+export interface MiraSeriesMenuItemClient {
+  slug: string;
+  title: string;
+  location: string | null;
+  date: string | null;
+  numEvents: number | null;
+}
+
+/** `ingest_source_proposals` row (calendar auto-discovery, plan item 3),
+ *  as returned by `GET /api/admin/ingest/source-proposals?conference=...`. */
+export interface IngestSourceProposalClient {
+  id: string;
+  conference: string;
+  calendar_api_id: string;
+  calendar_name: string | null;
+  status: string;
+  evidence: {
+    inWindowCount: number;
+    newCount: number;
+    sample: { name: string; link: string | null }[];
+  };
+  created_at: string;
 }
 
 export const REJECT_REASON_OPTIONS: { value: string; label: string }[] = [

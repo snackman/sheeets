@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/ingest",
       "schedule": "0 */4 * * *"
+    },
+    {
+      "path": "/api/cron/ingest-discover-sources",
+      "schedule": "0 9 * * *"
     }
   ]
 }

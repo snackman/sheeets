@@ -26,6 +26,8 @@ import { resolveLumaCalendar, fetchLumaIcalFeed, toIcalCandidates } from '@/lib/
 import { normalizeTelegramHandle } from '@/lib/ingest/sources/telegram';
 import { normalizeXHandle, resolveXUser, isXConfigured, X_USER_READ_COST_USD } from '@/lib/ingest/sources/x';
 import { isMeetupConfigured } from '@/lib/ingest/sources/meetup';
+import { normalizeMiraSeriesSlug, fetchMiraSeriesMenu } from '@/lib/ingest/sources/mira';
+import { parseSheetTrackerInput } from '@/lib/ingest/sources/sheet-tracker';
 import { checkMonthlyXBudget } from '@/lib/ingest/budget';
 import { isPastEvent } from '@/lib/ingest/filters';
 import { evaluateAutoPublishEnableGate } from '@/lib/ingest/gate';
@@ -60,6 +62,8 @@ function sourceAvailability() {
     x_account: isXConfigured(),
     meetup_search: isMeetupConfigured(),
     sponsor_pages: true,
+    mira_series: true,
+    sheet_tracker: true,
   };
 }
 
@@ -89,6 +93,17 @@ export async function GET(req: NextRequest) {
   const password = req.nextUrl.searchParams.get('password');
   if (!isAdminPassword(password)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Mira "add a series" dropdown (§9.1): list every series Mira tracks so
+  // the admin can pick one instead of hand-typing a slug.
+  if (req.nextUrl.searchParams.get('listMiraSeries') != null) {
+    try {
+      const series = await fetchMiraSeriesMenu();
+      return NextResponse.json({ series });
+    } catch (err) {
+      return NextResponse.json({ error: err instanceof Error ? err.message : 'Could not load Mira series.' }, { status: 502 });
+    }
   }
 
   const resolveInput = req.nextUrl.searchParams.get('resolveCalendar');
@@ -362,6 +377,44 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ source });
     }
 
+    // A `mira_series` source is ALWAYS discovery trust. Accepts a bare
+    // series slug or a `miragather.com/<slug>` URL — see
+    // `normalizeMiraSeriesSlug`.
+    if (kind === 'mira_series') {
+      const seriesSlug = normalizeMiraSeriesSlug(input);
+      if (!seriesSlug) {
+        return NextResponse.json({ error: 'Invalid Mira series. Use a series slug or a miragather.com/<slug> link.' }, { status: 400 });
+      }
+      const source = await createSource({
+        conference,
+        kind,
+        label: label || seriesSlug,
+        config: { series_slug: seriesSlug },
+        trust: 'discovery',
+        added_by: 'admin',
+      });
+      return NextResponse.json({ source });
+    }
+
+    // A `sheet_tracker` source is ALWAYS discovery trust. Accepts a bare
+    // sheet id or a full spreadsheet URL (optionally with `gid=`) — see
+    // `parseSheetTrackerInput`.
+    if (kind === 'sheet_tracker') {
+      const parsed = parseSheetTrackerInput(input);
+      if (!parsed) {
+        return NextResponse.json({ error: 'Invalid Google Sheet. Use a sheet id or a docs.google.com/spreadsheets/d/<id>/... link.' }, { status: 400 });
+      }
+      const source = await createSource({
+        conference,
+        kind,
+        label: label || `Sheet ${parsed.sheetId.slice(0, 8)}…${parsed.gid != null ? ` (gid ${parsed.gid})` : ''}`,
+        config: { sheet_id: parsed.sheetId, ...(parsed.gid != null ? { gid: parsed.gid } : {}) },
+        trust: 'discovery',
+        added_by: 'admin',
+      });
+      return NextResponse.json({ source });
+    }
+
     const profile = await getProfile(conference);
     // Review finding, MEDIUM item 2a: a brand-new source has no track
     // record of its own. If auto-publish is already on for this
@@ -405,7 +458,7 @@ export async function PATCH(req: NextRequest) {
       // `discovery` — this is the one case the PUT/POST "no changing trust
       // while auto-publish is on" guard below doesn't cover, because it
       // needs to hold even while auto-publish is OFF.
-      const ALWAYS_DISCOVERY_KINDS = ['telegram_channel', 'host_submission', 'x_account', 'meetup_search', 'sponsor_pages'];
+      const ALWAYS_DISCOVERY_KINDS = ['telegram_channel', 'host_submission', 'x_account', 'meetup_search', 'sponsor_pages', 'mira_series', 'sheet_tracker'];
       if (source && ALWAYS_DISCOVERY_KINDS.includes(source.kind) && patch.trust !== 'discovery') {
         return NextResponse.json(
           { error: `A ${source.kind} source is always discovery trust and can never auto-publish (plan §10).` },

@@ -1,10 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Plus, Play, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Play, Trash2, Check, X } from 'lucide-react';
 import type { TabConfig } from '@/lib/conferences';
 import { inputClass, btnPrimary } from '../styles';
-import type { IngestProfileClient, IngestSourceClient, IngestGateClient, IngestSourceAvailabilityClient } from './types';
+import type {
+  IngestProfileClient,
+  IngestSourceClient,
+  IngestGateClient,
+  IngestSourceAvailabilityClient,
+  MiraSeriesMenuItemClient,
+  IngestSourceProposalClient,
+} from './types';
 
 interface Props {
   allConferenceTabs: TabConfig[];
@@ -21,6 +28,8 @@ const SOURCE_KIND_LABELS: Record<string, string> = {
   x_account: 'X account',
   meetup_search: 'Meetup search',
   sponsor_pages: 'Sponsor pages',
+  mira_series: 'Mira series',
+  sheet_tracker: 'Sheet tracker',
 };
 
 /** Why a source kind that needs credentials is shown as unavailable (§9.1
@@ -55,6 +64,11 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
   const [xInput, setXInput] = useState('');
   const [meetupInput, setMeetupInput] = useState('');
   const [sponsorPagesInput, setSponsorPagesInput] = useState('');
+  const [miraInput, setMiraInput] = useState('');
+  const [miraSeriesMenu, setMiraSeriesMenu] = useState<MiraSeriesMenuItemClient[] | null>(null);
+  const [sheetTrackerInput, setSheetTrackerInput] = useState('');
+  const [proposals, setProposals] = useState<IngestSourceProposalClient[]>([]);
+  const [decidingProposalId, setDecidingProposalId] = useState<string | null>(null);
   const [resolving, setResolving] = useState(false);
   const [resolvePreview, setResolvePreview] = useState<{ apiId: string; name: string | null; upcomingCount: number | null } | null>(null);
   const [runningSourceId, setRunningSourceId] = useState<string | null>(null);
@@ -64,13 +78,18 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
     setLoading(true);
     try {
       const params = new URLSearchParams({ password, conference });
-      const res = await fetch(`/api/admin/ingest/config?${params}`);
+      const [res, proposalsRes] = await Promise.all([
+        fetch(`/api/admin/ingest/config?${params}`),
+        fetch(`/api/admin/ingest/source-proposals?${params}`),
+      ]);
       const json = await res.json();
       const found = (json.profiles ?? []).find((p: IngestProfileClient) => p.conference === conference);
       setProfile(found ?? null);
       setSources(json.sources ?? []);
       setGate(json.gate ?? null);
       setAvailability(json.sourceAvailability ?? null);
+      const proposalsJson = await proposalsRes.json();
+      setProposals(proposalsJson.proposals ?? []);
     } catch (err) {
       setMessage(`Error: ${err instanceof Error ? err.message : 'Failed to load'}`);
     } finally {
@@ -81,6 +100,18 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
   useEffect(() => {
     load();
   }, [load]);
+
+  async function loadMiraSeriesMenu() {
+    if (miraSeriesMenu) return; // fetched once per page load — the list barely changes.
+    try {
+      const params = new URLSearchParams({ password, listMiraSeries: '1' });
+      const res = await fetch(`/api/admin/ingest/config?${params}`);
+      const json = await res.json();
+      setMiraSeriesMenu(json.series ?? []);
+    } catch {
+      setMiraSeriesMenu([]);
+    }
+  }
 
   async function saveProfile(patch: Partial<IngestProfileClient>) {
     setSaving(true);
@@ -179,10 +210,11 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
     }
   }
 
-  /** Shared "add a discovery-trust source" flow for X/Meetup/sponsor pages
-   *  (Phase 4) — always discovery trust, enforced server-side too, so
-   *  there's no `trust` field to pass, same as `addTelegramSource`. */
-  async function addSimpleSource(kind: 'x_account' | 'meetup_search' | 'sponsor_pages', input: string, onSuccess: () => void) {
+  /** Shared "add a discovery-trust source" flow for X/Meetup/sponsor pages/
+   *  Mira/sheet trackers — always discovery trust, enforced server-side
+   *  too, so there's no `trust` field to pass, same as
+   *  `addTelegramSource`. */
+  async function addSimpleSource(kind: 'x_account' | 'meetup_search' | 'sponsor_pages' | 'mira_series' | 'sheet_tracker', input: string, onSuccess: () => void) {
     if (!input.trim()) return;
     setSaving(true);
     try {
@@ -247,6 +279,24 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
       setRunResult(`Error: ${err instanceof Error ? err.message : 'Failed'}`);
     } finally {
       setRunningSourceId(null);
+    }
+  }
+
+  async function decideProposal(id: string, decision: 'accepted' | 'dismissed') {
+    setDecidingProposalId(id);
+    try {
+      const res = await fetch('/api/admin/ingest/source-proposals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, id, decision }),
+      });
+      const json = await res.json();
+      if (!json.success) setMessage(`Error: ${json.error}`);
+      await load();
+    } catch (err) {
+      setMessage(`Error: ${err instanceof Error ? err.message : 'Failed'}`);
+    } finally {
+      setDecidingProposalId(null);
     }
   }
 
@@ -495,6 +545,56 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
             </button>
           </div>
 
+          {/* Mira (miragather.com) series. Always discovery trust. Needs
+              no credentials — a series slug, a miragather.com/<slug> link,
+              or pick one from the dropdown (populated on first focus). */}
+          <div className="flex gap-2 items-center">
+            <input
+              className={`${inputClass} flex-1`}
+              placeholder="Mira series: slug or miragather.com/<slug>"
+              value={miraInput}
+              onChange={(e) => setMiraInput(e.target.value)}
+              onFocus={loadMiraSeriesMenu}
+              list="mira-series-menu"
+            />
+            {miraSeriesMenu && (
+              <datalist id="mira-series-menu">
+                {miraSeriesMenu.map((s) => (
+                  <option key={s.slug} value={s.slug}>
+                    {s.title} — {s.location ?? ''} ({s.numEvents ?? 0} events)
+                  </option>
+                ))}
+              </datalist>
+            )}
+            <button
+              onClick={() => addSimpleSource('mira_series', miraInput, () => setMiraInput(''))}
+              disabled={saving || !miraInput.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 text-sm cursor-pointer disabled:opacity-50 flex items-center gap-1"
+            >
+              <Plus className="w-4 h-4" /> Add series
+            </button>
+          </div>
+
+          {/* Public community-tracker Google Sheet. Always discovery
+              trust. Needs no credentials — a sheet id or a full
+              docs.google.com/spreadsheets/d/<id>/... link (optionally with
+              gid=; defaults to the first tab). */}
+          <div className="flex gap-2 items-center">
+            <input
+              className={`${inputClass} flex-1`}
+              placeholder="Sheet tracker: sheet id or docs.google.com/spreadsheets/d/<id>/... link"
+              value={sheetTrackerInput}
+              onChange={(e) => setSheetTrackerInput(e.target.value)}
+            />
+            <button
+              onClick={() => addSimpleSource('sheet_tracker', sheetTrackerInput, () => setSheetTrackerInput(''))}
+              disabled={saving || !sheetTrackerInput.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 text-sm cursor-pointer disabled:opacity-50 flex items-center gap-1"
+            >
+              <Plus className="w-4 h-4" /> Add sheet
+            </button>
+          </div>
+
           {runResult && <p className="text-xs text-amber-300">{runResult}</p>}
 
           <div className="space-y-2">
@@ -535,6 +635,53 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
                 </button>
                 <button onClick={() => removeSource(s.id)} className="text-stone-400 hover:text-red-400 cursor-pointer">
                   <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Calendar auto-discovery (daily job, plan item 3): calendars the
+          daily job found with enough in-window events for this conference
+          but that aren't configured as a source yet. Accept creates a real
+          curated `luma_ical` source; Dismiss is permanent — a dismissed
+          calendar is never re-proposed, no matter how many future runs
+          still find it eligible. */}
+      {!loading && proposals.length > 0 && (
+        <div className="bg-stone-900 border border-stone-800 rounded-xl p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-white">Proposed sources</h3>
+          <div className="space-y-2">
+            {proposals.map((p) => (
+              <div key={p.id} className="flex items-center gap-3 bg-stone-800/50 rounded-lg px-3 py-2">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-white truncate">{p.calendar_name || p.calendar_api_id}</div>
+                  <div className="text-xs text-stone-500">
+                    {p.evidence.inWindowCount} in-window event{p.evidence.inWindowCount === 1 ? '' : 's'}
+                    {' · '}
+                    {p.evidence.newCount} not yet discovered
+                  </div>
+                  {p.evidence.sample.length > 0 && (
+                    <div className="text-xs text-stone-600 truncate">
+                      e.g. {p.evidence.sample.map((s) => s.name).join(', ')}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => decideProposal(p.id, 'accepted')}
+                  disabled={decidingProposalId === p.id}
+                  title="Accept — adds this as a curated Luma calendar source"
+                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-2.5 py-1.5 cursor-pointer disabled:opacity-50 flex items-center gap-1 text-xs"
+                >
+                  <Check className="w-3.5 h-3.5" /> Accept
+                </button>
+                <button
+                  onClick={() => decideProposal(p.id, 'dismissed')}
+                  disabled={decidingProposalId === p.id}
+                  title="Dismiss — never proposed again"
+                  className="text-xs bg-stone-700 hover:bg-stone-600 text-white rounded-md px-2.5 py-1.5 cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                >
+                  <X className="w-3.5 h-3.5" /> Dismiss
                 </button>
               </div>
             ))}
