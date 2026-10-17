@@ -151,7 +151,9 @@ export type SourceKind =
   | 'meetup_search'
   | 'sponsor_pages'
   | 'host_submission'
-  | 'manual_links';
+  | 'manual_links'
+  | 'mira_series'
+  | 'sheet_tracker';
 
 export type SourceTrust = 'curated' | 'host' | 'discovery';
 
@@ -201,6 +203,31 @@ export interface MeetupSearchSourceConfig {
  */
 export interface SponsorPagesSourceConfig {
   urls: string[];
+}
+
+/**
+ * `ingest_sources.config` for a `mira_series` source — one miragather.com
+ * (formerly cryptonomads) series page, e.g.
+ * `https://miragather.com/Devcon8SideEvents2026`. Note: Breakpoint and DAS
+ * London currently share one series (`Breakpoint2026SideEvents2026`) — an
+ * admin adds the SAME `series_slug` as a source for both conference tabs;
+ * each run's own `dateWindowFilter` (keyed on that conference's own
+ * `tab.dates`) naturally keeps only the events that fall in THAT
+ * conference's window, so no extra split logic is needed here.
+ */
+export interface MiraSeriesSourceConfig {
+  series_slug: string;
+}
+
+/**
+ * `ingest_sources.config` for a `sheet_tracker` source — a public,
+ * link-shared community-tracker Google Sheet (e.g. the Build3 tracker).
+ * `gid` is the specific tab/sheet id to read; defaults to `0` (the
+ * spreadsheet's first tab) when omitted.
+ */
+export interface SheetTrackerSourceConfig {
+  sheet_id: string;
+  gid?: number;
 }
 
 /** `ingest_sources` row. */
@@ -303,6 +330,28 @@ export interface NormalizedEvent {
   descriptionText: string;
   imageUrl?: string | null;
   platform: string;
+  /**
+   * Calendar auto-discovery cache ONLY (`discover-calendars.ts`, plan
+   * item 3) — NOT a real part of the normalized event, never read by the
+   * classifier, scorer, dedupe, or publisher. The Luma calendar this
+   * event's `/event/get` payload genuinely resolved to, written via a
+   * narrow `event`-only patch (`updateCandidate(id, { event })`, which
+   * leaves `status` and every other column untouched).
+   *
+   * Tri-state, same semantics as `ingest_link_cache`'s own cache (review
+   * finding, HIGH item B — "the daily discovery job evaluates nothing"):
+   * `undefined` (the key absent) = never resolved yet, still a candidate
+   * for phase 1's live `/event/get` call. `null` = resolved and CONFIRMED
+   * there's no usable calendar (not a Luma event, Luma genuinely returned
+   * no calendar field, or the candidate's canonical key isn't a resolvable
+   * `evt-…` id) — never re-resolved. An object = the resolved calendar,
+   * cached so phase 2 can use it on every later run without spending
+   * another rate-limited call. A limiter-exhausted or transient-error
+   * lookup must NEVER be cached here (same cache-poisoning class of bug
+   * `discover.ts`/`ingest_link_cache` already guards against) — it simply
+   * leaves this field unset for another attempt on a later run.
+   */
+  hostCalendar?: { apiId: string; name: string | null; isPersonal: boolean } | null;
 }
 
 /** `ingest_candidates` row. */
@@ -432,3 +481,41 @@ export const REJECT_REASONS = [
 ] as const;
 export type RejectReason = (typeof REJECT_REASONS)[number];
 export const THEME_REJECT_REASONS: readonly RejectReason[] = ['off_theme', 'spam'];
+
+/* ------------------------------------------------------------------ */
+/* Calendar auto-discovery (daily job): `ingest_source_proposals`      */
+/* ------------------------------------------------------------------ */
+
+export type SourceProposalStatus = 'proposed' | 'accepted' | 'dismissed';
+
+/** Evidence attached to a proposal — a sample of the in-window events that
+ *  earned it the proposal, so an admin can sanity-check "Accept" without
+ *  leaving the Config tab. */
+export interface SourceProposalEvidence {
+  /** Count of this calendar's events found in the conference's window/area
+   *  by the run that created/last-touched this proposal. */
+  inWindowCount: number;
+  /** Of those, how many are NOT already an ingest_candidates row for this
+   *  conference (the "genuinely new" half of the §3/plan threshold). */
+  newCount: number;
+  sample: { name: string; link: string | null }[];
+}
+
+/** `ingest_source_proposals` row (calendar auto-discovery). Never re-create
+ *  a row once an admin has decided it ('accepted'/'dismissed') — the
+ *  unique index is `(conference, calendar_api_id)`, and
+ *  `db.ts#upsertSourceProposal` only ever touches a row that's still
+ *  'proposed' (or inserts a fresh one), so a dismissed calendar is never
+ *  silently re-proposed by a later run. */
+export interface IngestSourceProposalRow {
+  id: string;
+  conference: string;
+  calendar_api_id: string;
+  calendar_name: string | null;
+  status: SourceProposalStatus;
+  evidence: SourceProposalEvidence;
+  created_at: string;
+  updated_at: string;
+  decided_at: string | null;
+  decided_by: string | null;
+}

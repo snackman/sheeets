@@ -3,7 +3,7 @@
 // every function here must run server-side with SUPABASE_SERVICE_ROLE_KEY.
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { getDefaultProfile } from './profiles';
-import { FINAL_CANDIDATE_STATUSES } from './types';
+import { FINAL_CANDIDATE_STATUSES, THEME_REJECT_REASONS } from './types';
 import type {
   CandidateRoute,
   CandidateStatus,
@@ -11,6 +11,7 @@ import type {
   IngestLabelRow,
   IngestProfileRow,
   IngestRunRow,
+  IngestSourceProposalRow,
   IngestSourceRow,
   LabelSource,
   NormalizedEvent,
@@ -18,6 +19,8 @@ import type {
   RunStatus,
   RunTrigger,
   SourceKind,
+  SourceProposalEvidence,
+  SourceProposalStatus,
   ThemeKey,
   ThemeProfile,
 } from './types';
@@ -365,6 +368,50 @@ export async function createSource(row: {
   const { data, error } = await supabase.from('ingest_sources').insert(row).select('*').single();
   if (error) throw new Error(`Failed to create ingest source: ${error.message}`);
   return data as IngestSourceRow;
+}
+
+/**
+ * Create a curated `luma_ical` source for a calendar, or — if one already
+ * exists for this exact (conference, calendar_api_id) pair (collided on
+ * `ingest_sources_unique`, e.g. an admin manually added it between a
+ * proposal's creation and its Accept, or a previous Accept attempt
+ * partially succeeded) — return the EXISTING row instead of throwing.
+ * Same "insert, tolerate 23505, re-select" idiom as
+ * `getOrCreateHostSubmissionSource`. Used by the "Accept a calendar
+ * proposal" flow (review finding, LOW item 5), so accepting an
+ * already-configured calendar is a no-op success, not a 500.
+ */
+export async function createLumaIcalSourceIdempotent(row: {
+  conference: string;
+  label: string;
+  calendar_api_id: string;
+  calendar_name: string | null;
+  trust: 'curated' | 'host' | 'discovery';
+  added_by?: string;
+}): Promise<IngestSourceRow> {
+  const supabase = getIngestSupabase();
+  const { data, error } = await supabase
+    .from('ingest_sources')
+    .insert({
+      conference: row.conference,
+      kind: 'luma_ical',
+      label: row.label,
+      config: { calendar_api_id: row.calendar_api_id, calendar_name: row.calendar_name },
+      trust: row.trust,
+      added_by: row.added_by ?? 'admin',
+    })
+    .select('*')
+    .single();
+  if (!error) return data as IngestSourceRow;
+
+  if ((error as { code?: string }).code === '23505') {
+    const existingSources = await listSources(row.conference);
+    const existing = existingSources.find(
+      (s) => s.kind === 'luma_ical' && (s.config as { calendar_api_id?: string }).calendar_api_id === row.calendar_api_id
+    );
+    if (existing) return existing;
+  }
+  throw new Error(`Failed to create ingest source: ${error.message}`);
 }
 
 export async function updateSource(id: string, patch: Partial<IngestSourceRow>): Promise<void> {
@@ -1155,4 +1202,224 @@ export async function listRecentLabelMismatches(
   if (fpError) throw new Error(`Failed to load false positives: ${fpError.message}`);
   if (fnError) throw new Error(`Failed to load false negatives: ${fnError.message}`);
   return { falsePositives: (fp as IngestLabelRow[]) ?? [], falseNegatives: (fn as IngestLabelRow[]) ?? [] };
+}
+
+/* ------------------------------------------------------------------ */
+/* Calendar auto-discovery (daily job, plan item 3)                    */
+/* ------------------------------------------------------------------ */
+
+/** Luma candidates for a conference (any status, any source kind) — the
+ *  pool `discover-calendars.ts` walks to find each event's true hosting
+ *  calendar. Capped generously; the caller (the daily job) applies its own
+ *  rate-limited-call and deadline caps on top of this.
+ *
+ *  Review finding, MEDIUM item 2: excludes a candidate an admin already
+ *  rejected as `off_theme` or `spam` (`THEME_REJECT_REASONS`) — that's a
+ *  bad signal that its calendar is "worth proposing" as a new source, so
+ *  it's dropped from the pool entirely rather than letting its calendar
+ *  get resolved/evaluated at all. Filtered client-side (not in the
+ *  query) since this list is already capped to `limit` rows. */
+export async function listLumaCandidatesForConference(conference: string, limit = 500): Promise<IngestCandidateRow[]> {
+  const supabase = getIngestSupabase();
+  const { data, error } = await supabase
+    .from('ingest_candidates')
+    .select('*')
+    .eq('conference', conference)
+    .like('canonical_key', 'luma:%')
+    .order('last_seen_at', { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(`Failed to list Luma candidates: ${error.message}`);
+  return ((data as IngestCandidateRow[]) ?? []).filter(
+    (c) => !(c.status === 'rejected' && c.reject_reason && (THEME_REJECT_REASONS as readonly string[]).includes(c.reject_reason))
+  );
+}
+
+/** Rows per page for the paginated candidate-key queries below (review
+ *  finding, LOW item 4 — PostgREST's own default row cap is 1000, so a
+ *  conference with more candidates than that silently lost everything
+ *  past the first page). */
+const CANDIDATE_KEYS_PAGE_SIZE = 1000;
+/** Hard ceiling on total pages fetched, so a pathological conference can't
+ *  turn this into an unbounded loop. 50 * 1000 rows is far more than any
+ *  real conference's candidate pool. */
+const CANDIDATE_KEYS_MAX_PAGES = 50;
+
+/**
+ * Shared pagination core: every `canonical_key` + `alt_keys` pair for a
+ * conference, regardless of status, optionally filtered to a
+ * `canonical_key` prefix (e.g. `'luma:%'`). Pages past PostgREST's
+ * 1000-row default limit (review finding, LOW item 4) via `.range()`,
+ * with an explicit `.order('id')` (Minor review finding) — `.range()`
+ * pagination over an UNORDERED select has no guarantee that two pages
+ * don't overlap or skip rows, since Postgres is free to return rows in
+ * any order absent an explicit sort; `id` is used (not `canonical_key`,
+ * which only `listKnownLumaCandidateKeys` even filters on) so every
+ * caller of this shared core gets the same stable order regardless of
+ * which prefix it passes.
+ */
+async function listCandidateKeysPaginated(conference: string, canonicalKeyPrefix?: string): Promise<Set<string>> {
+  const supabase = getIngestSupabase();
+  const keys = new Set<string>();
+  for (let page = 0; page < CANDIDATE_KEYS_MAX_PAGES; page++) {
+    const from = page * CANDIDATE_KEYS_PAGE_SIZE;
+    const to = from + CANDIDATE_KEYS_PAGE_SIZE - 1;
+    let query = supabase
+      .from('ingest_candidates')
+      .select('canonical_key, alt_keys')
+      .eq('conference', conference)
+      .order('id', { ascending: true })
+      .range(from, to);
+    if (canonicalKeyPrefix) query = query.like('canonical_key', canonicalKeyPrefix);
+    const { data, error } = await query;
+    if (error) throw new Error(`Failed to list candidate keys: ${error.message}`);
+    const rows = (data ?? []) as { canonical_key: string; alt_keys: string[] | null }[];
+    for (const row of rows) {
+      keys.add(row.canonical_key);
+      for (const alt of row.alt_keys ?? []) keys.add(alt);
+    }
+    if (rows.length < CANDIDATE_KEYS_PAGE_SIZE) break; // last page.
+  }
+  return keys;
+}
+
+/** Every `luma:…` canonical/alt key already known for a conference,
+ *  regardless of status — used to tell "genuinely new" calendar events
+ *  apart from ones we've already discovered (possibly already rejected)
+ *  through some other source. Deliberately unfiltered by status (unlike
+ *  `listRecentCandidatesForDedupe`): an already-`rejected` candidate is
+ *  still "already discovered", not new. */
+export async function listKnownLumaCandidateKeys(conference: string): Promise<Set<string>> {
+  return listCandidateKeysPaginated(conference, 'luma:%');
+}
+
+/**
+ * Every canonical/alt key already known for a conference, across EVERY
+ * platform and EVERY status (including final/rejected/unpublished/stale
+ * ones) — review finding, HIGH item A ("links can be starved"):
+ * `runDiscoveredLinksBatch`'s unseen-first ordering previously derived its
+ * "known" set from the in-run dedupe pool (`listRecentCandidatesForDedupe`),
+ * which (a) drops `alt_keys` entirely, mapping only `canonical_key`, and
+ * (b) excludes rejected/unpublished/stale candidates outright. In
+ * production, a short Luma link (`luma:short-slug`) almost always
+ * resolves to a candidate keyed by its stable `luma:evt-…` id, with the
+ * short slug recorded ONLY in `alt_keys` — so that pool could never
+ * recognize a short link as "already known," meaning nearly every short
+ * link counted as "unseen" on every run, and the ordering/cap logic that
+ * depends on telling unseen apart from seen was effectively a no-op.
+ */
+export async function listAllCandidateKeysForConference(conference: string): Promise<Set<string>> {
+  return listCandidateKeysPaginated(conference);
+}
+
+/** A conference's already-configured `luma_ical` calendar ids — a
+ *  candidate calendar that's already one of these is never proposed again
+ *  (it's already a real source). Tolerant of the odd malformed config row
+ *  (missing `calendar_api_id`) rather than throwing. */
+export async function listConfiguredLumaCalendarIds(conference: string): Promise<Set<string>> {
+  const sources = await listSources(conference);
+  const ids = new Set<string>();
+  for (const s of sources) {
+    if (s.kind !== 'luma_ical') continue;
+    const apiId = (s.config as { calendar_api_id?: string }).calendar_api_id;
+    if (apiId) ids.add(apiId);
+  }
+  return ids;
+}
+
+/** Load one proposal row, or `null` if none exists yet (or the
+ *  `ingest_source_proposals` table/migration isn't applied yet). */
+export async function getSourceProposal(conference: string, calendarApiId: string): Promise<IngestSourceProposalRow | null> {
+  const supabase = getIngestSupabase();
+  const { data, error } = await supabase
+    .from('ingest_source_proposals')
+    .select('*')
+    .eq('conference', conference)
+    .eq('calendar_api_id', calendarApiId)
+    .maybeSingle();
+  if (error) {
+    if (isMissingRelationError(error)) return null;
+    throw new Error(`Failed to load source proposal: ${error.message}`);
+  }
+  return (data as IngestSourceProposalRow) ?? null;
+}
+
+/**
+ * Insert a fresh 'proposed' row, or refresh an EXISTING 'proposed' row's
+ * evidence — and otherwise (the row is already 'accepted' or 'dismissed')
+ * leave it completely untouched. This is the ONE write path a daily
+ * discovery run uses, and it's exactly what makes "never re-propose a
+ * dismissed calendar" true: a dismissed row's `status` simply never
+ * changes back, no matter how many later runs find the same calendar
+ * eligible again. Swallows a missing-table error (migration not applied
+ * yet) rather than failing the whole discovery run.
+ */
+export async function upsertSourceProposal(row: {
+  conference: string;
+  calendar_api_id: string;
+  calendar_name: string | null;
+  evidence: SourceProposalEvidence;
+}): Promise<void> {
+  const supabase = getIngestSupabase();
+  const existing = await getSourceProposal(row.conference, row.calendar_api_id);
+  if (existing) {
+    if (existing.status !== 'proposed') return; // already decided — never touch it again.
+    const { error } = await supabase
+      .from('ingest_source_proposals')
+      .update({ calendar_name: row.calendar_name, evidence: row.evidence, updated_at: new Date().toISOString() })
+      .eq('id', existing.id);
+    if (error) {
+      if (isMissingRelationError(error)) return;
+      throw new Error(`Failed to update source proposal: ${error.message}`);
+    }
+    return;
+  }
+
+  const { error } = await supabase.from('ingest_source_proposals').insert({
+    conference: row.conference,
+    calendar_api_id: row.calendar_api_id,
+    calendar_name: row.calendar_name,
+    status: 'proposed',
+    evidence: row.evidence,
+  });
+  if (error) {
+    // A concurrent insert winning the unique-index race is fine — the row
+    // exists either way, same "insert, tolerate 23505" pattern as
+    // `getOrCreateHostSubmissionSource`.
+    if (isMissingRelationError(error) || (error as { code?: string }).code === '23505') return;
+    throw new Error(`Failed to create source proposal: ${error.message}`);
+  }
+}
+
+export async function listSourceProposals(conference: string, status?: SourceProposalStatus): Promise<IngestSourceProposalRow[]> {
+  const supabase = getIngestSupabase();
+  let query = supabase.from('ingest_source_proposals').select('*').eq('conference', conference);
+  if (status) query = query.eq('status', status);
+  const { data, error } = await query.order('created_at', { ascending: false });
+  if (error) {
+    if (isMissingRelationError(error)) return [];
+    throw new Error(`Failed to list source proposals: ${error.message}`);
+  }
+  return (data as IngestSourceProposalRow[]) ?? [];
+}
+
+export async function getSourceProposalById(id: string): Promise<IngestSourceProposalRow | null> {
+  const supabase = getIngestSupabase();
+  const { data, error } = await supabase.from('ingest_source_proposals').select('*').eq('id', id).maybeSingle();
+  if (error) {
+    if (isMissingRelationError(error)) return null;
+    throw new Error(`Failed to load source proposal: ${error.message}`);
+  }
+  return (data as IngestSourceProposalRow) ?? null;
+}
+
+/** Admin decision on a proposal — 'accepted' (the config route also
+ *  creates the real `luma_ical` source) or 'dismissed' (never re-proposed
+ *  — see `upsertSourceProposal`'s doc comment). */
+export async function decideSourceProposal(id: string, status: 'accepted' | 'dismissed', decidedBy: string): Promise<void> {
+  const supabase = getIngestSupabase();
+  const { error } = await supabase
+    .from('ingest_source_proposals')
+    .update({ status, decided_at: new Date().toISOString(), decided_by: decidedBy })
+    .eq('id', id);
+  if (error) throw new Error(`Failed to update source proposal: ${error.message}`);
 }

@@ -9,12 +9,43 @@ export interface EnrichRef {
   apiId?: string;
 }
 
+/**
+ * A richer outcome than `enrich()`'s plain `LumaEventPayload | null`,
+ * distinguishing a CONFIRMED "Luma says this doesn't exist" (`'not_found'`
+ * — safe to cache as a permanent negative) from `'unavailable'` (the
+ * limiter's budget is exhausted, or a transient network/upstream error —
+ * we genuinely don't know, and must NEVER be cached as a negative).
+ *
+ * Bug: "exhausting the Luma limiter poisons `ingest_link_cache`" —
+ * `enrich()` alone collapses an exhausted limiter, a transient fetch
+ * error, AND a genuine 404 into the same `null`, which is fine for every
+ * caller that just wants best-effort data (falls back to iCal-only info
+ * either way), but was silently wrong for `discover.ts#resolveLumaShortLinkKey`,
+ * which used a `null` result to write a FALSE permanent miss into the
+ * cache — hiding a real event from dedupe for as long as that cache row
+ * existed, exactly the same class of incident as #193's stale-negative
+ * fix, just from a different write path.
+ */
+export type EnrichOutcome =
+  | { status: 'ok'; payload: LumaEventPayload }
+  | { status: 'not_found' }
+  | { status: 'unavailable' };
+
 /** Structural interface both `LumaEnrichmentLimiter` and
  *  `HourlyWindowLumaLimiter` satisfy — lets a caller (e.g. `discover.ts`'s
  *  `DiscoveredLinkContext`) accept either without depending on a concrete
  *  class. */
 export interface EnrichLimiter {
   enrich(ref: EnrichRef): Promise<LumaEventPayload | null>;
+  /** Same lookup as `enrich`, but see `EnrichOutcome`'s doc comment — a
+   *  caller that might cache a negative result must call this instead of
+   *  `enrich` and check `status === 'not_found'` before doing so. */
+  enrichResult(ref: EnrichRef): Promise<EnrichOutcome>;
+  /** True once this limiter's budget for the current window is used up.
+   *  Exposed on the interface (not just the concrete classes) so a shared
+   *  caller like `discover.ts`/`pipeline.ts` can stop feeding it more work
+   *  — see `runDiscoveredLinksBatch`'s doc comment. */
+  readonly exhausted: boolean;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -42,10 +73,12 @@ export class LumaEnrichmentLimiter implements EnrichLimiter {
     return this.count >= this.maxPerRun;
   }
 
-  /** Fetch one event's full payload, or `null` if the cap is hit, the ref is
-   *  invalid, or Luma errors (callers fall back to iCal-only data). */
-  async enrich(ref: EnrichRef): Promise<LumaEventPayload | null> {
-    if (this.exhausted) return null;
+  /** The real lookup, with the full outcome — see `EnrichOutcome`. Checks
+   *  `exhausted` BEFORE any pacing/count increment (same as the old
+   *  `enrich()` did), so a call made once the budget is used up costs
+   *  nothing and never touches `lastCallAt`. */
+  async enrichResult(ref: EnrichRef): Promise<EnrichOutcome> {
+    if (this.exhausted) return { status: 'unavailable' };
 
     const now = Date.now();
     const wait = this.lastCallAt ? Math.max(0, this.lastCallAt + this.minIntervalMs - now) : 0;
@@ -54,13 +87,29 @@ export class LumaEnrichmentLimiter implements EnrichLimiter {
     this.count++;
 
     try {
-      if (ref.apiId) return await fetchLumaEvent({ apiId: ref.apiId });
-      if (ref.slug) return await fetchLumaEvent({ slug: ref.slug });
-      return null;
+      let payload: LumaEventPayload;
+      if (ref.apiId) payload = await fetchLumaEvent({ apiId: ref.apiId });
+      else if (ref.slug) payload = await fetchLumaEvent({ slug: ref.slug });
+      else return { status: 'unavailable' };
+      return { status: 'ok', payload };
     } catch (err) {
-      if (err instanceof LumaFetchError) return null;
-      return null;
+      // Only a CONFIRMED "Luma says this doesn't exist" (404, `not_found`)
+      // is a genuine miss. Every other `LumaFetchError` ('invalid' — a
+      // malformed ref that should never have reached here, or 'upstream' —
+      // a network/5xx/parse failure) is transient-or-our-own-bug, not proof
+      // the event doesn't exist, so it must never be cached as a negative.
+      if (err instanceof LumaFetchError && err.code === 'not_found') return { status: 'not_found' };
+      return { status: 'unavailable' };
     }
+  }
+
+  /** Fetch one event's full payload, or `null` if the cap is hit, the ref is
+   *  invalid, or Luma errors (callers fall back to iCal-only data). A thin
+   *  wrapper over `enrichResult` for the common "I just want the payload,
+   *  I'm not deciding whether to cache a negative" case. */
+  async enrich(ref: EnrichRef): Promise<LumaEventPayload | null> {
+    const result = await this.enrichResult(ref);
+    return result.status === 'ok' ? result.payload : null;
   }
 }
 
@@ -117,5 +166,10 @@ export class HourlyWindowLumaLimiter implements EnrichLimiter {
   async enrich(ref: EnrichRef): Promise<LumaEventPayload | null> {
     this.maybeResetWindow();
     return this.inner.enrich(ref);
+  }
+
+  async enrichResult(ref: EnrichRef): Promise<EnrichOutcome> {
+    this.maybeResetWindow();
+    return this.inner.enrichResult(ref);
   }
 }

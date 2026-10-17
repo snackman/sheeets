@@ -69,6 +69,10 @@ vi.mock('../ingest/db', () => ({
   upsertCandidate: vi.fn(async (row: Record<string, unknown>) => row),
   updateCandidate: vi.fn(async () => {}),
   listRecentCandidatesForDedupe: vi.fn(async () => []),
+  // Review finding, HIGH item A: `buildDiscoverySourceContext` now also
+  // fetches the FULL conference-wide known-key set for the unseen-first
+  // ordering fix — empty by default here, same as `otherCandidates`.
+  listAllCandidateKeysForConference: vi.fn(async () => new Set<string>()),
   createRun: vi.fn(async () => {
     const run: FakeRunRow = { id: `run-${runRows.length + 1}`, status: 'running' };
     runRows.push(run);
@@ -246,6 +250,37 @@ vi.mock('../ingest/sources/telegram', () => ({
   isValidTelegramHandle: () => true,
 }));
 
+/** Controllable from a test — review finding, HIGH item 1 ("exhausting
+ *  the Luma limiter poisons ingest_link_cache", explicitly flagged against
+ *  the Telegram path too since it has its own inline loop predating
+ *  `runDiscoveredLinksBatch`). Default behavior (false/never-exhausted,
+ *  real-ish `enrich`/`enrichResult`) matches the real `LumaEnrichmentLimiter`
+ *  closely enough for every OTHER test in this file, which don't exercise
+ *  exhaustion at all. */
+let telegramEnrichLimiterExhausted = false;
+vi.mock('../ingest/enrich', () => ({
+  LumaEnrichmentLimiter: class {
+    get exhausted() {
+      return telegramEnrichLimiterExhausted;
+    }
+    async enrich() {
+      return null;
+    }
+    async enrichResult() {
+      return { status: 'unavailable' as const };
+    }
+  },
+  HourlyWindowLumaLimiter: class {
+    exhausted = false;
+    async enrich() {
+      return null;
+    }
+    async enrichResult() {
+      return { status: 'unavailable' as const };
+    }
+  },
+}));
+
 import { runSource } from '../ingest/pipeline';
 
 function makeXSource(cursor: Record<string, unknown> = {}) {
@@ -325,6 +360,7 @@ beforeEach(() => {
   isMeetupConfiguredMock.mockReset().mockReturnValue(true);
   resolveSponsorPageUrlsMock.mockReset();
   fetchSponsorPageLinksMock.mockReset();
+  telegramEnrichLimiterExhausted = false;
 });
 
 describe('runSource(x_account): cost accounting (re-review item 1, HIGH) and cursor/cost durability (item 2, MEDIUM)', () => {
@@ -473,6 +509,43 @@ describe('runSource(x_account): cost accounting (re-review item 1, HIGH) and cur
     expect(result.status).toBe('ok');
     expect(processDiscoveredLinkMock).not.toHaveBeenCalled();
   });
+
+  // Review finding, LOW-MED item C: Luma budget exhaustion must mark the
+  // run partial (there's real leftover work) WITHOUT holding back the X
+  // cursor advance — only a genuine wall-clock deadline does that. Before
+  // this fix, `runDiscoveredLinksBatch`'s single `hitDeadline` flag
+  // conflated the two, so a Luma-only budget crunch made this source
+  // re-read (and re-BILL) the exact same already-paid-for X posts on every
+  // later run until the Luma budget happened to be free again.
+  it('a Luma-budget exhaustion marks the run partial but still advances the X cursor (does not re-pay to re-read the same posts)', async () => {
+    makeXSource();
+    fetchXUserPostsMock.mockResolvedValueOnce(onePage(['p1'], [['https://lu.ma/exhausted-link']]));
+    telegramEnrichLimiterExhausted = true; // shared `../ingest/enrich` mock flag — also governs X's own discovery context.
+
+    const result = await runSource('src-x', { trigger: 'cron' });
+
+    expect(result.status).toBe('partial');
+    expect(processDiscoveredLinkMock).not.toHaveBeenCalled(); // the Luma link was skipped, never even attempted.
+    const cursorUpdate = updateSourceCalls.find((c) => c.id === 'src-x' && 'cursor' in c.patch);
+    expect(cursorUpdate?.patch).toEqual({ cursor: { since_id: 'p1' } });
+  });
+
+  // Review finding, LOW item D: the exhaustion skip is Luma-specific —
+  // a Partiful/Eventbrite/Meetup/Posh link in the SAME batch is unaffected
+  // by the Luma limiter and must still be processed normally.
+  it('a non-Luma link in the same batch is still processed once the Luma limiter is exhausted', async () => {
+    makeXSource();
+    fetchXUserPostsMock.mockResolvedValueOnce(
+      onePage(['p1'], [['https://lu.ma/exhausted-link', 'https://partiful.com/e/still-processed']])
+    );
+    telegramEnrichLimiterExhausted = true;
+
+    const result = await runSource('src-x', { trigger: 'cron' });
+
+    expect(processDiscoveredLinkCalls).toHaveLength(1);
+    expect(processDiscoveredLinkCalls[0].url).toBe('https://partiful.com/e/still-processed');
+    expect(result.status).toBe('partial'); // the skipped Luma link is still leftover work.
+  });
 });
 
 describe('runSource(meetup_search): cost accounting (re-review item 1, HIGH)', () => {
@@ -600,5 +673,41 @@ describe('runSource(telegram_channel): persists LLM cost already spent when a LA
     expect(errorRun!.llm_input_tokens).toBe(100);
     expect(errorRun!.llm_output_tokens).toBe(20);
     expect(errorRun!.est_cost_usd).toBe(5);
+  });
+
+  // Review finding, HIGH item 1 ("exhausting the Luma limiter poisons
+  // ingest_link_cache ... also a live bug in the Telegram path, since
+  // discover.ts is shared"): Telegram's own inline loop must also stop
+  // once the shared Luma limiter is exhausted, rather than handing every
+  // remaining link to `processDiscoveredLink` and writing bogus error rows.
+  it('stops processing links once the Luma enrichment limiter is exhausted, marking the run partial', async () => {
+    makeTelegramSource();
+    parseTelegramChannelHtmlMock.mockReturnValueOnce([
+      { postRef: 'testchannel/1', url: 'https://t.me/testchannel/1', text: '', links: ['https://lu.ma/e1', 'https://lu.ma/e2'] },
+    ]);
+    telegramEnrichLimiterExhausted = true;
+
+    const result = await runSource('src-telegram', { trigger: 'cron' });
+
+    expect(processDiscoveredLinkMock).not.toHaveBeenCalled();
+    expect(result.status).toBe('partial');
+  });
+
+  // Review finding, LOW item D: Telegram's own inline loop (predates
+  // `runDiscoveredLinksBatch`) must also skip only Luma links once
+  // exhausted — a Partiful/Eventbrite/Meetup/Posh link in the same
+  // message is unaffected by the Luma limiter and still gets processed.
+  it('a non-Luma link in the same message is still processed once the Luma limiter is exhausted', async () => {
+    makeTelegramSource();
+    parseTelegramChannelHtmlMock.mockReturnValueOnce([
+      { postRef: 'testchannel/1', url: 'https://t.me/testchannel/1', text: '', links: ['https://lu.ma/exhausted-link', 'https://partiful.com/e/still-processed'] },
+    ]);
+    telegramEnrichLimiterExhausted = true;
+
+    const result = await runSource('src-telegram', { trigger: 'cron' });
+
+    expect(processDiscoveredLinkCalls).toHaveLength(1);
+    expect(processDiscoveredLinkCalls[0].url).toBe('https://partiful.com/e/still-processed');
+    expect(result.status).toBe('partial');
   });
 });

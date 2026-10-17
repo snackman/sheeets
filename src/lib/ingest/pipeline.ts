@@ -17,6 +17,7 @@ import {
   upsertCandidate,
   updateCandidate,
   listRecentCandidatesForDedupe,
+  listAllCandidateKeysForConference,
   createRun,
   finishRun,
   hasRecentRunningRun,
@@ -30,7 +31,9 @@ import { fetchTelegramChannelHtml, parseTelegramChannelHtml, isValidTelegramHand
 import { isXConfigured, fetchXUserPosts, X_POST_READ_COST_USD, MAX_RESULTS_PER_ACCOUNT_PER_RUN, X_MAX_PAGES_PER_RUN, type XPostsPage } from './sources/x';
 import { isMeetupConfigured, searchMeetupEvents } from './sources/meetup';
 import { resolveSponsorPageUrls, fetchSponsorPageLinks, createRobotsCache, SPONSOR_PAGE_WORST_CASE_MS } from './sources/sponsor-pages';
-import { isAllowlistedEventLink } from './allowlist';
+import { fetchMiraSeriesEvents } from './sources/mira';
+import { fetchSheetTrackerLinks } from './sources/sheet-tracker';
+import { isAllowlistedEventLink, allowlistedPlatformFor } from './allowlist';
 import { normalizeLumaEvent, computeContentHash } from './normalize';
 import { buildSheetLinkIndex, findSheetMatchByLink, findDuplicateByNameAndDate, fuzzyMatch, type DedupeCandidatePool } from './dedupe';
 import { dateWindowFilter, geoFilter, isPastEvent, geocodeAddressCached, upsertGeocodedAddress, ReverseGeocodeLimiter } from './filters';
@@ -170,7 +173,7 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
       });
       return { runId: run.id, status: 'skipped', counts };
     }
-    const IMPLEMENTED_KINDS = ['luma_ical', 'telegram_channel', 'x_account', 'meetup_search', 'sponsor_pages'] as const;
+    const IMPLEMENTED_KINDS = ['luma_ical', 'telegram_channel', 'x_account', 'meetup_search', 'sponsor_pages', 'mira_series', 'sheet_tracker'] as const;
     if (!(IMPLEMENTED_KINDS as readonly string[]).includes(source.kind)) {
       throw new Error(`Source kind "${source.kind}" is not implemented until a later phase.`);
     }
@@ -225,7 +228,11 @@ export async function runSource(sourceId: string, opts: RunSourceOptions): Promi
             ? await processXSource({ ...commonArgs, runId: run.id })
             : source.kind === 'meetup_search'
               ? await processMeetupSource(commonArgs)
-              : await processSponsorPagesSource(commonArgs);
+              : source.kind === 'sponsor_pages'
+                ? await processSponsorPagesSource(commonArgs)
+                : source.kind === 'mira_series'
+                  ? await processMiraSource(commonArgs)
+                  : await processSheetTrackerSource(commonArgs);
 
     if (!opts.dryRun) await updateSource(sourceId, { last_run_at: new Date().toISOString(), last_status: 'ok', last_error: null });
     await finishRun(run.id, {
@@ -924,6 +931,19 @@ async function processTelegramSource(args: {
         hitDeadline = true;
         break outer;
       }
+      // Review finding, HIGH ("exhausting the Luma limiter poisons
+      // ingest_link_cache") / LOW item D ("the exhaustion stop also stops
+      // non-Luma links"): skip only a LUMA url once the shared limiter is
+      // exhausted — leaving it for a later run rather than letting
+      // `processDiscoveredLink` fall through to its generic
+      // enrichment-failure handling and write a bogus `status: 'error'`
+      // row for a link never actually tried — but keep processing any
+      // Partiful/Eventbrite/Meetup/Posh links in this same batch, which
+      // the Luma limiter has nothing to do with.
+      if (allowlistedPlatformFor(url) === 'luma' && enrichLimiter.exhausted) {
+        hitDeadline = true; // leftover work remains — still mark the run partial.
+        continue;
+      }
 
       const cheapKey = normalizeEventLink(url);
       const existing = cheapKey ? await getCandidateByKeyOrAltKey(source.conference, cheapKey) : null;
@@ -1040,6 +1060,15 @@ interface DiscoverySourceRunContext {
   fewShot: Awaited<ReturnType<typeof loadLearningContext>>['fewShot'];
   sponsorNames: string[];
   computeHostSignals: ReturnType<typeof buildHostSignalComputer>;
+  /** Review finding, HIGH item A ("links can be starved"): EVERY
+   *  canonical/alt key already known for this conference, across every
+   *  platform and every status (final/rejected/unpublished/stale
+   *  included) — unlike `otherCandidates` above (the in-run dedupe pool,
+   *  which drops `alt_keys` and excludes final/rejected rows), this is
+   *  what `runDiscoveredLinksBatch`'s unseen-first ordering actually
+   *  needs to recognize a short Luma link whose candidate is keyed by its
+   *  stable `evt-…` id with the short slug only in `alt_keys`. */
+  knownKeys: Set<string>;
 }
 
 /** Shared per-run setup every discovery source (Telegram inline above;
@@ -1051,10 +1080,16 @@ interface DiscoverySourceRunContext {
 async function buildDiscoverySourceContext(
   source: Awaited<ReturnType<typeof getSource>>,
   profile: IngestProfileRow,
-  tab: TabConfig
+  tab: TabConfig,
+  opts: { enrichLimiterCap?: number } = {}
 ): Promise<DiscoverySourceRunContext> {
   const src = source!;
-  const enrichLimiter = new LumaEnrichmentLimiter(100, 1000);
+  // Review finding, MEDIUM ("a dedicated, larger budget for these big-list
+  // sources"): Mira series / sheet trackers can return far more candidate
+  // links in one fetch than X/Meetup/sponsor-pages ever do (a single Mira
+  // series page can list hundreds of events) — those two callers pass a
+  // higher cap; every other caller keeps the original default of 100.
+  const enrichLimiter = new LumaEnrichmentLimiter(opts.enrichLimiterCap ?? 100, 1000);
   const linkFetchLimiter = new PacedLinkLimiter(30, 500);
   const resolveSlugViaLimiter = async (slug: string): Promise<string | null> => {
     const payload = await enrichLimiter.enrich({ slug });
@@ -1087,8 +1122,12 @@ async function buildDiscoverySourceContext(
   const { fewShot, learnedHosts } = await loadLearningContext({ conference: src.conference, themeKey: profile.theme_key });
   const sponsorNames = await getSponsorNamesForConference(src.conference);
   const computeHostSignals = buildHostSignalComputer({ profile, verifiedHostIds, organizerCounts, learnedHosts });
+  // Review finding, HIGH item A: the FULL known-key set (every platform,
+  // every status, canonical_key AND alt_keys) — see `knownKeys`'s doc
+  // comment on `DiscoverySourceRunContext`.
+  const knownKeys = await listAllCandidateKeysForConference(src.conference);
 
-  return { enrichLimiter, linkFetchLimiter, themeProfile, client, supabase, sheetEvents, linkIndex, otherCandidates, fewShot, sponsorNames, computeHostSignals };
+  return { enrichLimiter, linkFetchLimiter, themeProfile, client, supabase, sheetEvents, linkIndex, otherCandidates, fewShot, sponsorNames, computeHostSignals, knownKeys };
 }
 
 interface DiscoverySourceLoopResult {
@@ -1152,6 +1191,41 @@ function hasAnyAllowlistedLink(urls: string[]): boolean {
  * a value itself, specifically so a LATER candidate throwing still leaves
  * every EARLIER candidate's already-billed cost visible to `runSource`'s
  * `catch` block, which reads the same object directly.
+ *
+ * Review finding, HIGH ("exhausting the Luma limiter poisons
+ * ingest_link_cache", also flagged against the Telegram path since
+ * `discover.ts` is shared): once `args.ctx.enrichLimiter.exhausted`, a LUMA
+ * url is skipped (left unprocessed for a later run) rather than handed to
+ * `processDiscoveredLink`'s generic "enrichment failed, no existing
+ * candidate" branch, which would otherwise write a bogus `status: 'error'`
+ * row keyed on its SLUG (not even its stable `evt-…` id, since resolution
+ * itself never ran) — pure noise for an admin, and a wasted write for
+ * something that was never actually tried. Review finding, LOW item D
+ * ("the exhaustion stop also stops non-Luma links"): this only skips LUMA
+ * urls — a Partiful/Eventbrite/Meetup/Posh link later in the same batch is
+ * NEVER affected by the Luma limiter at all and keeps being processed
+ * normally. The function signals this via `budgetExhausted` in its return
+ * (kept separate from `hitDeadline`, a genuine wall-clock cutoff — see
+ * review finding, LOW-MED item C on `processXSource`'s own doc comment for
+ * why that distinction matters there).
+ *
+ * Also orders `urls` so links NOT already a known candidate for this
+ * conference (per `args.ctx.knownKeys` — review finding, HIGH item A: the
+ * FULL canonical_key+alt_keys set across every status, not the in-run
+ * dedupe pool, which drops `alt_keys` and excludes final/rejected rows —
+ * see `knownKeys`'s own doc comment) are tried BEFORE ones that are —
+ * otherwise a big, stably-ordered list (a Mira series, a sheet tracker)
+ * would re-spend the Luma budget re-enriching the same already-seen links
+ * at the front every single run (enrichment happens before the
+ * content-hash-unchanged check, so even a no-op re-visit costs a real Luma
+ * call) and the genuinely new tail would starve forever. Once a link is
+ * successfully processed it becomes "seen" for the NEXT run, which rotates
+ * through a big source's full list over successive runs on its own in the
+ * common case — but ALSO rotates the "seen" bucket itself by a persisted
+ * `ingest_sources.cursor.link_offset` (review finding, HIGH item A's "add
+ * rotation for safety"), so even once EVERY link is eventually "seen",
+ * `maxLinksPerRun` still cycles through the whole list across runs instead
+ * of the same front-of-list links winning forever.
  */
 async function runDiscoveredLinksBatch(
   urls: string[],
@@ -1176,16 +1250,65 @@ async function runDiscoveredLinksBatch(
      *  drift apart. */
     costAcc: CostAccumulator;
     llmCallsThisRunRef: { value: number };
+    /** Cap on how many links THIS call will even attempt, applied AFTER
+     *  the unseen-first ordering (so truncation drops already-seen links
+     *  first) — a big-list source (Mira, a sheet tracker) shouldn't be
+     *  allowed to spend an entire run's time/budget on one fetch.
+     *  Undefined (every other caller) means no cap. */
+    maxLinksPerRun?: number;
   }
-): Promise<{ hitDeadline: boolean }> {
+): Promise<{ hitDeadline: boolean; budgetExhausted: boolean }> {
   const src = args.source!;
   const canClassify = () =>
     args.budgetStatus.spentUsd + args.costAcc.costUsd < args.budgetStatus.capUsd &&
     args.llmCallsThisRunRef.value < args.profile.max_llm_calls_per_run;
 
   const allowlisted = Array.from(new Set(urls)).filter(isAllowlistedEventLink);
+  // Review finding, HIGH item A: union the conference-wide known-key
+  // snapshot with whatever THIS run has already created/touched (growing
+  // as the loop below persists candidates) — the latter matters when
+  // several urls in the SAME batch resolve to the same event.
+  const knownKeys = new Set(args.ctx.knownKeys);
+  for (const c of args.ctx.otherCandidates) knownKeys.add(c.canonical_key);
+  const unseen: string[] = [];
+  const seen: string[] = [];
   for (const url of allowlisted) {
-    if (Date.now() > args.deadline) return { hitDeadline: true };
+    const key = normalizeEventLink(url);
+    (key && knownKeys.has(key) ? seen : unseen).push(url);
+  }
+
+  // Rotation "for safety" (review finding, HIGH item A): once the "seen"
+  // bucket itself is bigger than `maxLinksPerRun` can cover in one run
+  // (the steady-state case for a big source once everything's been seen
+  // at least once), rotate WHICH slice of it gets a turn this run via a
+  // persisted offset cursor — the same `ingest_sources.cursor` jsonb
+  // sponsor-pages already rotates its own `sponsor_offset` through,
+  // merged (not overwritten) here under a different key.
+  const sourceCursor = (src.cursor as Record<string, unknown> | null) ?? {};
+  const rawOffset = typeof sourceCursor.link_offset === 'number' ? sourceCursor.link_offset : 0;
+  const offset = seen.length > 0 ? ((rawOffset % seen.length) + seen.length) % seen.length : 0;
+  const rotatedSeen = seen.length > 0 ? [...seen.slice(offset), ...seen.slice(0, offset)] : seen;
+
+  let ordered = [...unseen, ...rotatedSeen];
+  if (args.maxLinksPerRun !== undefined) ordered = ordered.slice(0, args.maxLinksPerRun);
+
+  if (!args.dryRun && seen.length > 0) {
+    const seenIncludedCount = Math.max(0, ordered.length - unseen.length);
+    const nextOffset = (offset + seenIncludedCount) % seen.length;
+    await updateSource(src.id, { cursor: { ...sourceCursor, link_offset: nextOffset } });
+  }
+
+  let budgetExhausted = false;
+  for (const url of ordered) {
+    if (Date.now() > args.deadline) return { hitDeadline: true, budgetExhausted };
+    // See this function's doc comment — skip only a LUMA url once the
+    // shared limiter is exhausted (never create a bogus error row for a
+    // link we never actually tried), but keep processing every other
+    // platform's links in this same batch (review finding, LOW item D).
+    if (allowlistedPlatformFor(url) === 'luma' && args.ctx.enrichLimiter.exhausted) {
+      budgetExhausted = true;
+      continue;
+    }
 
     const cheapKey = normalizeEventLink(url);
     const existing = cheapKey ? await getCandidateByKeyOrAltKey(src.conference, cheapKey) : null;
@@ -1260,7 +1383,7 @@ async function runDiscoveredLinksBatch(
       event: outcome.row.event,
     });
   }
-  return { hitDeadline: false };
+  return { hitDeadline: false, budgetExhausted };
 }
 
 /**
@@ -1404,7 +1527,7 @@ async function processXSource(args: {
   // succeeded even if a LATER candidate's processing throws and this
   // function never reaches its own `return` below.
   const llmCallsThisRunRef = { value: 0 };
-  const { hitDeadline } = await runDiscoveredLinksBatch(candidateUrls, {
+  const { hitDeadline, budgetExhausted } = await runDiscoveredLinksBatch(candidateUrls, {
     source,
     profile,
     tab,
@@ -1420,16 +1543,22 @@ async function processXSource(args: {
     llmCallsThisRunRef,
   });
 
-  // Only a deadline hit DURING batch processing still withholds the
-  // advance (see `advanceCursor`'s doc comment) — a capped page read is
-  // no longer one of those cases.
+  // Review finding, LOW-MED item C: only a GENUINE wall-clock deadline hit
+  // DURING batch processing still withholds the advance (see
+  // `advanceCursor`'s doc comment) — a capped page read is no longer one
+  // of those cases, and neither is the Luma budget merely running out.
+  // Before this fix, `hitDeadline` conflated the two: holding back the X
+  // cursor on a mere Luma-exhaustion meant the SAME (already-paid-for) X
+  // posts got re-read, and re-billed, on every subsequent run until the
+  // Luma budget happened to be free — a recurring cost with no bound,
+  // worse than the occasional straggler link a cursor advance might miss.
   if (!hitDeadline) await advanceCursor();
 
   return {
     llmInputTokens: costAcc.inputTokens,
     llmOutputTokens: costAcc.outputTokens,
     costUsd: costAcc.costUsd,
-    hitDeadline,
+    hitDeadline: hitDeadline || budgetExhausted,
     previews: dryRun ? previews : undefined,
   };
 }
@@ -1489,7 +1618,7 @@ async function processMeetupSource(args: {
   // back out below — `costAcc` is the SAME object `runSource` holds, so
   // it's never lost even if a later candidate throws.
   const llmCallsThisRunRef = { value: 0 };
-  const { hitDeadline } = await runDiscoveredLinksBatch(candidateUrls, {
+  const { hitDeadline, budgetExhausted } = await runDiscoveredLinksBatch(candidateUrls, {
     source,
     profile,
     tab,
@@ -1505,7 +1634,7 @@ async function processMeetupSource(args: {
     llmCallsThisRunRef,
   });
 
-  return { llmInputTokens: costAcc.inputTokens, llmOutputTokens: costAcc.outputTokens, costUsd: costAcc.costUsd, hitDeadline, previews: dryRun ? previews : undefined };
+  return { llmInputTokens: costAcc.inputTokens, llmOutputTokens: costAcc.outputTokens, costUsd: costAcc.costUsd, hitDeadline: hitDeadline || budgetExhausted, previews: dryRun ? previews : undefined };
 }
 
 /**
@@ -1584,7 +1713,7 @@ async function processSponsorPagesSource(args: {
   // back out below — `costAcc` is the SAME object `runSource` holds, so
   // it's never lost even if a later candidate throws.
   const llmCallsThisRunRef = { value: 0 };
-  const { hitDeadline } = await runDiscoveredLinksBatch(candidateUrls, {
+  const { hitDeadline, budgetExhausted } = await runDiscoveredLinksBatch(candidateUrls, {
     source,
     profile,
     tab,
@@ -1604,7 +1733,147 @@ async function processSponsorPagesSource(args: {
     llmInputTokens: costAcc.inputTokens,
     llmOutputTokens: costAcc.outputTokens,
     costUsd: costAcc.costUsd,
-    hitDeadline: sponsorPagesHitDeadline || hitDeadline,
+    hitDeadline: sponsorPagesHitDeadline || hitDeadline || budgetExhausted,
+    previews: dryRun ? previews : undefined,
+  };
+}
+
+// Review finding, MEDIUM ("a dedicated, larger budget for these big-list
+// sources, with a per-run cap on links"): Mira series pages and sheet
+// trackers can list far more candidate links in one fetch than any other
+// discovery source (a single Mira series can have hundreds of events) —
+// a bigger Luma-enrichment budget plus a hard per-run cap on how many
+// links are even attempted, so one huge source can't burn an entire run
+// on itself. Combined with `runDiscoveredLinksBatch`'s unseen-first
+// ordering, this rotates through a big source's full list over
+// successive runs instead of the same front-of-list links winning forever.
+const BIG_LIST_SOURCE_ENRICH_LIMITER_CAP = 200;
+const BIG_LIST_SOURCE_MAX_LINKS_PER_RUN = 150;
+
+/**
+ * Mira (miragather.com) series source: one series page's `mainEvents` +
+ * `sideEvents`, each event's `website` link run through the shared
+ * discovery engine — same "fetch a batch, allowlist-filter, hand to
+ * `processDiscoveredLink`" shape as sponsor pages above. `sourceRef` is
+ * the series page itself; Mira has no stable per-event anchor to link
+ * back to more precisely than that.
+ */
+async function processMiraSource(args: {
+  source: Awaited<ReturnType<typeof getSource>>;
+  profile: IngestProfileRow;
+  tab: TabConfig;
+  deadlineMs?: number;
+  counts: RunCounts;
+  dryRun?: boolean;
+  costAcc: CostAccumulator;
+}): Promise<DiscoverySourceLoopResult> {
+  const { profile, tab, counts, dryRun, costAcc } = args;
+  const source = args.source!;
+  const deadline = Date.now() + (args.deadlineMs ?? 240_000);
+  const previews: CandidatePreview[] = [];
+  const persist = makeDiscoveryPersist(dryRun, previews);
+
+  const seriesSlug = (source.config as { series_slug?: string }).series_slug;
+  if (!seriesSlug) throw new Error('Source is missing series_slug.');
+
+  const events = await fetchMiraSeriesEvents(seriesSlug);
+  bump(counts, 'fetched', events.length);
+
+  const seriesPageUrl = `https://miragather.com/${seriesSlug}`;
+  const candidateUrls = Array.from(new Set(events.map((e) => e.website).filter((w): w is string => !!w)));
+
+  if (!hasAnyAllowlistedLink(candidateUrls)) {
+    return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline: false, previews: dryRun ? previews : undefined };
+  }
+
+  const budgetStatus = await checkMonthlyBudget();
+  const ctx = await buildDiscoverySourceContext(source, profile, tab, { enrichLimiterCap: BIG_LIST_SOURCE_ENRICH_LIMITER_CAP });
+  const llmCallsThisRunRef = { value: 0 };
+  const { hitDeadline, budgetExhausted } = await runDiscoveredLinksBatch(candidateUrls, {
+    source,
+    profile,
+    tab,
+    sourceKind: 'mira_series',
+    sourceRef: () => seriesPageUrl,
+    ctx,
+    counts,
+    dryRun,
+    deadline,
+    persist,
+    budgetStatus,
+    costAcc,
+    llmCallsThisRunRef,
+    maxLinksPerRun: BIG_LIST_SOURCE_MAX_LINKS_PER_RUN,
+  });
+
+  return {
+    llmInputTokens: costAcc.inputTokens,
+    llmOutputTokens: costAcc.outputTokens,
+    costUsd: costAcc.costUsd,
+    hitDeadline: hitDeadline || budgetExhausted,
+    previews: dryRun ? previews : undefined,
+  };
+}
+
+/**
+ * Community-tracker Google Sheet source: one tab's `/htmlview/sheet?gid=`
+ * snapshot, every real (redirect-unwrapped) allowlisted hyperlink run
+ * through the shared discovery engine. Same shape as `processMiraSource`
+ * above — a single batch fetch, then `runDiscoveredLinksBatch`.
+ */
+async function processSheetTrackerSource(args: {
+  source: Awaited<ReturnType<typeof getSource>>;
+  profile: IngestProfileRow;
+  tab: TabConfig;
+  deadlineMs?: number;
+  counts: RunCounts;
+  dryRun?: boolean;
+  costAcc: CostAccumulator;
+}): Promise<DiscoverySourceLoopResult> {
+  const { profile, tab, counts, dryRun, costAcc } = args;
+  const source = args.source!;
+  const deadline = Date.now() + (args.deadlineMs ?? 240_000);
+  const previews: CandidatePreview[] = [];
+  const persist = makeDiscoveryPersist(dryRun, previews);
+
+  const config = source.config as { sheet_id?: string; gid?: number };
+  if (!config.sheet_id) throw new Error('Source is missing sheet_id.');
+  const gid = config.gid ?? 0;
+
+  const candidateUrls = await fetchSheetTrackerLinks(config.sheet_id, gid);
+  bump(counts, 'fetched', candidateUrls.length);
+
+  const sheetPageUrl = `https://docs.google.com/spreadsheets/d/${config.sheet_id}/htmlview/sheet?gid=${gid}`;
+
+  if (!hasAnyAllowlistedLink(candidateUrls)) {
+    return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline: false, previews: dryRun ? previews : undefined };
+  }
+
+  const budgetStatus = await checkMonthlyBudget();
+  const ctx = await buildDiscoverySourceContext(source, profile, tab, { enrichLimiterCap: BIG_LIST_SOURCE_ENRICH_LIMITER_CAP });
+  const llmCallsThisRunRef = { value: 0 };
+  const { hitDeadline, budgetExhausted } = await runDiscoveredLinksBatch(candidateUrls, {
+    source,
+    profile,
+    tab,
+    sourceKind: 'sheet_tracker',
+    sourceRef: () => sheetPageUrl,
+    ctx,
+    counts,
+    dryRun,
+    deadline,
+    persist,
+    budgetStatus,
+    costAcc,
+    llmCallsThisRunRef,
+    maxLinksPerRun: BIG_LIST_SOURCE_MAX_LINKS_PER_RUN,
+  });
+
+  return {
+    llmInputTokens: costAcc.inputTokens,
+    llmOutputTokens: costAcc.outputTokens,
+    costUsd: costAcc.costUsd,
+    hitDeadline: hitDeadline || budgetExhausted,
     previews: dryRun ? previews : undefined,
   };
 }
