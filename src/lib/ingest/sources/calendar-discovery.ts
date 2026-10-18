@@ -21,8 +21,8 @@
 //     {latitude, longitude}, ...}, calendar: {...}, ...}], has_more}`.
 import { safeFetch, SafeFetchError } from '../../safe-fetch';
 import { LUMA_CALENDAR_ID_RE } from './luma-ical';
-import { LUMA_EVENT_API_ID_RE } from '../../luma';
-import type { EnrichLimiter } from '../enrich';
+import { LUMA_EVENT_API_ID_RE, lumaApiIdFromUrl, getLumaShortSlug } from '../../luma';
+import type { EnrichLimiter, EnrichOutcome } from '../enrich';
 import { dateWindowFilter, geoFilter } from '../filters';
 import type { IngestCandidateRow } from '../types';
 
@@ -81,16 +81,33 @@ export interface ResolveCandidateCalendarResult {
  * cache-agnostic.
  */
 export async function resolveCandidateCalendar(
-  candidate: Pick<IngestCandidateRow, 'canonical_key'>,
+  candidate: Pick<IngestCandidateRow, 'canonical_key'> & Partial<Pick<IngestCandidateRow, 'event' | 'alt_keys'>>,
   limiter: EnrichLimiter
 ): Promise<ResolveCandidateCalendarResult> {
   const key = candidate.canonical_key;
-  const evtApiId = key?.startsWith('luma:') ? key.slice('luma:'.length) : null;
-  if (!evtApiId || !LUMA_EVENT_API_ID_RE.test(evtApiId)) {
+  const keyId = key?.startsWith('luma:') ? key.slice('luma:'.length) : null;
+  if (!keyId || !LUMA_EVENT_API_ID_RE.test(keyId)) {
     return { status: 'not_applicable', calendar: null };
   }
 
-  const result = await limiter.enrichResult({ apiId: evtApiId });
+  // 2026-10-18: canonical keys are LOWERCASED, but Luma's `event/get` is
+  // case-sensitive — querying the key's id 404'd and cached
+  // `hostCalendar = null` forever. Use the original-case id from the
+  // event's own link (or a key that still carries case), else the short
+  // slug (Luma resolves those case-insensitively).
+  const fromLink = lumaApiIdFromUrl(candidate.event?.link ?? '');
+  const apiId = fromLink && fromLink.toLowerCase() === keyId.toLowerCase() ? fromLink : keyId !== keyId.toLowerCase() ? keyId : null;
+  const slug =
+    getLumaShortSlug(candidate.event?.link) ??
+    (candidate.alt_keys ?? []).map((k) => (k.startsWith('luma:') ? k.slice('luma:'.length) : '')).find((s) => s && !LUMA_EVENT_API_ID_RE.test(s)) ??
+    null;
+
+  let result: EnrichOutcome | null = null;
+  if (apiId) result = await limiter.enrichResult({ apiId });
+  if ((!result || result.status === 'not_found') && slug) result = await limiter.enrichResult({ slug });
+  // Only a lowercased id and no slug: a 404 on it would prove nothing, so
+  // don't ask — and never let the caller cache a negative.
+  if (!result) return { status: 'unavailable', calendar: null };
   if (result.status === 'unavailable') return { status: 'unavailable', calendar: null };
   if (result.status === 'not_found') return { status: 'resolved', calendar: null }; // confirmed gone — never re-check.
 

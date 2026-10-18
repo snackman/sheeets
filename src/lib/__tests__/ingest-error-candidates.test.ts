@@ -205,6 +205,16 @@ function prodErrorRow(overrides: Partial<IngestCandidateRow> = {}): IngestCandid
   };
 }
 
+/** A Devcon-style error row (Luma 404) whose last failure was `agoMs` ago. */
+function errorRowFailedAgo(agoMs: number, failures: number, overrides: Partial<IngestCandidateRow> = {}): IngestCandidateRow {
+  const base = prodErrorRow({ conference: 'Solana Breakpoint', canonical_key: 'luma:188n1ye7', alt_keys: [] });
+  return {
+    ...base,
+    event: { ...base.event, link: 'https://luma.com/188n1ye7', ingestError: { failures, lastFailedAt: new Date(Date.now() - agoMs).toISOString(), reason: 'luma_not_found' } },
+    ...overrides,
+  };
+}
+
 function rowOf(outcome: DiscoveredLinkOutcome) {
   if (outcome.kind !== 'row') throw new Error(`expected a row outcome, got ${outcome.kind}`);
   return outcome.row;
@@ -239,8 +249,14 @@ describe('one Mira series feeding two conferences (DAS London + Solana Breakpoin
     const out: Record<string, { status: string; filter_reason: unknown; fetches: number }> = {};
     for (const url of hints.keys()) {
       const before = fetchLumaEventMock.mock.calls.length;
-      const row = rowOf(await processDiscoveredLink(url, null, ctx, hints.get(url)));
-      out[url] = { status: row.status, filter_reason: row.filter_reason, fetches: fetchLumaEventMock.mock.calls.length - before };
+      const outcome = await processDiscoveredLink(url, null, ctx, hints.get(url));
+      const fetches = fetchLumaEventMock.mock.calls.length - before;
+      // 'prefiltered' = out of window per Mira, slug never resolved → no row written (no fork risk).
+      if (outcome.kind === 'prefiltered') out[url] = { status: 'prefiltered', filter_reason: outcome.reason, fetches };
+      else {
+        const row = rowOf(outcome);
+        out[url] = { status: row.status, filter_reason: row.filter_reason, fetches };
+      }
     }
     return out;
   }
@@ -248,7 +264,7 @@ describe('one Mira series feeding two conferences (DAS London + Solana Breakpoin
   it('DAS: Breakpoint-week events are filtered_out (never error); clearly-out-of-window ones without any Luma call', async () => {
     const r = await runAll(DAS_TAB);
     // Nov 14: outside DAS's Nov 7..12 window even with 1 day of slack -> dropped pre-enrichment.
-    expect(r['https://lu.ma/scale-or-die-26']).toMatchObject({ status: 'filtered_out', fetches: 0 });
+    expect(r['https://lu.ma/scale-or-die-26']).toMatchObject({ status: 'prefiltered', fetches: 0 });
     expect(r['https://lu.ma/scale-or-die-26'].filter_reason).toMatch(/^outside_date_window\(2026-11-07\.\.2026-11-12\).*source date 2026-11-14/);
     // Nov 13: inside the slack, so it IS enriched — and then filtered on Luma's own date.
     expect(r['https://lu.ma/6xip72je']).toMatchObject({ status: 'filtered_out', filter_reason: 'outside_date_window(2026-11-07..2026-11-12)', fetches: 1 });
@@ -260,8 +276,8 @@ describe('one Mira series feeding two conferences (DAS London + Solana Breakpoin
 
   it('Breakpoint: the DAS-week events from the same series are dropped pre-enrichment; Breakpoint ones are classified', async () => {
     const r = await runAll(BREAKPOINT_TAB);
-    expect(r['https://luma.com/z7g0eoa3']).toMatchObject({ status: 'filtered_out', fetches: 0 });
-    expect(r['https://lu.ma/ol25ta77']).toMatchObject({ status: 'filtered_out', fetches: 0 });
+    expect(r['https://luma.com/z7g0eoa3']).toMatchObject({ status: 'prefiltered', fetches: 0 });
+    expect(r['https://lu.ma/ol25ta77']).toMatchObject({ status: 'prefiltered', fetches: 0 });
     expect(r['https://lu.ma/scale-or-die-26']).toMatchObject({ status: 'queued', fetches: 1 });
     expect(r['https://lu.ma/6xip72je']).toMatchObject({ status: 'queued', fetches: 1 });
   });
@@ -286,6 +302,45 @@ describe('existing candidates keyed luma:evt-… with the slug in alt_keys', () 
     expect(row.alt_keys).toEqual(['luma:scale-or-die-26']);
     expect(row.filter_reason).toContain('outside_date_window');
     expect(fetchLumaEventMock).not.toHaveBeenCalled();
+  });
+
+  it('a classify_failed error row with REAL data is judged on its own Luma date, never replaced by a placeholder', async () => {
+    const realEvent = { ...prodErrorRow().event, name: 'Scale or Die', dateISO: '2026-11-14', startAt: '2026-11-14T09:30:00.000Z', timezone: 'Europe/London' };
+    const existing = prodErrorRow({ event: realEvent, content_hash: 'real-hash', filter_reason: 'error: classify_failed: boom' });
+    // Mira (wrongly) claims Nov 10 — in window — but the row's own Luma date is Nov 14.
+    const row = rowOf(await processDiscoveredLink('https://lu.ma/scale-or-die-26', existing, makeContext(DAS_TAB), { startDate: '2026-11-18' }));
+    expect(row.status).toBe('filtered_out');
+    expect(row.event.name).toBe('Scale or Die');
+    expect(row.event.dateISO).toBe('2026-11-14');
+    expect(row.content_hash).toBe('real-hash');
+    expect(row.filter_reason).toMatch(/^outside_date_window\(2026-11-07\.\.2026-11-12\) \[own date 2026-11-14/);
+    expect(fetchLumaEventMock).not.toHaveBeenCalled();
+  });
+
+  it('a classify_failed row whose own date is IN window is not filtered on the source date — it is retried normally', async () => {
+    const realEvent = { ...prodErrorRow().event, name: 'Poker Night', dateISO: '2026-11-09', startAt: '2026-11-09T18:00:00.000Z', link: 'https://luma.com/event/evt-MgdhYr9RORaw5d6' };
+    const existing = prodErrorRow({ canonical_key: 'luma:evt-mgdhyr9roraw5d6', alt_keys: ['luma:z7g0eoa3'], event: realEvent, content_hash: 'real-hash' });
+    const row = rowOf(await processDiscoveredLink('https://luma.com/z7g0eoa3', existing, makeContext(DAS_TAB), { startDate: '2026-11-20' }));
+    expect(row.status).toBe('queued');
+    expect(fetchLumaEventMock).toHaveBeenCalled();
+  });
+
+  it('no fork: an out-of-window slug whose evt- candidate exists (slug not yet in its alt_keys) updates THAT candidate', async () => {
+    getCachedLumaApiIdEntryMock.mockImplementation(async () => ({ apiId: 'evt-saiU3xVXKv6HsFC', resolvedAt: new Date().toISOString() }));
+    const evtRow = prodErrorRow({ alt_keys: [] });
+    getCandidateByKeyOrAltKeyMock.mockImplementation(async (...args: unknown[]) => (args[1] === 'luma:evt-saiu3xvxkv6hsfc' ? evtRow : null));
+    const row = rowOf(await processDiscoveredLink('https://lu.ma/scale-or-die-26', null, makeContext(DAS_TAB), { startDate: '2026-11-14T09:30:00.000Z' }));
+    expect(row.canonical_key).toBe('luma:evt-saiu3xvxkv6hsfc');
+    expect(row.status).toBe('filtered_out');
+    expect(fetchLumaEventMock).not.toHaveBeenCalled();
+  });
+
+  it('no fork: a resolved slug with no candidate yet gets a new row keyed on its evt- id, slug in alt_keys', async () => {
+    getCachedLumaApiIdEntryMock.mockImplementation(async () => ({ apiId: 'evt-saiU3xVXKv6HsFC', resolvedAt: new Date().toISOString() }));
+    const row = rowOf(await processDiscoveredLink('https://lu.ma/scale-or-die-26', null, makeContext(DAS_TAB), { startDate: '2026-11-14T09:30:00.000Z' }));
+    expect(row.canonical_key).toBe('luma:evt-saiu3xvxkv6hsfc');
+    expect(row.alt_keys).toEqual(['luma:scale-or-die-26']);
+    expect(row.status).toBe('filtered_out');
   });
 
   it('ROOT CAUSE: with a warm link cache, enrichment uses the ORIGINAL-case api id (the lowercased key 404s)', async () => {
@@ -341,8 +396,8 @@ describe('Luma 429 (transient) never creates an error row', () => {
 
   it('an out-of-window link is still filtered while Luma is rate-limiting (no call needed)', async () => {
     const hints = buildMiraHintsByUrl(MIRA_EVENTS);
-    const row = rowOf(await processDiscoveredLink('https://lu.ma/scale-or-die-26', null, makeContext(DAS_TAB), hints.get('https://lu.ma/scale-or-die-26')));
-    expect(row.status).toBe('filtered_out');
+    const outcome = await processDiscoveredLink('https://lu.ma/scale-or-die-26', null, makeContext(DAS_TAB), hints.get('https://lu.ma/scale-or-die-26'));
+    expect(outcome.kind).toBe('prefiltered');
     expect(fetchLumaEventMock).not.toHaveBeenCalled();
   });
 });
@@ -353,23 +408,42 @@ describe('error rows always carry a reason and back off', () => {
     const row = rowOf(outcome);
     expect(row.status).toBe('error');
     expect(row.filter_reason).toMatch(/^error: luma_not_found: /);
-    expect(row.classify_attempts).toBe(1);
-    expect(typeof row.classified_at).toBe('string');
+    expect(row.event.ingestError).toMatchObject({ failures: 1, reason: expect.stringMatching(/^luma_not_found/) });
+    expect(typeof row.event.ingestError?.lastFailedAt).toBe('string');
+    // classify_attempts is NOT abused as a failure counter.
+    expect(row.classify_attempts).toBeUndefined();
   });
 
   it('an error row attempted 10 minutes ago is NOT retried (no Luma call)', async () => {
-    const existing = prodErrorRow({ canonical_key: 'luma:188n1ye7', alt_keys: [], classify_attempts: 1, classified_at: new Date(Date.now() - 10 * 60_000).toISOString() });
+    const existing = errorRowFailedAgo(10 * 60_000, 1);
     const outcome = await processDiscoveredLink('https://luma.com/188n1ye7', existing, makeContext(BREAKPOINT_TAB));
     expect(outcome).toEqual({ kind: 'unchanged', existingId: 'cand-err' });
     expect(fetchLumaEventMock).not.toHaveBeenCalled();
   });
 
+  it('a host resubmission bypasses the backoff (it is told the link is being looked at)', async () => {
+    const existing = errorRowFailedAgo(10 * 60_000, 1);
+    const row = rowOf(await processDiscoveredLink('https://luma.com/188n1ye7', existing, makeContext(BREAKPOINT_TAB, { sourceKind: 'host_submission' })));
+    expect(fetchLumaEventMock).toHaveBeenCalled();
+    expect(row.event.ingestError?.failures).toBe(2);
+  });
+
+  it('the backoff counts CONSECUTIVE failures, not classify_attempts (which successful classifications also bump)', async () => {
+    // Classified fine 5 times before, then failed once 3h ago: 1 failure → 2h backoff → due.
+    const existing = errorRowFailedAgo(3 * 3600_000, 1, { classify_attempts: 6 });
+    expect(isErrorRetryDue(existing)).toBe(true);
+    // A non-error row never contributes failures: the next failure starts at 1.
+    fetchLumaEventMock.mockImplementation(() => Promise.reject(new LumaFetchError('Luma event not found.', 'not_found')));
+    const queued = prodErrorRow({ status: 'queued', canonical_key: 'luma:188n1ye7', alt_keys: [], event: { ...prodErrorRow().event, ingestError: { failures: 7, lastFailedAt: new Date().toISOString(), reason: 'old' } } });
+    expect(await processDiscoveredLink('https://luma.com/188n1ye7', queued, makeContext(BREAKPOINT_TAB))).toEqual({ kind: 'unchanged', existingId: 'cand-err' });
+  });
+
   it('once the backoff has elapsed it is retried; a repeat failure bumps attempts and keeps the same row', async () => {
-    const existing = prodErrorRow({ canonical_key: 'luma:188n1ye7', alt_keys: [], classify_attempts: 1, classified_at: new Date(Date.now() - 3 * 3600_000).toISOString() });
+    const existing = errorRowFailedAgo(3 * 3600_000, 1);
     const row = rowOf(await processDiscoveredLink('https://luma.com/188n1ye7', existing, makeContext(BREAKPOINT_TAB)));
     expect(row.status).toBe('error');
     expect(row.canonical_key).toBe('luma:188n1ye7');
-    expect(row.classify_attempts).toBe(2);
+    expect(row.event.ingestError?.failures).toBe(2);
     expect(row.filter_reason).toMatch(/^error: luma_not_found/);
   });
 

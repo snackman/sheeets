@@ -14,6 +14,12 @@
  * other row is LEFT `error` for the live pipeline to retry; if it has no
  * reason yet, one is recorded so no error row is reasonless.
  *
+ * Also resets poisoned calendar auto-discovery caches: `event.hostCalendar
+ * = null` on `luma:` candidates was cached after `resolveCandidateCalendar`
+ * queried Luma with the LOWERCASED evt id (404). Removing the key makes
+ * the next discovery run re-resolve it with the original-case id. (A
+ * genuine "no calendar" answer just gets re-confirmed once.)
+ *
  * Safety / idempotency:
  *  - Only ever touches rows that are still `status = 'error'` at write
  *    time (`.eq('status', 'error')` on every update) — re-running after a
@@ -209,6 +215,23 @@ async function main() {
         .eq('status', 'error')
         .is('filter_reason', null);
       if (upErr) throw new Error(`Update failed for ${row.id}: ${upErr.message}`);
+    }
+  }
+
+  // Poisoned hostCalendar caches (see header).
+  const { data: hcRows, error: hcErr } = await (args.conference
+    ? supabase.from('ingest_candidates').select('id, conference, canonical_key, event').like('canonical_key', 'luma:%').contains('event', { hostCalendar: null }).eq('conference', args.conference).limit(2000)
+    : supabase.from('ingest_candidates').select('id, conference, canonical_key, event').like('canonical_key', 'luma:%').contains('event', { hostCalendar: null }).limit(2000));
+  if (hcErr) throw new Error(`Failed to list hostCalendar caches: ${hcErr.message}`);
+  for (const r of (hcRows ?? []) as { id: string; conference: string; canonical_key: string; event: Record<string, unknown> }[]) {
+    if (!('hostCalendar' in r.event) || r.event.hostCalendar !== null) continue;
+    bump('host_calendar_null_reset');
+    bump(`host_calendar_null_reset:${r.conference}`);
+    if (args.apply) {
+      const event = { ...r.event };
+      delete event.hostCalendar;
+      const { error: upErr } = await supabase.from('ingest_candidates').update({ event }).eq('id', r.id);
+      if (upErr) throw new Error(`hostCalendar reset failed for ${r.id}: ${upErr.message}`);
     }
   }
 

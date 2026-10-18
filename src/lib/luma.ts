@@ -245,3 +245,26 @@ export function normalizeHandle(h: string | null | undefined): string | null {
     .toLowerCase();
   return s || null;
 }
+
+/** The original-case Luma event api id from a URL like
+ *  `luma.com/event/evt-AbC` or `lu.ma/evt-AbC`, if any. Canonical keys are
+ *  lowercased, but Luma's `event/get` is CASE-SENSITIVE (a lowercased id
+ *  404s — the 2026-10-18 incident), so the fetch must use this instead. */
+export function lumaApiIdFromUrl(url: string): string | null {
+  try {
+    const u = new URL(/^[a-z][a-z0-9+.-]*:/i.test(url.trim()) ? url.trim() : `https://${url.trim()}`);
+    const parts = u.pathname.split('/').filter(Boolean);
+    const candidate = parts[0]?.toLowerCase() === 'event' ? parts[1] : parts[0];
+    return candidate && LUMA_EVENT_API_ID_RE.test(candidate) ? candidate : null;
+  } catch {
+    return null;
+  }
+}
+
+/** A short (non-`evt-…`) Luma slug for a link, or null — `/event/evt-…`
+ *  and bare `evt-…` paths are api ids, not slugs. */
+export function getLumaShortSlug(url: string | null | undefined): string | null {
+  const slug = getValidLumaSlug(url);
+  if (!slug || slug.toLowerCase() === 'event' || LUMA_EVENT_API_ID_RE.test(slug)) return null;
+  return slug;
+}

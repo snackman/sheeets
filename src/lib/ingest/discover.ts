@@ -16,7 +16,9 @@
 // without an admin's explicit Approve (§10 item 4).
 import type OpenAI from 'openai';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { normalizeEventLink, getValidLumaSlug, getLumaEventApiId, LUMA_EVENT_API_ID_RE, type LumaEventPayload } from '../luma';
+import { normalizeEventLink, getValidLumaSlug, getLumaEventApiId, lumaApiIdFromUrl, LUMA_EVENT_API_ID_RE, type LumaEventPayload } from '../luma';
+
+export { lumaApiIdFromUrl };
 import { parseEventbrite, parsePartiful, parseMeetup, parsePosh, UserFacingError, type EventResult } from '../event-extractors';
 import { SafeFetchError } from '../safe-fetch';
 import type { TabConfig } from '../conferences';
@@ -178,6 +180,11 @@ export type DiscoveredLinkOutcome =
    *  is written — the link stays "unseen" and a later run retries it. Never
    *  an `error` row: a transient failure is not a fact about the event. */
   | { kind: 'deferred'; reason: string }
+  /** Out of window per the SOURCE's date, but no row was written: it's a
+   *  short Luma link never resolved to its `evt-…` key, so a row keyed on
+   *  the slug could fork a second candidate for an event that already has
+   *  one. Cheap to re-check next run (no network). */
+  | { kind: 'prefiltered'; reason: string }
   | { kind: 'row'; row: DiscoveredLinkRow; classified: boolean; inputTokens: number; outputTokens: number; costUsd: number };
 
 /** Optional per-link data the SOURCE already knows (e.g. a Mira series
@@ -234,11 +241,10 @@ export function sourceDateWindowPrefilter(
   return { reason: strict.pass ? loose.reason : strict.reason, dateISO };
 }
 
-/** Retry backoff for an `error` candidate: 2h after the 1st failed
- *  attempt, doubling per attempt, capped at 48h. `classify_attempts` is
- *  the attempt count and, for `status: 'error'` rows, `classified_at` is
- *  the time of the LAST FAILED ATTEMPT (no dedicated column; see
- *  `IngestCandidateRow.classified_at`). */
+/** Retry backoff for an `error` candidate: 2h after the 1st consecutive
+ *  failure, doubling per failure, capped at 48h. The failure count and
+ *  last-failure time live in `event.ingestError` (NOT `classify_attempts`,
+ *  which also counts successful classifications). */
 export const ERROR_RETRY_BASE_MS = 2 * 60 * 60 * 1000;
 export const ERROR_RETRY_MAX_MS = 48 * 60 * 60 * 1000;
 
@@ -249,27 +255,21 @@ export function errorRetryBackoffMs(attempts: number): number {
 
 /** True if an `error` candidate may be retried now. A legacy row with no
  *  recorded attempt time (pre-fix) is always due. */
-export function isErrorRetryDue(row: Pick<IngestCandidateRow, 'status' | 'classify_attempts' | 'classified_at'>, now: number = Date.now()): boolean {
+export function isErrorRetryDue(row: Pick<IngestCandidateRow, 'status' | 'event'>, now: number = Date.now()): boolean {
   if (row.status !== 'error') return true;
-  if (!row.classified_at) return true;
-  const last = new Date(row.classified_at).getTime();
+  const info = row.event?.ingestError;
+  if (!info?.lastFailedAt) return true;
+  const last = new Date(info.lastFailedAt).getTime();
   if (isNaN(last)) return true;
-  return now - last >= errorRetryBackoffMs(row.classify_attempts ?? 1);
+  return now - last >= errorRetryBackoffMs(info.failures ?? 1);
 }
 
-/** The original-case Luma event api id from a URL like
- *  `luma.com/event/evt-AbC` or `lu.ma/evt-AbC`, if any. Canonical keys are
- *  lowercased, but Luma's `event/get` is CASE-SENSITIVE (a lowercased id
- *  404s — the 2026-10-18 incident), so the fetch must use this instead. */
-export function lumaApiIdFromUrl(url: string): string | null {
-  try {
-    const u = new URL(/^[a-z][a-z0-9+.-]*:/i.test(url.trim()) ? url.trim() : `https://${url.trim()}`);
-    const parts = u.pathname.split('/').filter(Boolean);
-    const candidate = parts[0]?.toLowerCase() === 'event' ? parts[1] : parts[0];
-    return candidate && LUMA_EVENT_API_ID_RE.test(candidate) ? candidate : null;
-  } catch {
-    return null;
-  }
+/** `event` for an error row: the given snapshot plus an incremented
+ *  CONSECUTIVE failure count (reset whenever the previous row wasn't an
+ *  error — i.e. after any success). */
+function withFailure(event: NormalizedEvent, existing: IngestCandidateRow | null, reason: string): NormalizedEvent {
+  const prev = existing?.status === 'error' ? (existing.event?.ingestError?.failures ?? 0) : 0;
+  return { ...event, ingestError: { failures: prev + 1, lastFailedAt: new Date().toISOString(), reason } };
 }
 
 function placeholderEvent(url: string, platform: Platform, hints?: DiscoveredLinkHints, dateISO = ''): NormalizedEvent {
@@ -443,6 +443,110 @@ async function resolveLumaShortLinkKey(
   return { canonicalKey: `luma:${apiId.toLowerCase()}`, altKeys: [slugCanonicalKey], payload: freshPayload, apiId };
 }
 
+function prefilteredRow(
+  ctx: DiscoveredLinkContext,
+  key: { canonical_key: string; alt_keys: string[] },
+  sources: DiscoveredLinkRow['sources'],
+  event: NormalizedEvent,
+  contentHash: string,
+  filterReason: string
+): DiscoveredLinkOutcome {
+  return {
+    kind: 'row',
+    row: {
+      conference: ctx.conference,
+      canonical_key: key.canonical_key,
+      alt_keys: key.alt_keys,
+      source_id: ctx.sourceId,
+      source_kind: ctx.sourceKind,
+      sources,
+      source_ref: ctx.sourceRef,
+      event,
+      content_hash: contentHash,
+      status: 'filtered_out',
+      filter_reason: filterReason,
+      duplicate_of: null,
+    },
+    classified: false,
+    inputTokens: 0,
+    outputTokens: 0,
+    costUsd: 0,
+  };
+}
+
+/** True if a candidate holds only a placeholder snapshot (an enrichment
+ *  error row, or an earlier source-date prefilter) — never real event data
+ *  from Luma/an extractor. */
+function isPlaceholderCandidate(row: IngestCandidateRow): boolean {
+  return !row.event?.dateISO || row.content_hash.startsWith('prefilter:');
+}
+
+/**
+ * What a source-date prefilter hit (`sourceDateWindowPrefilter`) may do,
+ * or null to carry on with normal processing (enrich + judge on Luma's
+ * own date):
+ *  - existing row with REAL data (e.g. a `classify_failed` error row):
+ *    never overwritten with a placeholder. An `error` one is judged on its
+ *    OWN stored date — filtered (keeping its event) if that is out of
+ *    window; anything else carries on normally.
+ *  - existing placeholder `error` row: converted in place (same key and
+ *    alt_keys); an existing placeholder `filtered_out` row: unchanged.
+ *  - no existing row: a non-Luma or already-`evt-` key gets a new
+ *    `filtered_out` row. A short Luma slug key is first mapped through the
+ *    link cache to its `evt-` key (and that candidate, if any) so it never
+ *    forks a second row; if the slug was never resolved, nothing is
+ *    written (`prefiltered`).
+ */
+async function prefilterOutcome(
+  prefilter: { reason: string; dateISO: string },
+  url: string,
+  canonicalKey: string,
+  platform: Platform,
+  existing: IngestCandidateRow | null,
+  ctx: DiscoveredLinkContext,
+  sources: DiscoveredLinkRow['sources'],
+  hints: DiscoveredLinkHints | undefined
+): Promise<DiscoveredLinkOutcome | null> {
+  const reason = `${prefilter.reason} [source date ${prefilter.dateISO}, not enriched]`;
+  const placeholder = () => placeholderEvent(url, platform, hints, prefilter.dateISO);
+  const hash = `prefilter:${prefilter.dateISO}`;
+
+  const forExisting = (row: IngestCandidateRow): DiscoveredLinkOutcome | null => {
+    if (!isPlaceholderCandidate(row)) {
+      if (row.status !== 'error') return null;
+      const window = { startDate: ctx.tab.dates[0], endDate: ctx.tab.dates[ctx.tab.dates.length - 1] };
+      const own = dateWindowFilter(row.event, window, ctx.profile);
+      if (own.pass) return null;
+      const event = { ...row.event };
+      delete event.ingestError;
+      return prefilteredRow(ctx, row, sources, event, row.content_hash, `${own.reason} [own date ${row.event.dateISO}, not re-enriched]`);
+    }
+    if (row.status === 'filtered_out') return { kind: 'unchanged', existingId: row.id };
+    if (row.status === 'error') return prefilteredRow(ctx, row, sources, placeholder(), hash, reason);
+    return null;
+  };
+
+  if (existing) return forExisting(existing);
+
+  if (canonicalKey.startsWith('luma:') && !LUMA_EVENT_API_ID_RE.test(canonicalKey.slice('luma:'.length))) {
+    const cached = await getCachedLumaApiIdEntry(canonicalKey);
+    if (cached === undefined) return { kind: 'prefiltered', reason };
+    if (cached.apiId) {
+      const evtKey = `luma:${cached.apiId.toLowerCase()}`;
+      const evtExisting = await getCandidateByKeyOrAltKey(ctx.conference, evtKey);
+      if (evtExisting) {
+        const protectedOutcome = protectionOutcome(evtExisting, ctx);
+        if (protectedOutcome) return protectedOutcome;
+        return forExisting(evtExisting);
+      }
+      return prefilteredRow(ctx, { canonical_key: evtKey, alt_keys: [canonicalKey] }, sources, placeholder(), hash, reason);
+    }
+    // Confirmed "no api id": the slug IS this event's key, same as the
+    // normal path would use.
+  }
+  return prefilteredRow(ctx, { canonical_key: canonicalKey, alt_keys: [] }, sources, placeholder(), hash, reason);
+}
+
 /**
  * Process one already-allowlisted URL end to end (enrich/extract ->
  * normalize -> dedupe -> filter -> classify -> route) and return what to
@@ -476,43 +580,20 @@ export async function processDiscoveredLink(
 
   // 2026-10-18 incident: a source-provided date (Mira lists every event's
   // start date) that is clearly outside this conference's window drops the
-  // link HERE — before any Luma call — instead of after enrichment. Only
-  // when there's nothing real to protect: no candidate yet, or one that is
-  // itself just an error placeholder / already filtered. A candidate with
-  // real enriched data is judged on Luma's date, never overwritten on the
-  // strength of a source's date alone.
+  // link HERE — before any Luma call — instead of after enrichment. See
+  // `prefilterOutcome` for exactly which rows it may touch.
   const prefilter = sourceDateWindowPrefilter(hints, ctx);
-  if (prefilter && (!existing || existing.status === 'error' || existing.status === 'filtered_out')) {
-    if (existing?.status === 'filtered_out') return { kind: 'unchanged', existingId: existing.id };
-    return {
-      kind: 'row',
-      row: {
-        conference: ctx.conference,
-        // Re-use an existing row's key (e.g. a `luma:evt-…` error row
-        // found via its slug alt key) so this UPDATES it, never forks a
-        // second row for the same event.
-        canonical_key: existing?.canonical_key ?? canonicalKey,
-        alt_keys: existing?.alt_keys ?? [],
-        source_id: ctx.sourceId,
-        source_kind: ctx.sourceKind,
-        sources,
-        source_ref: ctx.sourceRef,
-        event: placeholderEvent(url, platform, hints, prefilter.dateISO),
-        content_hash: `prefilter:${prefilter.dateISO}`,
-        status: 'filtered_out',
-        filter_reason: `${prefilter.reason} [source date ${prefilter.dateISO}, not enriched]`,
-        duplicate_of: null,
-      },
-      classified: false,
-      inputTokens: 0,
-      outputTokens: 0,
-      costUsd: 0,
-    };
+  if (prefilter) {
+    const pre = await prefilterOutcome(prefilter, url, canonicalKey, platform, existing, ctx, sources, hints);
+    if (pre) return pre;
   }
 
   // An `error` candidate is retried on a backoff, not every run — each
   // retry costs a rate-limited Luma call.
-  if (existing && !isErrorRetryDue(existing)) return { kind: 'unchanged', existingId: existing.id };
+  // A host (re)submitting their own link bypasses it: they're told it's
+  // being looked at, so it must actually be looked at now.
+  const backoffApplies = ctx.sourceKind !== 'host_submission';
+  if (existing && backoffApplies && !isErrorRetryDue(existing)) return { kind: 'unchanged', existingId: existing.id };
 
   let altKeys: string[] = [];
   let prefetchedLumaPayload: LumaEventPayload | null = null;
@@ -535,7 +616,7 @@ export async function processDiscoveredLink(
           existing = resolvedExisting;
           const resolvedOutcome = protectionOutcome(existing, ctx);
           if (resolvedOutcome) return resolvedOutcome;
-          if (!isErrorRetryDue(existing)) return { kind: 'unchanged', existingId: existing.id };
+          if (backoffApplies && !isErrorRetryDue(existing)) return { kind: 'unchanged', existingId: existing.id };
         }
       }
     }
@@ -612,15 +693,14 @@ export async function processDiscoveredLink(
     // Review finding, MEDIUM item 3: a failed enrichment must never
     // overwrite an existing candidate's last-good snapshot with a blank
     // placeholder — unless the existing row IS already an error
-    // placeholder, in which case record this attempt (reason + attempt
-    // count + time) so the retry backoff grows.
+    // placeholder, in which case record this attempt (reason + consecutive
+    // failure count + time, in `event.ingestError`) so the backoff grows.
     if (existing && existing.status !== 'error') {
       return { kind: 'unchanged', existingId: existing.id };
     }
     // Every error row carries a reason (`filter_reason`, prefixed
-    // "error:") and its attempt time (`classified_at`, see
-    // `isErrorRetryDue`) so it's visible in the Log/Queue and retried on
-    // a backoff instead of every run.
+    // "error:") and `event.ingestError` (see `isErrorRetryDue`) so it's
+    // visible in the Log/Queue and retried on a backoff, not every run.
     return {
       kind: 'row',
       row: {
@@ -631,12 +711,10 @@ export async function processDiscoveredLink(
         source_kind: ctx.sourceKind,
         sources,
         source_ref: ctx.sourceRef,
-        event: existing?.event ?? placeholderEvent(url, platform, hints),
+        event: withFailure(existing?.event ?? placeholderEvent(url, platform, hints), existing, failureReason),
         content_hash: existing?.content_hash ?? `error:${canonicalKey}`,
         status: 'error',
         filter_reason: `error: ${failureReason}`,
-        classify_attempts: (existing?.classify_attempts ?? 0) + 1,
-        classified_at: new Date().toISOString(),
       },
       classified: false,
       inputTokens: 0,
@@ -781,10 +859,10 @@ export async function processDiscoveredLink(
       row: {
         ...baseRow,
         status: 'error',
+        event: withFailure(normalized, existing, 'classify_failed'),
         filter_reason: `error: classify_failed: ${err instanceof Error ? err.message.slice(0, 300) : String(err).slice(0, 300)}`,
         possible_duplicate_of: possibleDuplicateOf,
         classify_attempts: (existing?.classify_attempts ?? 0) + 1,
-        classified_at: new Date().toISOString(),
       },
       classified: false,
       inputTokens,

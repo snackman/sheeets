@@ -77,6 +77,43 @@ describe('resolveCandidateCalendar', () => {
     expect(resolved.calendar?.isPersonal).toBe(true);
   });
 
+  // 2026-10-18: real canonical keys are LOWERCASED; Luma's event/get is
+  // case-sensitive, so the lowercased id 404'd and `hostCalendar = null`
+  // was cached forever.
+  it('uses the ORIGINAL-case api id from event.link, never the lowercased key', async () => {
+    const enrich = vi.fn(async () => ({
+      calendar: { api_id: 'cal-TrueHost', name: 'True Host', is_personal: false, personal_user_api_id: null },
+    }) as unknown as Awaited<ReturnType<EnrichLimiter['enrich']>>);
+    const candidate = {
+      canonical_key: 'luma:evt-mhrdvyloahafz3t',
+      event: { link: 'https://luma.com/event/evt-mHRDVyLOaHAfZ3t' } as IngestCandidateRow['event'],
+    };
+    const resolved = await resolveCandidateCalendar(candidate, stubLimiter(enrich));
+    expect(enrich).toHaveBeenCalledWith({ apiId: 'evt-mHRDVyLOaHAfZ3t' });
+    expect(resolved.calendar?.apiId).toBe('cal-TrueHost');
+  });
+
+  it('falls back to the short slug (from alt_keys) when the link carries no api id', async () => {
+    const enrich = vi.fn(async () => ({
+      calendar: { api_id: 'cal-TrueHost', name: 'True Host', is_personal: false, personal_user_api_id: null },
+    }) as unknown as Awaited<ReturnType<EnrichLimiter['enrich']>>);
+    const candidate = {
+      canonical_key: 'luma:evt-mhrdvyloahafz3t',
+      alt_keys: ['luma:scale-or-die-26'],
+      event: { link: 'https://example.com/x' } as IngestCandidateRow['event'],
+    };
+    await resolveCandidateCalendar(candidate, stubLimiter(enrich));
+    expect(enrich).toHaveBeenCalledWith({ slug: 'scale-or-die-26' });
+    expect(enrich).toHaveBeenCalledTimes(1);
+  });
+
+  it('only a lowercased id and no slug: "unavailable" WITHOUT calling Luma (a 404 there would prove nothing)', async () => {
+    const enrich = vi.fn(async () => null);
+    const candidate = { canonical_key: 'luma:evt-mhrdvyloahafz3t', event: { link: '' } as IngestCandidateRow['event'] };
+    expect(await resolveCandidateCalendar(candidate, stubLimiter(enrich))).toEqual({ status: 'unavailable', calendar: null });
+    expect(enrich).not.toHaveBeenCalled();
+  });
+
   it('"not_applicable" for a non-Luma canonical key — never calls the limiter', async () => {
     const enrich = vi.fn(async () => null);
     const limiter = stubLimiter(enrich);

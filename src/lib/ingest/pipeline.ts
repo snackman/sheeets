@@ -41,6 +41,7 @@ import { LumaEnrichmentLimiter, makeSlugResolver } from './enrich';
 import { scoreCandidate } from './scoring';
 import { processDiscoveredLink, PacedLinkLimiter, buildHostSignalComputer, sourceDateWindowPrefilter, type DiscoveredLinkHints } from './discover';
 import { checkMonthlyBudget, checkMonthlyXBudget } from './budget';
+import { retryUrlsOf, nextRetryUrls, sameRetryUrls } from './retry-urls';
 import { estimateCostUsd } from './pricing';
 import { toEventRow, ThrottledSheetPublisher } from './publish';
 import { reconcileConference } from './reconcile';
@@ -914,7 +915,15 @@ async function processTelegramSource(args: {
 
   let hitDeadline = false;
 
-  outer: for (const message of messages) {
+  // A post's links are only processed while the post is still on the
+  // channel page; links DEFERRED by a Luma 429/budget are carried over in
+  // `cursor.retry_urls` (see `retry-urls.ts`) and tried first.
+  const prevRetry = retryUrlsOf(source.cursor);
+  const deferredUrls = new Map<string, { ref: string | null; reason: string }>();
+  const handledUrls = new Set<string>();
+  const retryMessages = prevRetry.map((e) => ({ postRef: '', url: e.ref ?? '', text: '', links: [e.url] }));
+
+  outer: for (const message of [...retryMessages, ...messages]) {
     if (Date.now() > deadline) {
       hitDeadline = true;
       break;
@@ -936,6 +945,7 @@ async function processTelegramSource(args: {
       // the Luma limiter has nothing to do with.
       if (allowlistedPlatformFor(url) === 'luma' && enrichLimiter.exhausted) {
         hitDeadline = true; // leftover work remains — still mark the run partial.
+        deferredUrls.set(url, { ref: message.url || null, reason: 'luma_budget_exhausted' });
         continue;
       }
 
@@ -952,7 +962,7 @@ async function processTelegramSource(args: {
         sourceId: source.id,
         sourceKind: 'telegram_channel',
         sourceTrust: source.trust,
-        sourceRef: message.url,
+        sourceRef: message.url || null,
         enrichLimiter,
         linkFetchLimiter,
         linkIndex,
@@ -974,7 +984,7 @@ async function processTelegramSource(args: {
           await upsertCandidate({
             conference: source.conference,
             canonical_key: outcome.canonicalKey,
-            sources: [{ source_id: source.id, kind: 'telegram_channel' as const, ref: message.url, seen_at: new Date().toISOString() }],
+            sources: [{ source_id: source.id, kind: 'telegram_channel' as const, ref: message.url || null, seen_at: new Date().toISOString() }],
           });
         }
         continue;
@@ -994,10 +1004,18 @@ async function processTelegramSource(args: {
         continue;
       }
       if (outcome.kind === 'deferred') {
-        // Transient enrichment failure — nothing written; retried next run.
+        // Transient enrichment failure — nothing written; carried over in
+        // the retry list so it's retried even after the post scrolls off.
         bump(counts, 'deferred');
+        deferredUrls.set(url, { ref: message.url || null, reason: outcome.reason });
         continue;
       }
+      if (outcome.kind === 'prefiltered') {
+        bump(counts, 'filtered');
+        handledUrls.add(url);
+        continue;
+      }
+      handledUrls.add(url);
 
       // outcome.kind === 'row'
       bump(counts, 'new');
@@ -1029,6 +1047,15 @@ async function processTelegramSource(args: {
         canonical_key: outcome.row.canonical_key,
         event: outcome.row.event,
       });
+    }
+  }
+
+  if (!dryRun) {
+    const nextRetry = nextRetryUrls(prevRetry, deferredUrls, handledUrls);
+    if (!sameRetryUrls(prevRetry, nextRetry)) {
+      const cursor = { ...((source.cursor as Record<string, unknown> | null) ?? {}), retry_urls: nextRetry };
+      await updateSource(source.id, { cursor });
+      source.cursor = cursor;
     }
   }
 
@@ -1256,6 +1283,10 @@ async function runDiscoveredLinksBatch(
      *  `processDiscoveredLink` drop clearly out-of-window links before
      *  spending a Luma call on them. */
     hintsForUrl?: (url: string) => DiscoveredLinkHints | undefined;
+    /** Read-once sources (X): carry links whose enrichment was DEFERRED
+     *  (Luma 429/5xx/budget) over to later runs via
+     *  `cursor.retry_urls` — see `retry-urls.ts`. */
+    retryList?: boolean;
   }
 ): Promise<{ hitDeadline: boolean; budgetExhausted: boolean }> {
   const src = args.source!;
@@ -1263,7 +1294,22 @@ async function runDiscoveredLinksBatch(
     args.budgetStatus.spentUsd + args.costAcc.costUsd < args.budgetStatus.capUsd &&
     args.llmCallsThisRunRef.value < args.profile.max_llm_calls_per_run;
 
-  const allowlisted = Array.from(new Set(urls)).filter(isAllowlistedEventLink);
+  const prevRetry = args.retryList ? retryUrlsOf(src.cursor) : [];
+  const retryRefByUrl = new Map(prevRetry.map((e) => [e.url, e.ref]));
+  const refFor = (url: string) => args.sourceRef(url) ?? retryRefByUrl.get(url) ?? null;
+  const deferredUrls = new Map<string, { ref: string | null; reason: string }>();
+  const handledUrls = new Set<string>();
+  const flushRetryList = async () => {
+    if (!args.retryList || args.dryRun) return;
+    const next = nextRetryUrls(prevRetry, deferredUrls, handledUrls);
+    if (sameRetryUrls(prevRetry, next)) return;
+    const cursor = { ...((src.cursor as Record<string, unknown> | null) ?? {}), retry_urls: next };
+    await updateSource(src.id, { cursor });
+    src.cursor = cursor;
+  };
+
+  // Previously-deferred links go first (they were already read once).
+  const allowlisted = Array.from(new Set([...prevRetry.map((e) => e.url), ...urls])).filter(isAllowlistedEventLink);
   // Review finding, HIGH item A: union the conference-wide known-key
   // snapshot with whatever THIS run has already created/touched (growing
   // as the loop below persists candidates) — the latter matters when
@@ -1295,12 +1341,17 @@ async function runDiscoveredLinksBatch(
   if (!args.dryRun && seen.length > 0) {
     const seenIncludedCount = Math.max(0, ordered.length - unseen.length);
     const nextOffset = (offset + seenIncludedCount) % seen.length;
-    await updateSource(src.id, { cursor: { ...sourceCursor, link_offset: nextOffset } });
+    const cursor = { ...sourceCursor, link_offset: nextOffset };
+    await updateSource(src.id, { cursor });
+    src.cursor = cursor; // later cursor writes in this run merge onto this
   }
 
   let budgetExhausted = false;
   for (const url of ordered) {
-    if (Date.now() > args.deadline) return { hitDeadline: true, budgetExhausted };
+    if (Date.now() > args.deadline) {
+      await flushRetryList();
+      return { hitDeadline: true, budgetExhausted };
+    }
     // See this function's doc comment — skip only a LUMA url once the
     // shared limiter is exhausted (never create a bogus error row for a
     // link we never actually tried), but keep processing every other
@@ -1310,6 +1361,7 @@ async function runDiscoveredLinksBatch(
     // is still processed once the limiter is exhausted.
     if (allowlistedPlatformFor(url) === 'luma' && args.ctx.enrichLimiter.exhausted && !sourceDateWindowPrefilter(hints, { tab: args.tab, profile: args.profile })) {
       budgetExhausted = true;
+      deferredUrls.set(url, { ref: refFor(url), reason: 'luma_budget_exhausted' });
       continue;
     }
 
@@ -1326,7 +1378,7 @@ async function runDiscoveredLinksBatch(
       sourceId: src.id,
       sourceKind: args.sourceKind,
       sourceTrust: 'discovery', // Phase 4 item 1/2/3: X/Meetup/sponsor pages never auto-publish.
-      sourceRef: args.sourceRef(url),
+      sourceRef: refFor(url),
       enrichLimiter: args.ctx.enrichLimiter,
       linkFetchLimiter: args.ctx.linkFetchLimiter,
       linkIndex: args.ctx.linkIndex,
@@ -1337,6 +1389,7 @@ async function runDiscoveredLinksBatch(
       computeHostSignals: args.ctx.computeHostSignals,
       canClassify,
     }, hints);
+    if (outcome.kind !== 'deferred') handledUrls.add(url);
 
     if (outcome.kind === 'invalid') {
       bump(args.counts, 'errors');
@@ -1365,8 +1418,16 @@ async function runDiscoveredLinksBatch(
     }
     if (outcome.kind === 'deferred') {
       // Transient enrichment failure (Luma 429/5xx) — nothing written; the
-      // link stays "unseen" and is retried next run. Never an error row.
+      // link stays "unseen" and is retried next run (or, for a read-once
+      // source, via the persisted retry list). Never an error row.
       bump(args.counts, 'deferred');
+      deferredUrls.set(url, { ref: refFor(url), reason: outcome.reason });
+      continue;
+    }
+    if (outcome.kind === 'prefiltered') {
+      // Out of window per the source's date; nothing written (see
+      // `DiscoveredLinkOutcome`).
+      bump(args.counts, 'filtered');
       continue;
     }
 
@@ -1392,6 +1453,7 @@ async function runDiscoveredLinksBatch(
       event: outcome.row.event,
     });
   }
+  await flushRetryList();
   return { hitDeadline: false, budgetExhausted };
 }
 
@@ -1505,7 +1567,9 @@ async function processXSource(args: {
    *  run needs the SAME `since_id` to pick them back up. */
   async function advanceCursor(): Promise<void> {
     if (dryRun || !newestIdThisRun) return;
-    await updateSource(source.id, { cursor: { since_id: newestIdThisRun } });
+    // Merge, don't replace: the batch may have just written `retry_urls`
+    // (deferred links from this run) / `link_offset` into `source.cursor`.
+    await updateSource(source.id, { cursor: { ...((source.cursor as Record<string, unknown> | null) ?? {}), since_id: newestIdThisRun } });
   }
 
   // Re-review item 4 (deadline already passed before we even started
@@ -1521,7 +1585,9 @@ async function processXSource(args: {
   // there's nothing allowlisted to process — but STILL advance the
   // cursor (this round's HIGH fix): no links to process means nothing
   // was left unprocessed, so there's no risk in moving forward.
-  if (!hasAnyAllowlistedLink(candidateUrls)) {
+  // Links deferred on an earlier run (Luma 429) still need a turn even
+  // when this run's new posts have none.
+  if (!hasAnyAllowlistedLink([...candidateUrls, ...retryUrlsOf(source.cursor).map((e) => e.url)])) {
     await advanceCursor();
     return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline: false, previews: dryRun ? previews : undefined };
   }
@@ -1542,6 +1608,7 @@ async function processXSource(args: {
     tab,
     sourceKind: 'x_account',
     sourceRef: (url) => linksByUrl.get(url) ?? null,
+    retryList: true,
     ctx,
     counts,
     dryRun,

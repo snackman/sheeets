@@ -441,6 +441,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (outcome.kind === 'prefiltered') {
+    // Only reachable with source-provided dates, which submissions never
+    // pass today — handled for exhaustiveness.
+    return NextResponse.json(
+      { success: true, status: 'rejected', message: "Thanks — this didn't look like a fit for this conference, so it won't be added." },
+      { status: 201, headers: NO_STORE }
+    );
+  }
+
   await upsertCandidate(outcome.row);
   // Review finding, HIGH item 2: record cost whenever there IS cost, not
   // only when classification succeeded — a `ClassifierError` with usage

@@ -352,6 +352,11 @@ export interface NormalizedEvent {
    * leaves this field unset for another attempt on a later run.
    */
   hostCalendar?: { apiId: string; name: string | null; isPersonal: boolean } | null;
+  /** Only on `status: 'error'` candidates (2026-10-18): CONSECUTIVE failed
+   *  attempts, when the last one happened, and why. Drives the retry
+   *  backoff (`discover.ts#isErrorRetryDue`); a successful attempt writes a
+   *  fresh event without it, which resets the count. */
+  ingestError?: { failures: number; lastFailedAt: string; reason: string };
 }
 
 /** `ingest_candidates` row. */
@@ -384,10 +389,6 @@ export interface IngestCandidateRow {
   shadow_route: CandidateRoute | null;
   model: string | null;
   prompt_version: string | null;
-  /** When the classifier last ran. For `status: 'error'` rows: the time
-   *  of the LAST FAILED ATTEMPT (enrichment or classify), which drives the
-   *  retry backoff in `discover.ts#isErrorRetryDue`. The error's reason is
-   *  in `filter_reason`, prefixed "error: ". */
   classified_at: string | null;
   classify_attempts: number;
   published_event_id: string | null;
