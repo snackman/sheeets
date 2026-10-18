@@ -31,15 +31,15 @@ import { fetchTelegramChannelHtml, parseTelegramChannelHtml, isValidTelegramHand
 import { isXConfigured, fetchXUserPosts, X_POST_READ_COST_USD, MAX_RESULTS_PER_ACCOUNT_PER_RUN, X_MAX_PAGES_PER_RUN, type XPostsPage } from './sources/x';
 import { isMeetupConfigured, searchMeetupEvents } from './sources/meetup';
 import { resolveSponsorPageUrls, fetchSponsorPageLinks, createRobotsCache, SPONSOR_PAGE_WORST_CASE_MS } from './sources/sponsor-pages';
-import { fetchMiraSeriesEvents } from './sources/mira';
+import { fetchMiraSeriesEvents, buildMiraHintsByUrl } from './sources/mira';
 import { fetchSheetTrackerLinks } from './sources/sheet-tracker';
 import { isAllowlistedEventLink, allowlistedPlatformFor } from './allowlist';
 import { normalizeLumaEvent, computeContentHash } from './normalize';
 import { buildSheetLinkIndex, findSheetMatchByLink, findDuplicateByNameAndDate, fuzzyMatch, type DedupeCandidatePool } from './dedupe';
 import { dateWindowFilter, geoFilter, isPastEvent, geocodeAddressCached, upsertGeocodedAddress, ReverseGeocodeLimiter } from './filters';
-import { LumaEnrichmentLimiter } from './enrich';
+import { LumaEnrichmentLimiter, makeSlugResolver } from './enrich';
 import { scoreCandidate } from './scoring';
-import { processDiscoveredLink, PacedLinkLimiter, buildHostSignalComputer } from './discover';
+import { processDiscoveredLink, PacedLinkLimiter, buildHostSignalComputer, sourceDateWindowPrefilter, type DiscoveredLinkHints } from './discover';
 import { checkMonthlyBudget, checkMonthlyXBudget } from './budget';
 import { estimateCostUsd } from './pricing';
 import { toEventRow, ThrottledSheetPublisher } from './publish';
@@ -314,10 +314,7 @@ async function processLumaIcalSource(args: {
   // budget rather than two independent limiters racing each other (review
   // finding, MEDIUM item 7).
   const enrichLimiter = new LumaEnrichmentLimiter(100, 1000);
-  const resolveSlugViaLimiter = async (slug: string): Promise<string | null> => {
-    const payload = await enrichLimiter.enrich({ slug });
-    return payload?.event?.api_id ?? payload?.api_id ?? null;
-  };
+  const resolveSlugViaLimiter = makeSlugResolver(enrichLimiter);
   const themeProfile = profileRowToThemeProfile(profile);
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const supabase = getIngestSupabase();
@@ -879,10 +876,7 @@ async function processTelegramSource(args: {
   // sheet-link slug resolution.
   const enrichLimiter = new LumaEnrichmentLimiter(100, 1000);
   const linkFetchLimiter = new PacedLinkLimiter(30, 500);
-  const resolveSlugViaLimiter = async (slug: string): Promise<string | null> => {
-    const payload = await enrichLimiter.enrich({ slug });
-    return payload?.event?.api_id ?? payload?.api_id ?? null;
-  };
+  const resolveSlugViaLimiter = makeSlugResolver(enrichLimiter);
   const themeProfile = profileRowToThemeProfile(profile);
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const supabase = getIngestSupabase();
@@ -999,6 +993,11 @@ async function processTelegramSource(args: {
         if (!dryRun) await updateCandidate(outcome.existingId, { sources: outcome.sources, last_seen_at: new Date().toISOString() });
         continue;
       }
+      if (outcome.kind === 'deferred') {
+        // Transient enrichment failure — nothing written; retried next run.
+        bump(counts, 'deferred');
+        continue;
+      }
 
       // outcome.kind === 'row'
       bump(counts, 'new');
@@ -1091,10 +1090,7 @@ async function buildDiscoverySourceContext(
   // higher cap; every other caller keeps the original default of 100.
   const enrichLimiter = new LumaEnrichmentLimiter(opts.enrichLimiterCap ?? 100, 1000);
   const linkFetchLimiter = new PacedLinkLimiter(30, 500);
-  const resolveSlugViaLimiter = async (slug: string): Promise<string | null> => {
-    const payload = await enrichLimiter.enrich({ slug });
-    return payload?.event?.api_id ?? payload?.api_id ?? null;
-  };
+  const resolveSlugViaLimiter = makeSlugResolver(enrichLimiter);
   const themeProfile = profileRowToThemeProfile(profile);
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const supabase = getIngestSupabase();
@@ -1256,6 +1252,10 @@ async function runDiscoveredLinksBatch(
      *  allowed to spend an entire run's time/budget on one fetch.
      *  Undefined (every other caller) means no cap. */
     maxLinksPerRun?: number;
+    /** Per-url data the source already has (Mira: name + dates) — lets
+     *  `processDiscoveredLink` drop clearly out-of-window links before
+     *  spending a Luma call on them. */
+    hintsForUrl?: (url: string) => DiscoveredLinkHints | undefined;
   }
 ): Promise<{ hitDeadline: boolean; budgetExhausted: boolean }> {
   const src = args.source!;
@@ -1305,7 +1305,10 @@ async function runDiscoveredLinksBatch(
     // shared limiter is exhausted (never create a bogus error row for a
     // link we never actually tried), but keep processing every other
     // platform's links in this same batch (review finding, LOW item D).
-    if (allowlistedPlatformFor(url) === 'luma' && args.ctx.enrichLimiter.exhausted) {
+    const hints = args.hintsForUrl?.(url);
+    // A link the source-date prefilter will drop needs no Luma call, so it
+    // is still processed once the limiter is exhausted.
+    if (allowlistedPlatformFor(url) === 'luma' && args.ctx.enrichLimiter.exhausted && !sourceDateWindowPrefilter(hints, { tab: args.tab, profile: args.profile })) {
       budgetExhausted = true;
       continue;
     }
@@ -1333,7 +1336,7 @@ async function runDiscoveredLinksBatch(
       sponsorNames: args.ctx.sponsorNames,
       computeHostSignals: args.ctx.computeHostSignals,
       canClassify,
-    });
+    }, hints);
 
     if (outcome.kind === 'invalid') {
       bump(args.counts, 'errors');
@@ -1358,6 +1361,12 @@ async function runDiscoveredLinksBatch(
     if (outcome.kind === 'protected') {
       bump(args.counts, 'skipped_final');
       if (!args.dryRun) await updateCandidate(outcome.existingId, { sources: outcome.sources, last_seen_at: new Date().toISOString() });
+      continue;
+    }
+    if (outcome.kind === 'deferred') {
+      // Transient enrichment failure (Luma 429/5xx) — nothing written; the
+      // link stays "unseen" and is retried next run. Never an error row.
+      bump(args.counts, 'deferred');
       continue;
     }
 
@@ -1781,6 +1790,7 @@ async function processMiraSource(args: {
 
   const seriesPageUrl = `https://miragather.com/${seriesSlug}`;
   const candidateUrls = Array.from(new Set(events.map((e) => e.website).filter((w): w is string => !!w)));
+  const hintsByUrl = buildMiraHintsByUrl(events);
 
   if (!hasAnyAllowlistedLink(candidateUrls)) {
     return { llmInputTokens: 0, llmOutputTokens: 0, costUsd: 0, hitDeadline: false, previews: dryRun ? previews : undefined };
@@ -1804,6 +1814,7 @@ async function processMiraSource(args: {
     costAcc,
     llmCallsThisRunRef,
     maxLinksPerRun: BIG_LIST_SOURCE_MAX_LINKS_PER_RUN,
+    hintsForUrl: (url) => hintsByUrl.get(url),
   });
 
   return {

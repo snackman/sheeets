@@ -34,6 +34,7 @@ vi.mock('../ingest/sources/calendar-discovery', () => ({
 }));
 
 vi.mock('../ingest/enrich', () => ({
+  makeSlugResolver: () => async () => undefined,
   LumaEnrichmentLimiter: class {
     exhausted = false;
     async enrich() {

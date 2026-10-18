@@ -319,7 +319,7 @@ export function normalizeDiscoveredLumaEvent(opts: NormalizeDiscoveredLumaOption
  *  `sheetDateShort` uses internally, exposed here because the discovered-
  *  link normalizer needs the raw ISO date (for `dateISO`/date-window
  *  filtering), not just the sheet's short display string. */
-function formatDateISOInTimezone(isoInstant: string, timezone: string): string {
+export function formatDateISOInTimezone(isoInstant: string, timezone: string): string {
   const d = new Date(isoInstant);
   return d.toLocaleDateString('en-CA', { timeZone: timezone });
 }

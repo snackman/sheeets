@@ -398,11 +398,9 @@ describe('processDiscoveredLink — short Luma link resolution never poisons the
     };
     const outcome = await processDiscoveredLink('https://lu.ma/discovered-mixer', null, makeContext({ enrichLimiter }));
     expect(setCachedLumaApiIdMock).not.toHaveBeenCalled();
-    // No resolution happened, so this falls through to the slug canonical
-    // key and the main enrichment call — which also fails (unavailable) —
-    // same "no existing candidate, record a fresh error row" outcome as
-    // any other enrichment failure, NOT a poisoned permanent miss.
-    expect(outcome.kind).toBe('row');
+    // 2026-10-18: an unavailable lookup is TRANSIENT — nothing is written
+    // at all (no cache entry, no error row); the link is retried next run.
+    expect(outcome).toEqual({ kind: 'deferred', reason: 'luma_unavailable' });
   });
 
   it('a transient (non-"not_found") error during resolution also writes NO cache entry', async () => {
@@ -464,13 +462,15 @@ describe('processDiscoveredLink — short Luma link resolution never poisons the
     const { STALE_NEGATIVE_CACHE_MS } = await import('../ingest/dedupe');
     const freshResolvedAt = new Date(Date.now() - STALE_NEGATIVE_CACHE_MS + 60_000).toISOString();
     getCachedLumaApiIdEntryMock.mockResolvedValueOnce({ apiId: null, resolvedAt: freshResolvedAt });
-    const enrichResult = vi.fn(async () => ({ status: 'ok' as const, payload: VALID_LUMA_PAYLOAD }));
+    const enrichResult = vi.fn(async () => ({ status: 'not_found' as const }));
     const enrichLimiter: import('../ingest/enrich').EnrichLimiter = {
       enrich: vi.fn(async () => null),
       enrichResult,
       exhausted: false,
     };
     await processDiscoveredLink('https://lu.ma/discovered-mixer', null, makeContext({ enrichLimiter }));
-    expect(enrichResult).not.toHaveBeenCalled();
+    // Only the main enrichment call (by slug) — no resolution lookup.
+    expect(enrichResult).toHaveBeenCalledTimes(1);
+    expect(enrichResult).toHaveBeenCalledWith({ slug: 'discovered-mixer' });
   });
 });

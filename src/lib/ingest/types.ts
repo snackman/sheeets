@@ -384,6 +384,10 @@ export interface IngestCandidateRow {
   shadow_route: CandidateRoute | null;
   model: string | null;
   prompt_version: string | null;
+  /** When the classifier last ran. For `status: 'error'` rows: the time
+   *  of the LAST FAILED ATTEMPT (enrichment or classify), which drives the
+   *  retry backoff in `discover.ts#isErrorRetryDue`. The error's reason is
+   *  in `filter_reason`, prefixed "error: ". */
   classified_at: string | null;
   classify_attempts: number;
   published_event_id: string | null;
@@ -424,6 +428,9 @@ export interface RunCounts {
   queued?: number;
   rejected?: number;
   errors?: number;
+  /** Links skipped this run because enrichment was transiently
+   *  unavailable (Luma 429/5xx, budget) — nothing written, retried later. */
+  deferred?: number;
   /** Marker (1) so the Log tab/`ingest_runs` can tell a dry run apart from
    *  a real run without a dedicated column. */
   dry_run?: number;

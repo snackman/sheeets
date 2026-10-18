@@ -17,6 +17,7 @@
 // comment in `types.ts` for how the split is handled (per-conference
 // `dateWindowFilter`, not here).
 import { safeFetch, SafeFetchError } from '../../safe-fetch';
+import type { DiscoveredLinkHints } from '../discover';
 
 /** Looks like a browser UA to miragather.com's bot-blocking (verified live:
  *  a bare "Mozilla/5.0 (compatible; ...)" string is accepted), while still
@@ -188,4 +189,22 @@ export async function fetchMiraSeriesMenu(): Promise<MiraSeriesMenuItem[]> {
   const pageProps = parseMiraNextData(html);
   const items = Array.isArray(pageProps.seriesMenuItems) ? pageProps.seriesMenuItems : [];
   return items.map(parseMiraSeriesMenuItem).filter((e): e is MiraSeriesMenuItem => e !== null);
+}
+
+/** Mira's per-event name/dates keyed by its `website` link, for the
+ *  pre-enrichment date-window check. If several Mira events share one
+ *  link with DIFFERENT start dates, that link gets no hint at all (it is
+ *  enriched and judged on Luma's date) — never drop a link on ambiguous
+ *  source data. */
+export function buildMiraHintsByUrl(events: MiraEvent[]): Map<string, DiscoveredLinkHints> {
+  const out = new Map<string, DiscoveredLinkHints>();
+  const conflicted = new Set<string>();
+  for (const e of events) {
+    if (!e.website) continue;
+    const prev = out.get(e.website);
+    if (prev && prev.startDate !== e.startDate) conflicted.add(e.website);
+    else if (!prev) out.set(e.website, { name: e.name, startDate: e.startDate, endDate: e.endDate });
+  }
+  for (const url of conflicted) out.delete(url);
+  return out;
 }

@@ -207,6 +207,7 @@ const processDiscoveredLinkMock = vi.fn(
   }
 );
 vi.mock('../ingest/discover', () => ({
+  sourceDateWindowPrefilter: () => null,
   processDiscoveredLink: (...args: unknown[]) => (processDiscoveredLinkMock as (...a: unknown[]) => unknown)(...args),
   PacedLinkLimiter: class PacedLinkLimiter {},
   buildHostSignalComputer: vi.fn(() => () => ({ isTrustedHost: false, isBlockedHost: false })),
@@ -259,6 +260,7 @@ vi.mock('../ingest/sources/telegram', () => ({
  *  exhaustion at all. */
 let telegramEnrichLimiterExhausted = false;
 vi.mock('../ingest/enrich', () => ({
+  makeSlugResolver: () => async () => undefined,
   LumaEnrichmentLimiter: class {
     get exhausted() {
       return telegramEnrichLimiterExhausted;
