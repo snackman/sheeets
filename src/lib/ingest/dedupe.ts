@@ -1,6 +1,6 @@
 // Canonical keys + dedupe against the sheet and other candidates (§5.2).
 import { normalizeEventLink, getValidLumaSlug, LUMA_EVENT_API_ID_RE } from '../luma';
-import { fetchLumaEvent } from '../luma-server';
+import { fetchLumaEvent, LumaFetchError } from '../luma-server';
 import { getCachedLumaApiIdEntry, setCachedLumaApiId } from './db';
 import { haversineKm } from './geo';
 import type { NormalizedEvent } from './types';
@@ -16,7 +16,11 @@ import type { NormalizedEvent } from './types';
  */
 export const STALE_NEGATIVE_CACHE_MS = 6 * 60 * 60 * 1000; // ~6h
 
-export type SlugResolver = (slug: string) => Promise<string | null>;
+/** Resolve a Luma slug to its event api id. Tri-state result: a string =
+ *  resolved; `null` = CONFIRMED miss (Luma 404 / not an event — safe to
+ *  cache); `undefined` = unknown (429, 5xx, network, budget exhausted —
+ *  must never be cached as a miss, 2026-10-18 incident). */
+export type SlugResolver = (slug: string) => Promise<string | null | undefined>;
 
 /**
  * Default slug->api-id resolver, used when the caller doesn't inject one
@@ -29,15 +33,16 @@ export type SlugResolver = (slug: string) => Promise<string | null>;
  * per-run budget rather than racing two independent 1/sec limiters.
  */
 let lastDefaultResolveAt = 0;
-async function defaultResolveSlug(slug: string): Promise<string | null> {
+async function defaultResolveSlug(slug: string): Promise<string | null | undefined> {
   const wait = lastDefaultResolveAt ? Math.max(0, lastDefaultResolveAt + 1000 - Date.now()) : 0;
   if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
   lastDefaultResolveAt = Date.now();
   try {
     const payload = await fetchLumaEvent({ slug });
     return payload.event?.api_id ?? payload.api_id ?? null;
-  } catch {
-    return null;
+  } catch (err) {
+    if (err instanceof LumaFetchError && err.code === 'not_found') return null;
+    return undefined;
   }
 }
 
@@ -112,8 +117,11 @@ export async function buildSheetLinkIndex(
     if (apiId === undefined) {
       if (resolutions < maxResolutions) {
         resolutions++;
-        apiId = await resolveSlug(slug);
-        await setCachedLumaApiId(key, apiId);
+        const resolved = await resolveSlug(slug);
+        // `undefined` = transient failure: leave the cache untouched (a
+        // false cached miss hides duplicates for STALE_NEGATIVE_CACHE_MS).
+        if (resolved !== undefined) await setCachedLumaApiId(key, resolved);
+        apiId = resolved ?? null;
       } else {
         // Out of this run's resolution budget — leave uncached so a later
         // run (which may have more budget) retries it, rather than caching

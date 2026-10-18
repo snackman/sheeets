@@ -352,6 +352,11 @@ export interface NormalizedEvent {
    * leaves this field unset for another attempt on a later run.
    */
   hostCalendar?: { apiId: string; name: string | null; isPersonal: boolean } | null;
+  /** Only on `status: 'error'` candidates (2026-10-18): CONSECUTIVE failed
+   *  attempts, when the last one happened, and why. Drives the retry
+   *  backoff (`discover.ts#isErrorRetryDue`); a successful attempt writes a
+   *  fresh event without it, which resets the count. */
+  ingestError?: { failures: number; lastFailedAt: string; reason: string };
 }
 
 /** `ingest_candidates` row. */
@@ -424,6 +429,9 @@ export interface RunCounts {
   queued?: number;
   rejected?: number;
   errors?: number;
+  /** Links skipped this run because enrichment was transiently
+   *  unavailable (Luma 429/5xx, budget) — nothing written, retried later. */
+  deferred?: number;
   /** Marker (1) so the Log tab/`ingest_runs` can tell a dry run apart from
    *  a real run without a dedicated column. */
   dry_run?: number;

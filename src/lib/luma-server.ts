@@ -23,7 +23,9 @@ const LUMA_MAX_BYTES = 1024 * 1024;
  * api.lu.ma with an id that passed strict validation — never a client URL.
  */
 export async function fetchLumaEvent(
-  ref: { slug: string } | { apiId: string }
+  ref: { slug: string } | { apiId: string },
+  /** Internal: how many Luma slug-rename redirects have been followed. */
+  redirectDepth = 0
 ): Promise<LumaEventPayload> {
   let url: string;
   if ('apiId' in ref) {
@@ -47,6 +49,14 @@ export async function fetchLumaEvent(
   }
 
   if (res.status === 404) throw new LumaFetchError('Luma event not found.', 'not_found');
+  // A renamed event's old slug answers `301 {"message":"Redirecting",
+  // "code":"/<new-slug>"}` with NO Location header (seen live 2026-10-18,
+  // lu.ma/frontier-traders-breakpoint-2026), so safeFetch can't follow it.
+  // Follow it ourselves, once, re-validating the new slug.
+  if ('slug' in ref && res.status >= 300 && res.status < 400 && redirectDepth < 1) {
+    const newSlug = lumaRedirectSlug(res.text);
+    if (newSlug && newSlug !== ref.slug) return fetchLumaEvent({ slug: newSlug }, redirectDepth + 1);
+  }
   if (!res.ok) throw new LumaFetchError(`Luma returned ${res.status}.`);
 
   let json: unknown;
@@ -66,6 +76,19 @@ export async function fetchLumaEvent(
     return obj.data as LumaEventPayload;
   }
   return json as LumaEventPayload;
+}
+
+/** The new slug from a Luma slug-rename redirect body (`{"code":"/new-slug"}`),
+ *  or null if the body isn't one / the slug doesn't validate. */
+export function lumaRedirectSlug(body: string): string | null {
+  try {
+    const json = JSON.parse(body) as { code?: unknown };
+    if (typeof json?.code !== 'string' || !json.code.startsWith('/')) return null;
+    const slug = json.code.slice(1).split(/[/?#]/)[0];
+    return LUMA_SLUG_RE.test(slug) ? slug : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Crockford base32 (no I, L, O, U) — 32 symbols, so 5 random bytes = 8 chars = 40 bits. */

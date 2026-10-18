@@ -28,8 +28,8 @@ export interface EnrichRef {
  */
 export type EnrichOutcome =
   | { status: 'ok'; payload: LumaEventPayload }
-  | { status: 'not_found' }
-  | { status: 'unavailable' };
+  | { status: 'not_found'; reason?: string }
+  | { status: 'unavailable'; reason?: string };
 
 /** Structural interface both `LumaEnrichmentLimiter` and
  *  `HourlyWindowLumaLimiter` satisfy — lets a caller (e.g. `discover.ts`'s
@@ -78,7 +78,7 @@ export class LumaEnrichmentLimiter implements EnrichLimiter {
    *  `enrich()` did), so a call made once the budget is used up costs
    *  nothing and never touches `lastCallAt`. */
   async enrichResult(ref: EnrichRef): Promise<EnrichOutcome> {
-    if (this.exhausted) return { status: 'unavailable' };
+    if (this.exhausted) return { status: 'unavailable', reason: 'luma_budget_exhausted' };
 
     const now = Date.now();
     const wait = this.lastCallAt ? Math.max(0, this.lastCallAt + this.minIntervalMs - now) : 0;
@@ -90,7 +90,7 @@ export class LumaEnrichmentLimiter implements EnrichLimiter {
       let payload: LumaEventPayload;
       if (ref.apiId) payload = await fetchLumaEvent({ apiId: ref.apiId });
       else if (ref.slug) payload = await fetchLumaEvent({ slug: ref.slug });
-      else return { status: 'unavailable' };
+      else return { status: 'unavailable', reason: 'no_ref' };
       return { status: 'ok', payload };
     } catch (err) {
       // Only a CONFIRMED "Luma says this doesn't exist" (404, `not_found`)
@@ -98,8 +98,9 @@ export class LumaEnrichmentLimiter implements EnrichLimiter {
       // malformed ref that should never have reached here, or 'upstream' —
       // a network/5xx/parse failure) is transient-or-our-own-bug, not proof
       // the event doesn't exist, so it must never be cached as a negative.
-      if (err instanceof LumaFetchError && err.code === 'not_found') return { status: 'not_found' };
-      return { status: 'unavailable' };
+      const message = err instanceof Error ? err.message : String(err);
+      if (err instanceof LumaFetchError && err.code === 'not_found') return { status: 'not_found', reason: message };
+      return { status: 'unavailable', reason: message };
     }
   }
 
@@ -172,4 +173,19 @@ export class HourlyWindowLumaLimiter implements EnrichLimiter {
     this.maybeResetWindow();
     return this.inner.enrichResult(ref);
   }
+}
+
+/** A `dedupe.ts#SlugResolver` backed by `limiter` (so slug resolution and
+ *  enrichment share one clock/budget). Tri-state, see `SlugResolver`: only
+ *  a confirmed `not_found` yields `null` (cacheable miss); `unavailable`
+ *  (429/5xx/budget exhausted) yields `undefined` so the caller never
+ *  caches a false negative. Returns the api id in Luma's original case —
+ *  event api ids are CASE-SENSITIVE on `event/get`. */
+export function makeSlugResolver(limiter: EnrichLimiter): (slug: string) => Promise<string | null | undefined> {
+  return async (slug: string) => {
+    const result = await limiter.enrichResult({ slug });
+    if (result.status === 'ok') return result.payload.event?.api_id ?? result.payload.api_id ?? null;
+    if (result.status === 'not_found') return null;
+    return undefined;
+  };
 }

@@ -207,6 +207,7 @@ const processDiscoveredLinkMock = vi.fn(
   }
 );
 vi.mock('../ingest/discover', () => ({
+  sourceDateWindowPrefilter: () => null,
   processDiscoveredLink: (...args: unknown[]) => (processDiscoveredLinkMock as (...a: unknown[]) => unknown)(...args),
   PacedLinkLimiter: class PacedLinkLimiter {},
   buildHostSignalComputer: vi.fn(() => () => ({ isTrustedHost: false, isBlockedHost: false })),
@@ -259,6 +260,7 @@ vi.mock('../ingest/sources/telegram', () => ({
  *  exhaustion at all. */
 let telegramEnrichLimiterExhausted = false;
 vi.mock('../ingest/enrich', () => ({
+  makeSlugResolver: () => async () => undefined,
   LumaEnrichmentLimiter: class {
     get exhausted() {
       return telegramEnrichLimiterExhausted;
@@ -526,8 +528,33 @@ describe('runSource(x_account): cost accounting (re-review item 1, HIGH) and cur
 
     expect(result.status).toBe('partial');
     expect(processDiscoveredLinkMock).not.toHaveBeenCalled(); // the Luma link was skipped, never even attempted.
-    const cursorUpdate = updateSourceCalls.find((c) => c.id === 'src-x' && 'cursor' in c.patch);
-    expect(cursorUpdate?.patch).toEqual({ cursor: { since_id: 'p1' } });
+    // 2026-10-18: the cursor still advances, but the skipped link is
+    // carried over in `retry_urls` so it isn't lost with no trace.
+    const cursorUpdates = updateSourceCalls.filter((c) => c.id === 'src-x' && 'cursor' in c.patch);
+    const finalCursor = cursorUpdates[cursorUpdates.length - 1]?.patch.cursor as Record<string, unknown>;
+    expect(finalCursor.since_id).toBe('p1');
+    expect(finalCursor.retry_urls).toEqual([
+      expect.objectContaining({ url: 'https://lu.ma/exhausted-link', reason: 'luma_budget_exhausted' }),
+    ]);
+  });
+
+  it('a Luma 429 (deferred) link is persisted in retry_urls and retried FIRST on the next run, even with no new posts', async () => {
+    makeXSource();
+    fetchXUserPostsMock.mockResolvedValueOnce(onePage(['p1'], [['https://lu.ma/rate-limited']]));
+    processDiscoveredLinkMock.mockImplementationOnce((async () => ({ kind: 'deferred', reason: 'Luma returned 429.' })) as never);
+    await runSource('src-x', { trigger: 'cron' });
+    const afterFirst = sourceRows.get('src-x')!.cursor;
+    expect(afterFirst.since_id).toBe('p1');
+    expect(afterFirst.retry_urls).toEqual([expect.objectContaining({ url: 'https://lu.ma/rate-limited', reason: 'Luma returned 429.' })]);
+
+    // Next run: no new posts at all — the deferred link is still processed,
+    // and once handled it leaves the retry list.
+    processDiscoveredLinkCalls = [];
+    fetchXUserPostsMock.mockResolvedValueOnce(onePage([], []));
+    await runSource('src-x', { trigger: 'cron' });
+    expect(processDiscoveredLinkCalls.map((c) => c.url)).toEqual(['https://lu.ma/rate-limited']);
+    expect(sourceRows.get('src-x')!.cursor.retry_urls).toEqual([]);
+    expect(sourceRows.get('src-x')!.cursor.since_id).toBe('p1');
   });
 
   // Review finding, LOW item D: the exhaustion skip is Luma-specific —
@@ -709,5 +736,27 @@ describe('runSource(telegram_channel): persists LLM cost already spent when a LA
     expect(processDiscoveredLinkCalls).toHaveLength(1);
     expect(processDiscoveredLinkCalls[0].url).toBe('https://partiful.com/e/still-processed');
     expect(result.status).toBe('partial');
+  });
+});
+
+describe('runSource(telegram_channel): a Luma 429 (deferred) link survives its post scrolling off the channel page', () => {
+  it('persists the deferred link in cursor.retry_urls and retries it on the next run', async () => {
+    makeTelegramSource();
+    parseTelegramChannelHtmlMock.mockReturnValueOnce([
+      { postRef: 'testchannel/1', url: 'https://t.me/testchannel/1', text: '', links: ['https://lu.ma/rate-limited'] },
+    ]);
+    processDiscoveredLinkMock.mockImplementationOnce((async () => ({ kind: 'deferred', reason: 'Luma returned 429.' })) as never);
+    const first = await runSource('src-telegram', { trigger: 'cron' });
+    expect(first.counts.deferred).toBe(1);
+    expect(sourceRows.get('src-telegram')!.cursor.retry_urls).toEqual([
+      expect.objectContaining({ url: 'https://lu.ma/rate-limited', ref: 'https://t.me/testchannel/1' }),
+    ]);
+
+    // The post is gone from the page now — the link is still retried.
+    processDiscoveredLinkCalls = [];
+    parseTelegramChannelHtmlMock.mockReturnValueOnce([]);
+    await runSource('src-telegram', { trigger: 'cron' });
+    expect(processDiscoveredLinkCalls.map((c) => c.url)).toEqual(['https://lu.ma/rate-limited']);
+    expect(sourceRows.get('src-telegram')!.cursor.retry_urls).toEqual([]);
   });
 });

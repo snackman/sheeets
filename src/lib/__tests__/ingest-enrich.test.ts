@@ -39,19 +39,19 @@ describe('LumaEnrichmentLimiter#enrichResult', () => {
   it('returns {status: "not_found"} ONLY for a confirmed Luma 404 (LumaFetchError code "not_found")', async () => {
     (fetchLumaEvent as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new LumaFetchErrorMock('gone', 'not_found'));
     const limiter = new LumaEnrichmentLimiter(5, 0);
-    expect(await limiter.enrichResult({ slug: 'a' })).toEqual({ status: 'not_found' });
+    expect(await limiter.enrichResult({ slug: 'a' })).toMatchObject({ status: 'not_found' });
   });
 
   it('returns {status: "unavailable"} (never "not_found") for a transient/invalid LumaFetchError', async () => {
     (fetchLumaEvent as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new LumaFetchErrorMock('network blip', 'upstream'));
     const limiter = new LumaEnrichmentLimiter(5, 0);
-    expect(await limiter.enrichResult({ slug: 'a' })).toEqual({ status: 'unavailable' });
+    expect(await limiter.enrichResult({ slug: 'a' })).toMatchObject({ status: 'unavailable' });
   });
 
   it('returns {status: "unavailable"} once the limiter is exhausted, WITHOUT calling fetchLumaEvent at all', async () => {
     const limiter = new LumaEnrichmentLimiter(0, 0);
     expect(limiter.exhausted).toBe(true);
-    expect(await limiter.enrichResult({ slug: 'a' })).toEqual({ status: 'unavailable' });
+    expect(await limiter.enrichResult({ slug: 'a' })).toMatchObject({ status: 'unavailable' });
     expect(fetchLumaEvent).not.toHaveBeenCalled();
   });
 

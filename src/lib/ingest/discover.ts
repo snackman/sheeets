@@ -16,16 +16,18 @@
 // without an admin's explicit Approve (§10 item 4).
 import type OpenAI from 'openai';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { normalizeEventLink, getValidLumaSlug, getLumaEventApiId, LUMA_EVENT_API_ID_RE, type LumaEventPayload } from '../luma';
+import { normalizeEventLink, getValidLumaSlug, getLumaEventApiId, lumaApiIdFromUrl, LUMA_EVENT_API_ID_RE, type LumaEventPayload } from '../luma';
+
+export { lumaApiIdFromUrl };
 import { parseEventbrite, parsePartiful, parseMeetup, parsePosh, UserFacingError, type EventResult } from '../event-extractors';
 import { SafeFetchError } from '../safe-fetch';
 import type { TabConfig } from '../conferences';
 import { allowlistedPlatformFor, type Platform } from './allowlist';
-import { normalizeDiscoveredLumaEvent, normalizeExtractedEvent, computeContentHash } from './normalize';
+import { normalizeDiscoveredLumaEvent, normalizeExtractedEvent, computeContentHash, formatDateISOInTimezone } from './normalize';
 import { matchAgainstSheetAndCandidates, STALE_NEGATIVE_CACHE_MS, type SheetLinkIndex, type DedupeSheetEvent, type DedupeCandidatePool } from './dedupe';
 import { dateWindowFilter, geoFilter, geocodeAddressCached } from './filters';
 import { getCachedLumaApiIdEntry, setCachedLumaApiId, getCandidateByKeyOrAltKey } from './db';
-import type { EnrichLimiter } from './enrich';
+import type { EnrichLimiter, EnrichOutcome } from './enrich';
 import { scoreCandidate } from './scoring';
 import { ClassifierError } from './classifier';
 import { hostListMatches } from './hosts';
@@ -173,7 +175,122 @@ export type DiscoveredLinkOutcome =
   | { kind: 'skipped_final'; existingId: string; canonicalKey: string }
   | { kind: 'unchanged'; existingId: string }
   | { kind: 'protected'; existingId: string; sources: CandidateSourceRef[] }
+  /** Enrichment was TRANSIENTLY unavailable (Luma 429/5xx/network, or the
+   *  limiter's budget is used up) and there's no existing candidate. Nothing
+   *  is written — the link stays "unseen" and a later run retries it. Never
+   *  an `error` row: a transient failure is not a fact about the event. */
+  | { kind: 'deferred'; reason: string }
+  /** Out of window per the SOURCE's date, but no row was written: it's a
+   *  short Luma link never resolved to its `evt-…` key, so a row keyed on
+   *  the slug could fork a second candidate for an event that already has
+   *  one. Cheap to re-check next run (no network). */
+  | { kind: 'prefiltered'; reason: string }
   | { kind: 'row'; row: DiscoveredLinkRow; classified: boolean; inputTokens: number; outputTokens: number; costUsd: number };
+
+/** Optional per-link data the SOURCE already knows (e.g. a Mira series
+ *  page lists each event's start/end date). Used to drop clearly
+ *  out-of-window links BEFORE any Luma call — see
+ *  `sourceDateWindowPrefilter`. */
+export interface DiscoveredLinkHints {
+  name?: string | null;
+  /** ISO instant (`2026-11-13T09:00:00.000Z`) or a bare local date
+   *  (`2026-11-13`), as the source gave it. */
+  startDate?: string | null;
+  endDate?: string | null;
+}
+
+/** Slack (days) added on BOTH sides of the conference window before a
+ *  source-provided date is trusted to drop a link without enriching it —
+ *  a source's date can disagree with Luma's by a timezone day. Anything
+ *  inside the slack still gets enriched and judged on Luma's own date. */
+export const SOURCE_DATE_PREFILTER_SLACK_DAYS = 1;
+
+/** Local `YYYY-MM-DD` for a source date (bare date kept as-is; an ISO
+ *  instant converted to the conference timezone), or null if unparseable. */
+export function sourceDateToLocalISO(value: string | null | undefined, timezone: string): string | null {
+  if (!value) return null;
+  const v = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  const t = new Date(v);
+  if (isNaN(t.getTime())) return null;
+  return formatDateISOInTimezone(t.toISOString(), timezone);
+}
+
+/**
+ * Cheap, network-free date-window check on a SOURCE-provided start date.
+ * Returns the (strict-window) filter reason if the link is clearly out of
+ * window even with `SOURCE_DATE_PREFILTER_SLACK_DAYS` of slack, else null
+ * (no date, unparseable, or in/near the window — enrich and decide on
+ * Luma's own data as usual). Same start-date semantics as
+ * `dateWindowFilter`, which the post-enrichment path uses.
+ */
+export function sourceDateWindowPrefilter(
+  hints: DiscoveredLinkHints | undefined,
+  ctx: Pick<DiscoveredLinkContext, 'tab' | 'profile'>
+): { reason: string; dateISO: string } | null {
+  const dateISO = sourceDateToLocalISO(hints?.startDate, ctx.tab.timezone);
+  if (!dateISO || ctx.tab.dates.length === 0) return null;
+  const window = { startDate: ctx.tab.dates[0], endDate: ctx.tab.dates[ctx.tab.dates.length - 1] };
+  const slack = SOURCE_DATE_PREFILTER_SLACK_DAYS;
+  const loose = dateWindowFilter({ dateISO }, window, {
+    window_pre_days: Math.abs(ctx.profile.window_pre_days) + slack,
+    window_post_days: Math.abs(ctx.profile.window_post_days) + slack,
+  });
+  if (loose.pass) return null;
+  const strict = dateWindowFilter({ dateISO }, window, ctx.profile);
+  return { reason: strict.pass ? loose.reason : strict.reason, dateISO };
+}
+
+/** Retry backoff for an `error` candidate: 2h after the 1st consecutive
+ *  failure, doubling per failure, capped at 48h. The failure count and
+ *  last-failure time live in `event.ingestError` (NOT `classify_attempts`,
+ *  which also counts successful classifications). */
+export const ERROR_RETRY_BASE_MS = 2 * 60 * 60 * 1000;
+export const ERROR_RETRY_MAX_MS = 48 * 60 * 60 * 1000;
+
+export function errorRetryBackoffMs(attempts: number): number {
+  const n = Math.max(1, attempts);
+  return Math.min(ERROR_RETRY_MAX_MS, ERROR_RETRY_BASE_MS * 2 ** Math.min(n - 1, 10));
+}
+
+/** True if an `error` candidate may be retried now. A legacy row with no
+ *  recorded attempt time (pre-fix) is always due. */
+export function isErrorRetryDue(row: Pick<IngestCandidateRow, 'status' | 'event'>, now: number = Date.now()): boolean {
+  if (row.status !== 'error') return true;
+  const info = row.event?.ingestError;
+  if (!info?.lastFailedAt) return true;
+  const last = new Date(info.lastFailedAt).getTime();
+  if (isNaN(last)) return true;
+  return now - last >= errorRetryBackoffMs(info.failures ?? 1);
+}
+
+/** `event` for an error row: the given snapshot plus an incremented
+ *  CONSECUTIVE failure count (reset whenever the previous row wasn't an
+ *  error — i.e. after any success). */
+function withFailure(event: NormalizedEvent, existing: IngestCandidateRow | null, reason: string): NormalizedEvent {
+  const prev = existing?.status === 'error' ? (existing.event?.ingestError?.failures ?? 0) : 0;
+  return { ...event, ingestError: { failures: prev + 1, lastFailedAt: new Date().toISOString(), reason } };
+}
+
+function placeholderEvent(url: string, platform: Platform, hints?: DiscoveredLinkHints, dateISO = ''): NormalizedEvent {
+  return {
+    name: hints?.name?.trim() || url,
+    startAt: hints?.startDate && !isNaN(new Date(hints.startDate).getTime()) ? new Date(hints.startDate).toISOString() : new Date().toISOString(),
+    timezone: 'UTC',
+    dateISO,
+    sheetDate: '',
+    startTime: '',
+    endTime: '',
+    address: '',
+    isOnline: false,
+    organizer: '',
+    hosts: [],
+    cost: '',
+    link: url,
+    descriptionText: '',
+    platform,
+  } as NormalizedEvent;
+}
 
 /** Baseline trust rank by `source_kind` — used ONLY to decide whether an
  *  incoming discovery-trust link may touch (reclassify, or worse,
@@ -276,7 +393,11 @@ async function resolveLumaShortLinkKey(
   slugCanonicalKey: string,
   url: string,
   ctx: DiscoveredLinkContext
-): Promise<{ canonicalKey: string; altKeys: string[]; payload: LumaEventPayload | null } | null> {
+): Promise<
+  | { canonicalKey: string; altKeys: string[]; payload: LumaEventPayload | null; apiId: string }
+  | { unavailable: string }
+  | null
+> {
   const slug = getValidLumaSlug(url);
   if (!slug) return null;
 
@@ -309,16 +430,121 @@ async function resolveLumaShortLinkKey(
       await setCachedLumaApiId(slugCanonicalKey, null);
     } else {
       // 'unavailable': limiter exhausted or a transient fetch error — we
-      // genuinely don't know. Never write a false negative; this call's
-      // `apiId` stays null so the caller falls through to "no resolution"
-      // for THIS attempt only, but the cache (if any row exists at all)
-      // is left completely untouched.
-      apiId = null;
+      // genuinely don't know. Never write a false negative; the cache (if
+      // any row exists at all) is left completely untouched, and the
+      // caller defers this link instead of writing an error row.
+      return { unavailable: result.reason ?? 'luma_unavailable' };
     }
   }
   if (!apiId) return null;
 
-  return { canonicalKey: `luma:${apiId.toLowerCase()}`, altKeys: [slugCanonicalKey], payload: freshPayload };
+  // `apiId` keeps Luma's ORIGINAL case — only the canonical KEY is
+  // lowercased. Fetching `event/get` with the lowercased id 404s.
+  return { canonicalKey: `luma:${apiId.toLowerCase()}`, altKeys: [slugCanonicalKey], payload: freshPayload, apiId };
+}
+
+function prefilteredRow(
+  ctx: DiscoveredLinkContext,
+  key: { canonical_key: string; alt_keys: string[] },
+  sources: DiscoveredLinkRow['sources'],
+  event: NormalizedEvent,
+  contentHash: string,
+  filterReason: string
+): DiscoveredLinkOutcome {
+  return {
+    kind: 'row',
+    row: {
+      conference: ctx.conference,
+      canonical_key: key.canonical_key,
+      alt_keys: key.alt_keys,
+      source_id: ctx.sourceId,
+      source_kind: ctx.sourceKind,
+      sources,
+      source_ref: ctx.sourceRef,
+      event,
+      content_hash: contentHash,
+      status: 'filtered_out',
+      filter_reason: filterReason,
+      duplicate_of: null,
+    },
+    classified: false,
+    inputTokens: 0,
+    outputTokens: 0,
+    costUsd: 0,
+  };
+}
+
+/** True if a candidate holds only a placeholder snapshot (an enrichment
+ *  error row, or an earlier source-date prefilter) — never real event data
+ *  from Luma/an extractor. */
+function isPlaceholderCandidate(row: IngestCandidateRow): boolean {
+  return !row.event?.dateISO || row.content_hash.startsWith('prefilter:');
+}
+
+/**
+ * What a source-date prefilter hit (`sourceDateWindowPrefilter`) may do,
+ * or null to carry on with normal processing (enrich + judge on Luma's
+ * own date):
+ *  - existing row with REAL data (e.g. a `classify_failed` error row):
+ *    never overwritten with a placeholder. An `error` one is judged on its
+ *    OWN stored date — filtered (keeping its event) if that is out of
+ *    window; anything else carries on normally.
+ *  - existing placeholder `error` row: converted in place (same key and
+ *    alt_keys); an existing placeholder `filtered_out` row: unchanged.
+ *  - no existing row: a non-Luma or already-`evt-` key gets a new
+ *    `filtered_out` row. A short Luma slug key is first mapped through the
+ *    link cache to its `evt-` key (and that candidate, if any) so it never
+ *    forks a second row; if the slug was never resolved, nothing is
+ *    written (`prefiltered`).
+ */
+async function prefilterOutcome(
+  prefilter: { reason: string; dateISO: string },
+  url: string,
+  canonicalKey: string,
+  platform: Platform,
+  existing: IngestCandidateRow | null,
+  ctx: DiscoveredLinkContext,
+  sources: DiscoveredLinkRow['sources'],
+  hints: DiscoveredLinkHints | undefined
+): Promise<DiscoveredLinkOutcome | null> {
+  const reason = `${prefilter.reason} [source date ${prefilter.dateISO}, not enriched]`;
+  const placeholder = () => placeholderEvent(url, platform, hints, prefilter.dateISO);
+  const hash = `prefilter:${prefilter.dateISO}`;
+
+  const forExisting = (row: IngestCandidateRow): DiscoveredLinkOutcome | null => {
+    if (!isPlaceholderCandidate(row)) {
+      if (row.status !== 'error') return null;
+      const window = { startDate: ctx.tab.dates[0], endDate: ctx.tab.dates[ctx.tab.dates.length - 1] };
+      const own = dateWindowFilter(row.event, window, ctx.profile);
+      if (own.pass) return null;
+      const event = { ...row.event };
+      delete event.ingestError;
+      return prefilteredRow(ctx, row, sources, event, row.content_hash, `${own.reason} [own date ${row.event.dateISO}, not re-enriched]`);
+    }
+    if (row.status === 'filtered_out') return { kind: 'unchanged', existingId: row.id };
+    if (row.status === 'error') return prefilteredRow(ctx, row, sources, placeholder(), hash, reason);
+    return null;
+  };
+
+  if (existing) return forExisting(existing);
+
+  if (canonicalKey.startsWith('luma:') && !LUMA_EVENT_API_ID_RE.test(canonicalKey.slice('luma:'.length))) {
+    const cached = await getCachedLumaApiIdEntry(canonicalKey);
+    if (cached === undefined) return { kind: 'prefiltered', reason };
+    if (cached.apiId) {
+      const evtKey = `luma:${cached.apiId.toLowerCase()}`;
+      const evtExisting = await getCandidateByKeyOrAltKey(ctx.conference, evtKey);
+      if (evtExisting) {
+        const protectedOutcome = protectionOutcome(evtExisting, ctx);
+        if (protectedOutcome) return protectedOutcome;
+        return forExisting(evtExisting);
+      }
+      return prefilteredRow(ctx, { canonical_key: evtKey, alt_keys: [canonicalKey] }, sources, placeholder(), hash, reason);
+    }
+    // Confirmed "no api id": the slug IS this event's key, same as the
+    // normal path would use.
+  }
+  return prefilteredRow(ctx, { canonical_key: canonicalKey, alt_keys: [] }, sources, placeholder(), hash, reason);
 }
 
 /**
@@ -338,7 +564,8 @@ async function resolveLumaShortLinkKey(
 export async function processDiscoveredLink(
   url: string,
   existing: IngestCandidateRow | null,
-  ctx: DiscoveredLinkContext
+  ctx: DiscoveredLinkContext,
+  hints?: DiscoveredLinkHints
 ): Promise<DiscoveredLinkOutcome> {
   let canonicalKey = normalizeEventLink(url);
   if (!canonicalKey) return { kind: 'invalid' };
@@ -346,39 +573,90 @@ export async function processDiscoveredLink(
   const earlyOutcome = protectionOutcome(existing, ctx);
   if (earlyOutcome) return earlyOutcome;
 
+  const platform = allowlistedPlatformFor(url);
+  if (!platform) return { kind: 'invalid' };
+
+  const sources = [{ source_id: ctx.sourceId, kind: ctx.sourceKind, ref: ctx.sourceRef, seen_at: new Date().toISOString() }];
+
+  // 2026-10-18 incident: a source-provided date (Mira lists every event's
+  // start date) that is clearly outside this conference's window drops the
+  // link HERE — before any Luma call — instead of after enrichment. See
+  // `prefilterOutcome` for exactly which rows it may touch.
+  const prefilter = sourceDateWindowPrefilter(hints, ctx);
+  if (prefilter) {
+    const pre = await prefilterOutcome(prefilter, url, canonicalKey, platform, existing, ctx, sources, hints);
+    if (pre) return pre;
+  }
+
+  // An `error` candidate is retried on a backoff, not every run — each
+  // retry costs a rate-limited Luma call.
+  // A host (re)submitting their own link bypasses it: they're told it's
+  // being looked at, so it must actually be looked at now.
+  const backoffApplies = ctx.sourceKind !== 'host_submission';
+  if (existing && backoffApplies && !isErrorRetryDue(existing)) return { kind: 'unchanged', existingId: existing.id };
+
   let altKeys: string[] = [];
   let prefetchedLumaPayload: LumaEventPayload | null = null;
+  let resolvedApiId: string | null = null;
 
   if (canonicalKey.startsWith('luma:')) {
     const slugPart = canonicalKey.slice('luma:'.length);
     if (!LUMA_EVENT_API_ID_RE.test(slugPart)) {
       const resolved = await resolveLumaShortLinkKey(canonicalKey, url, ctx);
+      if (resolved && 'unavailable' in resolved) {
+        return existing ? { kind: 'unchanged', existingId: existing.id } : { kind: 'deferred', reason: resolved.unavailable };
+      }
       if (resolved) {
         canonicalKey = resolved.canonicalKey;
         altKeys = resolved.altKeys;
         prefetchedLumaPayload = resolved.payload;
+        resolvedApiId = resolved.apiId;
         const resolvedExisting = await getCandidateByKeyOrAltKey(ctx.conference, canonicalKey);
         if (resolvedExisting) {
           existing = resolvedExisting;
           const resolvedOutcome = protectionOutcome(existing, ctx);
           if (resolvedOutcome) return resolvedOutcome;
+          if (backoffApplies && !isErrorRetryDue(existing)) return { kind: 'unchanged', existingId: existing.id };
         }
       }
     }
   }
 
-  const platform = allowlistedPlatformFor(url);
-  if (!platform) return { kind: 'invalid' };
-
   let normalized: NormalizedEvent | null = null;
+  let failureReason = 'enrich_failed';
 
   if (platform === 'luma') {
     const slugKey = canonicalKey.startsWith('luma:') ? canonicalKey.slice('luma:'.length) : null;
-    const apiId = slugKey && LUMA_EVENT_API_ID_RE.test(slugKey) ? slugKey : null;
-    const slug = !apiId ? getValidLumaSlug(url) : null;
-    if (!apiId && !slug) return { kind: 'invalid' };
-    const payload = prefetchedLumaPayload ?? (await ctx.enrichLimiter.enrich(apiId ? { apiId } : { slug: slug as string }));
-    if (payload) normalized = normalizeDiscoveredLumaEvent({ payload, fallbackLink: url });
+    const keyIsApiId = !!slugKey && LUMA_EVENT_API_ID_RE.test(slugKey);
+    // Original-case api id: from the resolver, else from the URL itself.
+    // NEVER the lowercased canonical key (Luma 404s on it).
+    const apiId = resolvedApiId ?? lumaApiIdFromUrl(url);
+    const rawSlug = getValidLumaSlug(url);
+    const slug = rawSlug && rawSlug.toLowerCase() !== 'event' ? rawSlug : null;
+    const slugIsApiId = !!slug && LUMA_EVENT_API_ID_RE.test(slug);
+    if (!apiId && !slug && !keyIsApiId) return { kind: 'invalid' };
+
+    let result: EnrichOutcome | null = prefetchedLumaPayload ? { status: 'ok', payload: prefetchedLumaPayload } : null;
+    if (!result && apiId) result = await ctx.enrichLimiter.enrichResult({ apiId });
+    // By-id lookup failed for good (e.g. a stale/lowercased cached id), or
+    // there was no id: fall back to the slug, which Luma resolves itself.
+    if ((!result || result.status === 'not_found') && slug && !slugIsApiId) {
+      result = await ctx.enrichLimiter.enrichResult({ slug });
+    }
+    if (!result) result = { status: 'not_found', reason: 'no usable Luma api id or slug' };
+
+    if (result.status === 'unavailable') {
+      // Transient (429/5xx/network/budget): never an `error` row. Leave an
+      // existing candidate's last-good snapshot exactly as-is; otherwise
+      // write nothing and let a later run retry.
+      return existing ? { kind: 'unchanged', existingId: existing.id } : { kind: 'deferred', reason: result.reason ?? 'luma_unavailable' };
+    }
+    if (result.status === 'ok') {
+      normalized = normalizeDiscoveredLumaEvent({ payload: result.payload, fallbackLink: url });
+      if (!normalized) failureReason = 'luma_unparseable: Luma payload had no name/start_at';
+    } else {
+      failureReason = `luma_not_found: ${result.reason ?? 'Luma event not found.'}`;
+    }
   } else {
     const paced = await ctx.linkFetchLimiter.throttle();
     if (!paced) {
@@ -408,54 +686,35 @@ export async function processDiscoveredLink(
     }
     const result = await extractByPlatform(platform, url);
     if (result) normalized = normalizeExtractedEvent({ platform, result });
+    else failureReason = `extract_failed: could not read the ${platform} page`;
   }
 
-  const sources = [{ source_id: ctx.sourceId, kind: ctx.sourceKind, ref: ctx.sourceRef, seen_at: new Date().toISOString() }];
-
   if (!normalized) {
-    // Review finding, MEDIUM item 3: enrichment/extraction failing (rate-
-    // limited, 404, unparseable page — all likely TRANSIENT) must never
+    // Review finding, MEDIUM item 3: a failed enrichment must never
     // overwrite an existing candidate's last-good snapshot with a blank
-    // "error" placeholder. Same guard as the non-Luma budget-exhausted
-    // branch above: if there's an existing (non-final, non-protected —
-    // already ruled out above) candidate, just leave it exactly as-is.
-    if (existing) {
+    // placeholder — unless the existing row IS already an error
+    // placeholder, in which case record this attempt (reason + consecutive
+    // failure count + time, in `event.ingestError`) so the backoff grows.
+    if (existing && existing.status !== 'error') {
       return { kind: 'unchanged', existingId: existing.id };
     }
-    // No existing candidate at all — nothing to protect. Record the
-    // failure as a fresh `error` row so an admin can see it tried in the
-    // Log/Queue rather than it silently vanishing, same as the Luma iCal
-    // path's classify failure handling.
+    // Every error row carries a reason (`filter_reason`, prefixed
+    // "error:") and `event.ingestError` (see `isErrorRetryDue`) so it's
+    // visible in the Log/Queue and retried on a backoff, not every run.
     return {
       kind: 'row',
       row: {
         conference: ctx.conference,
-        canonical_key: canonicalKey,
-        alt_keys: altKeys,
+        canonical_key: existing?.canonical_key ?? canonicalKey,
+        alt_keys: Array.from(new Set([...(existing?.alt_keys ?? []), ...altKeys])),
         source_id: ctx.sourceId,
         source_kind: ctx.sourceKind,
         sources,
         source_ref: ctx.sourceRef,
-        event: {
-          name: url,
-          startAt: new Date().toISOString(),
-          timezone: 'UTC',
-          dateISO: '',
-          sheetDate: '',
-          startTime: '',
-          endTime: '',
-          address: '',
-          isOnline: false,
-          organizer: '',
-          hosts: [],
-          cost: '',
-          link: url,
-          descriptionText: '',
-          platform,
-        } as NormalizedEvent,
-        content_hash: `error:${canonicalKey}`,
+        event: withFailure(existing?.event ?? placeholderEvent(url, platform, hints), existing, failureReason),
+        content_hash: existing?.content_hash ?? `error:${canonicalKey}`,
         status: 'error',
-        classify_attempts: 1,
+        filter_reason: `error: ${failureReason}`,
       },
       classified: false,
       inputTokens: 0,
@@ -597,7 +856,14 @@ export async function processDiscoveredLink(
     }
     return {
       kind: 'row',
-      row: { ...baseRow, status: 'error', possible_duplicate_of: possibleDuplicateOf, classify_attempts: (existing?.classify_attempts ?? 0) + 1 },
+      row: {
+        ...baseRow,
+        status: 'error',
+        event: withFailure(normalized, existing, 'classify_failed'),
+        filter_reason: `error: classify_failed: ${err instanceof Error ? err.message.slice(0, 300) : String(err).slice(0, 300)}`,
+        possible_duplicate_of: possibleDuplicateOf,
+        classify_attempts: (existing?.classify_attempts ?? 0) + 1,
+      },
       classified: false,
       inputTokens,
       outputTokens,

@@ -151,6 +151,7 @@ vi.mock('../ingest/reconcile', () => ({
  *  black-box path, without needing to export that internal helper. */
 let enrichLimiterExhausted = false;
 vi.mock('../ingest/enrich', () => ({
+  makeSlugResolver: () => async () => undefined,
   LumaEnrichmentLimiter: class {
     get exhausted() {
       return enrichLimiterExhausted;
@@ -175,7 +176,8 @@ vi.mock('../ingest/enrich', () => ({
 
 let processDiscoveredLinkCalls: { url: string; sourceKind: string; sourceRef: string | null }[];
 const processDiscoveredLinkMock = vi.fn(
-  async (url: string, _existing: unknown, ctx: { conference: string; sourceKind: string; sourceRef: string | null }) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async (url: string, _existing: unknown, ctx: { conference: string; sourceKind: string; sourceRef: string | null }, _hints?: unknown) => {
     processDiscoveredLinkCalls.push({ url, sourceKind: ctx.sourceKind, sourceRef: ctx.sourceRef });
     return {
       kind: 'row' as const,
@@ -199,6 +201,7 @@ const processDiscoveredLinkMock = vi.fn(
   }
 );
 vi.mock('../ingest/discover', () => ({
+  sourceDateWindowPrefilter: () => null,
   processDiscoveredLink: (...args: unknown[]) => (processDiscoveredLinkMock as (...a: unknown[]) => unknown)(...args),
   PacedLinkLimiter: class PacedLinkLimiter {},
   buildHostSignalComputer: vi.fn(() => () => ({ isTrustedHost: false, isBlockedHost: false })),
@@ -207,6 +210,8 @@ vi.mock('../ingest/discover', () => ({
 const fetchMiraSeriesEventsMock = vi.fn();
 vi.mock('../ingest/sources/mira', () => ({
   fetchMiraSeriesEvents: (...a: unknown[]) => fetchMiraSeriesEventsMock(...a),
+  buildMiraHintsByUrl: (events: { website: string | null; name: string; startDate: string | null; endDate: string | null }[]) =>
+    new Map(events.filter((e) => e.website).map((e) => [e.website as string, { name: e.name, startDate: e.startDate, endDate: e.endDate }])),
 }));
 
 const fetchSheetTrackerLinksMock = vi.fn();
@@ -273,6 +278,32 @@ describe('runSource(mira_series)', () => {
     expect(processDiscoveredLinkCalls[0].sourceKind).toBe('mira_series');
     expect(processDiscoveredLinkCalls[0].sourceRef).toBe('https://miragather.com/Devcon8SideEvents2026');
     expect(upsertedCandidates).toHaveLength(1);
+  });
+
+  it('passes each link\'s Mira name/dates to processDiscoveredLink as hints (pre-enrichment window check)', async () => {
+    makeMiraSource('Breakpoint2026SideEvents2026');
+    fetchMiraSeriesEventsMock.mockResolvedValue([
+      { id: 'r1', name: 'Scale or Die', startDate: '2026-11-14T09:30:00.000Z', endDate: '2026-11-14T18:30:00.000Z', city: 'London', website: 'https://lu.ma/scale-or-die-26', tags: null, seriesSlug: 'Breakpoint2026SideEvents2026' },
+    ]);
+    await runSource('src-mira', { trigger: 'manual' });
+    expect(processDiscoveredLinkMock).toHaveBeenCalledTimes(1);
+    expect(processDiscoveredLinkMock.mock.calls[0][3]).toEqual({
+      name: 'Scale or Die',
+      startDate: '2026-11-14T09:30:00.000Z',
+      endDate: '2026-11-14T18:30:00.000Z',
+    });
+  });
+
+  it('a "deferred" outcome (Luma 429) writes nothing and is counted as deferred, not as an error', async () => {
+    makeMiraSource();
+    fetchMiraSeriesEventsMock.mockResolvedValue([
+      { id: 'r1', name: 'X', startDate: '2026-11-01', endDate: null, city: 'London', website: 'https://lu.ma/rate-limited', tags: null, seriesSlug: 'Devcon8SideEvents2026' },
+    ]);
+    processDiscoveredLinkMock.mockImplementationOnce((async () => ({ kind: 'deferred', reason: 'Luma returned 429.' })) as never);
+    const result = await runSource('src-mira', { trigger: 'manual' });
+    expect(result.counts.deferred).toBe(1);
+    expect(result.counts.errors ?? 0).toBe(0);
+    expect(upsertedCandidates).toHaveLength(0);
   });
 
   it('skips the discovery-context build entirely when nothing is allowlisted (no DB/network round trips wasted)', async () => {

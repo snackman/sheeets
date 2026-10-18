@@ -431,6 +431,25 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (outcome.kind === 'deferred') {
+    // Luma was transiently unavailable (rate limit / upstream error) —
+    // nothing was recorded; ask the submitter to retry rather than
+    // claiming we'll review something we never looked at.
+    return NextResponse.json(
+      { error: "We couldn't reach Luma to read that event just now. Please try again in a few minutes." },
+      { status: 503, headers: NO_STORE }
+    );
+  }
+
+  if (outcome.kind === 'prefiltered') {
+    // Only reachable with source-provided dates, which submissions never
+    // pass today — handled for exhaustiveness.
+    return NextResponse.json(
+      { success: true, status: 'rejected', message: "Thanks — this didn't look like a fit for this conference, so it won't be added." },
+      { status: 201, headers: NO_STORE }
+    );
+  }
+
   await upsertCandidate(outcome.row);
   // Review finding, HIGH item 2: record cost whenever there IS cost, not
   // only when classification succeeded — a `ClassifierError` with usage
