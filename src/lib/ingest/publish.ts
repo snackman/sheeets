@@ -3,6 +3,7 @@
 // insert, same `escapeSheetValue` guard (applied inside google-sheets.ts).
 import { insertEventRowSorted, type EventRow } from '../google-sheets';
 import type { NormalizedEvent } from './types';
+import { sanitizeSheetTags } from './sheet-tags';
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -28,7 +29,7 @@ export function toEventRow(event: NormalizedEvent, tags: string[]): EventRow {
     name: event.name,
     address: event.address,
     cost: event.cost,
-    tags: tags.join(', '),
+    tags: sanitizeSheetTags(tags).join(', '),
     link: event.link,
     food: false,
     bar: false,
