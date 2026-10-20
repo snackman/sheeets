@@ -2,7 +2,7 @@
 // DB-backed types (ingest_candidates, ingest_sources, ...) arrive in Phase 1b;
 // this file only covers what the classifier and eval harness need today.
 import { z } from 'zod';
-import { TAG_GROUPS, TYPE_TAGS } from '../tags';
+import { SHEET_TAGS } from './sheet-tags';
 
 /** Groups conferences for few-shot sharing and default theme presets (§6, §9.1). */
 export type ThemeKey = 'crypto' | 'ai' | 'gaming' | 'art' | 'music' | 'tech' | 'custom';
@@ -25,10 +25,8 @@ export interface ThemeProfile {
   reviewThreshold: number;
 }
 
-/** Tags the classifier is allowed to suggest — the fixed list from `tags.ts` (§5.5). */
-export const ALLOWED_TAGS = Array.from(
-  new Set<string>([...TAG_GROUPS.flatMap((g) => g.tags), ...TYPE_TAGS])
-) as [string, ...string[]];
+/** Tags the classifier is allowed to suggest — exactly the sheet's Tags dropdown (see `sheet-tags.ts`). */
+export const ALLOWED_TAGS = SHEET_TAGS;
 
 export const CLASSIFIER_FLAGS = [
   'private_or_invite_only',

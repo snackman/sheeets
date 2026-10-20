@@ -67,7 +67,7 @@ export const CLASSIFIER_MAX_TOKENS = 1200;
  * "prestigious"/"curated" copy) do not. Re-classify-on-prompt-change rule
  * applies.
  */
-export const PROMPT_VERSION = '2-v3-openai';
+export const PROMPT_VERSION = '2-v4-openai';
 
 export class ClassifierError extends Error {
   constructor(
