@@ -156,7 +156,7 @@ describe('getRecentAutoPublishOutcomes (review finding, HIGH item 2)', () => {
     expect(result).toEqual([{ status: 'auto_published' }]);
     const calls = callsByTable.ingest_candidates;
     expect(calls).toContainEqual({ method: 'not', args: ['auto_published_at', 'is', null] });
-    expect(calls).toContainEqual({ method: 'in', args: ['status', ['auto_published', 'unpublished', 'unpublished_external']] });
+    expect(calls).toContainEqual({ method: 'in', args: ['status', ['auto_published', 'unpublished', 'unpublished_external', 'duplicate']] });
     expect(calls).toContainEqual({ method: 'order', args: ['auto_published_at', { ascending: false }] });
     expect(calls).toContainEqual({ method: 'limit', args: [25] });
     expect(calls.some((c) => c.method === 'gte')).toBe(false); // no sinceIso given -> no gte filter

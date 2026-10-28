@@ -277,6 +277,19 @@ export const FINAL_CANDIDATE_STATUSES: readonly CandidateStatus[] = [
   'unpublished_external',
 ];
 
+/** A candidate the dedupe sweep (dedupe-sweep.ts) removed from the sheet
+ *  because a hand-added row duplicated it: status `duplicate` but it WAS
+ *  published (`published_at` set — ordinary duplicates never are). Treated
+ *  like a final status so a re-ingest can't re-queue/re-publish it. */
+export function isSweptDuplicate(c: Pick<IngestCandidateRow, 'status' | 'published_at'>): boolean {
+  return c.status === 'duplicate' && !!c.published_at;
+}
+
+/** FINAL_CANDIDATE_STATUSES or a swept duplicate. */
+export function isFinalCandidate(c: Pick<IngestCandidateRow, 'status' | 'published_at'>): boolean {
+  return FINAL_CANDIDATE_STATUSES.includes(c.status) || isSweptDuplicate(c);
+}
+
 /** Statuses a candidate must be in for approve/rescore/unpublish to act on
  *  it. Anything not in here is either already decided (final) or mid-flight
  *  in a way that shouldn't be approved/rescored (review findings, HIGH
