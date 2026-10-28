@@ -387,4 +387,17 @@ describe('computePrecisionRowsFromCandidates (the SQL-view mirror used above)', 
     expect(buckets).toEqual(['0-39', '40-59', '60-79', '80-89', '90-100', 'unscored']);
     expect(rows.every((r) => r.reviewed_on_theme === 1)).toBe(true);
   });
+
+  it('counts swept duplicates (published then removed as duplicate) as successes, plain duplicates as nothing', () => {
+    const rows = computePrecisionRowsFromCandidates([
+      candidate({ status: 'duplicate', shadow_route: 'publish', published_at: '2026-10-01', auto_published_at: '2026-10-01' }),
+      candidate({ status: 'duplicate', shadow_route: 'publish', published_at: '2026-10-01', auto_published_at: null }),
+      candidate({ status: 'duplicate', shadow_route: 'publish' }),
+    ]);
+    const sum = (k: 'auto_published' | 'reviewed_on_theme' | 'shadow_publish_approved' | 'auto_unpublished') => rows.reduce((n, r) => n + r[k], 0);
+    expect(sum('auto_published')).toBe(1);
+    expect(sum('reviewed_on_theme')).toBe(1);
+    expect(sum('shadow_publish_approved')).toBe(1);
+    expect(sum('auto_unpublished')).toBe(0);
+  });
 });

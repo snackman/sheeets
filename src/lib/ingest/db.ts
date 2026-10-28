@@ -558,7 +558,7 @@ export async function upsertCandidate(row: Record<string, unknown> & { conferenc
     .update(finalRefreshPatch)
     .eq('conference', row.conference)
     .eq('canonical_key', row.canonical_key)
-    .in('status', FINAL_CANDIDATE_STATUSES as CandidateStatus[])
+    .or(`status.in.${FINAL_STATUS_LIST},and(status.eq.duplicate,published_at.not.is.null)`)
     .select('*')
     .maybeSingle();
   if (finalError) throw new Error(`Failed to refresh a final candidate: ${finalError.message}`);
@@ -573,6 +573,7 @@ export async function upsertCandidate(row: Record<string, unknown> & { conferenc
     .eq('conference', row.conference)
     .eq('canonical_key', row.canonical_key)
     .not('status', 'in', FINAL_STATUS_LIST)
+    .or('status.neq.duplicate,published_at.is.null') // not a swept duplicate (dedupe-sweep.ts)
     .select('*')
     .maybeSingle();
   if (nonFinalError) throw new Error(`Failed to update candidate: ${nonFinalError.message}`);
@@ -1108,8 +1109,9 @@ export type AutoPublishOutcomeRow = Pick<IngestCandidateRow, 'status' | 'auto_pu
  * `published_at` but never sets `auto_published_at`, so it's excluded —
  * review finding, HIGH item 2), still live (`auto_published`) or taken
  * back down (`unpublished`/`unpublished_external`), or swept as a duplicate
- * of a hand-added row (`duplicate` + `auto_published_at`, a neutral
- * non-failure — see dedupe-sweep.ts). `opts.sinceIso`
+ * of a hand-added row (`duplicate` + `auto_published_at`, counted as a
+ * SUCCESS by the kill switch, since the publish was correct — see
+ * dedupe-sweep.ts). `opts.sinceIso`
  * (typically the profile's `auto_publish_enabled_at`) excludes outcomes
  * from before the most recent enable, so a re-enable is never immediately
  * killed by a prior bad window's history. Ordered by `auto_published_at`

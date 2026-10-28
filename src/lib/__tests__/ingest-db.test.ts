@@ -42,6 +42,13 @@ function makeFakeSupabase(resolve: (call: FakeCall) => { data: unknown; error: u
         call.filters[col] = vals;
         return chain;
       },
+      // The final-status guard is `.or('status.in.("a","b"),and(duplicate+published)')`
+      // (swept duplicates, dedupe-sweep.ts): expose its status list like `.in`.
+      or: (expr: string) => {
+        const m = expr.match(/^status\.in\.\(([^)]*)\)/);
+        if (m) call.filters.status = m[1].split(',').map((x) => x.replace(/"/g, ''));
+        return chain;
+      },
       not: (col: string, _op: string, vals: unknown) => {
         call.notFilters[col] = vals;
         return chain;
