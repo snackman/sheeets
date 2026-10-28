@@ -85,3 +85,8 @@ export function sanitizeSheetTags(tags: readonly string[] | null | undefined): S
   }
   return out;
 }
+
+/** Sanitize a comma-separated tag string (as stored on submissions / written to the sheet). */
+export function sanitizeSheetTagString(tags: string | null | undefined): string {
+  return sanitizeSheetTags(typeof tags === 'string' ? tags.split(/[,;|]/) : []).join(', ');
+}
