@@ -33,7 +33,7 @@ describe('sanitizeSheetTagString', () => {
   });
   it('returns empty for empty/invalid input', () => {
     expect(sanitizeSheetTagString('')).toBe('');
-    expect(sanitizeSheetTagString('foo, bar')).toBe('');
+    expect(sanitizeSheetTagString('foo, nonsense')).toBe('');
     expect(sanitizeSheetTagString(undefined)).toBe('');
   });
 });
