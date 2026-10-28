@@ -7,6 +7,7 @@ import { getConferenceTabs } from '@/lib/get-conferences';
 import { isAdminPassword, getAdminPassword } from '@/lib/admin-auth';
 import { invalidateEventsCache } from '@/lib/fetch-events-cached';
 import { writeGeocodedAddress } from '@/lib/geocoded-addresses';
+import { sanitizeSheetTagString } from '@/lib/ingest/sheet-tags';
 
 function getSupabase() {
   return createClient(
@@ -133,7 +134,8 @@ export async function POST(req: NextRequest) {
     organizer: edits?.organizer ?? submission.organizer,
     address: edits?.address ?? submission.address,
     cost: edits?.cost ?? submission.cost,
-    tags: edits?.tags ?? submission.tags,
+    // Sheet Tags column is a dropdown: only canonical values may be written.
+    tags: sanitizeSheetTagString(edits?.tags ?? submission.tags),
     link: edits?.link ?? submission.link,
     has_food: edits?.has_food ?? submission.has_food,
     has_bar: edits?.has_bar ?? submission.has_bar,

@@ -65,6 +65,23 @@ const ALIASES: Record<string, SheetTag> = {
   hiring: 'Jobs/Hiring',
   career: 'Jobs/Hiring',
   careers: 'Jobs/Hiring',
+  // Submit-modal picker tags -> closest sheet tag
+  workshop: 'Panel/Talk',
+  session: 'Panel/Talk',
+  education: 'Panel/Talk',
+  'demo day': 'Panel/Talk',
+  showcase: 'Panel/Talk',
+  meetup: 'Networking',
+  activation: 'Networking',
+  founders: 'Devs/Builders',
+  tech: 'Devs/Builders',
+  lounge: 'Bar/Pub',
+  music: 'Performance',
+  comedy: 'Performance',
+  screening: 'Performance',
+  exhibition: 'Art',
+  'film/tv': 'Art',
+  culture: 'Art',
 };
 
 const CANONICAL = new Map<string, SheetTag>(SHEET_TAGS.map((t) => [norm(t), t]));
@@ -84,4 +101,9 @@ export function sanitizeSheetTags(tags: readonly string[] | null | undefined): S
     if (c && !out.includes(c)) out.push(c);
   }
   return out;
+}
+
+/** Sanitize a comma-separated tag string (as stored on submissions / written to the sheet). */
+export function sanitizeSheetTagString(tags: string | null | undefined): string {
+  return sanitizeSheetTags(typeof tags === 'string' ? tags.split(/[,;|]/) : []).join(', ');
 }

@@ -4,6 +4,7 @@ import { FALLBACK_TABS } from '@/lib/conferences';
 import { getConferenceTabs } from '@/lib/get-conferences';
 import { parseBody, SubmitEventSchema } from '@/lib/api-validation';
 import { createClient } from '@supabase/supabase-js';
+import { sanitizeSheetTagString } from '@/lib/ingest/sheet-tags';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,6 +29,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // The sheet's Tags column is a dropdown; only canonical values may be written.
+    const sheetTags = sanitizeSheetTagString(event.tags);
+
     const sheetName = await getSheetTitle(tab.gid);
 
     // Write to sheet review section (primary — must succeed)
@@ -39,7 +43,7 @@ export async function POST(request: NextRequest) {
       name: event.name.trim(),
       address: event.address.trim(),
       cost: event.cost.trim(),
-      tags: event.tags.trim(),
+      tags: sheetTags,
       link: event.link.trim(),
       food: event.food,
       bar: event.bar,
@@ -62,7 +66,7 @@ export async function POST(request: NextRequest) {
         organizer: event.organizer.trim(),
         address: event.address.trim(),
         cost: event.cost.trim(),
-        tags: event.tags.trim(),
+        tags: event.tags.trim(), // raw picker tags kept for admin review
         link: event.link.trim(),
         has_food: event.food,
         has_bar: event.bar,
