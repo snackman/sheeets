@@ -261,6 +261,9 @@ export interface PrecisionViewCandidateInput {
   status: CandidateStatus;
   reject_reason: string | null;
   shadow_route: CandidateRoute | null;
+  /** Optional: only needed to classify swept duplicates (dedupe-sweep.ts). */
+  published_at?: string | null;
+  auto_published_at?: string | null;
 }
 
 function scoreBucket(finalScore: number | null): string {
@@ -309,12 +312,17 @@ export function computePrecisionRowsFromCandidates(candidates: PrecisionViewCand
     groups.set(key, row);
 
     const isThemeRejected = c.status === 'rejected' && !!c.reject_reason && THEME_REJECT_REASONS_FOR_VIEW.has(c.reject_reason);
-    if (c.status === 'approved') row.reviewed_on_theme++;
+    // Swept duplicates (status 'duplicate' but published) keep counting as
+    // the correct publishes they were — mirrors migration 20261028120000.
+    const sweptAuto = c.status === 'duplicate' && !!c.auto_published_at;
+    const sweptApproved = c.status === 'duplicate' && !!c.published_at && !c.auto_published_at;
+    const isApproved = c.status === 'approved' || sweptApproved;
+    if (isApproved) row.reviewed_on_theme++;
     if (isThemeRejected) row.reviewed_off_theme++;
-    if (c.status === 'auto_published') row.auto_published++;
+    if (c.status === 'auto_published' || sweptAuto) row.auto_published++;
     if (c.status === 'unpublished' || c.status === 'unpublished_external') row.auto_unpublished++;
     if (c.status === 'queued' && c.shadow_route === 'publish') row.shadow_publish_candidates++;
-    if (c.status === 'approved' && c.shadow_route === 'publish') row.shadow_publish_approved++;
+    if (isApproved && c.shadow_route === 'publish') row.shadow_publish_approved++;
     if (isThemeRejected && c.shadow_route === 'publish') row.shadow_publish_rejected_theme++;
   }
   return Array.from(groups.values());

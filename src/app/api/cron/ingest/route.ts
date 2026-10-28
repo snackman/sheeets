@@ -59,7 +59,7 @@ export async function GET(req: Request) {
       const startDate = tab.dates?.[0];
       const endDate = tab.dates?.[tab.dates.length - 1];
       if (!profileNames.has(tab.name) || !startDate || !endDate || !isInActiveWindow(startDate, endDate, todayISO)) continue;
-      sweeps.push(await sweepDuplicateRows(tab));
+      sweeps.push(await sweepDuplicateRows(tab, undefined, undefined, startedAt + SWEEP_DEADLINE_MS));
     }
     if (sweeps.some((s) => s.removed > 0)) invalidateEventsCache();
   } catch (err) {
