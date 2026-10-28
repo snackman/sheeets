@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     // The sheet's Tags column is a dropdown; only canonical values may be written.
-    const tags = sanitizeSheetTagString(event.tags);
+    const sheetTags = sanitizeSheetTagString(event.tags);
 
     const sheetName = await getSheetTitle(tab.gid);
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       name: event.name.trim(),
       address: event.address.trim(),
       cost: event.cost.trim(),
-      tags,
+      tags: sheetTags,
       link: event.link.trim(),
       food: event.food,
       bar: event.bar,
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
         organizer: event.organizer.trim(),
         address: event.address.trim(),
         cost: event.cost.trim(),
-        tags,
+        tags: event.tags.trim(), // raw picker tags kept for admin review
         link: event.link.trim(),
         has_food: event.food,
         has_bar: event.bar,

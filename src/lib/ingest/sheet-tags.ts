@@ -65,6 +65,23 @@ const ALIASES: Record<string, SheetTag> = {
   hiring: 'Jobs/Hiring',
   career: 'Jobs/Hiring',
   careers: 'Jobs/Hiring',
+  // Submit-modal picker tags -> closest sheet tag
+  workshop: 'Panel/Talk',
+  session: 'Panel/Talk',
+  education: 'Panel/Talk',
+  'demo day': 'Panel/Talk',
+  showcase: 'Panel/Talk',
+  meetup: 'Networking',
+  activation: 'Networking',
+  founders: 'Devs/Builders',
+  tech: 'Devs/Builders',
+  lounge: 'Bar/Pub',
+  music: 'Performance',
+  comedy: 'Performance',
+  screening: 'Performance',
+  exhibition: 'Art',
+  'film/tv': 'Art',
+  culture: 'Art',
 };
 
 const CANONICAL = new Map<string, SheetTag>(SHEET_TAGS.map((t) => [norm(t), t]));

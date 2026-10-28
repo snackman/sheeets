@@ -38,17 +38,32 @@ describe('sanitizeSheetTagString', () => {
   });
 });
 
+describe('picker tag aliases', () => {
+  it.each([
+    ['Workshop', 'Panel/Talk'], ['Session', 'Panel/Talk'], ['Education', 'Panel/Talk'],
+    ['Demo Day', 'Panel/Talk'], ['Showcase', 'Panel/Talk'], ['Meetup', 'Networking'],
+    ['Activation', 'Networking'], ['Founders', 'Devs/Builders'], ['Tech', 'Devs/Builders'],
+    ['Lounge', 'Bar/Pub'], ['Music', 'Performance'], ['Comedy', 'Performance'],
+    ['Screening', 'Performance'], ['Exhibition', 'Art'], ['Film/TV', 'Art'], ['Culture', 'Art'],
+  ])('%s -> %s', (raw, want) => {
+    expect(sanitizeSheetTagString(raw)).toBe(want);
+  });
+  it('drops Special Event, Vibe, Free', () => {
+    expect(sanitizeSheetTagString('Special Event, Vibe, Free')).toBe('');
+  });
+});
+
 describe('POST /api/submit-event tags', () => {
   beforeEach(() => {
     appendEventRowMock.mockClear();
     insertMock.mockClear();
   });
 
-  it('sanitizes tags for the sheet and the tracked submission', async () => {
+  it('sanitizes tags for the sheet but stores raw tags in Supabase', async () => {
     const res = await POST(req('Devs, Drinks, bogus'));
     expect(res.status).toBe(200);
     expect((appendEventRowMock.mock.calls[0][1] as { tags: string }).tags).toBe('Devs/Builders, Bar/Pub');
-    expect((insertMock.mock.calls[0][0] as { tags: string }).tags).toBe('Devs/Builders, Bar/Pub');
+    expect((insertMock.mock.calls[0][0] as { tags: string }).tags).toBe('Devs, Drinks, bogus');
   });
 
   it('keeps the submission valid with zero valid tags', async () => {
