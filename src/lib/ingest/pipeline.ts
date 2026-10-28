@@ -51,7 +51,7 @@ import { getSponsorNamesForConference, matchSponsorName } from './sponsors';
 import { loadLearningContext, learnedHostSignalMatches } from './learning';
 import { checkAutoPublishKillSwitch } from './gate';
 import {
-  FINAL_CANDIDATE_STATUSES,
+  isFinalCandidate,
   RETRY_ON_UNCHANGED_STATUSES,
   type CandidateStatus,
   type IngestProfileRow,
@@ -428,7 +428,7 @@ async function processLumaIcalSource(args: {
     // stops a re-ingest from re-marking a published candidate as a
     // "duplicate" of its own now-live sheet row, or from ever re-publishing
     // something an admin unpublished (review finding, CRITICAL item 2).
-    if (existing && FINAL_CANDIDATE_STATUSES.includes(existing.status)) {
+    if (existing && isFinalCandidate(existing)) {
       if (!dryRun) {
         // Only the fields `upsertCandidate` actually allows through for a
         // final candidate: `ical_hash`, `last_seen_at` (added by

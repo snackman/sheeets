@@ -1107,7 +1107,9 @@ export type AutoPublishOutcomeRow = Pick<IngestCandidateRow, 'status' | 'auto_pu
  * (`auto_published_at is not null`; a manual admin approval shares
  * `published_at` but never sets `auto_published_at`, so it's excluded —
  * review finding, HIGH item 2), still live (`auto_published`) or taken
- * back down (`unpublished`/`unpublished_external`). `opts.sinceIso`
+ * back down (`unpublished`/`unpublished_external`), or swept as a duplicate
+ * of a hand-added row (`duplicate` + `auto_published_at`, a neutral
+ * non-failure — see dedupe-sweep.ts). `opts.sinceIso`
  * (typically the profile's `auto_publish_enabled_at`) excludes outcomes
  * from before the most recent enable, so a re-enable is never immediately
  * killed by a prior bad window's history. Ordered by `auto_published_at`
@@ -1124,7 +1126,7 @@ export async function getRecentAutoPublishOutcomes(
     .select('status, event, auto_published_at, updated_at')
     .eq('conference', conference)
     .not('auto_published_at', 'is', null)
-    .in('status', ['auto_published', 'unpublished', 'unpublished_external']);
+    .in('status', ['auto_published', 'unpublished', 'unpublished_external', 'duplicate']);
   if (opts.sinceIso) query = query.gte('auto_published_at', opts.sinceIso);
   query = query.order('auto_published_at', { ascending: false }).limit(opts.limit ?? 50);
   const { data, error } = await query;

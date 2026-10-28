@@ -34,7 +34,7 @@ import { hostListMatches } from './hosts';
 import { matchSponsorName } from './sponsors';
 import { learnedHostSignalMatches, type LearnedHostSignals } from './learning';
 import { estimateCostUsd } from './pricing';
-import { RETRY_ON_UNCHANGED_STATUSES, FINAL_CANDIDATE_STATUSES } from './types';
+import { RETRY_ON_UNCHANGED_STATUSES, isFinalCandidate } from './types';
 import type {
   CandidateSourceRef,
   IngestCandidateRow,
@@ -335,7 +335,7 @@ function mergeSourceRef(
  *  (and its `alt_keys`) turns up — see `processDiscoveredLink`. */
 function protectionOutcome(existing: IngestCandidateRow | null, ctx: DiscoveredLinkContext): DiscoveredLinkOutcome | null {
   if (!existing) return null;
-  if (FINAL_CANDIDATE_STATUSES.includes(existing.status)) {
+  if (isFinalCandidate(existing)) {
     return { kind: 'skipped_final', existingId: existing.id, canonicalKey: existing.canonical_key };
   }
   // Review finding, MEDIUM item 4: a lower-trust discovery source (this

@@ -9,7 +9,9 @@
 import { NextResponse } from 'next/server';
 import { isCronSecret } from '@/lib/admin-auth';
 import { getAllConferenceTabs } from '@/lib/get-conferences';
-import { listDueSources, reapStaleRunningRuns } from '@/lib/ingest/db';
+import { listDueSources, listProfiles, reapStaleRunningRuns } from '@/lib/ingest/db';
+import { sweepDuplicateRows, type SweepResult } from '@/lib/ingest/dedupe-sweep';
+import { invalidateEventsCache } from '@/lib/fetch-events-cached';
 import { runSource } from '@/lib/ingest/pipeline';
 import { isInActiveWindow } from '@/lib/ingest/active-window';
 
@@ -17,6 +19,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 300;
 
 const OVERALL_DEADLINE_MS = 270_000; // leave margin under maxDuration=300
+const SWEEP_DEADLINE_MS = 60_000; // the sweep may use at most the first minute
 
 export async function GET(req: Request) {
   if (!isCronSecret(req.headers.get('authorization'))) {
@@ -41,6 +44,29 @@ export async function GET(req: Request) {
 
   const results: { sourceId: string; conference: string; status: string; skippedReason?: string }[] = [];
   const startedAt = Date.now();
+
+  // Dedupe sweep: for each active conference with an ingest profile, delete
+  // pipeline-published rows that a hand-added row has since duplicated.
+  // Runs BEFORE the sources so this run's reconcile sees the post-sweep
+  // sheet. Bounded (25 deletes/conference, shares the overall deadline) and
+  // failure-tolerant (sweepDuplicateRows never throws; the outer catch is
+  // belt and suspenders) — a sheet error must never fail the ingest run.
+  const sweeps: SweepResult[] = [];
+  try {
+    const profileNames = new Set((await listProfiles()).map((p) => p.conference));
+    for (const tab of tabs) {
+      if (Date.now() - startedAt > SWEEP_DEADLINE_MS) break;
+      const startDate = tab.dates?.[0];
+      const endDate = tab.dates?.[tab.dates.length - 1];
+      if (!profileNames.has(tab.name) || !startDate || !endDate || !isInActiveWindow(startDate, endDate, todayISO)) continue;
+      sweeps.push(await sweepDuplicateRows(tab));
+    }
+    if (sweeps.some((s) => s.removed > 0)) invalidateEventsCache();
+  } catch (err) {
+    console.warn(`[ingest cron] dedupe sweep failed: ${err instanceof Error ? err.message : err}`);
+  }
+  const sweptRemoved = sweeps.reduce((n, s) => n + s.removed, 0);
+  console.log(`[ingest cron] dedupe sweep removed ${sweptRemoved} duplicate row(s) across ${sweeps.length} conference(s)`);
 
   for (const source of sources) {
     if (Date.now() - startedAt > OVERALL_DEADLINE_MS) {
@@ -70,5 +96,5 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({ reapedStaleRuns: reaped, ran: results.length, results });
+  return NextResponse.json({ reapedStaleRuns: reaped, dedupeSweep: { removed: sweptRemoved, conferences: sweeps }, ran: results.length, results });
 }
