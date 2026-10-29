@@ -26,7 +26,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-map-gl": "^8.1.0",
-    "supercluster": "^8.0.1",
+    "supercluster": "^9.1.0",
     "use-supercluster": "^1.2.0",
     "zod": "^4.3.6"
   },
