@@ -16,9 +16,12 @@ import { FriendAvatarStack } from './FriendAvatarStack';
 import UserAvatar from './UserAvatar';
 import { distanceMeters } from '@/lib/geo';
 import { imageCache, FlyerLightbox } from './OGImage';
+import { EmptyEvents } from './EmptyEvents';
 
 interface TableViewProps {
   events: ETHDenverEvent[];
+  /** Resets all filters; shown as a button in the empty state. */
+  onClearFilters?: () => void;
   totalCount: number;
   itinerary?: Set<string>;
   onItineraryToggle?: (eventId: string) => void;
@@ -160,6 +163,7 @@ export const TableView = memo(function TableView({
   userLocation,
   getRsvpStatus,
   onRsvp,
+  onClearFilters,
 }: TableViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const separatorRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
@@ -511,9 +515,7 @@ export const TableView = memo(function TableView({
         </table>
       </div>
       {events.length === 0 && (
-        <div className="text-center py-12 text-[var(--theme-text-muted)]">
-          No events match your filters.
-        </div>
+        <EmptyEvents onClearFilters={onClearFilters} />
       )}
       {selectedEvent && createPortal(
         <EventDetailModal

@@ -8,6 +8,7 @@ import { VIBE_COLORS } from '@/lib/constants';
 import { TAG_ICONS } from './TagBadge';
 import { StarButton } from './StarButton';
 import { imageCache, FlyerLightbox } from './OGImage';
+import { EmptyEvents } from './EmptyEvents';
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -15,6 +16,8 @@ import { imageCache, FlyerLightbox } from './OGImage';
 
 interface GalleryViewProps {
   events: ETHDenverEvent[];
+  /** Resets all filters; shown as a button in the empty state. */
+  onClearFilters?: () => void;
   totalCount: number;
   itinerary?: Set<string>;
   onItineraryToggle?: (eventId: string) => void;
@@ -229,6 +232,7 @@ export function GalleryView({
   onItineraryToggle,
   friendsByEvent,
   liveEventIds,
+  onClearFilters,
 }: GalleryViewProps) {
   /* ---- date-group the events ---- */
   const dateGroups: DateGroup[] = useMemo(() => {
@@ -321,10 +325,7 @@ export function GalleryView({
   /* ---- empty state ---- */
   if (events.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-[var(--theme-text-muted)]">
-        <p className="text-lg font-medium">No events found</p>
-        <p className="text-sm mt-1">Try adjusting your filters</p>
-      </div>
+      <EmptyEvents onClearFilters={onClearFilters} />
     );
   }
 

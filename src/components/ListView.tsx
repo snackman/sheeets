@@ -14,6 +14,7 @@ import {
 import { EventCard } from './EventCard';
 import NativeAdCard from './NativeAdCard';
 import { imageCache, FlyerLightbox } from './OGImage';
+import { EmptyEvents } from './EmptyEvents';
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -21,6 +22,8 @@ import { imageCache, FlyerLightbox } from './OGImage';
 
 interface ListViewProps {
   events: ETHDenverEvent[];
+  /** Resets all filters; shown as a button in the empty state. */
+  onClearFilters?: () => void;
   totalCount: number;
   itinerary?: Set<string>;
   onItineraryToggle?: (eventId: string) => void;
@@ -150,6 +153,7 @@ export const ListView = memo(function ListView({
   userLocation,
   getRsvpStatus,
   onRsvp,
+  onClearFilters,
 }: ListViewProps) {
   const activeAds = useMemo(() => nativeAds?.filter(ad => ad.active !== false) || [], [nativeAds]);
 
@@ -349,10 +353,7 @@ export const ListView = memo(function ListView({
   /* ---- empty state ---- */
   if (events.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-[var(--theme-text-muted)]">
-        <p className="text-lg font-medium">No events found</p>
-        <p className="text-sm mt-1">Try adjusting your filters</p>
-      </div>
+      <EmptyEvents onClearFilters={onClearFilters} />
     );
   }
 

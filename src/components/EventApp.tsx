@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useEvents } from '@/hooks/useEvents';
-import { useFilters } from '@/hooks/useFilters';
+import { useFilters, getDateTimeRangeForConference } from '@/hooks/useFilters';
 import { useItinerary } from '@/hooks/useItinerary';
 import { usePOIs } from '@/hooks/usePOIs';
 import { useFriends } from '@/hooks/useFriends';
@@ -47,6 +47,8 @@ import type { TabConfig } from '@/lib/conferences';
 import { extractFeaturedEvents } from '@/lib/featured';
 import { passesNowFilter, getConferenceNow, applyFilters, computeTagCounts } from '@/lib/filters';
 import { parseTimeToMinutes } from '@/lib/time-parse';
+import { parseFilterParams, buildFilterSearch, type UrlFilterState } from '@/lib/url-filters';
+import { conferenceTimeZoneLabel } from '@/lib/timezone-label';
 import { distanceMeters } from '@/lib/geo';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRsvp } from '@/hooks/useRsvp';
@@ -358,17 +360,60 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
     }
   }, [config, filters.conference, setTheme]);
 
-  // Sync URL with selected conference
+  // Filters in the URL (?start&end&time&tags&q&view): read once on load, then
+  // mirrored back with replaceState (no history entries). Invalid params are
+  // dropped by parseFilterParams.
+  const urlParamsRef = useRef<UrlFilterState | null>(null);
+  const urlApplyRunsRef = useRef(0);
+  const [urlHydrated, setUrlHydrated] = useState(false);
+
   useEffect(() => {
+    const run = urlApplyRunsRef.current++;
+    if (run === 0) urlParamsRef.current = parseFilterParams(window.location.search);
+    const p = urlParamsRef.current;
+    if (p) {
+      if (p.start && p.end) setDateTimeRange(p.start, p.end);
+      // The effect above re-applies the conference's default dates when the
+      // full tab list arrives (run 1); only the dates need re-asserting then.
+      if (run === 0) {
+        if (p.timeMode) setFilter('timeMode', p.timeMode);
+        // Unknown tags are pruned by the effect that reconciles vibes with availableTypes/Vibes.
+        if (p.tags) setFilter('vibes', p.tags);
+        if (p.query) setFilter('searchQuery', p.query);
+        if (p.view) setViewMode(p.view);
+      } else {
+        urlParamsRef.current = null;
+      }
+    }
+    setUrlHydrated(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conferenceTabs]);
+
+  const defaultRange = useMemo(
+    () => getDateTimeRangeForConference(filters.conference, conferenceTabs),
+    // Computed once per conference so "now" drifting doesn't rewrite the URL.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filters.conference, conferenceTabs]
+  );
+
+  // Sync URL with selected conference + filters
+  useEffect(() => {
+    if (!urlHydrated) return;
     const tab = getTabConfig(filters.conference, conferenceTabs);
     if (tab?.slug) {
-      const newPath = `/${tab.slug}`;
-      if (window.location.pathname !== newPath) {
-        window.history.replaceState(null, '', newPath);
+      const search = buildFilterSearch(window.location.search, { filters, defaultRange, view: viewMode });
+      const next = `/${tab.slug}${search}`;
+      if (window.location.pathname + window.location.search !== next) {
+        window.history.replaceState(null, '', next);
       }
       setConferenceProperty(tab.slug);
     }
-  }, [filters.conference, conferenceTabs]);
+  }, [filters, defaultRange, viewMode, urlHydrated, conferenceTabs]);
+
+  const timeZoneLabel = useMemo(
+    () => conferenceTimeZoneLabel(getTabConfig(filters.conference, conferenceTabs)),
+    [filters.conference, conferenceTabs]
+  );
 
   // Per-item A/B variant resolution
   const visitorId = useMemo(() => {
@@ -627,7 +672,7 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
           friendEventCount={friendEventCount}
           orgEventCount={orgEventCount}
         />
-        <ViewToolbar viewMode={viewMode} onViewChange={setViewMode} eventCount={filteredEvents.length} />
+        <ViewToolbar viewMode={viewMode} onViewChange={setViewMode} eventCount={filteredEvents.length} timeZoneLabel={timeZoneLabel} />
       </div>
 
       {/* Main content area */}
@@ -685,6 +730,7 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
             userLocation={userLocation}
             getRsvpStatus={getRsvpStatus}
             onRsvp={handleRsvp}
+            onClearFilters={clearFilters}
           />
         </main>
       ) : viewMode === 'gallery' ? (
@@ -704,6 +750,7 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
             scrollContainerRef={listMainRef}
             conference={filters.conference}
             liveEventIds={liveEventIds}
+            onClearFilters={clearFilters}
           />
         </main>
       ) : (
@@ -733,6 +780,7 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
             userLocation={userLocation}
             getRsvpStatus={getRsvpStatus}
             onRsvp={handleRsvp}
+            onClearFilters={clearFilters}
           />
         </main>
       )}

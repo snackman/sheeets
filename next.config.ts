@@ -124,6 +124,13 @@ const nextConfig: NextConfig = {
         destination: '/ttw',
         permanent: false,
       },
+      // Short aliases -> current-year conference slugs. Temporary (302) on
+      // purpose: the targets change every year.
+      { source: '/devcon', destination: '/devcon8', permanent: false },
+      { source: '/breakpoint', destination: '/breakpoint2026', permanent: false },
+      { source: '/solana', destination: '/breakpoint2026', permanent: false },
+      { source: '/das', destination: '/daslondon2026', permanent: false },
+      { source: '/daslondon', destination: '/daslondon2026', permanent: false },
     ];
   },
 };

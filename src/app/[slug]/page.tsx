@@ -35,7 +35,13 @@ export async function generateMetadata({
       title: `${tab.name} Side Events | plan.wtf`,
       description: `Browse ${count}+ side events for ${tab.name}. Filter by date, time, tags, and more.`,
       url: `https://plan.wtf/${tab.slug}`,
-      images: [{ url: '/logo.png' }],
+      images: [{ url: '/og-image.png', width: 1200, height: 630, alt: `${tab.name} side events on plan.wtf` }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${tab.name} Side Events | plan.wtf`,
+      description: `Browse ${count}+ side events for ${tab.name}. Filter by date, time, tags, and more.`,
+      images: ['/og-image.png'],
     },
   };
 }
