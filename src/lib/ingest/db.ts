@@ -622,25 +622,43 @@ export async function claimCandidateStatus(
   return (data as IngestCandidateRow) ?? null;
 }
 
+/** Columns the admin queue UI (`IngestCandidateClient`) and the operator
+ *  scripts (`fetch-queues.sh`: id, event.*, final_score, llm_flags,
+ *  possible_duplicate_of) read. Omits the heavy/internal ones (sources,
+ *  alt_keys, hashes, edits, review fields, ...). */
+export const QUEUE_LIST_COLUMNS = [
+  'id', 'conference', 'canonical_key', 'source_kind', 'event', 'status', 'filter_reason',
+  'duplicate_of', 'possible_duplicate_of', 'llm_score', 'llm_reason', 'llm_tags', 'llm_flags',
+  'data_quality', 'signal_breakdown', 'final_score', 'route', 'shadow_route',
+  'published_event_id', 'first_seen_at',
+].join(',');
+
 export async function listCandidates(opts: {
   conference?: string;
   status?: CandidateStatus | CandidateStatus[];
   sourceId?: string;
   minScore?: number;
   limit?: number;
+  offset?: number;
+  /** PostgREST column list; defaults to every column. */
+  columns?: string;
 }): Promise<IngestCandidateRow[]> {
   const supabase = getIngestSupabase();
-  let query = supabase.from('ingest_candidates').select('*');
+  let query = supabase.from('ingest_candidates').select(opts.columns ?? '*');
   if (opts.conference) query = query.eq('conference', opts.conference);
   if (opts.status) {
     query = Array.isArray(opts.status) ? query.in('status', opts.status) : query.eq('status', opts.status);
   }
   if (opts.sourceId) query = query.eq('source_id', opts.sourceId);
   if (opts.minScore !== undefined) query = query.gte('final_score', opts.minScore);
-  query = query.order('final_score', { ascending: false }).limit(opts.limit ?? 200);
+  // `id` as a tiebreaker keeps offset pagination stable across pages.
+  query = query.order('final_score', { ascending: false }).order('id', { ascending: true });
+  const limit = opts.limit ?? 200;
+  const offset = opts.offset ?? 0;
+  query = offset > 0 ? query.range(offset, offset + limit - 1) : query.limit(limit);
   const { data, error } = await query;
   if (error) throw new Error(`Failed to list candidates: ${error.message}`);
-  return (data as IngestCandidateRow[]) ?? [];
+  return (data as unknown as IngestCandidateRow[]) ?? [];
 }
 
 /** Recent candidates for a conference, used by fuzzy dedupe within/across runs. */

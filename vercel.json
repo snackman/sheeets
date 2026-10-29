@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/geocode",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/ingest",

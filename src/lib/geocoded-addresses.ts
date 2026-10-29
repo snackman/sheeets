@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { unstable_cache, revalidateTag } from 'next/cache';
 import type { GeoAddressMap } from './fetch-events';
 import { normalizeAddress } from './utils';
 
@@ -114,5 +115,45 @@ export async function writeGeocodedAddress(
     const message = err instanceof Error ? err.message : String(err);
     console.error(`writeGeocodedAddress threw for "${trimmed}":`, message);
     return { ok: false, error: message };
+  }
+}
+
+/** Cache tag for the public `/api/geocoded-addresses` payload. */
+export const GEOCODED_ADDRESSES_TAG = 'geocoded-addresses';
+
+/** The public (anon-key) address map, cached 1h in the Next data cache so a
+ *  CDN miss on `/api/geocoded-addresses` doesn't full-scan the table. The
+ *  geocode cron expires the tag after it writes. Throws on a read error so
+ *  a failure is never cached as an empty map. */
+export const getPublicGeocodedAddressesCached: () => Promise<Record<string, { lat: number; lng: number; matchedAddress?: string }>> = unstable_cache(
+  async () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseKey) throw new Error('supabase not configured');
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const addresses: Record<string, { lat: number; lng: number; matchedAddress?: string }> = {};
+    for (let offset = 0; ; offset += PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from('geocoded_addresses')
+        .select('normalized_address, lat, lng, matched_address')
+        .range(offset, offset + PAGE_SIZE - 1);
+      if (error) throw new Error(error.message);
+      if (!data || data.length === 0) break;
+      for (const row of data) {
+        addresses[row.normalized_address] = { lat: row.lat, lng: row.lng, matchedAddress: row.matched_address || undefined };
+      }
+      if (data.length < PAGE_SIZE) break;
+    }
+    return addresses;
+  },
+  ['geocoded-addresses-public'],
+  { revalidate: 3600, tags: [GEOCODED_ADDRESSES_TAG] },
+);
+
+export function invalidateGeocodedAddressesCache(): void {
+  try {
+    revalidateTag(GEOCODED_ADDRESSES_TAG, { expire: 0 });
+  } catch {
+    // outside a Next request scope (scripts/tests) -- nothing to invalidate
   }
 }

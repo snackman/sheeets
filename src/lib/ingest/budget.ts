@@ -2,6 +2,7 @@
 // classify call; once hit, remaining candidates wait as `pending_classify`
 // rather than erroring the run.
 import { monthlyLlmCostUsd, monthlyXCostUsd } from './db';
+import { sendAlert } from '../alert';
 
 export const DEFAULT_MONTHLY_CAP_USD = 20;
 
@@ -20,7 +21,9 @@ export interface BudgetStatus {
 export async function checkMonthlyBudget(): Promise<BudgetStatus> {
   const spentUsd = await monthlyLlmCostUsd();
   const capUsd = getMonthlyCapUsd();
-  return { spentUsd, capUsd, exceeded: spentUsd >= capUsd };
+  const exceeded = spentUsd >= capUsd;
+  if (exceeded) await sendAlert('budget_cap', `Monthly LLM budget cap reached ($${spentUsd.toFixed(2)} of $${capUsd}). Remaining candidates wait as pending_classify.`);
+  return { spentUsd, capUsd, exceeded };
 }
 
 /* ------------------------------------------------------------------ */
@@ -54,5 +57,7 @@ export interface XBudgetStatus {
 export async function checkMonthlyXBudget(): Promise<XBudgetStatus> {
   const spentUsd = await monthlyXCostUsd();
   const capUsd = getXMonthlyCapUsd();
-  return { spentUsd, capUsd, exceeded: spentUsd >= capUsd };
+  const exceeded = spentUsd >= capUsd;
+  if (exceeded) await sendAlert('budget_cap', `Monthly X API budget cap reached ($${spentUsd.toFixed(2)} of $${capUsd}).`);
+  return { spentUsd, capUsd, exceeded };
 }

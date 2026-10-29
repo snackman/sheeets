@@ -20,11 +20,15 @@ import { useEventCheckIn } from '@/hooks/useEventCheckIn';
 import { passesNowFilter, getConferenceNow } from '@/lib/filters';
 import { useDragReorder } from '@/hooks/useDragReorder';
 import { useProfile } from '@/hooks/useProfile';
-import { ShareCardModal } from '@/components/ShareCardModal';
+import { useHasOpened } from '@/hooks/useHasOpened';
 import { GoogleCalendarButton } from '@/components/GoogleCalendarButton';
 import { getTabConfig, getTabBySlug, DEFAULT_TAB } from '@/lib/conferences';
 import { useConferenceTabs } from '@/hooks/useConferenceTabs';
 
+const ShareCardModal = dynamic(
+  () => import('@/components/ShareCardModal').then((mod) => ({ default: mod.ShareCardModal })),
+  { ssr: false }
+);
 const MapView = dynamic(
   () => import('@/components/MapView').then((mod) => ({ default: mod.MapView })),
   {
@@ -76,6 +80,7 @@ function ItineraryPageContent() {
   const [viewMode, setViewMode] = useState<ItineraryViewMode>('list');
   const [shareStatus, setShareStatus] = useState<'idle' | 'sharing' | 'copied'>('idle');
   const [showShareCard, setShowShareCard] = useState(false);
+  const shareCardMounted = useHasOpened(showShareCard);
   const captureRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -520,7 +525,7 @@ function ItineraryPageContent() {
         </div>
       )}
 
-      <ShareCardModal
+      {shareCardMounted && <ShareCardModal
         isOpen={showShareCard}
         onClose={() => setShowShareCard(false)}
         events={itineraryEvents}
@@ -528,7 +533,7 @@ function ItineraryPageContent() {
         displayName={profile?.display_name ?? null}
         avatarUrl={profile?.avatar_url}
         hiddenEventIds={hiddenEvents}
-      />
+      />}
     </div>
   );
 }

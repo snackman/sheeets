@@ -97,3 +97,20 @@ describe('reconcileConference: link matching', () => {
     );
   });
 });
+
+describe('reconcileConference: snapshot freshness', () => {
+  it('does not unpublish a candidate approved/published after the sheet snapshot', async () => {
+    const snapshotAt = new Date('2027-03-10T12:00:00Z');
+    const late = { ...candidate({ id: 'cand-late' }), published_at: '2027-03-10T12:00:30Z', reviewed_at: '2027-03-10T12:00:30Z' };
+    const early = { ...candidate({ id: 'cand-early', event: { link: 'https://luma.com/event/evt-gone999999', name: 'Gone', hosts: [] } }), published_at: '2027-03-10T11:00:00Z', reviewed_at: null };
+    listCandidatesMock.mockResolvedValue([late, early]);
+    // sheet has some other event only; both candidates are "absent"
+    const sheetEvents = [{ id: 'evt-x', link: 'https://luma.com/event/evt-other111111' }];
+    const linkIndex = await buildSheetLinkIndex(sheetEvents);
+    const result = await reconcileConference(tab, 'crypto', sheetEvents, linkIndex, snapshotAt);
+    expect(result.unpublishedExternal).toBe(1);
+    expect(updateCandidateMock).toHaveBeenCalledTimes(1);
+    expect(updateCandidateMock).toHaveBeenCalledWith('cand-early', { status: 'unpublished_external' });
+    expect(insertLabelMock).toHaveBeenCalledTimes(1);
+  });
+});

@@ -10,7 +10,26 @@ function createSupabase() {
   );
 }
 
+const CONFIG_TTL_MS = 15_000;
+let configCache: { at: number; value: ConferenceConfig[] } | null = null;
+
+/** Drop the in-process conference-config cache (call after writing
+ *  `admin_config`; other server instances catch up within the 60s TTL). */
+export function invalidateConferenceConfigCache(): void {
+  configCache = null;
+}
+
+/** Cached 15s in-process: a bulk admin action or a cron used to hit
+ *  Supabase for the same row once per id/source. Empty/failed reads are
+ *  never cached, so an outage can't pin the fallback tabs for a minute. */
 async function fetchAllConferenceConfigs(): Promise<ConferenceConfig[]> {
+  if (configCache && Date.now() - configCache.at < CONFIG_TTL_MS) return configCache.value;
+  const value = await fetchAllConferenceConfigsUncached();
+  if (value.length > 0) configCache = { at: Date.now(), value };
+  return value;
+}
+
+async function fetchAllConferenceConfigsUncached(): Promise<ConferenceConfig[]> {
   try {
     const supabase = createSupabase();
     const { data, error } = await supabase

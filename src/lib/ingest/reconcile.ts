@@ -41,7 +41,12 @@ export async function reconcileConference(
   tab: TabConfig,
   themeKey: ThemeKey,
   sheetEvents: SheetLinkEntry[],
-  linkIndex: SheetLinkIndex
+  linkIndex: SheetLinkIndex,
+  /** When the caller's sheet snapshot was fetched. Candidates published or
+   *  reviewed after this are NOT judged against it: the snapshot predates
+   *  their sheet row, so absence proves nothing (an admin approve landing
+   *  mid-run must not be marked `unpublished_external`). */
+  snapshotAt: Date = new Date()
 ): Promise<ReconcileResult> {
   const published = await listCandidates({
     conference: tab.name,
@@ -69,6 +74,13 @@ export async function reconcileConference(
     // Can't verify a candidate with no resolvable link key — never flag it
     // as removed just because we couldn't check (review finding, item 8).
     if (!canonicalKeyForEvent(candidate.event)) continue;
+
+    // Published/approved after the snapshot was taken -> can't be judged.
+    const touchedAt = Math.max(
+      candidate.published_at ? Date.parse(candidate.published_at) : 0,
+      candidate.reviewed_at ? Date.parse(candidate.reviewed_at) : 0
+    );
+    if (touchedAt > snapshotAt.getTime()) continue;
 
     const match = findSheetMatchByLink(linkIndex, candidate.event);
     if (match) {

@@ -8,6 +8,7 @@
 // so the gate/kill-switch LOGIC — the thing that must never have an
 // off-by-one at the 50-item or 95% boundary, or count the wrong rows — is
 // unit-testable with plain arrays, no Supabase mocking required.
+import { sendAlert } from '../alert';
 import {
   getPrecisionRows,
   getRecentAutoPublishOutcomes,
@@ -245,6 +246,7 @@ export async function checkAutoPublishKillSwitch(
       `Rolling precision dropped to ${pct}% over ${sample.sampleSize} recent auto-published items ` +
       `(kill-switch threshold ${(AUTO_PUBLISH_PRECISION_THRESHOLD * 100).toFixed(0)}%).`,
   });
+  await sendAlert('kill_switch', `Auto-publish kill switch fired for "${conference}": rolling precision ${pct}% over ${sample.sampleSize} items. Auto-publish is now off.`);
   return { killed: true, sample };
 }
 

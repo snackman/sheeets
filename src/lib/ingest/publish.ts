@@ -43,8 +43,22 @@ export function toEventRow(event: NormalizedEvent, tags: string[]): EventRow {
   };
 }
 
+/**
+ * Minimum spacing between sheet inserts. Guards the Google Sheets API
+ * per-user quota (60 read requests/min AND 60 write requests/min, counted
+ * separately). Since the atomic-insert rewrite one `insertEventRowSorted`
+ * costs at most ~3 reads (A1:E scan, grid row count, post-insert verify;
+ * +1 only on the rare locate path) and 2 writes (batchUpdate + date
+ * format). At 4000ms (15 inserts/min): ~45 reads/min (worst ~60 with the
+ * locate path) and ~30 writes/min -- the binding constraint is reads, kept
+ * <= 75% of quota for headroom shared with the cron/sweep. (The old 6000ms
+ * was sized for the pre-#201 flow and made a 40-item bulk approve take
+ * 240s.) A 429 still backs off exponentially in `publishWithRetry`.
+ */
+export const DEFAULT_MIN_INTERVAL_MS = 4000;
+
 export interface PublishOptions {
-  /** <= 10/min default (§4: "serialized, <= 10 inserts per minute"). */
+  /** Defaults to DEFAULT_MIN_INTERVAL_MS (see the quota math above). */
   minIntervalMs?: number;
   maxPerRun: number;
   maxRetries?: number;
@@ -87,7 +101,7 @@ export class ThrottledSheetPublisher {
   }
 
   private async throttle(): Promise<void> {
-    const minInterval = this.opts.minIntervalMs ?? 6000; // 10/min
+    const minInterval = this.opts.minIntervalMs ?? DEFAULT_MIN_INTERVAL_MS; // 15/min
     const now = Date.now();
     const wait = this.lastCallAt ? Math.max(0, this.lastCallAt + minInterval - now) : 0;
     if (wait > 0) await sleep(wait);

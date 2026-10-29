@@ -1,5 +1,6 @@
 'use client';
 
+import { resizedLumaCover } from '@/lib/image-url';
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -100,7 +101,7 @@ export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox, isInItinerary, 
       >
         {imageUrl && (
           <img
-            src={imageUrl}
+            src={resizedLumaCover(imageUrl, 320)}
             alt=""
             className="w-full h-auto rounded-lg"
             loading="lazy"

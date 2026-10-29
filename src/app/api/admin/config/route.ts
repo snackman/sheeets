@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { parseBody, AdminConfigSchema } from '@/lib/api-validation';
 import { isPublicConfigKey, sanitizePublicConfigValue } from '@/lib/public-config';
 import { requireAdmin, hasValidAdminSession } from '@/lib/admin-guard';
+import { invalidateConferenceConfigCache } from '@/lib/get-conferences';
 
 function getSupabase() {
   return createClient(
@@ -58,5 +59,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to save config' }, { status: 500 });
   }
 
+  invalidateConferenceConfigCache();
   return NextResponse.json({ success: true });
 }

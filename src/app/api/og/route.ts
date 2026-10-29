@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { parseBody, OgBatchSchema } from '@/lib/api-validation';
 import { safeFetch } from '@/lib/safe-fetch';
 import { getEventLinkById } from '@/lib/fetch-events-cached';
+import { ogCacheHeaders } from '@/lib/og-cache';
 
 // safeFetch relies on node:http/node:dns for SSRF protection
 export const runtime = 'nodejs';
@@ -304,7 +305,7 @@ export async function GET(request: NextRequest) {
       if (data) {
         return NextResponse.json(
           { imageUrl: data.image_url },
-          { headers: { 'Cache-Control': 'public, max-age=3600, s-maxage=3600' } }
+          { headers: ogCacheHeaders(data.image_url) }
         );
       }
     } catch {
@@ -330,7 +331,7 @@ export async function GET(request: NextRequest) {
   // 3. Check in-memory cache (fallback / no eventId)
   const memCached = memoryCache.get(url);
   if (memCached && Date.now() - memCached.ts < MEMORY_CACHE_TTL) {
-    return NextResponse.json({ imageUrl: memCached.imageUrl });
+    return NextResponse.json({ imageUrl: memCached.imageUrl }, { headers: ogCacheHeaders(memCached.imageUrl) });
   }
 
   // 4. Resolve the image URL from source
@@ -359,7 +360,7 @@ export async function GET(request: NextRequest) {
   // 6. Store in memory cache as fallback
   rememberImage(url, imageUrl);
 
-  return NextResponse.json({ imageUrl });
+  return NextResponse.json({ imageUrl }, { headers: ogCacheHeaders(imageUrl) });
 }
 
 /** Batch endpoint: resolve and cache multiple event images at once */

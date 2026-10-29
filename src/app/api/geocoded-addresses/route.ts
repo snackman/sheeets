@@ -1,34 +1,9 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getPublicGeocodedAddressesCached } from '@/lib/geocoded-addresses';
 
 export async function GET() {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      return NextResponse.json({ addresses: {} });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const { data, error } = await supabase
-      .from('geocoded_addresses')
-      .select('normalized_address, lat, lng, matched_address');
-
-    if (error) {
-      console.error('Failed to fetch geocoded addresses:', error);
-      return NextResponse.json({ addresses: {} });
-    }
-
-    const addresses: Record<string, { lat: number; lng: number; matchedAddress?: string }> = {};
-    for (const row of data) {
-      addresses[row.normalized_address] = {
-        lat: row.lat,
-        lng: row.lng,
-        matchedAddress: row.matched_address || undefined,
-      };
-    }
-
+    const addresses = await getPublicGeocodedAddressesCached();
     return NextResponse.json({ addresses }, {
       headers: {
         'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',

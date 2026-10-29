@@ -3,8 +3,8 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Mail, LogOut, User, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, ArrowRight, Send, Building2, Briefcase, Linkedin, Smartphone, Moon, Sun } from 'lucide-react';
-import { ShareCardModal } from './ShareCardModal';
-import { LockScreenModal } from './LockScreenModal';
+import dynamic from 'next/dynamic';
+import { useHasOpened } from '@/hooks/useHasOpened';
 import { LocationSettings } from './LocationSettings';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -23,6 +23,16 @@ import { useAdminConfig } from '@/hooks/useAdminConfig';
 import { trackAdClick } from '@/lib/analytics';
 import { trackAdEvent } from '@/lib/ad-tracking';
 import { isSafeHttpUrl } from '@/lib/utils';
+
+// html-to-image / qrcode.react live behind these modals; load them on first open only.
+const ShareCardModal = dynamic(
+  () => import('./ShareCardModal').then((mod) => ({ default: mod.ShareCardModal })),
+  { ssr: false }
+);
+const LockScreenModal = dynamic(
+  () => import('./LockScreenModal').then((mod) => ({ default: mod.LockScreenModal })),
+  { ssr: false }
+);
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -429,6 +439,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
 
   // Share itinerary card state
   const [showShareCard, setShowShareCard] = useState(false);
+  const shareCardMounted = useHasOpened(showShareCard);
   const itineraryEvents = useMemo(
     () => events.filter((e) => itinerary.has(e.id) && (!activeConference || e.conference === activeConference)),
     [events, itinerary, activeConference]
@@ -438,6 +449,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
 
   // Lock screen card state
   const [showLockScreen, setShowLockScreen] = useState(false);
+  const lockScreenMounted = useHasOpened(showLockScreen);
   const [friendCode, setFriendCode] = useState<string | null>(null);
   const socialLinks = useMemo(
     () => getSocialLinks(profile ?? {}),
@@ -1034,15 +1046,15 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
           </div>,
           document.body
       )}
-      <ShareCardModal
+      {shareCardMounted && <ShareCardModal
         isOpen={showShareCard}
         onClose={() => setShowShareCard(false)}
         events={itineraryEvents}
         conferenceName={shareConferenceName}
         displayName={profile?.display_name ?? null}
         avatarUrl={profile?.avatar_url}
-      />
-      <LockScreenModal
+      />}
+      {lockScreenMounted && <LockScreenModal
         isOpen={showLockScreen}
         onClose={() => setShowLockScreen(false)}
         displayName={profile?.display_name ?? null}
@@ -1052,7 +1064,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
         xHandle={profile?.x_handle ?? null}
         socialLinks={socialLinks}
         friendCode={friendCode}
-      />
+      />}
     </>
   );
 }

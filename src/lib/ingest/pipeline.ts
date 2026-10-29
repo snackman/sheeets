@@ -5,6 +5,7 @@
 import OpenAI from 'openai';
 import { normalizeEventLink } from '../luma';
 import { fetchEvents, generateEventId } from '../fetch-events';
+import { fetchSheetEventsMemo, invalidateSheetMemo } from './sheet-memo';
 import { getSheetTitle } from '../google-sheets';
 import { invalidateEventsCache } from '../fetch-events-cached';
 import { getAllConferenceTabs } from '../get-conferences';
@@ -332,7 +333,7 @@ async function processLumaIcalSource(args: {
   // an empty address and gets the `venue_unknown` signal (review cap).
   const reverseGeocodeLimiter = new ReverseGeocodeLimiter();
 
-  const sheetEvents = await fetchEvents(undefined, [tab]);
+  const sheetEvents = await fetchSheetEventsMemo(tab);
   const linkIndex = await buildSheetLinkIndex(
     sheetEvents.map((e) => ({ id: e.id, link: e.link })),
     { maxResolutions: 50, resolveSlug: resolveSlugViaLimiter }
@@ -750,7 +751,8 @@ async function processLumaIcalSource(args: {
       } else if (profile.auto_publish_enabled) {
         try {
           const row = toEventRow(normalized, scoreResult.classifier.output.suggested_tags);
-          sheetRow = await publisher.publish(row);
+          // Invalidate even if publish throws: an unverified insert may still have written the row.
+          sheetRow = await publisher.publish(row).finally(() => invalidateSheetMemo(tab));
           status = 'auto_published';
           publishedAt = new Date().toISOString();
           autoPublishedAt = publishedAt;
@@ -839,7 +841,20 @@ async function processLumaIcalSource(args: {
     return { llmInputTokens: totalInputTokens, llmOutputTokens: totalOutputTokens, costUsd: runningCostUsd, hitDeadline: true };
   }
 
-  if (!dryRun) await reconcileConference(tab, profile.theme_key, sheetEvents, linkIndex);
+  if (!dryRun) {
+    // Reconcile judges "removed from the sheet", so it must never run
+    // against the per-run memoized snapshot: an admin approve / submission
+    // can have landed since. Take a FRESH read (link slug resolutions are
+    // cached in ingest_link_cache, so rebuilding the index is cheap), and
+    // reconcile skips anything published after that read began.
+    const snapshotAt = new Date();
+    const freshSheetEvents = await fetchEvents(undefined, [tab]);
+    const freshLinkIndex = await buildSheetLinkIndex(
+      freshSheetEvents.map((e) => ({ id: e.id, link: e.link })),
+      { maxResolutions: 50, resolveSlug: resolveSlugViaLimiter }
+    );
+    await reconcileConference(tab, profile.theme_key, freshSheetEvents, freshLinkIndex, snapshotAt);
+  }
 
   return {
     llmInputTokens: totalInputTokens,
@@ -913,7 +928,7 @@ async function processTelegramSource(args: {
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const supabase = getIngestSupabase();
 
-  const sheetEvents = await fetchEvents(undefined, [tab]);
+  const sheetEvents = await fetchSheetEventsMemo(tab);
   const linkIndex = await buildSheetLinkIndex(
     sheetEvents.map((e) => ({ id: e.id, link: e.link })),
     { maxResolutions: 50, resolveSlug: resolveSlugViaLimiter }
@@ -1157,7 +1172,7 @@ async function buildDiscoverySourceContext(
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const supabase = getIngestSupabase();
 
-  const sheetEvents = await fetchEvents(undefined, [tab]);
+  const sheetEvents = await fetchSheetEventsMemo(tab);
   const linkIndex = await buildSheetLinkIndex(
     sheetEvents.map((e) => ({ id: e.id, link: e.link })),
     { maxResolutions: 50, resolveSlug: resolveSlugViaLimiter }

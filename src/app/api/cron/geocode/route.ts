@@ -31,8 +31,8 @@ import { NextResponse, NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { isCronSecret } from '@/lib/admin-auth';
 import { getConferenceTabs } from '@/lib/get-conferences';
-import { fetchEvents } from '@/lib/fetch-events';
-import { getRuntimeGeocodedAddresses, writeGeocodedAddress } from '@/lib/geocoded-addresses';
+import { fetchEventsCached, invalidateEventsCache } from '@/lib/fetch-events-cached';
+import { writeGeocodedAddress, invalidateGeocodedAddressesCache } from '@/lib/geocoded-addresses';
 import { selectAddressesToAttempt, type MissingAddress } from '@/lib/geocode-selection';
 import { normalizeAddress } from '@/lib/utils';
 
@@ -76,12 +76,11 @@ export async function GET(req: NextRequest) {
   //    them, with whatever coordinates they already have (static JSON bake
   //    + the runtime `geocoded_addresses` cache both merged by
   //    `fetchEvents`).
-  const [tabs, runtimeAddresses] = await Promise.all([
-    getConferenceTabs(),
-    getRuntimeGeocodedAddresses(),
-  ]);
+  //    `fetchEventsCached` (5-min cache, runtime addresses already merged)
+  //    instead of re-reading the sheet + whole address table every run; a
+  //    run with nothing missing is then nearly free.
+  const [tabs, events] = await Promise.all([getConferenceTabs(), fetchEventsCached()]);
   const tabByName = new Map(tabs.map((t) => [t.name, t]));
-  const events = await fetchEvents(runtimeAddresses, tabs);
 
   // 2. Events with an address but no coordinates. Dedupe by (conference,
   //    normalized address) so a venue reused across many events only costs
@@ -169,6 +168,13 @@ export async function GET(req: NextRequest) {
       failed.push(raw);
       if (!dryRun) await recordFailure(supabase, normalized, conference);
     }
+  }
+
+  // New coordinates landed: expire the public address-map cache and the
+  // events cache so pins show up without waiting out their TTLs.
+  if (!dryRun && geocoded.length > writeErrors) {
+    invalidateGeocodedAddressesCache();
+    invalidateEventsCache();
   }
 
   return NextResponse.json({

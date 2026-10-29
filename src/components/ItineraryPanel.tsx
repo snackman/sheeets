@@ -9,10 +9,16 @@ import { createPrioritySort, parseTimeToMinutes, detectConflicts } from '@/lib/t
 import { useDragReorder } from '@/hooks/useDragReorder';
 import { useProfile } from '@/hooks/useProfile';
 import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryReorder } from '@/lib/analytics';
-import { ShareCardModal } from '@/components/ShareCardModal';
+import dynamic from 'next/dynamic';
+import { useHasOpened } from '@/hooks/useHasOpened';
 import { EventCard } from '@/components/EventCard';
 import { useConferenceTabs } from '@/hooks/useConferenceTabs';
 import { getTabConfig, DEFAULT_TAB } from '@/lib/conferences';
+
+const ShareCardModal = dynamic(
+  () => import('@/components/ShareCardModal').then((mod) => ({ default: mod.ShareCardModal })),
+  { ssr: false }
+);
 
 interface ItineraryPanelProps {
   isOpen: boolean;
@@ -48,6 +54,7 @@ export function ItineraryPanel({
   const { profile } = useProfile();
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
+  const shareCardMounted = useHasOpened(showShareCard);
   const captureRef = useRef<HTMLDivElement>(null);
 
   // All itinerary events (for badge count)
@@ -421,7 +428,7 @@ export function ItineraryPanel({
         </div>
       </div>
 
-      <ShareCardModal
+      {shareCardMounted && <ShareCardModal
         isOpen={showShareCard}
         onClose={() => setShowShareCard(false)}
         events={itineraryEvents}
@@ -429,7 +436,7 @@ export function ItineraryPanel({
         displayName={profile?.display_name ?? null}
         avatarUrl={profile?.avatar_url}
         hiddenEventIds={hiddenEvents}
-      />
+      />}
     </>
   );
 }

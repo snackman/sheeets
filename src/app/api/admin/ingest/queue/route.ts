@@ -22,6 +22,7 @@ import {
   upsertProfile,
   profileRowToThemeProfile,
   getIngestSupabase,
+  QUEUE_LIST_COLUMNS,
 } from '@/lib/ingest/db';
 import { toEventRow, ThrottledSheetPublisher } from '@/lib/ingest/publish';
 import { upsertGeocodedAddress } from '@/lib/ingest/filters';
@@ -47,34 +48,80 @@ import {
 import type { CandidateStatus, NormalizedEvent, TrustedHostEntry } from '@/lib/ingest/types';
 
 export const runtime = 'nodejs';
-// Bulk approve is throttled (<=10/min to the Sheets API); MAX_BULK_APPROVE
-// below keeps the worst case comfortably inside this (review finding, HIGH
-// item 3).
+// Bulk approve is throttled (see publish.ts for the quota math);
+// MAX_BULK_APPROVE below plus the deferred_timeout deadline in POST keep a
+// request inside this.
 export const maxDuration = 300;
 
-/** A bulk "Approve selected" is throttled at <=10 sheet writes/min (§4);
- *  40 items is ~4 minutes, safely inside `maxDuration`. Approving more than
+/** A bulk "Approve selected" is throttled (~15 inserts/min, publish.ts);
+ *  40 items is ~2.7 minutes, inside `maxDuration` (and anything slower is
+ *  returned as `deferred_timeout` rather than killed). Approving more than
  *  this in one request would risk timing out mid-batch with some
  *  candidates left claimed but unpublished — reject it upfront instead
  *  (review finding, HIGH item 3). Reject/restore/trust/block aren't
  *  throttled the same way, so only `approve` is capped here. */
 const MAX_BULK_APPROVE = 40;
 
+/** Stop STARTING new work once a request has run this long (Vercel kills the
+ *  function at maxDuration=300s); remaining ids come back as
+ *  `deferred_timeout` so the caller can simply retry them. Env override is
+ *  for tests/ops. */
+function requestDeadlineMs(): number {
+  const v = Number(process.env.INGEST_QUEUE_DEADLINE_MS);
+  return Number.isFinite(v) && v > 0 ? v : 240_000;
+}
+
+const DEFAULT_LIST_LIMIT = 300;
+const MAX_LIST_LIMIT = 500;
+
 export async function GET(req: NextRequest) {
   const denied = await requireAdmin(req);
   if (denied) return denied;
 
-  const status = req.nextUrl.searchParams.get('status');
-  const conference = req.nextUrl.searchParams.get('conference') || undefined;
-  const source = req.nextUrl.searchParams.get('source') || undefined;
-  const minScoreRaw = req.nextUrl.searchParams.get('minScore');
+  const params = req.nextUrl.searchParams;
+  const status = params.get('status');
+  const conference = params.get('conference') || undefined;
+  const source = params.get('source') || undefined;
+  const minScoreRaw = params.get('minScore');
   const minScore = minScoreRaw ? Number(minScoreRaw) : undefined;
+
+  // `limit` defaults to the historical 300. `cursor` is an opaque offset
+  // token returned as `nextCursor` (only present when more rows exist), so
+  // existing callers that ignore it see exactly the old response shape.
+  const limitRaw = Number(params.get('limit'));
+  const limit = Number.isFinite(limitRaw) && limitRaw >= 1 ? Math.min(Math.floor(limitRaw), MAX_LIST_LIMIT) : DEFAULT_LIST_LIMIT;
+  const cursorRaw = params.get('cursor');
+  let offset = 0;
+  if (cursorRaw) {
+    const text = Buffer.from(cursorRaw, 'base64url').toString('utf8');
+    const decoded = Number(text);
+    if (!/^\d+$/.test(text) || !Number.isSafeInteger(decoded)) {
+      return NextResponse.json({ error: 'Invalid cursor' }, { status: 400 });
+    }
+    offset = decoded;
+  }
 
   const statuses: CandidateStatus[] | undefined = status && status !== 'all' ? [status as CandidateStatus] : undefined;
 
   try {
-    const candidates = await listCandidates({ conference, status: statuses, sourceId: source, minScore, limit: 300 });
-    return NextResponse.json({ candidates });
+    // Fetch one extra row to know whether another page exists.
+    const rows = await listCandidates({
+      conference,
+      status: statuses,
+      sourceId: source,
+      minScore,
+      limit: limit + 1,
+      offset,
+      // Only the columns the admin UI + operator scripts read; `?full=1`
+      // restores the whole row.
+      columns: params.get('full') === '1' ? undefined : QUEUE_LIST_COLUMNS,
+    });
+    const hasMore = rows.length > limit;
+    const candidates = hasMore ? rows.slice(0, limit) : rows;
+    return NextResponse.json({
+      candidates,
+      ...(hasMore ? { nextCursor: Buffer.from(String(offset + limit), 'utf8').toString('base64url') } : {}),
+    });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed to load queue' }, { status: 500 });
   }
@@ -155,6 +202,33 @@ export async function POST(req: NextRequest) {
   // to later ids in the same batch, same as the link index above.
   const nameDatePools = new Map<string, { id: string; name: string; dateISO: string }[]>();
 
+  // Per-request lookups, hoisted out of the per-id loop: the conference tab
+  // list (one Supabase read), each conference's profile, and each tab's
+  // sheet title were previously re-fetched for every id.
+  let tabsPromise: Promise<TabConfig[]> | null = null;
+  const getTabs = () => (tabsPromise ??= getAllConferenceTabs());
+  const profileCache = new Map<string, Promise<Awaited<ReturnType<typeof getProfile>>>>();
+  const getProfileOnce = (conference: string) => {
+    let p = profileCache.get(conference);
+    if (!p) {
+      p = getProfile(conference);
+      profileCache.set(conference, p);
+    }
+    return p;
+  };
+  const sheetTitles = new Map<number, Promise<string>>();
+  const getSheetTitleOnce = (gid: number) => {
+    let p = sheetTitles.get(gid);
+    if (!p) {
+      p = getSheetTitle(gid);
+      sheetTitles.set(gid, p);
+    }
+    return p;
+  };
+
+  const startedAt = Date.now();
+  const deadlineMs = requestDeadlineMs();
+
   async function getLinkIndex(tab: TabConfig): Promise<SheetLinkIndex> {
     const cached = linkIndexes.get(tab.name);
     if (cached) return cached;
@@ -169,7 +243,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    for (const id of ids) {
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      // Stop STARTING new work near the function limit: the rest come back
+      // as `deferred_timeout` (nothing claimed or touched) for the caller
+      // to retry, instead of the whole request dying mid-batch.
+      if (Date.now() - startedAt > deadlineMs) {
+        for (const rest of ids.slice(i)) results.push({ id: rest, ok: false, error: 'deferred_timeout' });
+        break;
+      }
       try {
         const candidate = await getCandidate(id);
         if (!candidate) {
@@ -193,7 +275,7 @@ export async function POST(req: NextRequest) {
           }
 
           try {
-            const tabs = await getAllConferenceTabs();
+            const tabs = await getTabs();
             const tab = tabs.find((t) => t.name === candidate.conference);
             if (!tab) throw new Error(`No conference tab for "${candidate.conference}".`);
 
@@ -250,7 +332,7 @@ export async function POST(req: NextRequest) {
             } else {
               let publisher = publishers.get(candidate.conference);
               if (!publisher) {
-                const sheetTitle = await getSheetTitle(tab.gid);
+                const sheetTitle = await getSheetTitleOnce(tab.gid);
                 publisher = new ThrottledSheetPublisher(sheetTitle, tab.gid, { maxPerRun: ids.length });
                 publishers.set(candidate.conference, publisher);
               }
@@ -283,7 +365,7 @@ export async function POST(req: NextRequest) {
               edits: ids.length === 1 && edits ? edits : null,
             });
 
-            const profile = await getProfile(candidate.conference);
+            const profile = await getProfileOnce(candidate.conference);
             await insertLabel({
               candidate_id: id,
               conference: candidate.conference,
@@ -325,7 +407,7 @@ export async function POST(req: NextRequest) {
             continue;
           }
 
-          const profile = await getProfile(candidate.conference);
+          const profile = await getProfileOnce(candidate.conference);
           await insertLabel({
             candidate_id: id,
             conference: candidate.conference,
@@ -367,11 +449,11 @@ export async function POST(req: NextRequest) {
             throw new Error(`Monthly LLM budget ($${budget.capUsd}) already reached ($${budget.spentUsd.toFixed(2)} spent).`);
           }
 
-          const profile = await getProfile(candidate.conference);
+          const profile = await getProfileOnce(candidate.conference);
           if (!profile) throw new Error('No ingest profile for this conference.');
           const themeProfile = profileRowToThemeProfile(profile);
           const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-          const tabs = await getAllConferenceTabs();
+          const tabs = await getTabs();
           const tab = tabs.find((t) => t.name === candidate.conference);
           const startDate = tab?.dates?.[0] ?? candidate.event.dateISO;
           const endDate = tab?.dates?.[tab.dates.length - 1] ?? candidate.event.dateISO;
@@ -493,10 +575,10 @@ export async function POST(req: NextRequest) {
           }
 
           try {
-            const tabs = await getAllConferenceTabs();
+            const tabs = await getTabs();
             const tab = tabs.find((t) => t.name === candidate.conference);
             if (!tab) throw new Error(`No conference tab for "${candidate.conference}".`);
-            const sheetTitle = await getSheetTitle(tab.gid);
+            const sheetTitle = await getSheetTitleOnce(tab.gid);
             const rows = await readRange(sheetTitle, 'A1:L');
             // Match by link key ONLY (a blank link cell normalizes to null
             // and can never match a real key, so blank rows are already
@@ -524,7 +606,7 @@ export async function POST(req: NextRequest) {
             await deleteSheetRow(tab.gid, matchingRowIndexes[0]);
             sheetChanged = true;
 
-            const profile = await getProfile(candidate.conference);
+            const profile = await getProfileOnce(candidate.conference);
             await insertLabel({
               candidate_id: id,
               conference: candidate.conference,
@@ -542,7 +624,7 @@ export async function POST(req: NextRequest) {
             throw err;
           }
         } else if (action === 'trust_host' || action === 'block_host') {
-          const profile = await getProfile(candidate.conference);
+          const profile = await getProfileOnce(candidate.conference);
           // Review finding, MEDIUM item 2c: "trust host" ADDS to
           // `trusted_hosts`, which only ever RAISES scores (+20) — the
           // same reason the config PUT handler blocks adding trusted
@@ -555,8 +637,10 @@ export async function POST(req: NextRequest) {
           const entries = hostEntries(candidate.event);
           if (action === 'trust_host') {
             await upsertProfile({ conference: candidate.conference, trusted_hosts: mergeHostLists(profile?.trusted_hosts ?? [], entries) });
+            profileCache.delete(candidate.conference);
           } else {
             await upsertProfile({ conference: candidate.conference, blocked_hosts: mergeHostLists(profile?.blocked_hosts ?? [], entries) });
+            profileCache.delete(candidate.conference);
           }
         }
 

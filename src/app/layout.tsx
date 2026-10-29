@@ -63,7 +63,8 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} antialiased`}>
         <Providers>{children}</Providers>
-        <Script src="https://www.googletagmanager.com/gtag/js?id=G-2WB3SFJ13V" strategy="afterInteractive" />
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-2WB3SFJ13V" strategy="lazyOnload" />
+        {/* Inline setup stays afterInteractive so dataLayer/gtag exist (and early event/user-property calls queue); only the heavy library is lazy. */}
         <Script id="google-analytics" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];

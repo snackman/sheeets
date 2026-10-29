@@ -14,6 +14,8 @@ import { sweepDuplicateRows, type SweepResult } from '@/lib/ingest/dedupe-sweep'
 import { invalidateEventsCache } from '@/lib/fetch-events-cached';
 import { runSource } from '@/lib/ingest/pipeline';
 import { isInActiveWindow } from '@/lib/ingest/active-window';
+import { runWithSheetMemo } from '@/lib/ingest/sheet-memo';
+import { sendAlert } from '@/lib/alert';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -26,7 +28,15 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const reaped = await reapStaleRunningRuns();
+  let reaped = 0;
+  try {
+    reaped = await reapStaleRunningRuns();
+  } catch (err) {
+    // A reap failure must not take the whole ingest run down with it.
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`[ingest cron] reapStaleRunningRuns failed: ${message}`);
+    await sendAlert('reap_failure', `reapStaleRunningRuns failed: ${message.slice(0, 200)}`);
+  }
 
   // Phase 4: also poll X accounts, Meetup searches and sponsor event
   // pages — `runSource` itself skips an `x_account`/`meetup_search` source
@@ -68,33 +78,49 @@ export async function GET(req: Request) {
   const sweptRemoved = sweeps.reduce((n, s) => n + s.removed, 0);
   console.log(`[ingest cron] dedupe sweep removed ${sweptRemoved} duplicate row(s) across ${sweeps.length} conference(s)`);
 
-  for (const source of sources) {
-    if (Date.now() - startedAt > OVERALL_DEADLINE_MS) {
-      results.push({ sourceId: source.id, conference: source.conference, status: 'skipped', skippedReason: 'overall_deadline' });
-      continue;
-    }
+  // One sheet snapshot per tab shared by every source in this invocation.
+  await runWithSheetMemo(async () => {
+    for (const source of sources) {
+      if (Date.now() - startedAt > OVERALL_DEADLINE_MS) {
+        results.push({ sourceId: source.id, conference: source.conference, status: 'skipped', skippedReason: 'overall_deadline' });
+        continue;
+      }
 
-    const tab = tabs.find((t) => t.name === source.conference);
-    const startDate = tab?.dates?.[0];
-    const endDate = tab?.dates?.[tab.dates.length - 1];
-    if (!tab || !startDate || !endDate || !isInActiveWindow(startDate, endDate, todayISO)) {
-      results.push({ sourceId: source.id, conference: source.conference, status: 'skipped', skippedReason: 'outside_active_window' });
-      continue;
-    }
+      const tab = tabs.find((t) => t.name === source.conference);
+      const startDate = tab?.dates?.[0];
+      const endDate = tab?.dates?.[tab.dates.length - 1];
+      if (!tab || !startDate || !endDate || !isInActiveWindow(startDate, endDate, todayISO)) {
+        results.push({ sourceId: source.id, conference: source.conference, status: 'skipped', skippedReason: 'outside_active_window' });
+        continue;
+      }
 
-    const remaining = OVERALL_DEADLINE_MS - (Date.now() - startedAt);
-    try {
-      const result = await runSource(source.id, { trigger: 'cron', deadlineMs: Math.max(5000, remaining) });
-      results.push({ sourceId: source.id, conference: source.conference, status: result.status });
-    } catch (err) {
-      results.push({
-        sourceId: source.id,
-        conference: source.conference,
-        status: 'error',
-        skippedReason: err instanceof Error ? err.message : String(err),
-      });
+      const remaining = OVERALL_DEADLINE_MS - (Date.now() - startedAt);
+      try {
+        const result = await runSource(source.id, { trigger: 'cron', deadlineMs: Math.max(5000, remaining) });
+        results.push({ sourceId: source.id, conference: source.conference, status: result.status });
+      } catch (err) {
+        results.push({
+          sourceId: source.id,
+          conference: source.conference,
+          status: 'error',
+          skippedReason: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
+  });
+
+  // Majority of attempted sources erroring means something systemic is
+  // broken (Supabase, Sheets auth, OpenAI): surface it as a 500 so Vercel
+  // cron monitoring flags it, and ping the optional alert webhook.
+  const attempted = results.filter((r) => r.status !== 'skipped');
+  const errored = attempted.filter((r) => r.status === 'error');
+  const majorityFailed = attempted.length > 0 && errored.length * 2 > attempted.length;
+  if (majorityFailed) {
+    await sendAlert('cron_errors', `Ingest cron: ${errored.length}/${attempted.length} sources errored (conferences: ${[...new Set(errored.map((e) => e.conference))].slice(0, 5).join(', ')}). See the runs log for details.`);
   }
 
-  return NextResponse.json({ reapedStaleRuns: reaped, dedupeSweep: { removed: sweptRemoved, conferences: sweeps }, ran: results.length, results });
+  return NextResponse.json(
+    { reapedStaleRuns: reaped, dedupeSweep: { removed: sweptRemoved, conferences: sweeps }, ran: results.length, results },
+    { status: majorityFailed ? 500 : 200 }
+  );
 }
