@@ -22,7 +22,8 @@ describe('parseFilterParams', () => {
 describe('buildFilterSearch', () => {
   const defaultRange = { startDateTime: '2026-11-03T00:00', endDateTime: '2026-11-08T23:30' };
   const base = { startDateTime: defaultRange.startDateTime, endDateTime: defaultRange.endDateTime, timeMode: 'off' as const, vibes: [], searchQuery: '' };
-  it('omits defaults but keeps view', () => {
+  it('omits defaults and an unchosen view', () => {
+    expect(buildFilterSearch('', { filters: base, defaultRange, view: null })).toBe('');
     expect(buildFilterSearch('', { filters: base, defaultRange, view: 'list' })).toBe('?view=list');
   });
   it('round-trips and keeps unrelated params', () => {

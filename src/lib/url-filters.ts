@@ -64,7 +64,8 @@ export function buildFilterSearch(
   state: {
     filters: Pick<FilterState, 'startDateTime' | 'endDateTime' | 'timeMode' | 'vibes' | 'searchQuery'>;
     defaultRange: { startDateTime: string; endDateTime: string };
-    view: ViewMode;
+    /** null = user hasn't explicitly chosen a view; omit the param. */
+    view: ViewMode | null;
   },
 ): string {
   const sp = new URLSearchParams(current);
@@ -78,7 +79,7 @@ export function buildFilterSearch(
   if (filters.timeMode !== 'off') sp.set('time', filters.timeMode);
   if (filters.vibes.length > 0) sp.set('tags', filters.vibes.join(','));
   if (filters.searchQuery.trim()) sp.set('q', filters.searchQuery.trim());
-  sp.set('view', state.view);
+  if (state.view) sp.set('view', state.view);
 
   const s = sp.toString();
   return s ? `?${s}` : '';

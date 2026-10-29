@@ -4,7 +4,7 @@
  */
 
 import type { ETHDenverEvent } from './types';
-import { parseTime } from './calendar';
+import { parseTime, resolveEventRange, addDaysISO } from './calendar';
 
 const CALENDAR_API = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
 
@@ -57,28 +57,18 @@ export function buildCalendarEvent(
   if (event.isAllDay && event.dateISO) {
     // All-day event: use date-only format
     calEvent.start = { date: event.dateISO };
-    const nextDay = new Date(event.dateISO + 'T00:00:00');
-    nextDay.setDate(nextDay.getDate() + 1);
-    calEvent.end = { date: nextDay.toISOString().slice(0, 10) };
+    calEvent.end = { date: addDaysISO(event.dateISO, 1) };
   } else if (event.dateISO) {
     const startTime = parseTime(event.startTime);
     if (startTime) {
-      const startISO = formatDateTime(event.dateISO, startTime);
-      calEvent.start = { dateTime: startISO, timeZone: timezone };
-
-      const endTime = parseTime(event.endTime);
-      const endParsed = endTime || {
-        hour: startTime.hour + 1,
-        minute: startTime.minute,
-      };
-      const endISO = formatDateTime(event.dateISO, endParsed);
+      const { start, end } = resolveEventRange(event.dateISO, startTime, parseTime(event.endTime));
+      calEvent.start = { dateTime: formatDateTime(start.dateISO, start), timeZone: timezone };
+      const endISO = formatDateTime(end.dateISO, end);
       calEvent.end = { dateTime: endISO, timeZone: timezone };
     } else {
       // No parseable start time — treat as all-day
       calEvent.start = { date: event.dateISO };
-      const nextDay = new Date(event.dateISO + 'T00:00:00');
-      nextDay.setDate(nextDay.getDate() + 1);
-      calEvent.end = { date: nextDay.toISOString().slice(0, 10) };
+      calEvent.end = { date: addDaysISO(event.dateISO, 1) };
     }
   }
 

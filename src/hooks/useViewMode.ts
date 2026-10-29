@@ -24,11 +24,17 @@ function parseViewMode(saved: string | null): ViewMode {
 export function useViewMode() {
   // 'list' is the SSR/hydration value (most common on mobile); the saved or
   // width-based mode is applied right after hydration (avoids a mismatch).
-  const [viewMode, persistViewMode] = useLocalStorageState<ViewMode>(
+  const [storedViewMode, persistViewMode] = useLocalStorageState<ViewMode>(
     STORAGE_KEYS.VIEW_MODE,
     parseViewMode,
     'list'
   );
+  // View applied from a shared URL: lasts for this session only and is never
+  // written to localStorage, so it doesn't overwrite the recipient's preference.
+  const [sessionView, setSessionView] = useState<ViewMode | null>(null);
+  // True once the view came from the URL or an explicit user pick.
+  const [viewExplicit, setViewExplicit] = useState(false);
+  const viewMode = sessionView ?? storedViewMode;
   const [contentScrolled, setContentScrolled] = useState(false);
 
   // List view scroll tracking (mirrors TableView's onScrolledChange)
@@ -39,10 +45,17 @@ export function useViewMode() {
   // Persist to localStorage on change
   const setViewMode = useCallback((mode: ViewMode) => {
     persistViewMode(mode);
+    setSessionView(null);
+    setViewExplicit(true);
     setContentScrolled(false);
     listScrolledRef.current = false;
     listLastScrollTopRef.current = 0;
   }, [persistViewMode]);
+
+  const applyUrlView = useCallback((mode: ViewMode) => {
+    setSessionView(mode);
+    setViewExplicit(true);
+  }, []);
 
   const handleListScroll = useCallback(() => {
     const container = listMainRef.current;
@@ -71,6 +84,8 @@ export function useViewMode() {
   return {
     viewMode,
     setViewMode,
+    applyUrlView,
+    viewExplicit,
     contentScrolled,
     setContentScrolled,
     listMainRef,

@@ -105,6 +105,8 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
   const {
     viewMode,
     setViewMode,
+    applyUrlView,
+    viewExplicit,
     contentScrolled,
     setContentScrolled,
     listMainRef,
@@ -380,8 +382,10 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
         // Unknown tags are pruned by the effect that reconciles vibes with availableTypes/Vibes.
         if (p.tags) setFilter('vibes', p.tags);
         if (p.query) setFilter('searchQuery', p.query);
-        if (p.view) setViewMode(p.view);
+        if (p.view) applyUrlView(p.view);
       } else {
+        // setDateTimeRange resets the time mode, so re-apply it after the dates.
+        if (p.start && p.end && p.timeMode) setFilter('timeMode', p.timeMode);
         urlParamsRef.current = null;
       }
     }
@@ -395,19 +399,35 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
     [filters.conference, conferenceTabs]
   );
 
-  // Sync URL with selected conference + filters
+  // Sync URL with selected conference + filters. Debounced so typing in the
+  // search box doesn't trip Safari's replaceState rate limit.
   useEffect(() => {
     if (!urlHydrated) return;
     const tab = getTabConfig(filters.conference, conferenceTabs);
-    if (tab?.slug) {
-      const search = buildFilterSearch(window.location.search, { filters, defaultRange, view: viewMode });
+    if (!tab?.slug) return;
+    setConferenceProperty(tab.slug);
+    const timer = setTimeout(() => {
+      // Never write default-derived dates: compare to a fresh default too, so
+      // "Clear filters" (which resets to the current "now") drops the params.
+      const fresh = getDateTimeRangeForConference(filters.conference, conferenceTabs);
+      const isFresh = filters.startDateTime === fresh.startDateTime && filters.endDateTime === fresh.endDateTime;
+      const search = buildFilterSearch(window.location.search, {
+        filters,
+        defaultRange: isFresh ? fresh : defaultRange,
+        view: viewExplicit ? viewMode : null,
+      });
       const next = `/${tab.slug}${search}`;
       if (window.location.pathname + window.location.search !== next) {
-        window.history.replaceState(null, '', next);
+        try {
+          // Keep the #fragment (Supabase auth tokens / X linking use it).
+          window.history.replaceState(null, '', next + window.location.hash);
+        } catch {
+          // Rate-limited or blocked (Safari SecurityError); the URL is best-effort.
+        }
       }
-      setConferenceProperty(tab.slug);
-    }
-  }, [filters, defaultRange, viewMode, urlHydrated, conferenceTabs]);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [filters, defaultRange, viewMode, viewExplicit, urlHydrated, conferenceTabs]);
 
   const timeZoneLabel = useMemo(
     () => conferenceTimeZoneLabel(getTabConfig(filters.conference, conferenceTabs)),
