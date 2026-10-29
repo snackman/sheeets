@@ -153,6 +153,29 @@ export function buildSystemPrompt(
   return lines.join('\n');
 }
 
+/**
+ * Run the injection pre-scan over EVERY free-text field of the event that
+ * reaches the model (see `buildEventDataContent`), not just name and
+ * description: hosts, calendar name, organizer and venue are attacker
+ * controlled too.
+ */
+export function scanEventForInjection(event: ClassifierEventInput): boolean {
+  const fields: Array<string | null | undefined> = [
+    event.name,
+    event.descriptionText,
+    ...(event.hosts ?? []),
+    event.calendarName,
+    event.organizer,
+    event.venue,
+    event.city,
+    event.cost,
+    event.platform,
+    event.dateISO,
+    event.startTime,
+  ];
+  return fields.some((f) => typeof f === 'string' && scanForInjection(f));
+}
+
 /** JSON-encode the event so unescaped markup in the description can't break out
  *  of the `<event_data>` block (§5.5, §10 item 2). */
 export function buildEventDataContent(event: ClassifierEventInput): string {

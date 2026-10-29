@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/admin-guard';
 
 function getSupabase() {
   return createClient(
@@ -9,6 +10,9 @@ function getSupabase() {
 }
 
 export async function GET(req: NextRequest) {
+  const denied = await requireAdmin(req);
+  if (denied) return denied;
+
   const testId = req.nextUrl.searchParams.get('test_id');
   if (!testId) {
     return NextResponse.json({ error: 'test_id query param required' }, { status: 400 });

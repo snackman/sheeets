@@ -1,5 +1,6 @@
 'use client';
 
+import { adminFetch } from '@/lib/admin-fetch';
 import { useState, useCallback } from 'react';
 import { Loader2, Plus, Trash2, Pencil, Save, FlaskConical, Play, Pause, Trophy, BarChart3, Eye, MousePointer } from 'lucide-react';
 import type { AdminConfig, ABTest, ABTestStatus, ABVariantResult } from '@/lib/types';
@@ -22,9 +23,10 @@ interface Props {
   saving: boolean;
   saveMessage: string;
   saveConfig: SaveConfigFn;
+  password: string;
 }
 
-export default function AbTestsTab({ adminConfig, allConferenceTabs, saving, saveMessage, saveConfig }: Props) {
+export default function AbTestsTab({ adminConfig, allConferenceTabs, saving, saveMessage, saveConfig, password }: Props) {
   const [abTests, setAbTests] = useConfigState<ABTest[]>(adminConfig, (c) => (c?.ab_tests as ABTest[]) || []);
   const [abEditingId, setAbEditingId] = useState<string | null>(null);
   const [abViewResults, setAbViewResults] = useState<string | null>(null);
@@ -72,14 +74,14 @@ export default function AbTestsTab({ adminConfig, allConferenceTabs, saving, sav
   const fetchResults = useCallback(async (testId: string) => {
     setAbResultsLoading(true);
     try {
-      const res = await fetch(`/api/ab/results?test_id=${testId}`);
+      const res = await adminFetch(`/api/ab/results?test_id=${testId}`, password);
       if (res.ok) {
         const data = await res.json();
         setAbResults(prev => ({ ...prev, [testId]: data.variants }));
       }
     } catch { /* ignore */ }
     setAbResultsLoading(false);
-  }, []);
+  }, [password]);
 
   return (
     <div className="space-y-6">

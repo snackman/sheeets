@@ -2,7 +2,7 @@
 // auth, zod-validated body, service-role Supabase access.
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { isAdminPassword, getAdminPassword } from '@/lib/admin-auth';
+import { requireAdmin } from '@/lib/admin-guard';
 import { parseBody, IngestQueueActionSchema } from '@/lib/api-validation';
 import { getAllConferenceTabs } from '@/lib/get-conferences';
 import type { TabConfig } from '@/lib/conferences';
@@ -60,10 +60,8 @@ export const maxDuration = 300;
 const MAX_BULK_APPROVE = 40;
 
 export async function GET(req: NextRequest) {
-  const password = getAdminPassword(req);
-  if (!isAdminPassword(password)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = await requireAdmin(req);
+  if (denied) return denied;
 
   const status = req.nextUrl.searchParams.get('status');
   const conference = req.nextUrl.searchParams.get('conference') || undefined;
@@ -130,9 +128,8 @@ export async function POST(req: NextRequest) {
   if (parseError) return parseError;
 
   const { password, action, ids, reason, note, edits } = data;
-  if (!isAdminPassword(password)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = await requireAdmin(req, password);
+  if (denied) return denied;
 
   if (action === 'approve' && ids.length > MAX_BULK_APPROVE) {
     return NextResponse.json(

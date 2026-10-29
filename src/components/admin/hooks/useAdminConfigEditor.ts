@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FALLBACK_TABS } from '@/lib/constants';
+import { adminFetch } from '@/lib/admin-fetch';
 import type { AdminConfig, ConferenceConfig } from '@/lib/types';
 
 export type SaveConfigFn = (key: string, value: unknown) => Promise<void>;
@@ -32,7 +33,7 @@ export function useAdminConfigEditor(authed: boolean, password: string) {
   // Fetch admin config when authed
   useEffect(() => {
     if (!authed) return;
-    fetch('/api/admin/config')
+    adminFetch('/api/admin/config', password)
       .then(res => res.json())
       .then((data: AdminConfig) => {
         setAdminConfig(data);
@@ -54,7 +55,7 @@ export function useAdminConfigEditor(authed: boolean, password: string) {
       })
       .catch(() => {})
       .finally(() => setConfigSettled(true));
-  }, [authed]);
+  }, [authed, password]);
 
   async function saveConfig(key: string, value: unknown) {
     setSaving(true);

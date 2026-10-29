@@ -24,6 +24,19 @@ function getSupabaseWriter() {
 /** In-memory fallback cache for when Supabase is unavailable */
 const memoryCache = new Map<string, { imageUrl: string | null; ts: number }>();
 const MEMORY_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
+/** Max entries kept in memoryCache (LRU-ish: oldest insertion evicted first). */
+const MEMORY_CACHE_MAX = 500;
+
+function rememberImage(url: string, imageUrl: string | null) {
+  // Re-insert so the Map's insertion order tracks recency, then evict oldest.
+  memoryCache.delete(url);
+  memoryCache.set(url, { imageUrl, ts: Date.now() });
+  while (memoryCache.size > MEMORY_CACHE_MAX) {
+    const oldest = memoryCache.keys().next().value;
+    if (oldest === undefined) break;
+    memoryCache.delete(oldest);
+  }
+}
 
 /** Extract the slug from a Luma URL (lu.ma/xxx or luma.com/xxx) */
 function getLumaSlug(url: string): string | null {
@@ -344,7 +357,7 @@ export async function GET(request: NextRequest) {
   }
 
   // 6. Store in memory cache as fallback
-  memoryCache.set(url, { imageUrl, ts: Date.now() });
+  rememberImage(url, imageUrl);
 
   return NextResponse.json({ imageUrl });
 }

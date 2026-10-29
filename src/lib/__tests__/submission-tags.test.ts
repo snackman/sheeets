@@ -11,6 +11,10 @@ vi.mock('@/lib/google-sheets', () => ({
   appendEventRow: (...a: unknown[]) => appendEventRowMock(...a),
   getSheetTitle: async () => 'Sheet',
 }));
+vi.mock('@/lib/ledger-rate-limit', () => ({
+  recordLedgerAttempt: async () => {},
+  countLedgerAttempts: async () => 0,
+}));
 vi.mock('@/lib/get-conferences', () => ({
   getConferenceTabs: async () => [{ name: 'Conf', gid: 1 }],
 }));

@@ -10,6 +10,7 @@ import type { UpsellCopy } from '@/lib/types';
 import { Dropdown, TIME_OPTIONS, format12Hour } from './DateTimePicker';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { isSafeHttpUrl } from '@/lib/utils';
+import { TurnstileWidget, TURNSTILE_ENABLED } from './TurnstileWidget';
 
 interface SubmitEventModalProps {
   isOpen: boolean;
@@ -43,6 +44,8 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
   const [fetchError, setFetchError] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileReset, setTurnstileReset] = useState(0);
 
   // Form fields — date as ISO "2026-03-10", times as 24h "19:00"
   const [conference, setConference] = useState(initialConference || conferenceTabs[0]?.name || '');
@@ -209,12 +212,15 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
             bar: hasBar,
             note: note.trim(),
           },
+          turnstileToken: turnstileToken ?? undefined,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
+        // Turnstile tokens are single-use: get a fresh challenge for the retry.
+        setTurnstileReset((n) => n + 1);
         setSubmitError(data.error || 'Failed to submit event.');
         setSubmitLoading(false);
         return;
@@ -518,11 +524,12 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                   />
                 </div>
 
+                <TurnstileWidget onToken={setTurnstileToken} resetKey={turnstileReset} />
                 {submitError && <p className="text-red-400 text-xs">{submitError}</p>}
 
                 <button
                   onClick={handleSubmit}
-                  disabled={submitLoading || !name.trim() || !dateISO}
+                  disabled={submitLoading || !name.trim() || !dateISO || (TURNSTILE_ENABLED && !turnstileToken)}
                   className="w-full px-4 py-2.5 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] disabled:opacity-50 text-[var(--theme-accent-text)] rounded-lg text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
                 >
                   {submitLoading ? (

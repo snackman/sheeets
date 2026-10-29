@@ -28,7 +28,10 @@ vi.mock('@/lib/ingest/db', () => ({
 import { GET, POST } from '@/app/api/admin/ingest/source-proposals/route';
 
 function getRequest(params: Record<string, string>) {
-  return new NextRequest(`http://localhost/api/admin/ingest/source-proposals?${new URLSearchParams(params)}`);
+  const { password, ...rest } = params;
+  return new NextRequest(`http://localhost/api/admin/ingest/source-proposals?${new URLSearchParams(rest)}`, {
+    headers: password ? { 'x-admin-password': password } : {},
+  });
 }
 
 function postRequest(body: unknown) {

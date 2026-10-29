@@ -5,6 +5,19 @@ import { getConferenceTabs } from '@/lib/get-conferences';
 import { parseBody, SubmitEventSchema } from '@/lib/api-validation';
 import { createClient } from '@supabase/supabase-js';
 import { sanitizeSheetTagString } from '@/lib/ingest/sheet-tags';
+import { createRateLimiter, getClientIp } from '@/lib/rate-limit';
+import { recordLedgerAttempt, countLedgerAttempts } from '@/lib/ledger-rate-limit';
+import { verifyTurnstile } from '@/lib/turnstile';
+
+// Per-IP limits, same shape as /api/host/submissions: a short and a daily
+// window counted in the shared Supabase attempt ledger (persistent across
+// instances), plus an in-memory limiter as a fallback if the ledger is down.
+const SCOPE = 'submit-event';
+const SHORT_WINDOW_MS = 15 * 60 * 1000;
+const SHORT_MAX = 5;
+const DAY_WINDOW_MS = 24 * 60 * 60 * 1000;
+const DAY_MAX = 20;
+const memLimiter = createRateLimiter(SHORT_MAX, SHORT_WINDOW_MS);
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +25,26 @@ export async function POST(request: NextRequest) {
     if (error) return error;
 
     const { conference, coords, event } = data;
+
+    // Captcha first (no-op unless both Turnstile keys are configured), so a
+    // bot flood never writes ledger rows.
+    if (!(await verifyTurnstile(data.turnstileToken, getClientIp(request)))) {
+      return NextResponse.json({ error: 'Captcha verification failed. Please try again.' }, { status: 400 });
+    }
+
+    // Record the attempt BEFORE counting (closes most of the concurrent race),
+    // so counts include this request and are compared with `>`.
+    await recordLedgerAttempt(SCOPE, request);
+    const [recentShort, recentDay] = await Promise.all([
+      countLedgerAttempts(SCOPE, request, SHORT_WINDOW_MS),
+      countLedgerAttempts(SCOPE, request, DAY_WINDOW_MS),
+    ]);
+    if (!memLimiter.check(getClientIp(request)) || recentShort > SHORT_MAX || recentDay > DAY_MAX) {
+      return NextResponse.json(
+        { error: 'Too many submissions from this network. Please try again later.' },
+        { status: 429 }
+      );
+    }
 
     // Try dynamic conferences, fall back to hardcoded
     let tabs = FALLBACK_TABS;
@@ -86,9 +119,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, row, pending: true });
   } catch (err) {
     console.error('Submit event error:', err);
-    const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json(
-      { error: `Failed to submit event: ${message}` },
+      { error: 'Failed to submit event. Please try again later.' },
       { status: 500 }
     );
   }

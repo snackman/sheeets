@@ -29,12 +29,12 @@ describe('admin ingest API auth', () => {
   });
 
   it('GET /api/admin/ingest/queue rejects a wrong password', async () => {
-    const res = await queueGet(new NextRequest('http://localhost/api/admin/ingest/queue?password=nope'));
+    const res = await queueGet(new NextRequest('http://localhost/api/admin/ingest/queue', { headers: { 'x-admin-password': 'nope' } }));
     expect(res.status).toBe(401);
   });
 
   it('GET /api/admin/ingest/queue accepts the right password (auth gate passes)', async () => {
-    const res = await queueGet(new NextRequest(`http://localhost/api/admin/ingest/queue?password=${TEST_PASSWORD}`));
+    const res = await queueGet(new NextRequest('http://localhost/api/admin/ingest/queue', { headers: { 'x-admin-password': TEST_PASSWORD } }));
     expect(res.status).not.toBe(401);
   });
 
@@ -53,12 +53,12 @@ describe('admin ingest API auth', () => {
   });
 
   it('GET /api/admin/ingest/config rejects a wrong password', async () => {
-    const res = await configGet(new NextRequest('http://localhost/api/admin/ingest/config?password=nope'));
+    const res = await configGet(new NextRequest('http://localhost/api/admin/ingest/config', { headers: { 'x-admin-password': 'nope' } }));
     expect(res.status).toBe(401);
   });
 
   it('GET /api/admin/ingest/config accepts the right password', async () => {
-    const res = await configGet(new NextRequest(`http://localhost/api/admin/ingest/config?password=${TEST_PASSWORD}`));
+    const res = await configGet(new NextRequest('http://localhost/api/admin/ingest/config', { headers: { 'x-admin-password': TEST_PASSWORD } }));
     expect(res.status).not.toBe(401);
   });
 
@@ -78,12 +78,12 @@ describe('admin ingest API auth', () => {
   });
 
   it('GET /api/admin/ingest/runs rejects a wrong password', async () => {
-    const res = await runsGet(new NextRequest('http://localhost/api/admin/ingest/runs?password=nope'));
+    const res = await runsGet(new NextRequest('http://localhost/api/admin/ingest/runs', { headers: { 'x-admin-password': 'nope' } }));
     expect(res.status).toBe(401);
   });
 
   it('GET /api/admin/ingest/runs accepts the right password', async () => {
-    const res = await runsGet(new NextRequest(`http://localhost/api/admin/ingest/runs?password=${TEST_PASSWORD}`));
+    const res = await runsGet(new NextRequest('http://localhost/api/admin/ingest/runs', { headers: { 'x-admin-password': TEST_PASSWORD } }));
     expect(res.status).not.toBe(401);
   });
 

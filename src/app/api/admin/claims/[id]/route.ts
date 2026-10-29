@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isAdminPassword } from '@/lib/admin-auth';
+import { requireAdmin } from '@/lib/admin-guard';
 import { AdminClaimActionSchema, ClaimIdSchema, parseBody } from '@/lib/api-validation';
 import { getServiceSupabase } from '@/lib/server-auth';
 import { fetchEventsCached } from '@/lib/fetch-events-cached';
@@ -23,9 +23,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const { data: body, error: parseError } = await parseBody(req, AdminClaimActionSchema);
   if (parseError) return parseError;
-  if (!isAdminPassword(body.password)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = await requireAdmin(req, body.password);
+  if (denied) return denied;
 
   const sb = getServiceSupabase();
   const { data: row, error: loadErr } = await sb.from('event_claims').select('*').eq('id', id).maybeSingle();

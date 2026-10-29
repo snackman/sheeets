@@ -322,6 +322,10 @@ export async function countGlobalRecentSubmissionAttempts(windowMs: number): Pro
     .from('ingest_submission_attempts')
     .select('id', { count: 'exact', head: true })
     .eq('rejected', false)
+    // Rows written by other public endpoints that reuse this ledger
+    // (conference prefixed `sec:`, see src/lib/ledger-rate-limit.ts) must not
+    // count against the host-submission global ceiling.
+    .or('conference.is.null,conference.not.like.sec:%')
     .gte('created_at', since);
   if (error) throw new Error(`Failed to count global submission attempts: ${error.message}`);
   return count ?? 0;

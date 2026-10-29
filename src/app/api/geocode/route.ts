@@ -3,6 +3,12 @@ import { parseBody, GeocodeSchema } from '@/lib/api-validation';
 import { FALLBACK_TABS } from '@/lib/conferences';
 import { getConferenceTabs } from '@/lib/get-conferences';
 import type { TabConfig } from '@/lib/conferences';
+import { createRateLimiter, getClientIp } from '@/lib/rate-limit';
+
+// Per-IP limit (in-process; resets on cold start, not shared across instances)
+// and a small per-request cap: this endpoint proxies a paid Mapbox token.
+const limiter = createRateLimiter(10, 10 * 60 * 1000);
+const MAX_ADDRESSES_PER_REQUEST = 10;
 
 // Static fallback proximity entries for common city name matches
 const STATIC_PROXIMITY: Record<string, { lat: number; lng: number; suffix: string }> = {
@@ -36,6 +42,10 @@ function getProximity(conference: string, proximityMap: Record<string, { lat: nu
 }
 
 export async function POST(req: NextRequest) {
+  if (!limiter.check(getClientIp(req))) {
+    return NextResponse.json({ error: 'Too many requests. Try again later.' }, { status: 429 });
+  }
+
   const token = process.env.MAPBOX_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   if (!token) {
     return NextResponse.json({ error: 'Mapbox token not configured' }, { status: 500 });
@@ -55,8 +65,8 @@ export async function POST(req: NextRequest) {
   }
   const proximityMap = buildProximityMap(tabs);
 
-  // Cap at 25 addresses per request to avoid abuse
-  const batch = addresses.slice(0, 25);
+  // Cap addresses per request to avoid abuse
+  const batch = addresses.slice(0, MAX_ADDRESSES_PER_REQUEST);
   const results: Record<string, { lat: number; lng: number }> = {};
 
   for (const { normalized, raw, conference } of batch) {

@@ -4,7 +4,7 @@ import { parseBody, SubmissionActionSchema } from '@/lib/api-validation';
 import { insertEventRowSorted, getSheetTitle, findReviewRow, deleteSheetRow, writeCell } from '@/lib/google-sheets';
 import { FALLBACK_TABS } from '@/lib/conferences';
 import { getConferenceTabs } from '@/lib/get-conferences';
-import { isAdminPassword, getAdminPassword } from '@/lib/admin-auth';
+import { requireAdmin } from '@/lib/admin-guard';
 import { invalidateEventsCache } from '@/lib/fetch-events-cached';
 import { writeGeocodedAddress } from '@/lib/geocoded-addresses';
 import { sanitizeSheetTagString } from '@/lib/ingest/sheet-tags';
@@ -17,10 +17,8 @@ function getSupabase() {
 }
 
 export async function GET(req: NextRequest) {
-  const password = getAdminPassword(req);
-  if (!isAdminPassword(password)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = await requireAdmin(req);
+  if (denied) return denied;
 
   const status = req.nextUrl.searchParams.get('status') || 'pending';
   const conference = req.nextUrl.searchParams.get('conference') || '';
@@ -53,9 +51,8 @@ export async function POST(req: NextRequest) {
 
   const { password, action, id, rejection_reason, edits } = data;
 
-  if (!isAdminPassword(password)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = await requireAdmin(req, password);
+  if (denied) return denied;
 
   const supabase = getSupabase();
 

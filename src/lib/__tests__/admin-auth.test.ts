@@ -50,9 +50,9 @@ describe('getAdminPassword (admin GET routes: header over query-param)', () => {
     expect(getAdminPassword(req)).toBe('from-header');
   });
 
-  it('falls back to the ?password= query param for one release', () => {
+  it('does NOT read the ?password= query param (removed)', () => {
     const req = makeReq({ header: null, query: 'from-query' });
-    expect(getAdminPassword(req)).toBe('from-query');
+    expect(getAdminPassword(req)).toBeNull();
   });
 
   it('returns null when neither is present', () => {
@@ -66,7 +66,7 @@ describe('getAdminPassword (admin GET routes: header over query-param)', () => {
     const headerReq = makeReq({ header: 'super-secret', query: null });
     const queryReq = makeReq({ header: null, query: 'super-secret' });
     expect(isAdminPassword(getAdminPassword(headerReq))).toBe(true);
-    expect(isAdminPassword(getAdminPassword(queryReq))).toBe(true);
+    expect(isAdminPassword(getAdminPassword(queryReq))).toBe(false);
     process.env.ADMIN_PASSWORD = prev;
   });
 });

@@ -6,17 +6,15 @@
 // re-proposes it again, no matter how many future daily runs still find it
 // eligible.
 import { NextRequest, NextResponse } from 'next/server';
-import { isAdminPassword, getAdminPassword } from '@/lib/admin-auth';
+import { requireAdmin } from '@/lib/admin-guard';
 import { parseBody, IngestSourceProposalDecisionSchema } from '@/lib/api-validation';
 import { listSourceProposals, getSourceProposalById, decideSourceProposal, createLumaIcalSourceIdempotent, getProfile, updateSource } from '@/lib/ingest/db';
 
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
-  const password = getAdminPassword(req);
-  if (!isAdminPassword(password)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = await requireAdmin(req);
+  if (denied) return denied;
   const conference = req.nextUrl.searchParams.get('conference');
   if (!conference) {
     return NextResponse.json({ error: 'conference is required' }, { status: 400 });
@@ -33,9 +31,8 @@ export async function POST(req: NextRequest) {
   const { data, error: parseError } = await parseBody(req, IngestSourceProposalDecisionSchema);
   if (parseError) return parseError;
   const { password, id, decision } = data;
-  if (!isAdminPassword(password)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = await requireAdmin(req, password);
+  if (denied) return denied;
 
   try {
     const proposal = await getSourceProposalById(id);

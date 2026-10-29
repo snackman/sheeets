@@ -27,7 +27,7 @@ import type {
   FewShotExample,
   ThemeProfile,
 } from './types';
-import { buildSystemPrompt, buildUserContent, sanitizeFewShotExamples, scanForInjection } from './prompt';
+import { buildSystemPrompt, buildUserContent, sanitizeFewShotExamples, scanEventForInjection } from './prompt';
 
 /** Env-overridable so a cheaper/newer model can be swapped in without a code change. */
 export const INGEST_MODEL = process.env.INGEST_MODEL || 'gpt-5-mini';
@@ -116,8 +116,7 @@ export interface ClassifyResult {
 export async function classifyEvent(opts: ClassifyOptions): Promise<ClassifyResult> {
   const { client, profile, conference, event, fewShot = [], model = INGEST_MODEL, reasoningEffort = 'minimal' } = opts;
 
-  const injectionDetected =
-    scanForInjection(event.name) || scanForInjection(event.descriptionText);
+  const injectionDetected = scanEventForInjection(event);
 
   // `sanitizeFewShotExamples` may drop examples that fail the injection
   // scan (review finding, CRITICAL item 4) — the system prompt's "there IS

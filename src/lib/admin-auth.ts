@@ -1,18 +1,14 @@
 import { timingSafeEqual } from 'crypto';
 
 /**
- * Read the admin password off an admin GET route's request. Prefers the
- * `x-admin-password` header -- a query string (`?password=...`) is routinely
- * written to server/proxy access logs and browser history, which the header
- * is not. Falls back to the `?password=` query param for one release while
- * every admin UI fetch call switches to sending the header (see
- * `src/lib/admin-fetch.ts`).
- *
- * TODO(deprecation): once this release has shipped, drop the `?password=`
- * fallback below and require the header.
+ * Read the admin password off an admin request. Only the `x-admin-password`
+ * header is accepted here -- a `?password=` query string is routinely written
+ * to server/proxy access logs and browser history, so it is deliberately NOT
+ * read (the old fallback was removed). Body-supplied passwords are handled by
+ * `requireAdmin()` in `src/lib/admin-guard.ts`.
  */
-export function getAdminPassword(req: { headers: Headers; nextUrl: { searchParams: URLSearchParams } }): string | null {
-  return req.headers.get('x-admin-password') ?? req.nextUrl.searchParams.get('password');
+export function getAdminPassword(req: { headers: Headers }): string | null {
+  return req.headers.get('x-admin-password');
 }
 
 /**

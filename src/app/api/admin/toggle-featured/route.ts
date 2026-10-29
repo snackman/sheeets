@@ -3,7 +3,7 @@ import { readRange, writeCell, getSheetTitle } from '@/lib/google-sheets';
 import { FALLBACK_TABS } from '@/lib/conferences';
 import { getConferenceTabs } from '@/lib/get-conferences';
 import { parseBody, ToggleFeaturedSchema } from '@/lib/api-validation';
-import { isAdminPassword } from '@/lib/admin-auth';
+import { requireAdmin } from '@/lib/admin-guard';
 import { invalidateEventsCache } from '@/lib/fetch-events-cached';
 
 export async function POST(request: NextRequest) {
@@ -13,9 +13,8 @@ export async function POST(request: NextRequest) {
 
     const { password, conference, eventName, featured } = data;
 
-    if (!isAdminPassword(password)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const denied = await requireAdmin(request, password);
+    if (denied) return denied;
 
     // Try dynamic conferences, fall back to hardcoded
     let tabs = FALLBACK_TABS;

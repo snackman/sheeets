@@ -36,10 +36,11 @@
 //     classifying, same as every other candidate source.
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'node:crypto';
-import net from 'node:net';
 import OpenAI from 'openai';
 import { getConferenceTabs } from '@/lib/get-conferences';
 import { parseBody, HostSubmissionSchema } from '@/lib/api-validation';
+import { bucketIp } from '@/lib/ip-bucket';
+import { verifyTurnstile } from '@/lib/turnstile';
 import { getBearerToken } from '@/lib/server-auth';
 import { fetchEvents } from '@/lib/fetch-events';
 import { normalizeEventLink } from '@/lib/luma';
@@ -106,44 +107,6 @@ function hashBucket(bucket: string): string {
   return createHash('sha256').update(bucket).digest('hex');
 }
 
-/** Expand a (possibly `::`-compressed) IPv6 address into its 8 hex groups,
- *  or null if it doesn't parse as one. Zone ids (`%eth0`) are stripped
- *  first. Doesn't bother resolving an IPv4-mapped tail (`::ffff:1.2.3.4`)
- *  into a single group — fine for rate-limit BUCKETING (not a security
- *  boundary like `safe-fetch.ts`'s IP classification), since that still
- *  produces a stable, consistent key for the same address. */
-function expandIPv6Groups(ip: string): string[] | null {
-  const addr = ip.split('%')[0];
-  const parts = addr.split('::');
-  if (parts.length > 2) return null;
-  const head = parts[0] ? parts[0].split(':').filter(Boolean) : [];
-  const tail = parts.length === 2 && parts[1] ? parts[1].split(':').filter(Boolean) : [];
-  let groups: string[];
-  if (parts.length === 2) {
-    const fill = 8 - head.length - tail.length;
-    if (fill < 0) return null;
-    groups = [...head, ...Array(fill).fill('0'), ...tail];
-  } else {
-    groups = head;
-  }
-  return groups.length === 8 ? groups : null;
-}
-
-/** Bucket a client IP for rate-limit purposes (review finding, HIGH item
- *  2): an IPv4 address is used as-is, but an IPv6 address is reduced to
- *  its /64 prefix first — a single residential/mobile customer is
- *  typically handed a whole /64 (or larger) and can cycle through
- *  addresses within it per-request, so limiting by the FULL address would
- *  be trivially bypassable. Returns the ORIGINAL ip unchanged if it
- *  doesn't parse as IPv4/IPv6 at all (e.g. the 'unknown' sentinel). */
-function bucketIp(ip: string): string {
-  if (net.isIP(ip) === 6) {
-    const groups = expandIPv6Groups(ip);
-    if (groups) return `v6:${groups.slice(0, 4).join(':')}::/64`;
-  }
-  return ip;
-}
-
 /**
  * Best-effort client IP (review finding, HIGH item 2: "prefer request.ip /
  * x-real-ip / Vercel's header over the first XFF entry"). Priority:
@@ -178,30 +141,6 @@ function getClientIp(req: NextRequest): string {
     if (first) return first;
   }
   return 'unknown';
-}
-
-async function verifyTurnstile(token: string | undefined, ip: string): Promise<boolean> {
-  const secret = process.env.TURNSTILE_SECRET_KEY;
-  // Review finding, MEDIUM item 5: only enforce Turnstile when BOTH halves
-  // of the pair are configured. A secret with no site key would mean the
-  // client-side widget (`SubmitSourceForm.tsx`) never renders at all — so
-  // every request would be rejected forever, a silent total outage from a
-  // half-finished config rather than "Turnstile is just off".
-  if (!secret || !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) return true;
-  if (!token) return false;
-  try {
-    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ secret, response: token, remoteip: ip }),
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) return false;
-    const json = await res.json();
-    return json?.success === true;
-  } catch {
-    return false;
-  }
 }
 
 export async function POST(req: NextRequest) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isAdminPassword, getAdminPassword } from '@/lib/admin-auth';
+import { requireAdmin } from '@/lib/admin-guard';
 import { getServiceSupabase } from '@/lib/server-auth';
 import { fetchEventsCached } from '@/lib/fetch-events-cached';
 import { isMissingSchemaError } from '@/lib/error-store';
@@ -11,16 +11,15 @@ export const dynamic = 'force-dynamic';
 const STATUSES = new Set(['pending', 'verified', 'rejected', 'revoked', 'withdrawn']);
 
 /**
- * GET /api/admin/claims?password=&status=pending|verified|rejected|revoked|withdrawn|all&conference=
+ * GET /api/admin/claims?status=pending|verified|rejected|revoked|withdrawn|all&conference=
  * Review queue, enriched with the claimant's profile, Luma hosts snapshot,
  * an "X handle matches a Luma host" hint (spoofable — hint only), other
  * verified claims on the same event, and whether the event still exists.
  */
 export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
-  if (!isAdminPassword(getAdminPassword(req))) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = await requireAdmin(req);
+  if (denied) return denied;
   const status = params.get('status') || 'pending';
   if (status !== 'all' && !STATUSES.has(status)) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 });

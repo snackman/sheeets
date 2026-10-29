@@ -1,7 +1,7 @@
 // Admin Ingest config: profiles + sources CRUD, and resolving a Luma
 // calendar URL before saving it as a source (§9.1).
 import { NextRequest, NextResponse } from 'next/server';
-import { isAdminPassword, getAdminPassword } from '@/lib/admin-auth';
+import { requireAdmin } from '@/lib/admin-guard';
 import {
   parseBody,
   IngestProfileUpsertSchema,
@@ -90,10 +90,8 @@ function hasAddedHostEntries(existing: TrustedHostEntry[], next: TrustedHostEntr
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
-  const password = getAdminPassword(req);
-  if (!isAdminPassword(password)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = await requireAdmin(req);
+  if (denied) return denied;
 
   // Mira "add a series" dropdown (§9.1): list every series Mira tracks so
   // the admin can pick one instead of hand-typing a slug.
@@ -147,9 +145,8 @@ export async function PUT(req: NextRequest) {
   const { data, error: parseError } = await parseBody(req, IngestProfileUpsertSchema);
   if (parseError) return parseError;
   const { password, conference, ...patch } = data;
-  if (!isAdminPassword(password)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = await requireAdmin(req, password);
+  if (denied) return denied;
 
   try {
     const existing = await getProfile(conference);
@@ -261,9 +258,8 @@ export async function POST(req: NextRequest) {
   const { data, error: parseError } = await parseBody(req, IngestSourceCreateSchema);
   if (parseError) return parseError;
   const { password, conference, kind, input, label, trust } = data;
-  if (!isAdminPassword(password)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = await requireAdmin(req, password);
+  if (denied) return denied;
 
   try {
     // Phase 3: a `telegram_channel` source is ALWAYS `discovery` trust —
@@ -452,9 +448,8 @@ export async function PATCH(req: NextRequest) {
   const { data, error: parseError } = await parseBody(req, IngestSourceUpdateSchema);
   if (parseError) return parseError;
   const { password, id, ...patch } = data;
-  if (!isAdminPassword(password)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = await requireAdmin(req, password);
+  if (denied) return denied;
 
   try {
     if (patch.trust !== undefined) {
@@ -504,9 +499,8 @@ export async function DELETE(req: NextRequest) {
   const { data, error: parseError } = await parseBody(req, IngestSourceDeleteSchema);
   if (parseError) return parseError;
   const { password, id } = data;
-  if (!isAdminPassword(password)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = await requireAdmin(req, password);
+  if (denied) return denied;
 
   try {
     await deleteSource(id);

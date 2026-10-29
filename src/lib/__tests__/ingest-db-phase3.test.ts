@@ -15,7 +15,7 @@ function makeFakeSupabase(
   function from(table: string) {
     callsByTable[table] = callsByTable[table] ?? [];
     const chain: Record<string, unknown> = {};
-    const methods = ['select', 'eq', 'in', 'not', 'gte', 'order', 'limit', 'is', 'maybeSingle', 'single', 'update', 'upsert', 'insert'];
+    const methods = ['select', 'eq', 'in', 'not', 'gte', 'order', 'limit', 'is', 'or', 'maybeSingle', 'single', 'update', 'upsert', 'insert'];
     for (const m of methods) {
       chain[m] = (...args: unknown[]) => {
         callsByTable[table].push({ method: m, args });

@@ -442,8 +442,9 @@ describe('PUT /api/admin/ingest/config: blocks ADDING include_keywords/trusted_h
 
 function getRequest(params: Record<string, string>) {
   const url = new URL('http://localhost/api/admin/ingest/config');
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  return new NextRequest(url);
+  const { password, ...rest } = params;
+  for (const [k, v] of Object.entries(rest)) url.searchParams.set(k, v);
+  return new NextRequest(url, password ? { headers: { 'x-admin-password': password } } : undefined);
 }
 
 describe('GET /api/admin/ingest/config: sourceAvailability (Phase 4, §9.1 item 4)', () => {

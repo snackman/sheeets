@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-import { isAdminPassword, getAdminPassword } from '@/lib/admin-auth';
+import { requireAdmin } from '@/lib/admin-guard';
 
 function getSupabase() {
   return createClient(
@@ -11,10 +11,8 @@ function getSupabase() {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const password = getAdminPassword(req);
-  if (!isAdminPassword(password)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = await requireAdmin(req);
+  if (denied) return denied;
 
   const conference = searchParams.get('conference') || undefined;
   const search = searchParams.get('search') || undefined;
@@ -170,9 +168,8 @@ export async function POST(req: NextRequest) {
 
   const { password, action } = body as { password?: string; action?: string };
 
-  if (!isAdminPassword(password)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = await requireAdmin(req, password);
+  if (denied) return denied;
 
   const supabase = getSupabase();
 

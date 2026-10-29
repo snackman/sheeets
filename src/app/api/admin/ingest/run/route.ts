@@ -2,7 +2,7 @@
 // for a conference, synchronously and returns the result — including a
 // `dryRun` preview that classifies without writing anything.
 import { NextRequest, NextResponse } from 'next/server';
-import { isAdminPassword } from '@/lib/admin-auth';
+import { requireAdmin } from '@/lib/admin-guard';
 import { parseBody, IngestRunActionSchema } from '@/lib/api-validation';
 import { listSources } from '@/lib/ingest/db';
 import { runSource } from '@/lib/ingest/pipeline';
@@ -15,9 +15,8 @@ export async function POST(req: NextRequest) {
   if (parseError) return parseError;
 
   const { password, sourceId, conference, dryRun } = data;
-  if (!isAdminPassword(password)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = await requireAdmin(req, password);
+  if (denied) return denied;
 
   try {
     const sourceIds = sourceId

@@ -127,27 +127,29 @@ export async function parseBatchBody<T>(
 
 /** Schema for POST /api/submit-event */
 export const SubmitEventSchema = z.object({
-  conference: z.string().min(1, 'Conference is required'),
-  coords: z.object({ lat: z.number(), lng: z.number() }).optional().nullable(),
+  conference: z.string().min(1, 'Conference is required').max(200),
+  coords: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).optional().nullable(),
   event: z.object({
-    name: z.string().min(1, 'Event name is required'),
-    date: z.string().min(1, 'Event date is required'),
-    startTime: z.string().optional().default(''),
-    endTime: z.string().optional().default(''),
-    organizer: z.string().optional().default(''),
-    address: z.string().optional().default(''),
-    cost: z.string().optional().default('Free'),
-    tags: z.string().optional().default(''),
-    link: z.string().optional().default(''),
+    name: z.string().min(1, 'Event name is required').max(200),
+    date: z.string().min(1, 'Event date is required').max(50),
+    startTime: z.string().max(50).optional().default(''),
+    endTime: z.string().max(50).optional().default(''),
+    organizer: z.string().max(200).optional().default(''),
+    address: z.string().max(300).optional().default(''),
+    cost: z.string().max(100).optional().default('Free'),
+    tags: z.string().max(300).optional().default(''),
+    link: z.string().max(2000).optional().default(''),
     food: z.boolean().optional().default(false),
     bar: z.boolean().optional().default(false),
-    note: z.string().optional().default(''),
+    note: z.string().max(2000).optional().default(''),
   }),
+  /** Cloudflare Turnstile response token (enforced only when configured). */
+  turnstileToken: z.string().max(4000).optional(),
 });
 
 /** Schema for POST /api/admin/toggle-featured */
 export const ToggleFeaturedSchema = z.object({
-  password: z.string(),
+  password: z.string().max(500),
   conference: z.string().min(1),
   eventName: z.string().min(1),
   featured: z.boolean(),
@@ -155,20 +157,26 @@ export const ToggleFeaturedSchema = z.object({
 
 /** Schema for POST /api/admin/config */
 export const AdminConfigSchema = z.object({
-  password: z.string(),
+  password: z.string().max(500),
   key: z.string().min(1, 'Key is required'),
   value: z.unknown(),
 });
+
+/** Free-form tracking metadata: bounded by serialized size so a client can't stuff huge blobs. */
+const metadataSchema = z
+  .record(z.string(), z.unknown())
+  .refine((m) => JSON.stringify(m).length <= 4000, 'metadata too large')
+  .optional();
 
 /** Schema for POST /api/geocode */
 export const GeocodeSchema = z.object({
   addresses: z.array(
     z.object({
-      normalized: z.string(),
-      raw: z.string(),
-      conference: z.string(),
+      normalized: z.string().max(500),
+      raw: z.string().max(500),
+      conference: z.string().max(200),
     })
-  ),
+  ).max(50),
 });
 
 /** Schema for GET /api/og (query params parsed separately) */
@@ -176,54 +184,55 @@ export const OgBatchSchema = z.object({
   items: z
     .array(
       z.object({
-        eventId: z.string(),
-        url: z.string(),
+        eventId: z.string().max(100),
+        url: z.string().max(2000),
       })
     )
-    .min(1),
+    .min(1)
+    .max(100),
 });
 
 /** Schema for POST /api/luma */
 export const LumaSchema = z.object({
-  url: z.string().min(1, 'URL is required'),
+  url: z.string().min(1, 'URL is required').max(2000),
 });
 
 /** Schema for POST /api/fetch-event */
 export const FetchEventSchema = z.object({
-  url: z.string().min(1, 'URL is required'),
+  url: z.string().min(1, 'URL is required').max(2000),
 });
 
 /** Schema for POST /api/ab/track */
 export const ABTrackEventSchema = z.object({
-  test_id: z.string().min(1, 'test_id is required'),
-  variant_id: z.string().min(1, 'variant_id is required'),
-  visitor_id: z.string().min(1, 'visitor_id is required'),
+  test_id: z.string().min(1, 'test_id is required').max(100),
+  variant_id: z.string().min(1, 'variant_id is required').max(100),
+  visitor_id: z.string().min(1, 'visitor_id is required').max(100),
   event_type: z.enum(['impression', 'click', 'conversion']),
-  metadata: z.record(z.string(), z.unknown()).optional(),
+  metadata: metadataSchema,
 });
 
 /** Schema for one item of POST /api/events/track */
 export const EventTrackSchema = z.object({
-  event_id: z.string().min(1, 'event_id is required'),
-  event_name: z.string().optional(),
+  event_id: z.string().min(1, 'event_id is required').max(100),
+  event_name: z.string().max(300).optional(),
   event_type: z.enum(['click', 'impression', 'pin-click']),
-  conference: z.string().optional(),
-  visitor_id: z.string().optional(),
-  url: z.string().optional(),
-  source: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
+  conference: z.string().max(200).optional(),
+  visitor_id: z.string().max(100).optional(),
+  url: z.string().max(2000).optional(),
+  source: z.string().max(100).optional(),
+  metadata: metadataSchema,
 });
 
 /** Schema for one item of POST /api/ads/track */
 export const AdTrackSchema = z.object({
-  ad_id: z.string().min(1, 'ad_id is required'),
-  ad_name: z.string().optional(),
-  placement: z.string().min(1, 'placement is required'),
+  ad_id: z.string().min(1, 'ad_id is required').max(100),
+  ad_name: z.string().max(300).optional(),
+  placement: z.string().min(1, 'placement is required').max(100),
   event_type: z.enum(['impression', 'click']),
-  conference: z.string().optional(),
-  visitor_id: z.string().optional(),
-  url: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
+  conference: z.string().max(200).optional(),
+  visitor_id: z.string().max(100).optional(),
+  url: z.string().max(2000).optional(),
+  metadata: metadataSchema,
 });
 
 /**
@@ -245,14 +254,14 @@ export const ClientErrorSchema = z.object({
 
 /** Schema for POST /api/admin/errors */
 export const AdminErrorActionSchema = z.object({
-  password: z.string(),
+  password: z.string().max(500),
   ids: z.array(z.string().uuid()).min(1).max(200),
   resolved: z.boolean().default(true),
 });
 
 /** Schema for POST /api/admin/submissions */
 export const SubmissionActionSchema = z.object({
-  password: z.string(),
+  password: z.string().max(500),
   action: z.enum(['approve', 'reject']),
   id: z.string().uuid(),
   rejection_reason: z.string().optional(),
@@ -309,7 +318,7 @@ export const ClaimManualSchema = z.object({
 /** Schema for POST /api/admin/ingest/run */
 export const IngestRunActionSchema = z
   .object({
-    password: z.string(),
+    password: z.string().max(500),
     sourceId: z.string().uuid().optional(),
     conference: z.string().min(1).optional(),
     dryRun: z.boolean().optional().default(false),
@@ -333,7 +342,7 @@ export const IngestRejectReasonSchema = z.enum([
 
 /** Schema for POST /api/admin/ingest/queue */
 export const IngestQueueActionSchema = z.object({
-  password: z.string(),
+  password: z.string().max(500),
   action: z.enum(['approve', 'reject', 'restore', 'rescore', 'unpublish', 'trust_host', 'block_host']),
   ids: z.array(IngestCandidateIdSchema).min(1).max(100),
   reason: IngestRejectReasonSchema.optional(),
@@ -357,7 +366,7 @@ export const IngestQueueActionSchema = z.object({
 
 /** Schema for PUT /api/admin/ingest/config (profile upsert) */
 export const IngestProfileUpsertSchema = z.object({
-  password: z.string(),
+  password: z.string().max(500),
   conference: z.string().min(1),
   theme_key: z.enum(['crypto', 'ai', 'gaming', 'art', 'music', 'tech', 'custom']),
   theme_description: z.string().max(2000).optional(),
@@ -382,7 +391,7 @@ export const IngestProfileUpsertSchema = z.object({
  *  sheet-tracker source — Phase 3 added `telegram_channel`, Phase 4 added
  *  three more, and this round added `mira_series`/`sheet_tracker`). */
 export const IngestSourceCreateSchema = z.object({
-  password: z.string(),
+  password: z.string().max(500),
   conference: z.string().min(1),
   kind: z.enum(['luma_ical', 'telegram_channel', 'x_account', 'meetup_search', 'sponsor_pages', 'mira_series', 'sheet_tracker']),
   /** Luma: a `luma.com/<slug>` calendar URL or raw `cal-…` id. Telegram: a
@@ -399,7 +408,7 @@ export const IngestSourceCreateSchema = z.object({
 
 /** Schema for PATCH /api/admin/ingest/config (toggle/update a source) */
 export const IngestSourceUpdateSchema = z.object({
-  password: z.string(),
+  password: z.string().max(500),
   id: z.string().uuid(),
   enabled: z.boolean().optional(),
   trust: z.enum(['curated', 'host', 'discovery']).optional(),
@@ -408,14 +417,14 @@ export const IngestSourceUpdateSchema = z.object({
 
 /** Schema for DELETE /api/admin/ingest/config */
 export const IngestSourceDeleteSchema = z.object({
-  password: z.string(),
+  password: z.string().max(500),
   id: z.string().uuid(),
 });
 
 /** Schema for POST /api/admin/ingest/source-proposals (accept/dismiss a
  *  calendar auto-discovery proposal — plan item 3). */
 export const IngestSourceProposalDecisionSchema = z.object({
-  password: z.string(),
+  password: z.string().max(500),
   id: z.string().uuid(),
   decision: z.enum(['accepted', 'dismissed']),
 });
@@ -449,7 +458,7 @@ export const HostSubmissionSchema = z.object({
 /** Schema for POST /api/admin/claims/[id] */
 export const AdminClaimActionSchema = z
   .object({
-    password: z.string(),
+    password: z.string().max(500),
     action: z.enum(['approve', 'reject', 'revoke', 'relink']),
     note: z.string().trim().max(1000).optional(),
     eventId: EventIdSchema.optional(),

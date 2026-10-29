@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { isAdminPassword, getAdminPassword } from '@/lib/admin-auth';
+import { requireAdmin } from '@/lib/admin-guard';
 import { AdminErrorActionSchema, parseBody } from '@/lib/api-validation';
 import { isMissingSchemaError } from '@/lib/error-store';
 
@@ -12,14 +12,13 @@ function getSupabase() {
 }
 
 /**
- * GET /api/admin/errors?password=&status=unresolved|resolved|all&source=client|server|all&limit=
+ * GET /api/admin/errors?status=unresolved|resolved|all&source=client|server|all&limit=
  * Lists aggregated app errors, most recently seen first.
  */
 export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
-  if (!isAdminPassword(getAdminPassword(req))) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = await requireAdmin(req);
+  if (denied) return denied;
 
   const status = params.get('status') || 'unresolved';
   const source = params.get('source') || 'all';
@@ -50,9 +49,8 @@ export async function POST(req: NextRequest) {
   const { data, error: parseError } = await parseBody(req, AdminErrorActionSchema);
   if (parseError) return parseError;
 
-  if (!isAdminPassword(data.password)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = await requireAdmin(req, data.password);
+  if (denied) return denied;
 
   const { error } = await getSupabase()
     .from('app_errors')

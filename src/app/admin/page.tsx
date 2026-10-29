@@ -333,6 +333,7 @@ export default function AdminPage() {
             saving={saving}
             saveMessage={saveMessage}
             saveConfig={saveConfig}
+            password={password}
           />
         ))}
 

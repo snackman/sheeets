@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Loader2, Check, X, Pencil, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import type { Submission } from '@/lib/types';
 import { adminFetch } from '@/lib/admin-fetch';
+import { isSafeHttpUrl } from '@/lib/utils';
 
 interface TabConfig {
   gid: number;
@@ -304,7 +305,7 @@ export default function SubmissionsTab({ allConferenceTabs, password }: Props) {
                           <span className={`text-sm ${value ? 'text-green-400' : 'text-stone-500'}`}>
                             {value ? 'Yes' : 'No'}
                           </span>
-                        ) : f.key === 'link' && value ? (
+                        ) : f.key === 'link' && isSafeHttpUrl(value as string) ? (
                           <a
                             href={value as string}
                             target="_blank"
