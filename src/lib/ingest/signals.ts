@@ -43,6 +43,22 @@ export interface SignalInput {
   possibleDuplicate?: boolean;
   /** No lat/lng and geocoding failed. */
   noGeo?: boolean;
+  /** Event name alone (the built-in lodging/residency/1:1 heuristics match
+   *  their bare single-word patterns on the name only, so a description
+   *  that merely mentions "the venue hotel" doesn't trip them). Falls back
+   *  to `text` when absent. */
+  nameText?: string;
+  /** Classifier flags (`ClassifierOutput.flags`). `instructions_in_content`
+   *  is handled via `injectionDetected`; the rest are read here. */
+  llmFlags?: readonly string[];
+  /** Event date is before the conference's core start date (inside the
+   *  pre-window, so it passed the date filter). */
+  preEvent?: boolean;
+  /** No coordinates AND no address — we genuinely don't know where it is. */
+  venueUnknown?: boolean;
+  /** Persisted human-driven "review only" marker
+   *  (cross-conference.ts#hasForceReviewMarker). */
+  forceReview?: boolean;
 }
 
 export interface SignalResult {
@@ -54,6 +70,46 @@ export interface SignalResult {
   hardReject: boolean;
   /** possible_duplicate, no_geo or an injection flag — route capped at review. */
   capRouteAtReview: boolean;
+  /** Sum (<= 0) of the penalties in `breakdown` that must NEVER by
+   *  themselves push a candidate below the review threshold into an
+   *  auto-reject (private_or_invite_only, sold_out): the human rule is
+   *  that "curated / apply to attend" events are fine, so the flag only
+   *  lowers the displayed score and blocks auto-publish. `routeCandidate`
+   *  adds this back before its reject check. */
+  nonRejectingPenalty?: number;
+}
+
+/** Built-in "this is probably not a side event" heuristics, mirroring the
+ *  human triage rules (lodging, residencies/programs, sales 1:1s). They are
+ *  deliberately weak: a hit only caps the route at review (never
+ *  auto-publish) and carries NO score penalty, so it can only end in an
+ *  auto-reject if the score was already below the review threshold. */
+export const BUILTIN_HEURISTICS: { key: 'lodging' | 'residency' | 'sales_1on1'; name: RegExp; text: RegExp }[] = [
+  {
+    // Specific lodging phrases only — never a bare "hotel"/"airbnb" (a
+    // rooftop party AT a hotel is a normal side event).
+    key: 'lodging',
+    name: /\b(?:lodging|co-?living|room blocks?|stay packages?|accommodation packages?|hotel (?:bookings?|discounts?|deals?|blocks?)|book your (?:room|stay))\b/i,
+    text: /\b(?:stay packages?|accommodation packages?|room blocks?|book your (?:room|stay|bed)|hotel (?:bookings?|discounts?)|discounted (?:hotel )?rooms?)\b/i,
+  },
+  {
+    // Residencies / fellowships / structured programs. No bare "cohort" or
+    // "bootcamp" (a demo day or a one-day workshop is a normal event).
+    key: 'residency',
+    name: /\b(?:residency|residencies|fellowship|(?:accelerator|incubator|cohort) program(?:me)?)\b/i,
+    text: /\b(?:residency program(?:me)?|fellowship program(?:me)?|(?:week|month)-long (?:residency|program(?:me)?)|apply to join (?:the|our) cohort|cohort-based program(?:me)?)\b/i,
+  },
+  {
+    // Sales 1:1s. "Office hours" only with a sales/application cue.
+    key: 'sales_1on1',
+    name: /(?:\b1\s*[:-]\s*1s?\b|\bone[- ]on[- ]ones?\b|\bbook a (?:call|demo|meeting|slot)\b|\b(?:application|sales|bd|partnership|investor) office hours\b|\boffice hours with (?:our|the) (?:team|engineers?|founders?|bd|sales)\b)/i,
+    text: /(?:\bbook a 1\s*[:-]\s*1\b|\bbook a (?:call|demo|meeting|slot)\b|\b1\s*[:-]\s*1 (?:sessions?|meetings?|slots?)\b|\boffice hours with (?:our|the) (?:team|engineers?|founders?|bd|sales)\b|\bprivate 1\s*[:-]\s*1s?\b)/i,
+  },
+];
+
+/** Which built-in heuristics hit. Exported for tests/eval. */
+export function matchBuiltinHeuristics(nameText: string, text: string): ('lodging' | 'residency' | 'sales_1on1')[] {
+  return BUILTIN_HEURISTICS.filter((h) => h.name.test(nameText) || h.text.test(text)).map((h) => h.key);
 }
 
 const INCLUDE_KEYWORD_POINTS = 5;
@@ -72,6 +128,9 @@ const BLOCKED_HOST_POINTS = -40;
  *  must never carry enough weight (combined with the review cap below) to
  *  function as a de facto hard reject on its own. */
 const LEARNED_BLOCKED_HOST_POINTS = -25;
+/** LLM-flag penalties that lower the score but never cause a reject. */
+const PRIVATE_FLAG_POINTS = -10;
+const SOLD_OUT_FLAG_POINTS = -10;
 
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -141,9 +200,53 @@ export function computeSignals(input: SignalInput): SignalResult {
     capRouteAtReview = true;
   }
 
+  // Zero-point entries below are recorded in `breakdown` purely so the
+  // queue UI / audit shows WHY a route was capped at review.
+  let nonRejectingPenalty = 0;
+  const flags = new Set(input.llmFlags ?? []);
+  if (flags.has('online_only')) {
+    // Never auto-publish something the model thinks is online-only. With
+    // no coordinates either, it's very likely online: still only a cap
+    // (a below-threshold score already auto-rejects in `routeCandidate`).
+    breakdown[input.noGeo ? 'flag:online_only_no_geo' : 'flag:online_only'] = 0;
+    capRouteAtReview = true;
+  }
+  if (flags.has('spam_or_promo')) {
+    breakdown['flag:spam_or_promo'] = 0;
+    capRouteAtReview = true;
+  }
+  if (flags.has('private_or_invite_only')) {
+    breakdown['flag:private_or_invite_only'] = PRIVATE_FLAG_POINTS;
+    nonRejectingPenalty += PRIVATE_FLAG_POINTS;
+    capRouteAtReview = true;
+  }
+  if (flags.has('sold_out')) {
+    breakdown['flag:sold_out'] = SOLD_OUT_FLAG_POINTS;
+    nonRejectingPenalty += SOLD_OUT_FLAG_POINTS;
+    capRouteAtReview = true;
+  }
+
+  for (const key of matchBuiltinHeuristics(input.nameText ?? input.text, input.text)) {
+    breakdown[`heuristic:${key}`] = 0;
+    capRouteAtReview = true;
+  }
+
+  if (input.preEvent) {
+    breakdown['pre_event'] = 0;
+    capRouteAtReview = true;
+  }
+  if (input.venueUnknown) {
+    breakdown['venue_unknown'] = 0;
+    capRouteAtReview = true;
+  }
+  if (input.forceReview) {
+    breakdown['force_review'] = 0;
+    capRouteAtReview = true;
+  }
+
   const total = Object.values(breakdown).reduce((sum, v) => sum + v, 0);
 
-  return { breakdown, total, hardReject, capRouteAtReview };
+  return { breakdown, total, hardReject, capRouteAtReview, nonRejectingPenalty };
 }
 
 /**
@@ -189,7 +292,14 @@ export function routeCandidate(opts: {
   if (!isEvent || signals.hardReject) return 'reject';
 
   const final = combineFinalScore(llmScore, signals);
-  if (final < profile.reviewThreshold) return 'reject';
+  // Non-rejecting penalties (private/sold-out flags) are added back for
+  // the reject decision only: they may lower the score and block publish,
+  // but never turn a would-be review into an auto-reject.
+  const rejectCheckScore = combineFinalScore(llmScore, {
+    ...signals,
+    total: signals.total - (signals.nonRejectingPenalty ?? 0),
+  });
+  if (rejectCheckScore < profile.reviewThreshold) return 'reject';
 
   if (dataQuality === 'thin') return 'review';
 

@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   computePrecision,
   summarizeShadowSample,
@@ -83,7 +85,7 @@ describe('summarizeShadowSample (§11 "shadow precision", review finding CRITICA
     expect(sample.precision).toBeNull();
   });
 
-  it('non-theme rejections (duplicate/wrong_city/...) are excluded from the denominator', () => {
+  it('duplicate rejections are excluded; every other rejection is a negative', () => {
     const candidates: PrecisionViewCandidateInput[] = [
       candidate({ status: 'approved', shadow_route: 'publish' }),
       candidate({ status: 'rejected', reject_reason: 'duplicate', shadow_route: 'publish' }),
@@ -91,8 +93,36 @@ describe('summarizeShadowSample (§11 "shadow precision", review finding CRITICA
     ];
     const rows = computePrecisionRowsFromCandidates(candidates);
     const sample = summarizeShadowSample(rows);
-    expect(sample.sampleSize).toBe(1); // only the approved row
-    expect(sample.precision).toBe(1);
+    expect(sample.sampleSize).toBe(2); // approved + wrong_city (duplicate excluded)
+    expect(sample.precision).toBe(0.5);
+  });
+
+  it.each(['online', 'lodging', 'sales_1on1', 'residency', 'pre_event', 'private_or_invite_only', 'wrong_dates', 'other', null])(
+    'a %s rejection of a shadow-publish item counts as a negative',
+    (reason) => {
+      const rows = computePrecisionRowsFromCandidates([
+        candidate({ status: 'approved', shadow_route: 'publish' }),
+        candidate({ status: 'rejected', reject_reason: reason as string | null, shadow_route: 'publish' }),
+      ]);
+      expect(summarizeShadowSample(rows)).toMatchObject({ sampleSize: 2, positive: 1 });
+    }
+  );
+
+  it('reviewed_off_theme (queue approval rate) still counts only theme rejections', () => {
+    const rows = computePrecisionRowsFromCandidates([
+      candidate({ status: 'rejected', reject_reason: 'lodging', shadow_route: 'publish' }),
+      candidate({ status: 'rejected', reject_reason: 'off_theme', shadow_route: 'publish' }),
+    ]);
+    expect(rows.reduce((n, r) => n + r.reviewed_off_theme, 0)).toBe(1);
+    expect(rows.reduce((n, r) => n + r.shadow_publish_rejected_theme, 0)).toBe(2);
+  });
+
+  it('the SQL view migration mirrors isShadowPublishNegative', () => {
+    const sql = readFileSync(join(process.cwd(), 'supabase/migrations/20261029140000_precision_all_rejects.sql'), 'utf8');
+    expect(sql).toMatch(/create or replace view public\.ingest_precision/i);
+    expect(sql).toContain("c.status = 'rejected' and coalesce(c.reject_reason, '') <> 'duplicate' and c.shadow_route = 'publish'");
+    // reviewed_off_theme keeps its theme-only definition.
+    expect(sql).toContain("count(*) filter (where c.status = 'rejected' and c.reject_reason in ('off_theme', 'spam')) as reviewed_off_theme");
   });
 
   it('a row whose shadow_route was NOT publish never counts, regardless of status', () => {

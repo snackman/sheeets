@@ -77,7 +77,73 @@ export function looksLikeRealAddress(text: string | null | undefined): boolean {
   if (!text) return false;
   const trimmed = text.trim();
   if (!trimmed) return false;
-  return !/^https?:\/\//i.test(trimmed);
+  if (/^https?:\/\//i.test(trimmed)) return false;
+  // "Online" / "Zoom" style text is not a venue either.
+  return !ONLINE_LOCATION_TEXT_RE.test(trimmed);
+}
+
+/** Hostnames (and optional path prefixes) of meeting / livestream services.
+ *  A LOCATION (or venue) that points at one of these means the event is
+ *  online, not "venue hidden on the event page". A plain lu.ma/luma.com
+ *  event-page link is deliberately NOT here — that's just the event URL
+ *  for a venue-hidden in-person event. */
+const MEETING_OR_STREAM_HOSTS: { host: string; pathPrefix?: string }[] = [
+  { host: 'zoom.us' },
+  { host: 'zoom.com' },
+  { host: 'meet.google.com' },
+  { host: 'hangouts.google.com' },
+  { host: 'youtube.com' },
+  { host: 'youtu.be' },
+  { host: 'teams.microsoft.com' },
+  { host: 'teams.live.com' },
+  { host: 'twitch.tv' },
+  { host: 'x.com', pathPrefix: '/i/spaces' },
+  { host: 'twitter.com', pathPrefix: '/i/spaces' },
+  { host: 'x.com', pathPrefix: '/i/broadcasts' },
+  { host: 'twitter.com', pathPrefix: '/i/broadcasts' },
+  { host: 'webex.com' },
+  { host: 'gotomeeting.com' },
+  { host: 'meet.goto.com' },
+  { host: 'whereby.com' },
+  { host: 'streamyard.com' },
+  { host: 'restream.io' },
+  { host: 'crowdcast.io' },
+  { host: 'riverside.fm' },
+  { host: 'hopin.com' },
+  { host: 'discord.gg' },
+  { host: 'discord.com', pathPrefix: '/events' },
+  { host: 'meet.jit.si' },
+];
+
+/** Bare LOCATION text that only ever means "this is online". */
+const ONLINE_LOCATION_TEXT_RE = /^(?:online|virtual|online event|virtual event|zoom|google meet|ms teams|microsoft teams|livestream|live stream|webinar|x spaces|twitter spaces|discord)$/i;
+
+/** True if `text` is a URL on a meeting/livestream service (Zoom, Meet,
+ *  YouTube, Teams, Twitch, X Spaces, ...), or bare "Online"/"Zoom"-style
+ *  location text. Never true for a plain Luma event-page link. */
+export function isMeetingOrStreamLocation(text: string | null | undefined): boolean {
+  if (!text) return false;
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  if (ONLINE_LOCATION_TEXT_RE.test(trimmed)) return true;
+  if (!/^https?:\/\//i.test(trimmed)) return false;
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    return false;
+  }
+  const host = url.hostname.toLowerCase().replace(/^www\./, '');
+  const path = url.pathname.toLowerCase();
+  return MEETING_OR_STREAM_HOSTS.some(
+    (m) => (host === m.host || host.endsWith(`.${m.host}`)) && (!m.pathPrefix || path.startsWith(m.pathPrefix))
+  );
+}
+
+/** Luma detail payloads carry `location_type` ('offline' | 'online' | ...). */
+function lumaLocationTypeIsOnline(event: unknown): boolean {
+  const t = (event as { location_type?: unknown } | null | undefined)?.location_type;
+  return typeof t === 'string' && t.toLowerCase() === 'online';
 }
 
 /** A Luma calendar's public name that describes the AGGREGATOR itself — an
@@ -194,7 +260,11 @@ export function normalizeLumaEvent(opts: NormalizeLumaOptions): NormalizedEvent 
     address,
     lat: geo?.lat ?? null,
     lng: geo?.lng ?? null,
-    isOnline: !geo && !vevent.location,
+    // Online when there are no coordinates AND either no LOCATION at all, a
+    // meeting/livestream URL (Zoom, Meet, YouTube, ...) as LOCATION, or the
+    // enriched payload says so. A plain Luma event-page link as LOCATION is
+    // a venue-hidden in-person event, not an online one.
+    isOnline: !geo && (!vevent.location || isMeetingOrStreamLocation(vevent.location) || (!address && lumaLocationTypeIsOnline(enrichment?.event))),
     organizer,
     hosts,
     calendar: calendar ?? null,
@@ -303,7 +373,9 @@ export function normalizeDiscoveredLumaEvent(opts: NormalizeDiscoveredLumaOption
     address,
     lat: null,
     lng: null,
-    isOnline: false,
+    // Only when Luma itself says the event is online and there's no venue —
+    // otherwise conservatively false (see doc comment above).
+    isOnline: !address && lumaLocationTypeIsOnline(detail),
     organizer,
     hosts,
     calendar: null,
@@ -370,10 +442,11 @@ export function normalizeExtractedEvent(opts: NormalizeExtractedOptions): Normal
     sheetDate,
     startTime,
     endTime,
-    address: result.address || '',
+    // A meeting/stream URL (or "Online") in the address slot is not a venue.
+    address: isMeetingOrStreamLocation(result.address) ? '' : result.address || '',
     lat: null,
     lng: null,
-    isOnline: false,
+    isOnline: isMeetingOrStreamLocation(result.address),
     organizer: result.organizer || '',
     hosts: [],
     calendar: null,

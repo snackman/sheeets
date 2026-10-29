@@ -25,10 +25,11 @@ import type { TabConfig } from '../conferences';
 import { allowlistedPlatformFor, type Platform } from './allowlist';
 import { normalizeDiscoveredLumaEvent, normalizeExtractedEvent, computeContentHash, formatDateISOInTimezone } from './normalize';
 import { matchAgainstSheetAndCandidates, STALE_NEGATIVE_CACHE_MS, type SheetLinkIndex, type DedupeSheetEvent, type DedupeCandidatePool } from './dedupe';
-import { dateWindowFilter, geoFilter, geocodeAddressCached } from './filters';
+import { dateWindowFilter, geoFilter, geocodeAddressCached, isPreEvent, isVenueUnknown } from './filters';
 import { getCachedLumaApiIdEntry, setCachedLumaApiId, getCandidateByKeyOrAltKey } from './db';
 import type { EnrichLimiter, EnrichOutcome } from './enrich';
 import { scoreCandidate } from './scoring';
+import { checkCrossConferenceDuplicate, hasForceReviewMarker, type CrossConferenceDecision } from './cross-conference';
 import { ClassifierError } from './classifier';
 import { hostListMatches } from './hosts';
 import { matchSponsorName } from './sponsors';
@@ -185,7 +186,19 @@ export type DiscoveredLinkOutcome =
    *  the slug could fork a second candidate for an event that already has
    *  one. Cheap to re-check next run (no network). */
   | { kind: 'prefiltered'; reason: string }
-  | { kind: 'row'; row: DiscoveredLinkRow; classified: boolean; inputTokens: number; outputTokens: number; costUsd: number };
+  | {
+      kind: 'row';
+      row: DiscoveredLinkRow;
+      classified: boolean;
+      inputTokens: number;
+      outputTokens: number;
+      costUsd: number;
+      /** Set when this conference is the better home for an event that's
+       *  also pending in another conference: callers apply it
+       *  (`applyCrossConferenceDemotion`) only AFTER persisting a `queued`
+       *  row, so the event is never left in neither queue. */
+      crossConference?: CrossConferenceDecision | null;
+    };
 
 /** Optional per-link data the SOURCE already knows (e.g. a Mira series
  *  page lists each event's start/end date). Used to drop clearly
@@ -762,7 +775,7 @@ export async function processDiscoveredLink(
   const startDate = ctx.tab.dates[0];
   const endDate = ctx.tab.dates[ctx.tab.dates.length - 1];
 
-  const { duplicateOf, possibleDuplicateOf } = matchAgainstSheetAndCandidates(normalized, {
+  const { duplicateOf, possibleDuplicateOf: sameConfPossibleDuplicateOf } = matchAgainstSheetAndCandidates(normalized, {
     linkIndex: ctx.linkIndex,
     sheetEvents: ctx.sheetEvents,
     otherCandidates: ctx.otherCandidates,
@@ -783,6 +796,7 @@ export async function processDiscoveredLink(
     else if (!geoCheck.pass) filterReason = geoCheck.reason;
   }
 
+  let possibleDuplicateOf = sameConfPossibleDuplicateOf;
   if (filterReason) {
     return {
       kind: 'row',
@@ -793,6 +807,34 @@ export async function processDiscoveredLink(
       costUsd: 0,
     };
   }
+
+  // Cross-conference duplicate (same as the Luma iCal pipeline): keep the
+  // event only in the best-matching overlapping conference.
+  const crossConference = await checkCrossConferenceDuplicate({
+    conference: ctx.conference,
+    tab: ctx.tab,
+    canonicalKey,
+    altKeys,
+    event: normalized,
+    firstSeenAt: existing?.first_seen_at ?? null,
+  });
+  if (crossConference?.kind === 'self_duplicate') {
+    return {
+      kind: 'row',
+      row: {
+        ...baseRow,
+        status: 'duplicate',
+        duplicate_of: crossConference.other.id,
+        possible_duplicate_of: possibleDuplicateOf,
+        review_note: `Cross-conference duplicate: ${crossConference.note}`,
+      },
+      classified: false,
+      inputTokens: 0,
+      outputTokens: 0,
+      costUsd: 0,
+    };
+  }
+  if (crossConference?.kind === 'possible_duplicate' && !possibleDuplicateOf) possibleDuplicateOf = crossConference.other.id;
 
   if (!ctx.canClassify()) {
     return {
@@ -838,6 +880,9 @@ export async function processDiscoveredLink(
       excludeKeywords: ctx.profile.exclude_keywords,
       possibleDuplicate: !!possibleDuplicateOf,
       noGeo,
+      preEvent: isPreEvent(normalized, { startDate }),
+      venueUnknown: isVenueUnknown(normalized),
+      forceReview: hasForceReviewMarker(existing),
       sourceTrust: ctx.sourceTrust,
       publishThreshold: ctx.profile.publish_threshold,
       reviewThreshold: ctx.profile.review_threshold,
@@ -901,10 +946,12 @@ export async function processDiscoveredLink(
       classified_at: new Date().toISOString(),
       classify_attempts: (existing?.classify_attempts ?? 0) + 1,
       possible_duplicate_of: possibleDuplicateOf,
+      ...(crossConference?.kind === 'possible_duplicate' ? { review_note: `Possible cross-conference duplicate: ${crossConference.note}` } : {}),
     },
     classified: true,
     inputTokens: scoreResult.classifier.inputTokens,
     outputTokens: scoreResult.classifier.outputTokens,
     costUsd,
+    crossConference: crossConference?.kind === 'demote_other' ? crossConference : null,
   };
 }

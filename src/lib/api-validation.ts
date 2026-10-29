@@ -337,6 +337,11 @@ export const IngestRejectReasonSchema = z.enum([
   'duplicate',
   'private_or_invite_only',
   'spam',
+  'online',
+  'lodging',
+  'sales_1on1',
+  'residency',
+  'pre_event',
   'other',
 ]);
 

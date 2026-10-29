@@ -3,6 +3,17 @@ import { NextRequest } from 'next/server';
 
 process.env.ADMIN_PASSWORD = 'queue-test-password';
 process.env.OPENAI_API_KEY = 'test-key';
+// Publisher lease (publisher-lease.ts) needs Supabase RPCs; run the
+// critical section directly here.
+vi.mock('@/lib/ingest/publisher-lease', () => ({
+  withPublisherLease: <T,>(_key: string, fn: () => Promise<T>) => fn(),
+  sheetLeaseKey: (gid: number) => `sheet:${gid}`,
+}));
+const requeueCrossConferenceTwinsMock = vi.fn(async (..._a: unknown[]) => [] as string[]);
+vi.mock('@/lib/ingest/cross-conference', () => ({
+  requeueCrossConferenceTwins: (...a: unknown[]) => requeueCrossConferenceTwinsMock(...a),
+  hasForceReviewMarker: (c: { edits?: Record<string, unknown> | null } | null) => !!c?.edits?.force_review,
+}));
 vi.mock('openai', () => ({ default: class FakeOpenAI {} }));
 
 function baseCandidate(overrides: Record<string, unknown> = {}) {
@@ -242,6 +253,15 @@ describe('POST /api/admin/ingest/queue: reject/restore status guards (MEDIUM ite
       expect.any(Object)
     );
     expect(insertLabelMock).toHaveBeenCalled();
+  });
+
+  it('a reject re-visits cross-conference twins demoted in favour of this candidate (passes the reason through)', async () => {
+    requeueCrossConferenceTwinsMock.mockClear();
+    const cand = baseCandidate({ status: 'queued' });
+    getCandidateMock.mockResolvedValue(cand);
+    claimCandidateStatusMock.mockResolvedValue(baseCandidate({ status: 'rejected' }));
+    await POST(postRequest({ password: 'queue-test-password', action: 'reject', ids: ['3fa85f64-5717-4562-b3fc-2c963f66afa6'], reason: 'wrong_city' }));
+    expect(requeueCrossConferenceTwinsMock).toHaveBeenCalledWith(cand, 'wrong_city');
   });
 
   it('refuses to reject a published candidate — must go through unpublish instead', async () => {

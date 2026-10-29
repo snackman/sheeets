@@ -36,9 +36,10 @@ import { fetchSheetTrackerLinks } from './sources/sheet-tracker';
 import { isAllowlistedEventLink, allowlistedPlatformFor } from './allowlist';
 import { normalizeLumaEvent, computeContentHash } from './normalize';
 import { buildSheetLinkIndex, findSheetMatchByLink, findDuplicateByNameAndDate, fuzzyMatch, type DedupeCandidatePool } from './dedupe';
-import { dateWindowFilter, geoFilter, isPastEvent, geocodeAddressCached, upsertGeocodedAddress, ReverseGeocodeLimiter } from './filters';
+import { dateWindowFilter, geoFilter, isPastEvent, isPreEvent, isVenueUnknown, geocodeAddressCached, upsertGeocodedAddress, ReverseGeocodeLimiter } from './filters';
 import { LumaEnrichmentLimiter, makeSlugResolver } from './enrich';
 import { scoreCandidate } from './scoring';
+import { checkCrossConferenceDuplicate, applyCrossConferenceDemotion, hasForceReviewMarker } from './cross-conference';
 import { processDiscoveredLink, PacedLinkLimiter, buildHostSignalComputer, sourceDateWindowPrefilter, type DiscoveredLinkHints } from './discover';
 import { checkMonthlyBudget, checkMonthlyXBudget } from './budget';
 import { retryUrlsOf, nextRetryUrls, sameRetryUrls } from './retry-urls';
@@ -324,13 +325,12 @@ async function processLumaIcalSource(args: {
   // resolution order (`normalizeLumaEvent` already applied priorities 1/2:
   // enriched Luma address, then iCal LOCATION). One limiter for the whole
   // run: reverse-geocodes a candidate's own lat/lng into a short
-  // "Neighborhood, City" label (capped, cached by rounded coordinates), and
-  // also resolves this conference's OWN city once (from `tab.center`) for
-  // the last-resort "<city> (venue on event page)" fallback when a
-  // candidate has no coordinates at all.
+  // "Neighborhood, City" label (capped, cached by rounded coordinates).
+  // There is deliberately NO "<city> (venue on event page)" fallback any
+  // more: it made online events (Zoom/YouTube LOCATION) look like
+  // in-person ones. A candidate with no coordinates and no address keeps
+  // an empty address and gets the `venue_unknown` signal (review cap).
   const reverseGeocodeLimiter = new ReverseGeocodeLimiter();
-  const conferenceCenterResolved = await reverseGeocodeLimiter.resolve(tab.center.lat, tab.center.lng);
-  const conferenceCityLabel = conferenceCenterResolved?.city || tab.name;
 
   const sheetEvents = await fetchEvents(undefined, [tab]);
   const linkIndex = await buildSheetLinkIndex(
@@ -488,19 +488,14 @@ async function processLumaIcalSource(args: {
       }
     }
 
-    // Priorities 3/4: still no address (Luma hid the venue and enrichment
+    // Priority 3: still no address (Luma hid the venue and enrichment
     // didn't run/fill it) — reverse-geocode this candidate's own lat/lng if
-    // it has any, else fall back to "<conference city> (venue on event
-    // page)" so the Address column is never blank. Deliberately AFTER the
-    // forward-geocode step above and gated on real lat/lng (not a fallback
-    // label we just invented), so a fallback string is never itself sent
-    // back through Mapbox as if it were a real address.
-    if (!normalized.address) {
-      const resolved =
-        normalized.lat != null && normalized.lng != null
-          ? await reverseGeocodeLimiter.resolve(normalized.lat, normalized.lng)
-          : null;
-      normalized.address = resolved?.label || `${conferenceCityLabel} (venue on event page)`;
+    // it has any. With no coordinates the address stays EMPTY (no invented
+    // "<city> (venue on event page)" text) and `venue_unknown` caps the
+    // route at review below.
+    if (!normalized.address && normalized.lat != null && normalized.lng != null) {
+      const resolved = await reverseGeocodeLimiter.resolve(normalized.lat, normalized.lng);
+      if (resolved?.label) normalized.address = resolved.label;
     }
 
     const baseRow = {
@@ -573,6 +568,31 @@ async function processLumaIcalSource(args: {
       continue;
     }
 
+    // 2b. Cross-conference duplicate (overlapping conferences, e.g. DAS
+    // London inside Solana Breakpoint's London window): keep the event in
+    // the best-matching conference only. Never publishes; never touches the
+    // sheet. A lookup failure is a no-op (see cross-conference.ts).
+    const crossConf = await checkCrossConferenceDuplicate({
+      conference: source.conference,
+      tab,
+      canonicalKey,
+      altKeys: baseRow.alt_keys,
+      event: normalized,
+      firstSeenAt: existing?.first_seen_at ?? null,
+    });
+    if (crossConf?.kind === 'self_duplicate') {
+      bump(counts, 'duplicates');
+      await persist({
+        ...baseRow,
+        status: 'duplicate' as CandidateStatus,
+        duplicate_of: crossConf.other.id,
+        possible_duplicate_of: possibleDuplicateOf,
+        review_note: `Cross-conference duplicate: ${crossConf.note}`,
+      });
+      continue;
+    }
+    if (crossConf?.kind === 'possible_duplicate' && !possibleDuplicateOf) possibleDuplicateOf = crossConf.other.id;
+
     // 3. Budget guard (§5.5): stop classifying once the run/monthly cap hits;
     // remaining candidates wait as `pending_classify`, picked up next run.
     const budgetExceeded = budgetStatus.spentUsd + runningCostUsd >= budgetStatus.capUsd;
@@ -640,6 +660,9 @@ async function processLumaIcalSource(args: {
         excludeKeywords: profile.exclude_keywords,
         possibleDuplicate: !!possibleDuplicateOf,
         noGeo,
+        preEvent: isPreEvent(normalized, { startDate }),
+        venueUnknown: isVenueUnknown(normalized),
+        forceReview: hasForceReviewMarker(existing),
         sourceTrust: source.trust,
         publishThreshold: profile.publish_threshold,
         reviewThreshold: profile.review_threshold,
@@ -792,8 +815,16 @@ async function processLumaIcalSource(args: {
       review_note:
         status === 'duplicate' && duplicateOf
           ? `Fallback name+date dedupe: matches sheet row id ${duplicateOf} on ${normalized.dateISO}. Refused to auto-publish a likely duplicate.`
-          : null,
+          : crossConf?.kind === 'possible_duplicate'
+            ? `Possible cross-conference duplicate: ${crossConf.note}`
+            : null,
     });
+    // Only once THIS conference durably holds the event (queued or
+    // published) is the other conference's pending twin demoted.
+    if (!dryRun && crossConf?.kind === 'demote_other' && (status === 'queued' || status === 'auto_published')) {
+      const currentId = existing?.id ?? (await getCandidateByKey(source.conference, canonicalKey).catch(() => null))?.id ?? null;
+      await applyCrossConferenceDemotion(crossConf, { id: currentId, conference: source.conference, canonicalKey });
+    }
   }
   } finally {
     // Always runs, even if something above threw uncaught — a publish
@@ -1038,6 +1069,10 @@ async function processTelegramSource(args: {
       else if (outcome.row.status === 'error') bump(counts, 'errors');
 
       await persist(outcome.row as Record<string, unknown> & { conference: string; canonical_key: string; status: CandidateStatus; event: NormalizedEvent });
+      if (!dryRun && outcome.row.status === 'queued' && outcome.crossConference) {
+        const currentId = existing?.id ?? (await getCandidateByKey(outcome.row.conference, outcome.row.canonical_key).catch(() => null))?.id ?? null;
+        await applyCrossConferenceDemotion(outcome.crossConference, { id: currentId, conference: outcome.row.conference, canonicalKey: outcome.row.canonical_key });
+      }
       // Same in-run dedupe pool growth as the Luma iCal loop (review
       // finding, LOW "dedupe within a single run") — a later link in the
       // SAME (or a later message in this same) run can still match against
@@ -1447,6 +1482,10 @@ async function runDiscoveredLinksBatch(
     else if (outcome.row.status === 'error') bump(args.counts, 'errors');
 
     await args.persist(outcome.row as Record<string, unknown> & { conference: string; canonical_key: string; status: CandidateStatus; event: NormalizedEvent });
+    if (!args.dryRun && outcome.row.status === 'queued' && outcome.crossConference) {
+      const currentId = existing?.id ?? (await getCandidateByKey(outcome.row.conference, outcome.row.canonical_key).catch(() => null))?.id ?? null;
+      await applyCrossConferenceDemotion(outcome.crossConference, { id: currentId, conference: outcome.row.conference, canonicalKey: outcome.row.canonical_key });
+    }
     args.ctx.otherCandidates.push({
       id: existing?.id ?? outcome.row.canonical_key,
       canonical_key: outcome.row.canonical_key,

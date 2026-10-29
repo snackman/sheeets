@@ -2,11 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const insertEventRowSorted = vi.fn();
 
+// Publisher lease (publisher-lease.ts) needs Supabase RPCs; run the
+// critical section directly here.
+vi.mock('../ingest/publisher-lease', () => ({
+  withPublisherLease: <T,>(_key: string, fn: () => Promise<T>) => fn(),
+  sheetLeaseKey: (gid: number) => `sheet:${gid}`,
+}));
 vi.mock('../google-sheets', () => ({
   insertEventRowSorted: (...args: unknown[]) => insertEventRowSorted(...args),
 }));
 
-import { ThrottledSheetPublisher, toEventRow } from '../ingest/publish';
+import { ThrottledSheetPublisher, toEventRow, isRetryableInsertError } from '../ingest/publish';
 import type { NormalizedEvent } from '../ingest/types';
 
 function makeEvent(overrides: Partial<NormalizedEvent> = {}): NormalizedEvent {
@@ -111,5 +117,19 @@ describe('ThrottledSheetPublisher', () => {
     const publisher = new ThrottledSheetPublisher('Sheet', 123, { maxPerRun: 10, minIntervalMs: 0, maxRetries: 3 });
     await expect(publisher.publish(toEventRow(makeEvent(), []))).rejects.toThrow();
     expect(insertEventRowSorted).toHaveBeenCalledTimes(1);
+  });
+
+  it('never retries a non-retryable (post-insert, unverified) error even if it mentions 429 — no double insert', async () => {
+    const err = Object.assign(new Error('Insert verification failed: read 429 Quota exceeded'), { retryable: false });
+    insertEventRowSorted.mockRejectedValue(err);
+    const publisher = new ThrottledSheetPublisher('Sheet', 123, { maxPerRun: 10, minIntervalMs: 0, maxRetries: 3 });
+    await expect(publisher.publish(toEventRow(makeEvent(), []))).rejects.toBe(err);
+    expect(insertEventRowSorted).toHaveBeenCalledTimes(1);
+  });
+
+  it('isRetryableInsertError: 429 retryable, retryable:false never', () => {
+    expect(isRetryableInsertError(new Error('Failed to insert event row: 429 quota'))).toBe(true);
+    expect(isRetryableInsertError(Object.assign(new Error('429'), { retryable: false }))).toBe(false);
+    expect(isRetryableInsertError(new Error('500'))).toBe(false);
   });
 });

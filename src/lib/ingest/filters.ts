@@ -49,6 +49,23 @@ export function dateWindowFilter(
   return { pass: true };
 }
 
+/**
+ * True when the event falls BEFORE the conference's core start date (it
+ * can still pass `dateWindowFilter`, whose window opens `window_pre_days`
+ * earlier). `conference.startDate` is the tab's first core date
+ * (`tab.dates[0]`); these "pre-week" events go to review, never
+ * auto-publish (human rule: wrong dates / pre-event rows get rejected).
+ */
+export function isPreEvent(event: Pick<NormalizedEvent, 'dateISO'>, conference: Pick<ConferenceWindow, 'startDate'>): boolean {
+  if (!event.dateISO || !conference.startDate) return false;
+  return event.dateISO < conference.startDate;
+}
+
+/** No coordinates and no usable address text: we don't know where it is. */
+export function isVenueUnknown(event: Pick<NormalizedEvent, 'lat' | 'lng' | 'address'>): boolean {
+  return (event.lat == null || event.lng == null) && !event.address?.trim();
+}
+
 export interface GeoFilterProfile {
   radius_km: number;
   allow_online: boolean;

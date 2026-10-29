@@ -29,6 +29,12 @@ export interface ScoreCandidateOptions {
   excludeKeywords: string[];
   possibleDuplicate?: boolean;
   noGeo?: boolean;
+  /** See `SignalInput.preEvent`. */
+  preEvent?: boolean;
+  /** See `SignalInput.venueUnknown`. */
+  venueUnknown?: boolean;
+  /** See `SignalInput.forceReview`. */
+  forceReview?: boolean;
   /** Discovery sources never auto-publish, regardless of score (§10 item 4). */
   sourceTrust: SourceTrust;
   publishThreshold: number;
@@ -71,6 +77,11 @@ export async function scoreCandidate(opts: ScoreCandidateOptions): Promise<Score
     injectionDetected,
     possibleDuplicate: opts.possibleDuplicate,
     noGeo: opts.noGeo,
+    nameText: opts.event.name,
+    llmFlags: classifier.output.flags,
+    preEvent: opts.preEvent,
+    venueUnknown: opts.venueUnknown,
+    forceReview: opts.forceReview,
   });
 
   const finalScore = combineFinalScore(classifier.output.theme_score, signals);

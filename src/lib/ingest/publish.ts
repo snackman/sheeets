@@ -4,12 +4,18 @@
 import { insertEventRowSorted, type EventRow } from '../google-sheets';
 import type { NormalizedEvent } from './types';
 import { sanitizeSheetTags } from './sheet-tags';
+import { withPublisherLease, sheetLeaseKey } from './publisher-lease';
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function isRateLimitError(err: unknown): boolean {
+/** Retry only a 429 from a request that provably did NOT insert a row.
+ *  An error flagged `retryable: false` (google-sheets.ts
+ *  `SheetInsertUnverifiedError`: the row may already be on the sheet) is
+ *  never retried — that would double-insert. */
+export function isRetryableInsertError(err: unknown): boolean {
+  if (err && typeof err === 'object' && (err as { retryable?: unknown }).retryable === false) return false;
   return err instanceof Error && /\b429\b/.test(err.message);
 }
 
@@ -42,6 +48,10 @@ export interface PublishOptions {
   minIntervalMs?: number;
   maxPerRun: number;
   maxRetries?: number;
+  /** Runs each sheet insert under the per-tab publisher lease (so the
+   *  dedupe sweep can't delete rows by a stale index mid-insert). Injectable
+   *  for tests; defaults to `withPublisherLease`. */
+  withLease?: <T>(key: string, fn: () => Promise<T>) => Promise<T>;
 }
 
 export class ThrottledSheetPublisher {
@@ -87,9 +97,10 @@ export class ThrottledSheetPublisher {
   private async publishWithRetry(row: EventRow, attempt: number): Promise<number> {
     const maxRetries = this.opts.maxRetries ?? 3;
     try {
-      return await insertEventRowSorted(this.sheetName, this.gid, row);
+      const withLease = this.opts.withLease ?? withPublisherLease;
+      return await withLease(sheetLeaseKey(this.gid), () => insertEventRowSorted(this.sheetName, this.gid, row));
     } catch (err) {
-      if (attempt < maxRetries && isRateLimitError(err)) {
+      if (attempt < maxRetries && isRetryableInsertError(err)) {
         await sleep(2 ** attempt * 1000);
         return this.publishWithRetry(row, attempt + 1);
       }

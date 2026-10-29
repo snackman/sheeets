@@ -207,5 +207,10 @@ export const REJECT_REASON_OPTIONS: { value: string; label: string }[] = [
   { value: 'duplicate', label: 'Duplicate' },
   { value: 'private_or_invite_only', label: 'Private/invite-only' },
   { value: 'spam', label: 'Spam' },
+  { value: 'online', label: 'Online-only' },
+  { value: 'lodging', label: 'Lodging' },
+  { value: 'sales_1on1', label: 'Sales 1:1s' },
+  { value: 'residency', label: 'Residency/program' },
+  { value: 'pre_event', label: 'Pre-event' },
   { value: 'other', label: 'Other' },
 ];

@@ -657,6 +657,30 @@ export async function listRecentCandidatesForDedupe(conference: string): Promise
   return (data as IngestCandidateRow[]) ?? [];
 }
 
+/** Candidates in OTHER conferences sharing any of `keys` as their
+ *  canonical_key or in their alt_keys — the cross-conference duplicate
+ *  lookup (cross-conference.ts). The unique index is per-conference
+ *  (conference, canonical_key), so the same Luma event can legitimately
+ *  exist once per conference; this is what finds the twins. */
+export async function listOtherConferenceCandidatesByKeys(
+  conference: string,
+  keys: string[]
+): Promise<Pick<IngestCandidateRow, 'id' | 'conference' | 'canonical_key' | 'alt_keys' | 'status' | 'published_at' | 'event' | 'first_seen_at' | 'review_note' | 'llm_score' | 'edits'>[]> {
+  const uniq = Array.from(new Set(keys.filter(Boolean)));
+  if (uniq.length === 0) return [];
+  const supabase = getIngestSupabase();
+  const cols = 'id,conference,canonical_key,alt_keys,status,published_at,event,first_seen_at,review_note,llm_score,edits';
+  const [byKey, byAlt] = await Promise.all([
+    supabase.from('ingest_candidates').select(cols).neq('conference', conference).in('canonical_key', uniq).limit(50),
+    supabase.from('ingest_candidates').select(cols).neq('conference', conference).overlaps('alt_keys', uniq).limit(50),
+  ]);
+  if (byKey.error) throw new Error(`Failed to look up cross-conference candidates: ${byKey.error.message}`);
+  if (byAlt.error) throw new Error(`Failed to look up cross-conference candidates: ${byAlt.error.message}`);
+  const out = new Map<string, Pick<IngestCandidateRow, 'id' | 'conference' | 'canonical_key' | 'alt_keys' | 'status' | 'published_at' | 'event' | 'first_seen_at' | 'review_note' | 'llm_score' | 'edits'>>();
+  for (const row of [...(byKey.data ?? []), ...(byAlt.data ?? [])] as IngestCandidateRow[]) out.set(row.id, row);
+  return Array.from(out.values());
+}
+
 /**
  * Postgres/PostgREST error codes meaning "the thing I queried doesn't
  * exist (yet)" — a missing table/view (42P01), a missing column (42703),
@@ -671,7 +695,7 @@ export async function listRecentCandidatesForDedupe(conference: string): Promise
  */
 const MISSING_RELATION_ERROR_CODES = new Set(['42P01', '42703', 'PGRST205', 'PGRST202', '42883']);
 
-function isMissingRelationError(error: { code?: string } | null | undefined): boolean {
+export function isMissingRelationError(error: { code?: string } | null | undefined): boolean {
   return !!error?.code && MISSING_RELATION_ERROR_CODES.has(error.code);
 }
 
@@ -1067,7 +1091,9 @@ export async function listLabelsForHostSignals(
 }
 
 /** One row of the `ingest_precision` view (migration 20261011120000,
- *  extended by 20261012120000 with `shadow_publish_rejected_theme`). */
+ *  extended by 20261012120000 with `shadow_publish_rejected_theme`, which
+ *  since 20261029140000 counts EVERY non-duplicate rejection of a
+ *  shadow_route='publish' item, not just off_theme/spam). */
 export interface IngestPrecisionRow {
   conference: string;
   source_kind: string;

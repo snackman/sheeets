@@ -19,6 +19,7 @@
 import type { TabConfig } from '../conferences';
 import { normalizeEventLink, LUMA_EVENT_API_ID_RE } from '../luma';
 import { deleteSheetRow, getSheetTitle, readRange } from '../google-sheets';
+import { withPublisherLease, sheetLeaseKey, PublisherLeaseBusyError } from './publisher-lease';
 import { claimCandidateStatus, listCandidates, updateCandidate } from './db';
 import { normalizeNameForDuplicateCheck } from './dedupe';
 import type { IngestCandidateRow } from './types';
@@ -174,6 +175,11 @@ export interface SweepDeps {
   deleteSheetRow: typeof deleteSheetRow;
   sleep: (ms: number) => Promise<void>;
   now: () => number;
+  /** Holds the per-tab publisher lease (publisher-lease.ts) around the
+   *  re-read + delete, so a concurrent insert (approve / auto-publish)
+   *  can't shift rows between locating and deleting one. Optional so
+   *  callers/tests that pass their own deps keep working unlocked. */
+  withLease?: <T>(key: string, fn: () => Promise<T>) => Promise<T>;
 }
 
 const defaultDeps: SweepDeps = {
@@ -185,6 +191,9 @@ const defaultDeps: SweepDeps = {
   deleteSheetRow,
   sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
   now: () => Date.now(),
+  // Short wait: if a publish holds the tab, skip this delete (next run
+  // retries) rather than stall the cron's sweep budget.
+  withLease: (key, fn) => withPublisherLease(key, fn, { waitMs: 5_000, ttlSeconds: 30 }),
 };
 
 /**
@@ -238,17 +247,28 @@ export async function sweepDuplicateRows(
           result.skipped++;
           continue;
         }
-        const fresh = await deps.readRange(sheetName, 'A1:M');
-        const again = findSweepMatches(fresh, candidates).find(
-          (x) => x.candidateId === cand.id && x.pipelineLink === m.pipelineLink && x.handAddedLink === m.handAddedLink
-        );
-        if (!again) {
+        const withLease = deps.withLease ?? (<T,>(_key: string, fn: () => Promise<T>) => fn());
+        let deleted: boolean;
+        try {
+          deleted = await withLease(sheetLeaseKey(tab.gid), async () => {
+            const fresh = await deps.readRange(sheetName, 'A1:M');
+            const again = findSweepMatches(fresh, candidates).find(
+              (x) => x.candidateId === cand.id && x.pipelineLink === m.pipelineLink && x.handAddedLink === m.handAddedLink
+            );
+            if (!again) return false;
+            await deps.deleteSheetRow(tab.gid, again.rowIndex);
+            return true;
+          });
+        } catch (err) {
+          if (!(err instanceof PublisherLeaseBusyError)) throw err;
+          deleted = false; // a publish holds the tab; retry next run
+        }
+        if (!deleted) {
           await revert(deps, cand);
           claimed = false;
           result.skipped++;
           continue;
         }
-        await deps.deleteSheetRow(tab.gid, again.rowIndex);
         claimed = false; // done; nothing to revert
         result.removed++;
         await deps.sleep(DELETE_PACING_MS);

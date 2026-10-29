@@ -584,73 +584,255 @@ export async function insertEventRowSorted(sheetName: string, gid: number, event
       }
     }
   }
-  const insertRow = insertIdx + 1; // 1-based sheet row
-
-  // 4. Insert a blank row using batchUpdate API
+  // 4. Insert the row AND write its cells in ONE spreadsheets.batchUpdate
+  //    (insertDimension + updateCells). A batchUpdate is atomic — all
+  //    requests apply or none do — so there is no window where a blank
+  //    inserted row exists, and no second request that could land on a row
+  //    that shifted in between (the old insert-then-PUT-values flow had both
+  //    problems). The cosmetic date format is a separate, non-fatal call
+  //    afterwards (step 6) so it can never fail the insert itself.
+  const { requests, dateIsRealDate, expected } = buildInsertEventRowRequests(gid, insertIdx, event);
+  // Grid row count before the insert: lets verification positively confirm
+  // that exactly one row was added before it would ever delete anything.
+  const rowCountBefore = await getGridRowCount(token, gid).catch(() => null);
   const batchUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`;
-  const insertRes = await fetch(batchUrl, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      requests: [{
-        insertDimension: {
-          range: {
-            sheetId: gid,
-            dimension: 'ROWS',
-            startIndex: insertIdx,
-            endIndex: insertIdx + 1,
-          },
-          inheritFromBefore: true,
-        },
-      }],
-    }),
-  });
-
-  if (!insertRes.ok) {
-    const text = await insertRes.text();
-    throw new Error(`Failed to insert row: ${insertRes.status} ${text}`);
+  let batchRes: Response;
+  try {
+    batchRes = await fetch(batchUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ requests }),
+    });
+  } catch (err) {
+    // Network failure: the batch may or may not have applied. If our row
+    // is there, report it (so the caller records it as published instead
+    // of retrying into a duplicate); if we can't tell, never let the caller
+    // blindly retry.
+    let found: number | null;
+    try {
+      found = await locateInsertedRow(token, sheetName, expected, insertIdx);
+    } catch {
+      throw new SheetInsertUnverifiedError(`Insert on '${sheetName}' hit a network error and could not be verified: ${err instanceof Error ? err.message : err}`);
+    }
+    if (found !== null) return found + 1;
+    throw err;
   }
 
-  // 5. Write event data to the newly inserted row. This is the MAIN
-  //    section fetchEvents/gviz reads, so column A (Date) must stay a real
-  //    Sheets date — see `mainSectionRowValues`.
-  const writeRange = encodeURIComponent(`'${sheetName}'!A${insertRow}:L${insertRow}`);
-  const writeUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${writeRange}?valueInputOption=USER_ENTERED`;
-
-  const { values: rowValues, dateIsRealDate } = mainSectionRowValues(event);
-  const values = [rowValues];
-
-  const writeRes = await fetch(writeUrl, {
-    method: 'PUT',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ values }),
-  });
-
-  if (!writeRes.ok) {
-    const text = await writeRes.text();
-    throw new Error(`Failed to write event data: ${writeRes.status} ${text}`);
+  if (!batchRes.ok) {
+    // Atomic: nothing was inserted, so this (incl. a 429) is safe to retry.
+    const text = await batchRes.text();
+    throw new Error(`Failed to insert event row: ${batchRes.status} ${text}`);
   }
 
-  // 6. Make sure the real date displays in the curated style ("Mon,
-  //    October 5") rather than whatever default format Sheets picked.
-  //    Non-fatal: the event is already published and correctly typed for
-  //    gviz either way — this only affects display polish and this row's
-  //    own chronological-sort parsing on a LATER insert.
+  // 5. Verify. From here on the row IS (very likely) on the sheet, so no
+  //    error may ever be retryable — a retry would double-insert. A
+  //    verification failure is logged and the expected row returned;
+  //    only a POSITIVELY confirmed blank inserted row is removed (and that
+  //    throws a non-retryable error).
+  let rowIdx = insertIdx;
+  try {
+    rowIdx = await verifyInsertedRow(token, sheetName, gid, insertIdx, expected, rowCountBefore);
+  } catch (err) {
+    if (err instanceof SheetInsertUnverifiedError) throw err;
+    console.warn(`[insertEventRowSorted] '${sheetName}': verification failed (treating row ${insertIdx + 1} as inserted): ${err instanceof Error ? err.message : err}`);
+  }
+
+  // 6. Curated date display ("Mon, October 5"). Non-fatal: the row is
+  //    already published and correctly typed for gviz either way.
   if (dateIsRealDate) {
     try {
-      await setDateColumnFormat(gid, [insertIdx]);
+      await setDateColumnFormat(gid, [rowIdx]);
     } catch (err) {
-      console.warn(`Failed to set date column format for row ${insertRow}: ${err instanceof Error ? err.message : err}`);
+      console.warn(`Failed to set date column format for row ${rowIdx + 1}: ${err instanceof Error ? err.message : err}`);
     }
   }
 
-  return insertRow;
+  return rowIdx + 1;
+}
+
+/** Thrown once a row insert has (or may have) reached the sheet but could
+ *  not be verified/undone. Callers must NOT retry it — see
+ *  `publish.ts#isRetryableInsertError`. */
+export class SheetInsertUnverifiedError extends Error {
+  readonly retryable = false;
+  constructor(message: string) {
+    super(message);
+    this.name = 'SheetInsertUnverifiedError';
+  }
+}
+
+/** Days since the Sheets epoch (1899-12-30) for an ISO "YYYY-MM-DD" — the
+ *  serial number USER_ENTERED would have stored for that text. */
+export function isoDateToSheetSerial(iso: string): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return null;
+  const ms = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  if (!Number.isFinite(ms)) return null;
+  return Math.round((ms - Date.UTC(1899, 11, 30)) / 86_400_000);
+}
+
+/** The literal text a cell holds after a USER_ENTERED write of `value`
+ *  (a leading apostrophe means "literal text" and is not stored). */
+function storedText(value: string): string {
+  return value.startsWith("'") ? value.slice(1) : value;
+}
+
+/**
+ * Translate one `mainSectionRowValues` cell into `updateCells` CellData,
+ * reproducing what valueInputOption=USER_ENTERED did for the values this
+ * writer produces:
+ *  - "'text" (escapeSheetValue / forceSheetText) -> literal string "text"
+ *  - "TRUE"/"FALSE" (Food/Bar) -> real booleans (checkboxes)
+ *  - column A ISO date -> real date serial (display format applied by
+ *    `setDateColumnFormat` right after the insert)
+ *  - anything else -> a plain string. (USER_ENTERED could additionally
+ *    have coerced number-/date-looking free text into a number; storing it
+ *    as text is strictly safer for gviz's column typing.) A string value is
+ *    never evaluated as a formula.
+ */
+export function toUserEnteredCell(value: string, columnIndex: number): { userEnteredValue?: Record<string, unknown> } {
+  if (value === '') return {};
+  if (value.startsWith("'")) return { userEnteredValue: { stringValue: value.slice(1) } };
+  if (value === 'TRUE' || value === 'FALSE') return { userEnteredValue: { boolValue: value === 'TRUE' } };
+  if (columnIndex === 0) {
+    const serial = isoDateToSheetSerial(value);
+    if (serial !== null) return { userEnteredValue: { numberValue: serial } };
+  }
+  return { userEnteredValue: { stringValue: value } };
+}
+
+/** What identifies OUR inserted row: link + name + date (a multi-day event
+ *  shares one Luma link across several rows, so link alone is ambiguous). */
+export interface InsertedRowIdentity {
+  link: string;
+  name: string;
+  /** month*100+day (see `parseSheetDate`), or null if unparseable. */
+  dateKey: number | null;
+}
+
+/** The exact atomic `spreadsheets.batchUpdate` request list for a sorted
+ *  insert (insertDimension + updateCells). Exported for tests. */
+export function buildInsertEventRowRequests(gid: number, insertIdx: number, event: EventRow) {
+  const { values: rowValues, dateIsRealDate } = mainSectionRowValues(event);
+  const requests: Record<string, unknown>[] = [
+    {
+      insertDimension: {
+        range: { sheetId: gid, dimension: 'ROWS', startIndex: insertIdx, endIndex: insertIdx + 1 },
+        inheritFromBefore: true,
+      },
+    },
+    {
+      updateCells: {
+        start: { sheetId: gid, rowIndex: insertIdx, columnIndex: 0 },
+        rows: [{ values: rowValues.map((v, i) => toUserEnteredCell(v, i)) }],
+        fields: 'userEnteredValue',
+      },
+    },
+  ];
+  const expected: InsertedRowIdentity = {
+    link: storedText(rowValues[8] ?? '').trim(),
+    name: storedText(rowValues[4] ?? '').trim(),
+    dateKey: parseSheetDate(event.date) ?? (event.dateISO ? parseSheetDate(isoToMonthDay(event.dateISO)) : null),
+  };
+  return { requests, dateIsRealDate, expected };
+}
+
+const MONTH_ABBR = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+function isoToMonthDay(iso: string): string {
+  const m = /^\d{4}-(\d{2})-(\d{2})$/.exec(iso);
+  return m ? `${MONTH_ABBR[Number(m[1]) - 1]} ${Number(m[2])}` : '';
+}
+
+function rowMatchesIdentity(row: string[], expected: InsertedRowIdentity): boolean {
+  const cell = (i: number) => (row[i] || '').trim();
+  if (expected.link && cell(8) !== expected.link) return false;
+  if (cell(4) !== expected.name) return false;
+  if (expected.dateKey !== null) {
+    const rowDate = parseSheetDate(cell(0));
+    if (rowDate !== null && rowDate !== expected.dateKey) return false;
+  }
+  return true;
+}
+
+async function readValues(token: string, sheetName: string, a1: string): Promise<string[][]> {
+  const range = encodeURIComponent(`'${sheetName}'!${a1}`);
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to read sheet: ${res.status} ${text}`);
+  }
+  const data = await res.json();
+  return data.values || [];
+}
+
+/** The tab's grid row count (metadata), used to positively confirm an
+ *  insert added exactly one row. */
+async function getGridRowCount(token: string, gid: number): Promise<number | null> {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets(properties(sheetId,gridProperties(rowCount)))`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const sheets: { properties?: { sheetId?: number; gridProperties?: { rowCount?: number } } }[] = data.sheets || [];
+  const count = sheets.find((s) => s.properties?.sheetId === gid)?.properties?.gridProperties?.rowCount;
+  return typeof count === 'number' ? count : null;
+}
+
+/** 0-based index of the row matching link + name + date, nearest to
+ *  `nearIdx`; null when absent. */
+async function locateInsertedRow(token: string, sheetName: string, expected: InsertedRowIdentity, nearIdx: number): Promise<number | null> {
+  if (!expected.name && !expected.link) return null;
+  const rows = await readValues(token, sheetName, 'A1:I');
+  let best: number | null = null;
+  for (let i = 0; i < rows.length; i++) {
+    if (!rowMatchesIdentity(rows[i] ?? [], expected)) continue;
+    if (best === null || Math.abs(i - nearIdx) < Math.abs(best - nearIdx)) best = i;
+  }
+  return best;
+}
+
+/**
+ * Confirm the inserted row (0-based `insertIdx`) holds our event; returns
+ * the 0-based index where it actually is. Never deletes a row unless ALL of:
+ * the row at `insertIdx` is fully blank (full width), our event is nowhere
+ * on the tab, and the grid grew by exactly one row since before the insert
+ * (so the blank row is provably the one we added — never e.g. the separator
+ * above "Add Events Here"). That case throws a non-retryable error. Any
+ * other unverifiable state throws `SheetInsertUnverifiedError` only when the
+ * event is provably absent; otherwise it logs and assumes `insertIdx`.
+ */
+async function verifyInsertedRow(
+  token: string,
+  sheetName: string,
+  gid: number,
+  insertIdx: number,
+  expected: InsertedRowIdentity,
+  rowCountBefore: number | null
+): Promise<number> {
+  const insertRow = insertIdx + 1;
+  const row = (await readValues(token, sheetName, `A${insertRow}:ZZ${insertRow}`))[0] ?? [];
+  if (rowMatchesIdentity(row, expected)) return insertIdx;
+
+  const found = await locateInsertedRow(token, sheetName, expected, insertIdx);
+  if (found !== null) {
+    console.warn(`[insertEventRowSorted] '${sheetName}': row shifted after insert (expected ${insertRow}, found ${found + 1})`);
+    return found;
+  }
+
+  const isBlank = row.every((v) => !(v || '').trim());
+  if (isBlank && rowCountBefore !== null) {
+    const rowCountAfter = await getGridRowCount(token, gid).catch(() => null);
+    if (rowCountAfter === rowCountBefore + 1) {
+      await deleteSheetRow(gid, insertIdx);
+      throw new SheetInsertUnverifiedError(`Insert verification failed on '${sheetName}' row ${insertRow}: inserted row was blank; removed it`);
+    }
+  }
+  console.warn(`[insertEventRowSorted] '${sheetName}': could not verify row ${insertRow}; not deleting anything, treating it as inserted`);
+  return insertIdx;
 }
 
 /**

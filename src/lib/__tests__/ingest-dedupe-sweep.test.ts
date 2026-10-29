@@ -308,3 +308,46 @@ describe('sweepDuplicateRows', () => {
     expect(r.removed).toBe(0);
   });
 });
+
+describe('sweepDuplicateRows: publisher lease', () => {
+  const tab = { gid: 7, name: 'Solana Breakpoint' };
+  const sheet = [row('Thu, December 10', 'Solana Mixer', EVT), row('Thu, December 10', 'Solana Mixer', 'https://luma.com/e9iw08nn')];
+
+  it('holds the per-tab lease around the fresh re-read AND the delete', async () => {
+    const order: string[] = [];
+    const deps = makeDeps([sheet], [cand()]);
+    const read = deps.readRange;
+    deps.readRange = vi.fn(async (...a: Parameters<typeof read>) => {
+      order.push('read');
+      return read(...a);
+    });
+    const del = deps.deleteSheetRow;
+    deps.deleteSheetRow = vi.fn(async (...a: Parameters<typeof del>) => {
+      order.push('delete');
+      return del(...a);
+    });
+    deps.withLease = async <T,>(key: string, fn: () => Promise<T>) => {
+      order.push(`lease:${key}`);
+      const out = await fn();
+      order.push('release');
+      return out;
+    };
+    const r = await sweepDuplicateRows(tab, deps);
+    expect(r.removed).toBe(1);
+    expect(order).toEqual(['read', 'lease:sheet:7', 'read', 'delete', 'release']);
+  });
+
+  it('a busy lease (a publish in progress) skips the delete and reverts the claim', async () => {
+    const { PublisherLeaseBusyError } = await import('../ingest/publisher-lease');
+    const deps = makeDeps([sheet], [cand()]);
+    deps.withLease = async () => {
+      throw new PublisherLeaseBusyError('sheet:7', 5000);
+    };
+    const r = await sweepDuplicateRows(tab, deps);
+    expect(r.removed).toBe(0);
+    expect(r.skipped).toBe(1);
+    expect(r.errors).toBe(0);
+    expect(deps.deleted).toEqual([]);
+    expect(deps.upd).toHaveBeenCalledWith('c1', expect.objectContaining({ status: 'auto_published' }));
+  });
+});

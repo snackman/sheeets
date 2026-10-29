@@ -488,7 +488,13 @@ export interface IngestLabelRow {
 }
 
 /** Reject reasons shown as chips in the review queue (§9.2). Only
- *  'off_theme' and 'spam' create theme labels; the rest are non_theme. */
+ *  'off_theme' and 'spam' create theme labels; the rest are non_theme
+ *  (including online / lodging / sales_1on1 / residency / pre_event, which
+ *  mirror the human triage rules — they say nothing about theme fit).
+ *  `ingest_candidates.reject_reason` is plain `text` with no CHECK
+ *  constraint, so new values need no migration. Keep in sync with
+ *  `IngestRejectReasonSchema` (api-validation.ts) and
+ *  `REJECT_REASON_OPTIONS` (components/admin/ingest/types.ts). */
 export const REJECT_REASONS = [
   'off_theme',
   'wrong_city',
@@ -496,6 +502,11 @@ export const REJECT_REASONS = [
   'duplicate',
   'private_or_invite_only',
   'spam',
+  'online',
+  'lodging',
+  'sales_1on1',
+  'residency',
+  'pre_event',
   'other',
 ] as const;
 export type RejectReason = (typeof REJECT_REASONS)[number];

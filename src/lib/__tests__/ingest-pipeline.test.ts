@@ -5,6 +5,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // check — `scoreCandidate` is mocked below and never actually uses this
 // client, so a trivial stand-in avoids both without `dangerouslyAllowBrowser`.
 process.env.OPENAI_API_KEY = 'test-key';
+// Publisher lease (publisher-lease.ts) needs Supabase RPCs; run the
+// critical section directly here.
+vi.mock('../ingest/publisher-lease', () => ({
+  withPublisherLease: <T,>(_key: string, fn: () => Promise<T>) => fn(),
+  sheetLeaseKey: (gid: number) => `sheet:${gid}`,
+}));
 vi.mock('openai', () => ({ default: class FakeOpenAI {} }));
 
 // ---------------------------------------------------------------------------
@@ -59,7 +65,14 @@ const getProfileMock = vi.fn(async () => defaultProfile);
 const getRecentAutoPublishOutcomesMock = vi.fn(async () => [] as { status: string; event?: { dateISO?: string | null }; updated_at?: string }[]);
 const updateProfilePatchMock = vi.fn(async () => ({}));
 
+// Cross-conference duplicate lookup (cross-conference.ts) — empty by
+// default; individual tests seed twins in other conferences.
+const listOtherConferenceCandidatesByKeysMock = vi.fn(async (..._a: unknown[]) => [] as Record<string, unknown>[]);
+const claimCandidateStatusMock = vi.fn(async (..._a: unknown[]) => ({ id: 'claimed' }) as unknown);
+
 vi.mock('../ingest/db', () => ({
+  listOtherConferenceCandidatesByKeys: (...a: unknown[]) => listOtherConferenceCandidatesByKeysMock(...a),
+  claimCandidateStatus: (...a: unknown[]) => claimCandidateStatusMock(...a),
   getSource: vi.fn(async () => ({
     id: 'src-1',
     conference: 'Test Conf',
@@ -142,6 +155,14 @@ vi.mock('../get-conferences', () => ({
       slug: 'test-conf',
       timezone: 'UTC',
       dates: ['2027-03-10'],
+      center: { lat: 43.5528, lng: 7.0174 },
+    },
+    {
+      gid: 2,
+      name: 'Other Summit',
+      slug: 'other-summit',
+      timezone: 'UTC',
+      dates: ['2027-03-08', '2027-03-09', '2027-03-10', '2027-03-11'],
       center: { lat: 43.5528, lng: 7.0174 },
     },
   ]),
@@ -263,6 +284,8 @@ beforeEach(async () => {
   getRecentAutoPublishOutcomesMock.mockReset().mockResolvedValue([]);
   updateProfilePatchMock.mockClear();
   fetchLumaIcalFeedMock.mockReset().mockResolvedValue([DEFAULT_VEVENT]);
+  listOtherConferenceCandidatesByKeysMock.mockReset().mockResolvedValue([]);
+  claimCandidateStatusMock.mockReset().mockResolvedValue({ id: 'claimed' });
   // `fetchEvents` (sheetEvents) and `insertEventRowSorted` aren't named
   // top-level consts (defined inline in their `vi.mock` factories) — reset
   // them via a fresh import each time so a test that overrides
@@ -631,5 +654,146 @@ describe('runSource: persists LLM cost already spent when a LATER candidate thro
     expect(patch.llm_input_tokens).toBeGreaterThan(0);
     expect(patch.llm_output_tokens).toBeGreaterThan(0);
     expect(patch.est_cost_usd).toBeGreaterThan(0);
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+// Triage automation (online detection, venue_unknown, pre_event,
+// cross-conference duplicates) — wiring through the real Luma iCal loop.
+// ---------------------------------------------------------------------------
+describe('runSource: online / venue-unknown / pre-event wiring', () => {
+  it('an online livestream (YouTube LOCATION, no GEO) is filtered as online, never "<city> (venue on event page)"', async () => {
+    // Regression: Spanish-language Zcash livestream that showed up as
+    // "Mumbai (venue on event page)".
+    getProfileMock.mockResolvedValue({ ...defaultProfile, allow_online: false });
+    fetchLumaIcalFeedMock.mockResolvedValue([
+      { ...DEFAULT_VEVENT, summary: 'Zcash en Español: Transmisión en vivo', location: 'https://www.youtube.com/live/abc123', geo: null },
+    ] as never);
+    const result = await runSource('src-1', { trigger: 'manual' });
+    expect(result.counts.filtered).toBe(1);
+    const row = candidateStore.get('Test Conf::luma:evt-abc123def456');
+    expect(row?.status).toBe('filtered_out');
+    expect(row?.filter_reason).toBe('online_not_allowed');
+    expect((row?.event as { isOnline: boolean; address: string }).isOnline).toBe(true);
+    expect((row?.event as { address: string }).address).not.toMatch(/venue on event page/);
+    expect(scoreCandidateMock).not.toHaveBeenCalled();
+  });
+
+  it('a venue-hidden event (Luma link LOCATION, no GEO) keeps an EMPTY address and is scored with venueUnknown', async () => {
+    fetchLumaIcalFeedMock.mockResolvedValue([{ ...DEFAULT_VEVENT, geo: null }] as never);
+    await runSource('src-1', { trigger: 'manual' });
+    const row = candidateStore.get('Test Conf::luma:evt-abc123def456');
+    expect((row?.event as { address: string; isOnline: boolean }).address).toBe('');
+    expect((row?.event as { isOnline: boolean }).isOnline).toBe(false);
+    expect(scoreCandidateMock).toHaveBeenCalledTimes(1);
+    expect(scoreCandidateMock.mock.calls[0][0]).toMatchObject({ venueUnknown: true, noGeo: true });
+  });
+
+  it('an event before the core start date (inside the pre-window) is scored with preEvent', async () => {
+    fetchLumaIcalFeedMock.mockResolvedValue([
+      { ...DEFAULT_VEVENT, dtstart: '2027-03-08T18:00:00.000Z', dtend: '2027-03-08T21:00:00.000Z' },
+    ] as never);
+    await runSource('src-1', { trigger: 'manual' });
+    expect(scoreCandidateMock.mock.calls[0][0]).toMatchObject({ preEvent: true, venueUnknown: false });
+  });
+
+  it('an in-core-window event is not pre_event', async () => {
+    await runSource('src-1', { trigger: 'manual' });
+    expect(scoreCandidateMock.mock.calls[0][0]).toMatchObject({ preEvent: false });
+  });
+});
+
+describe('runSource: cross-conference duplicates', () => {
+  const twin = (over: Record<string, unknown> = {}) => ({
+    id: 'other-cand-1',
+    conference: 'Other Summit',
+    canonical_key: 'luma:evt-abc123def456',
+    alt_keys: [],
+    status: 'queued',
+    published_at: null,
+    first_seen_at: '2027-01-01T00:00:00.000Z',
+    event: { name: 'ETH Builders Mixer', dateISO: '2027-03-10', organizer: 'Alice', hosts: [{ name: 'Alice' }], calendar: null },
+    ...over,
+  });
+
+  it('routes THIS candidate as duplicate ("also in <conf>") when the other conference matches at least as well — no LLM call', async () => {
+    listOtherConferenceCandidatesByKeysMock.mockResolvedValue([twin()]);
+    const result = await runSource('src-1', { trigger: 'manual' });
+    expect(result.counts.duplicates).toBe(1);
+    const row = candidateStore.get('Test Conf::luma:evt-abc123def456');
+    expect(row?.status).toBe('duplicate');
+    expect(row?.duplicate_of).toBe('other-cand-1');
+    expect(row?.review_note).toBe('Cross-conference duplicate: also in Other Summit');
+    expect(scoreCandidateMock).not.toHaveBeenCalled();
+    expect(claimCandidateStatusMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps it here and demotes the other conference\'s PENDING twin when this conference matches better (name token)', async () => {
+    const named = { ...DEFAULT_VEVENT, summary: 'Test Padel Social' };
+    fetchLumaIcalFeedMock.mockResolvedValue([named] as never);
+    fetchLumaEventMock.mockResolvedValue({
+      api_id: 'evt-ABC123DEF456',
+      event: { api_id: 'evt-ABC123DEF456', name: 'Test Padel Social' },
+      hosts: [{ api_id: 'usr-1', name: 'Alice' }],
+      description_mirror: null,
+    });
+    listOtherConferenceCandidatesByKeysMock.mockResolvedValue([twin({ event: { name: 'Test Padel Social', dateISO: '2027-03-10', organizer: 'Alice', hosts: [], calendar: null } })]);
+    await runSource('src-1', { trigger: 'manual' });
+    const row = candidateStore.get('Test Conf::luma:evt-abc123def456');
+    expect(row?.status).toBe('queued');
+    // The fake store has no ids, so duplicate_of is null and the key goes in the note.
+    expect(claimCandidateStatusMock).toHaveBeenCalledWith('other-cand-1', ['queued', 'pending_classify'], 'duplicate', {
+      duplicate_of: null,
+      review_note: 'Cross-conference duplicate: also in Test Conf (luma:evt-abc123def456)',
+    });
+  });
+
+  it('never demotes in a dry run', async () => {
+    fetchLumaIcalFeedMock.mockResolvedValue([{ ...DEFAULT_VEVENT, summary: 'Test Padel Social' }] as never);
+    fetchLumaEventMock.mockResolvedValue({
+      api_id: 'evt-ABC123DEF456',
+      event: { api_id: 'evt-ABC123DEF456', name: 'Test Padel Social' },
+      hosts: [],
+      description_mirror: null,
+    });
+    listOtherConferenceCandidatesByKeysMock.mockResolvedValue([twin()]);
+    await runSource('src-1', { trigger: 'manual', dryRun: true });
+    expect(claimCandidateStatusMock).not.toHaveBeenCalled();
+  });
+
+  it('ignores rejected / filtered twins', async () => {
+    listOtherConferenceCandidatesByKeysMock.mockResolvedValue([twin({ status: 'rejected' }), twin({ id: 'x2', status: 'filtered_out' })]);
+    await runSource('src-1', { trigger: 'manual' });
+    expect(candidateStore.get('Test Conf::luma:evt-abc123def456')?.status).toBe('queued');
+    expect(scoreCandidateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('a lookup failure is a no-op (candidate proceeds normally)', async () => {
+    listOtherConferenceCandidatesByKeysMock.mockRejectedValue(new Error('db down'));
+    await runSource('src-1', { trigger: 'manual' });
+    expect(candidateStore.get('Test Conf::luma:evt-abc123def456')?.status).toBe('queued');
+  });
+});
+
+describe('runSource: persisted force-review marker (cross-conference re-queue)', () => {
+  it('a re-queued twin (edits.force_review) is always scored with forceReview, on every later run', async () => {
+    candidateStore.set('Test Conf::luma:evt-abc123def456', {
+      id: 'twin-1',
+      conference: 'Test Conf',
+      canonical_key: 'luma:evt-abc123def456',
+      status: 'pending_classify',
+      ical_hash: 'stale',
+      edits: { force_review: 'cross_conference_requeue:wrong_city' },
+    });
+    await runSource('src-1', { trigger: 'manual' });
+    expect(scoreCandidateMock.mock.calls[0][0]).toMatchObject({ forceReview: true });
+    // The marker survives the pipeline's own write.
+    expect(candidateStore.get('Test Conf::luma:evt-abc123def456')?.edits).toEqual({ force_review: 'cross_conference_requeue:wrong_city' });
+  });
+
+  it('candidates without the marker are not forced', async () => {
+    await runSource('src-1', { trigger: 'manual' });
+    expect(scoreCandidateMock.mock.calls[0][0]).toMatchObject({ forceReview: false });
   });
 });

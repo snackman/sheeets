@@ -31,6 +31,7 @@ import { checkMonthlyBudget } from '@/lib/ingest/budget';
 import { estimateCostUsd } from '@/lib/ingest/pricing';
 import { getSponsorNamesForConference, matchSponsorName } from '@/lib/ingest/sponsors';
 import { loadLearningContext } from '@/lib/ingest/learning';
+import { requeueCrossConferenceTwins, hasForceReviewMarker } from '@/lib/ingest/cross-conference';
 import {
   buildSheetLinkIndex,
   findSheetMatchByLink,
@@ -337,6 +338,10 @@ export async function POST(req: NextRequest) {
             model_score: candidate.llm_score,
             model_route: candidate.route,
           });
+          // This conference kept the event over an overlapping conference
+          // (cross-conference.ts); a non-duplicate reject here means the
+          // other conference's demoted twin deserves its own review again.
+          await requeueCrossConferenceTwins(candidate, reason);
         } else if (action === 'restore') {
           // Only from rejected/auto_rejected — never from a final,
           // published status (review finding, MEDIUM item 2).
@@ -414,6 +419,7 @@ export async function POST(req: NextRequest) {
               excludeKeywords: profile.exclude_keywords,
               possibleDuplicate: !!candidate.possible_duplicate_of,
               noGeo: candidate.event.lat == null,
+              forceReview: hasForceReviewMarker(candidate),
               sourceTrust: 'curated',
               publishThreshold: profile.publish_threshold,
               reviewThreshold: profile.review_threshold,

@@ -277,10 +277,21 @@ function scoreBucket(finalScore: number | null): string {
 
 const THEME_REJECT_REASONS_FOR_VIEW = new Set(['off_theme', 'spam']);
 
+/** Shadow-precision negatives (migration 20261029140000): ANY human
+ *  rejection of an item the router would have auto-published counts
+ *  against precision — online, lodging, wrong_city, private, pre_event...
+ *  would all have been bad publishes — except `duplicate` (the event was
+ *  right, it just already existed). A rejection with no reason counts too
+ *  (conservative). */
+export function isShadowPublishNegative(c: Pick<PrecisionViewCandidateInput, 'status' | 'reject_reason' | 'shadow_route'>): boolean {
+  return c.status === 'rejected' && c.shadow_route === 'publish' && (c.reject_reason ?? '') !== 'duplicate';
+}
+
 /**
  * A pure-TypeScript mirror of the `ingest_precision` view's exact SQL
  * (`supabase/migrations/20261011120000_event_ingestion.sql`, extended by
- * `20261012120000_event_ingestion_phase2.sql`) — group by
+ * `20261012120000_event_ingestion_phase2.sql`, `20261028120000` and
+ * `20261029140000_precision_all_rejects.sql`) — group by
  * (conference, source_kind, score_bucket), same `count(*) filter (...)`
  * conditions. Exists ONLY so tests can build realistic, raw candidate rows
  * (review finding, CRITICAL item 1: "write the tests against realistic
@@ -323,7 +334,9 @@ export function computePrecisionRowsFromCandidates(candidates: PrecisionViewCand
     if (c.status === 'unpublished' || c.status === 'unpublished_external') row.auto_unpublished++;
     if (c.status === 'queued' && c.shadow_route === 'publish') row.shadow_publish_candidates++;
     if (isApproved && c.shadow_route === 'publish') row.shadow_publish_approved++;
-    if (isThemeRejected && c.shadow_route === 'publish') row.shadow_publish_rejected_theme++;
+    // Despite the legacy column name, every non-duplicate rejection counts
+    // (migration 20261029140000) — see `isShadowPublishNegative`.
+    if (isShadowPublishNegative(c)) row.shadow_publish_rejected_theme++;
   }
   return Array.from(groups.values());
 }
