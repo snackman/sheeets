@@ -392,7 +392,6 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
   const defaultRange = useMemo(
     () => getDateTimeRangeForConference(filters.conference, conferenceTabs),
     // Computed once per conference so "now" drifting doesn't rewrite the URL.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [filters.conference, conferenceTabs]
   );
 
