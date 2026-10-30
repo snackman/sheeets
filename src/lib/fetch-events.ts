@@ -3,6 +3,7 @@ import { ETHDenverEvent } from './types';
 import { SHEET_ID, EVENT_TABS } from './constants';
 import type { TabConfig } from './conferences';
 import { parseDateToISO, getTimeOfDay, isFreeEvent, normalizeAddress } from './utils';
+import { isSaneForConference } from './geocode-core';
 import geocodedData from '@/data/geocoded-addresses.json';
 
 export type GeoAddressMap = Record<string, { lat: number; lng: number; matchedAddress?: string }>;
@@ -52,7 +53,7 @@ export function generateEventId(conference: string, date: string, startTime: str
  * free-text column that's never numeric/date-like, so it's typed `string`
  * no matter what — a reliable fallback signal for the header row.
  */
-function findHeaderIndex(rows: GVizRow[]): number {
+export function findHeaderIndex(rows: GVizRow[]): number {
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     if (!row.c) continue;
@@ -65,7 +66,7 @@ function findHeaderIndex(rows: GVizRow[]): number {
 }
 
 /** Check if a row is empty (no meaningful content in event columns) */
-function isEmptyRow(row: GVizRow): boolean {
+export function isEmptyRow(row: GVizRow): boolean {
   if (!row.c) return true;
   const name = getCellValue(row.c[4]);
   const date = getCellValue(row.c[0]);
@@ -158,8 +159,15 @@ export async function fetchEvents(runtimeAddresses?: GeoAddressMap, tabs?: TabCo
       const staticAddresses = geocodedData.addresses as GeoAddressMap;
       const normalizedAddr = address ? normalizeAddress(address) : '';
       // Check runtime addresses first (fresher, from Supabase), then fall back to static cache
+      // Cached coordinates far from this conference's city are wrong
+      // (e.g. "World Way, Fort Worth" for a Mumbai venue): drop them so no
+      // pin shows, and the geocode cron re-resolves the address. The loose
+      // sanity radius keeps regional side events. Runtime and static entries
+      // are checked separately so a bad runtime row falls back to the static.
+      const sane = (g?: { lat: number; lng: number; matchedAddress?: string }) =>
+        g && (!tab.center || isSaneForConference(g, tab.center)) ? g : undefined;
       const geo = normalizedAddr
-        ? (runtimeAddresses?.[normalizedAddr] || staticAddresses[normalizedAddr])
+        ? sane(runtimeAddresses?.[normalizedAddr]) || sane(staticAddresses[normalizedAddr])
         : undefined;
 
       // Generate ID and flag duplicates (same name/date/time = data error)

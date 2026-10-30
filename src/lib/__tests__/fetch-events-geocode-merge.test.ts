@@ -19,7 +19,7 @@ const tab: TabConfig = {
   slug: 'devcon',
   timezone: 'UTC',
   dates: [],
-  center: { lat: 0, lng: 0 },
+  center: { lat: 19.076, lng: 72.8777 },
 };
 
 describe('fetchEvents: merging the runtime geocoded_addresses cache', () => {
@@ -65,5 +65,26 @@ describe('fetchEvents: merging the runtime geocoded_addresses cache', () => {
     expect(other).toBeDefined();
     expect(other!.lat).toBeUndefined();
     expect(other!.lng).toBeUndefined();
+  });
+
+  it('keeps regional side-event pins (Pune is ~120 km from Mumbai, inside the 300 km sanity radius)', async () => {
+    const events = await fetchEvents(
+      { 'mumbai, india': { lat: 18.5204, lng: 73.8567, matchedAddress: 'Pune, Maharashtra, India' } },
+      [tab]
+    );
+    const event = events.find((e) => e.address === 'Mumbai, India');
+    expect(event!.lat).toBe(18.5204);
+  });
+
+  it('drops cached coordinates far from the conference center (bad geocode, e.g. Fort Worth for Mumbai)', async () => {
+    const events = await fetchEvents(
+      { 'mumbai, india': { lat: 32.7555, lng: -97.3308, matchedAddress: 'World Way, Fort Worth, Texas' } },
+      [tab]
+    );
+    const event = events.find((e) => e.address === 'Mumbai, India');
+    expect(event).toBeDefined();
+    expect(event!.lat).toBeUndefined();
+    expect(event!.lng).toBeUndefined();
+    expect(event!.matchedAddress).toBeUndefined();
   });
 });

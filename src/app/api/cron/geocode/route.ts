@@ -35,6 +35,7 @@ import { fetchEventsCached, invalidateEventsCache } from '@/lib/fetch-events-cac
 import { writeGeocodedAddress, invalidateGeocodedAddressesCache } from '@/lib/geocoded-addresses';
 import { selectAddressesToAttempt, type MissingAddress } from '@/lib/geocode-selection';
 import { normalizeAddress } from '@/lib/utils';
+import { geocodeNearCenter } from '@/lib/geocode-core';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -129,29 +130,20 @@ export async function GET(req: NextRequest) {
 
   for (const { raw, normalized, conference, center } of attempted) {
     try {
-      // Bias toward THIS conference's own center, not a hardcoded default --
-      // the root cause of the old Denver bias.
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(raw)}.json?access_token=${token}&proximity=${center.lng},${center.lat}&limit=1`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-      if (!res.ok) {
-        failed.push(raw);
-        if (!dryRun) await recordFailure(supabase, normalized, conference);
-        continue;
-      }
-      const data = await res.json();
-      const feature = data?.features?.[0];
-      const coords = feature?.geometry?.coordinates;
+      // Bias toward THIS conference's own center, validate the result is
+      // within ~50 km of it (retrying once with the city appended), and
+      // treat anything else as a failure: no pin beats a wrong pin.
+      const hit = await geocodeNearCenter(raw, { token, center, city: tabByName.get(conference)?.city });
 
-      if (Array.isArray(coords) && coords.length >= 2) {
-        const [lng, lat] = coords;
+      if (hit) {
         geocoded.push(raw);
         if (!dryRun) {
           const result = await writeGeocodedAddress(supabase, {
             address: raw,
-            lat,
-            lng,
+            lat: hit.lat,
+            lng: hit.lng,
             conference,
-            matchedAddress: feature?.place_name || raw,
+            matchedAddress: hit.matchedAddress,
           });
           if (!result.ok) writeErrors++;
           // Clean up any stale failure row now that this address resolved.
@@ -159,7 +151,12 @@ export async function GET(req: NextRequest) {
         }
       } else {
         failed.push(raw);
-        if (!dryRun) await recordFailure(supabase, normalized, conference);
+        if (!dryRun) {
+          // A previously cached (wrong) row would otherwise linger; evict it.
+          // TODO: rows are shared across conferences (keyed by normalized address), so this can flip-flop with another conference's valid row.
+          await supabase.from('geocoded_addresses').delete().eq('normalized_address', normalized);
+          await recordFailure(supabase, normalized, conference);
+        }
       }
 
       // Stay well under Mapbox's rate limit.

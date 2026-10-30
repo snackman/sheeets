@@ -482,7 +482,7 @@ async function processLumaIcalSource(args: {
     // came out of THAT — real venue data — and it's missing lat/lng, forward-
     // geocode it (existing behavior, unchanged).
     if (normalized.lat == null && normalized.lng == null && normalized.address) {
-      const geocoded = await geocodeAddressCached(supabase, normalized.address, tab.center, source.conference);
+      const geocoded = await geocodeAddressCached(supabase, normalized.address, tab.center, source.conference, tab.city);
       if (geocoded) {
         normalized.lat = geocoded.lat;
         normalized.lng = geocoded.lng;

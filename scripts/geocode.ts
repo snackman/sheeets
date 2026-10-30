@@ -7,11 +7,13 @@
  * Requires MAPBOX_SECRET_TOKEN environment variable
  */
 
-import { parseGVizResponse, getCellValue } from '../src/lib/gviz';
+import { parseGVizResponse, getCellValue, type GVizRow } from '../src/lib/gviz';
+import { findHeaderIndex, isEmptyRow } from '../src/lib/fetch-events';
 import { normalizeAddress } from '../src/lib/utils';
 import { SHEET_ID, FALLBACK_TABS } from '../src/lib/constants';
 import type { TabConfig } from '../src/lib/conferences';
 import type { ConferenceConfig } from '../src/lib/types';
+import { geocodeNearCenter, isSaneForConference } from '../src/lib/geocode-core';
 import { getActiveConferences, conferenceToTab } from '../src/lib/conferences';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -121,19 +123,34 @@ async function main() {
 
   for (const tab of tabs) {
     console.log(`  Fetching ${tab.name} (gid=${tab.gid})...`);
+    let allRows: GVizRow[] = [];
+    let firstTableCols: { label: string }[] = [];
     for (let offset = 0; offset < 5000; offset += 500) {
       const tq = encodeURIComponent(`select * limit 500 offset ${offset}`);
       const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${tab.gid}&headers=1&tq=${tq}`;
       const response = await fetch(url);
       const text = await response.text();
       const table = parseGVizResponse(text);
+      if (offset === 0) firstTableCols = table.cols;
       if (table.rows.length === 0) break;
-      for (const row of table.rows) {
-        if (!row.c) continue;
-        const address = getCellValue(row.c[5]);
-        if (address && !addressMap.has(address)) addressMap.set(address, tab.name);
-      }
+      allRows = allRows.concat(table.rows);
       if (table.rows.length < 500) break;
+    }
+
+    // Same row selection as fetchEvents: only event rows after the header,
+    // so promo/header rows ("Address", "Header Highlight...") are not geocoded.
+    const headerIdx = findHeaderIndex(allRows);
+    if (headerIdx === -1) {
+      const colBLabel = firstTableCols[1]?.label?.toLowerCase().trim();
+      const colELabel = firstTableCols[4]?.label?.toLowerCase().trim();
+      if (colBLabel !== 'start time' && colELabel !== 'event name') continue;
+    }
+    for (let i = headerIdx + 1; i < allRows.length; i++) {
+      const row = allRows[i];
+      if (isEmptyRow(row)) break;
+      if (!getCellValue(row.c[4])) continue; // no event name
+      const address = getCellValue(row.c[5]);
+      if (address && !addressMap.has(address)) addressMap.set(address, tab.name);
     }
   }
 
@@ -150,32 +167,39 @@ async function main() {
   let geocoded = 0;
   let failed = 0;
 
+  let evicted = 0;
+
   for (const [address, tabName] of addressMap) {
     const normalized = normalizeAddress(address);
-    if (cache.addresses[normalized]) continue;
-
     const proximity = getProximity(tabName, proximityCenters);
+    const center = { lat: proximity.lat, lng: proximity.lng };
+
+    // Re-validate cached entries with the same distance check as new lookups:
+    // evict anything far from the conference's city so it gets re-geocoded.
+    const cached = cache.addresses[normalized];
+    if (cached) {
+      if (isSaneForConference(cached, center)) continue;
+      console.log(`  ~ evict ${address} -> ${cached.matchedAddress} (too far from ${tabName})`);
+      delete cache.addresses[normalized];
+      evicted++;
+    }
 
     try {
-      const query = proximity.suffix && !address.includes(proximity.suffix) ? `${address}, ${proximity.suffix}` : address;
+      const tab = tabs.find((t) => t.name === tabName);
+      // Failures are not written to the cache, so a later run retries them.
+      const hit = await geocodeNearCenter(address, {
+        token: MAPBOX_TOKEN,
+        center,
+        city: tab?.city || proximity.suffix.split(',')[0] || undefined,
+      });
 
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&proximity=${proximity.lng},${proximity.lat}&limit=1`;
-
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (data.features && data.features.length > 0) {
-        const [lng, lat] = data.features[0].center;
-        cache.addresses[normalized] = {
-          lat,
-          lng,
-          matchedAddress: data.features[0].place_name,
-        };
+      if (hit) {
+        cache.addresses[normalized] = { lat: hit.lat, lng: hit.lng, matchedAddress: hit.matchedAddress };
         geocoded++;
-        console.log(`  + ${address} -> ${data.features[0].place_name}`);
+        console.log(`  + ${address} -> ${hit.matchedAddress}`);
       } else {
         failed++;
-        console.log(`  x ${address} -> no results`);
+        console.log(`  x ${address} -> no valid result (no pin)`);
       }
 
       // Rate limiting: 10 requests per second for Mapbox free tier
@@ -195,7 +219,7 @@ async function main() {
 
   fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
 
-  console.log(`\nDone! New: ${geocoded}, Failed: ${failed}, Total cached: ${Object.keys(cache.addresses).length}`);
+  console.log(`\nDone! New: ${geocoded}, Failed: ${failed}, Evicted: ${evicted}, Total cached: ${Object.keys(cache.addresses).length}`);
 }
 
 main();

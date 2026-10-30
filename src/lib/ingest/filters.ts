@@ -5,6 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { normalizeAddress } from '../utils';
 import { haversineKm } from './geo';
 import { writeGeocodedAddress } from '../geocoded-addresses';
+import { geocodeNearCenter, isSaneForConference } from '../geocode-core';
 import type { NormalizedEvent } from './types';
 
 /** Add `days` (may be negative) to a "YYYY-MM-DD" string, returning "YYYY-MM-DD". */
@@ -108,7 +109,8 @@ export async function geocodeAddressCached(
   supabase: SupabaseClient,
   address: string,
   center: { lat: number; lng: number },
-  conference: string
+  conference: string,
+  city?: string
 ): Promise<{ lat: number; lng: number } | null> {
   const trimmed = address.trim();
   if (!trimmed) return null;
@@ -119,20 +121,17 @@ export async function geocodeAddressCached(
     .select('lat,lng')
     .eq('normalized_address', normalized)
     .maybeSingle();
-  if (cached) return { lat: cached.lat, lng: cached.lng };
+  // A cached row far from this conference's city is a bad geocode: ignore it
+  // and re-resolve (the write below overwrites it).
+  if (cached && isSaneForConference(cached, center)) return { lat: cached.lat, lng: cached.lng };
 
   const token = process.env.MAPBOX_SECRET_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   if (!token) return null;
 
   try {
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(trimmed)}.json?access_token=${token}&proximity=${center.lng},${center.lat}&limit=1`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) return null;
-    const json = await res.json();
-    const feature = json?.features?.[0];
-    const coords = feature?.geometry?.coordinates;
-    if (!Array.isArray(coords) || coords.length < 2) return null;
-    const [lng, lat] = coords;
+    const hit = await geocodeNearCenter(trimmed, { token, center, city });
+    if (!hit) return null;
+    const { lat, lng } = hit;
     // Best-effort: a write failure here shouldn't block returning the
     // coordinates we just resolved (writeGeocodedAddress already logs on
     // error -- see its doc comment).

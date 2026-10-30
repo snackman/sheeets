@@ -3,6 +3,7 @@ import { parseBody, GeocodeSchema } from '@/lib/api-validation';
 import { FALLBACK_TABS } from '@/lib/conferences';
 import { getConferenceTabs } from '@/lib/get-conferences';
 import type { TabConfig } from '@/lib/conferences';
+import { geocodeNearCenter } from '@/lib/geocode-core';
 import { createRateLimiter, getClientIp } from '@/lib/rate-limit';
 
 // Per-IP limit (in-process; resets on cold start, not shared across instances)
@@ -71,17 +72,10 @@ export async function POST(req: NextRequest) {
 
   for (const { normalized, raw, conference } of batch) {
     try {
-      const prox = getProximity(conference, proximityMap);
-      const query = prox.suffix && !raw.includes(prox.suffix) ? `${raw}, ${prox.suffix}` : raw;
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&proximity=${prox.lng},${prox.lat}&limit=1`;
-
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (data.features?.length > 0) {
-        const [lng, lat] = data.features[0].center;
-        results[normalized] = { lat, lng };
-      }
+      const tab = tabs.find((t) => t.name === conference);
+      const prox = tab ? { lat: tab.center.lat, lng: tab.center.lng } : getProximity(conference, proximityMap);
+      const hit = await geocodeNearCenter(raw, { token, center: prox, city: tab?.city });
+      if (hit) results[normalized] = { lat: hit.lat, lng: hit.lng };
 
       // Small delay to respect rate limits
       await new Promise((r) => setTimeout(r, 50));
