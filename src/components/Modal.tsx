@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 
 const FOCUSABLE =
@@ -63,6 +63,9 @@ export function Modal({
   closeOnEscape = true,
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  // Captured during the first render: children using `autoFocus` steal focus at commit,
+  // before any effect of ours runs, so reading activeElement in the effect would be wrong.
+  const [opener] = useState<Element | null>(() => (typeof document === 'undefined' ? null : document.activeElement));
   const onCloseRef = useRef(onClose);
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -71,7 +74,6 @@ export function Modal({
   useEffect(() => {
     const id = Symbol('modal');
     stack.push(id);
-    const opener = document.activeElement as HTMLElement | null;
     lockScroll();
 
     const panel = panelRef.current!;
@@ -114,7 +116,7 @@ export function Modal({
       const i = stack.indexOf(id);
       if (i >= 0) stack.splice(i, 1);
       unlockScroll();
-      if (opener && opener.isConnected && typeof opener.focus === 'function') {
+      if (opener instanceof HTMLElement && opener.isConnected && opener !== document.body) {
         opener.focus({ preventScroll: true });
       }
     };

@@ -72,7 +72,7 @@ export function TimeFilter({ value, onChange }: TimeFilterProps) {
         aria-expanded={open}
         aria-label={`Time filter: ${current.label}`}
         className={clsx(
-          'flex items-center gap-1 px-2.5 h-9 tap:h-11 rounded-lg text-sm font-semibold transition-colors cursor-pointer border',
+          'flex items-center gap-1 px-2.5 h-9 tap:h-11 tap:min-w-11 justify-center rounded-lg text-sm font-semibold transition-colors cursor-pointer border',
           active || open
             ? 'text-[var(--theme-filter-active)] border-[var(--theme-filter-active)]'
             : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border-[var(--theme-filter-control-border)]',

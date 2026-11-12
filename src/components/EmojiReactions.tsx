@@ -39,7 +39,9 @@ export function EmojiReactions({
             trackReactionToggle(eventId, r.emoji, !r.reacted);
             onToggle(eventId, r.emoji);
           }}
-          className="py-0.5 transition-colors cursor-pointer inline-flex items-center gap-0.5"
+          aria-pressed={r.reacted}
+          aria-label={`${r.emoji} ${r.count}`}
+          className="py-0.5 tap:min-h-11 tap:min-w-11 justify-center transition-colors cursor-pointer inline-flex items-center gap-0.5"
         >
           <span className="text-[18px] leading-none">{r.emoji}</span>
           <span className={`text-xs ${r.reacted ? 'text-[var(--theme-accent)]' : 'text-[var(--theme-text-muted)]'}`}>{r.count}</span>
@@ -54,9 +56,11 @@ export function EmojiReactions({
             if (!showPicker) trackReactionPickerOpen();
             setShowPicker(!showPicker);
           }}
-          className="text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer inline-flex items-center"
+          aria-label="Add reaction"
+          aria-expanded={showPicker}
+          className="tap:min-h-11 tap:min-w-11 justify-center text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer inline-flex items-center"
         >
-          <ThumbsUp className="w-5 h-5 translate-y-[3px]" />
+          <ThumbsUp className="w-5 h-5 translate-y-[3px]" aria-hidden="true" />
         </button>
 
         {showPicker && (
@@ -78,7 +82,8 @@ export function EmojiReactions({
                     onToggle(eventId, emoji as ReactionEmoji);
                     setShowPicker(false);
                   }}
-                  className="p-1.5 rounded hover:bg-[var(--theme-bg-tertiary)] transition-colors cursor-pointer text-base"
+                  aria-label={`React with ${emoji}`}
+                  className="p-1.5 tap:min-h-11 tap:min-w-11 rounded hover:bg-[var(--theme-bg-tertiary)] transition-colors cursor-pointer text-base"
                 >
                   {emoji}
                 </button>

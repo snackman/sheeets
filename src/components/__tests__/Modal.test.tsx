@@ -71,6 +71,29 @@ describe('Modal', () => {
     expect(document.body.style.overflow).toBe('');
   });
 
+  it('returns focus to the opener even when a child uses autoFocus', async () => {
+    const user = userEvent.setup();
+    function AutoFocusHarness() {
+      const [open, setOpen] = useState(false);
+      return (
+        <div>
+          <button onClick={() => setOpen(true)}>opener</button>
+          {open && (
+            <Modal ariaLabel="auto" onClose={() => setOpen(false)}>
+              {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
+              <input aria-label="email" autoFocus />
+            </Modal>
+          )}
+        </div>
+      );
+    }
+    render(<AutoFocusHarness />);
+    await user.click(screen.getByText('opener'));
+    expect(screen.getByLabelText('email')).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(screen.getByText('opener')).toHaveFocus();
+  });
+
   it('closes on backdrop click but not on panel click', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

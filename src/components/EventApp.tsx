@@ -105,7 +105,7 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
     activeFilterCount,
     toggleOrg,
   } = useFilters(initialConference, conferenceTabs);
-  const { events, loading, error, loadAll: loadAllEvents, reload: reloadEvents } = useEvents(initialEvents, filters.conference);
+  const { events, loading, error, loadAll: loadAllEvents, reload: reloadEvents, failedConference, retryConference } = useEvents(initialEvents, filters.conference);
 
   // Re-apply conference date range once dynamic tabs load
   // (fixes dates for conferences not in FALLBACK_TABS, e.g. Toronto Tech Week)
@@ -719,6 +719,14 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
           orgEventCount={orgEventCount}
         />
         <ViewToolbar viewMode={viewMode} onViewChange={setViewMode} eventCount={filteredEvents.length} timeZoneLabel={timeZoneLabel} />
+        {failedConference && failedConference === filters.conference && (
+          <div role="alert" className="flex items-center justify-between gap-3 px-3 sm:px-4 py-2 text-sm bg-[var(--theme-bg-secondary)] border-b border-[var(--theme-border-secondary)] text-[var(--theme-text-secondary)]">
+            <span>We couldn&apos;t load events for {failedConference}. Check your connection.</span>
+            <Button type="button" size="sm" variant="secondary" onClick={() => { retryConference(failedConference); }}>
+              Try again
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Main content area */}

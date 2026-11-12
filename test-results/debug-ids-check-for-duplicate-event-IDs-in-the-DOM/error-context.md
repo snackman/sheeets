@@ -1,0 +1,43 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - img "plan.wtf" [ref=e4]
+    - paragraph [ref=e5]: Conference Side Events
+    - generic [ref=e6]:
+      - link "X (Twitter)" [ref=e7] [cursor=pointer]:
+        - /url: https://x.com/planwtf
+        - img [ref=e8]
+      - link "Instagram" [ref=e10] [cursor=pointer]:
+        - /url: https://instagram.com/plan.wtf
+        - img [ref=e11]
+      - link "Telegram" [ref=e14] [cursor=pointer]:
+        - /url: https://t.me/+UyEIcianG0djMmFh
+        - img [ref=e15]
+      - link "LinkedIn" [ref=e17] [cursor=pointer]:
+        - /url: https://www.linkedin.com/company/planwtf/
+        - img [ref=e18]
+    - generic [ref=e20]:
+      - heading "Browse Events" [level=2] [ref=e21]
+      - generic [ref=e22]:
+        - link "Solana Breakpoint Happening now Nov 9–18, 2026 London 160 events" [ref=e23] [cursor=pointer]:
+          - /url: /breakpoint2026
+          - heading "Solana Breakpoint" [level=3] [ref=e24]
+          - generic [ref=e25]: Happening now
+          - paragraph [ref=e26]: Nov 9–18, 2026
+          - paragraph [ref=e27]: London
+          - paragraph [ref=e28]: 160 events
+        - link "DAS London 2026 Happening now Nov 9–12, 2026 London 38 events" [ref=e29] [cursor=pointer]:
+          - /url: /daslondon2026
+          - heading "DAS London 2026" [level=3] [ref=e30]
+          - generic [ref=e31]: Happening now
+          - paragraph [ref=e32]: Nov 9–12, 2026
+          - paragraph [ref=e33]: London
+          - paragraph [ref=e34]: 38 events
+    - paragraph [ref=e35]:
+      - text: Looking for the old spreadsheet?
+      - link "Find it at plan.wtf/data" [ref=e36] [cursor=pointer]:
+        - /url: /data
+  - alert [ref=e37]
+```

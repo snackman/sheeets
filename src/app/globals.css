@@ -9,7 +9,14 @@
 }
 
 /* Touch/mobile variant: coarse pointers or phone-width viewports. Use for >= 44px hit areas. */
-@custom-variant tap (@media (pointer: coarse), (max-width: 639.98px));
+@custom-variant tap {
+  @media (pointer: coarse) {
+    @slot;
+  }
+  @media (max-width: 639.98px) {
+    @slot;
+  }
+}
 
 /* Z-index scale — use these instead of ad-hoc z-[60..9999] values */
 :root {

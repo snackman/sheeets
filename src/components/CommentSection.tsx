@@ -78,9 +78,10 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
           trackCommentExpand(eventId);
           setExpanded(true);
         }}
-        className="flex items-center gap-1.5 text-xs text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
+        aria-label={commentCount > 0 ? `Comments (${commentCount})` : 'Comments'}
+        className="flex items-center justify-center gap-1.5 tap:min-h-11 tap:min-w-11 text-xs text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
       >
-        <MessageCircle className="w-5 h-5" />
+        <MessageCircle className="w-5 h-5" aria-hidden="true" />
         {commentCount > 0 && <span>{commentCount}</span>}
       </button>
     );
@@ -143,7 +144,8 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
                     {user && comment.user_id === user.id && (
                       <button
                         onClick={() => { trackCommentDelete(eventId); deleteComment(comment.id); }}
-                        className="opacity-0 group-hover/comment:opacity-100 p-0.5 text-[var(--theme-text-faint)] hover:text-red-400 transition-all cursor-pointer"
+                        aria-label="Delete comment"
+                        className="opacity-0 group-hover/comment:opacity-100 focus-visible:opacity-100 p-0.5 text-[var(--theme-text-faint)] hover:text-red-400 transition-all cursor-pointer"
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>

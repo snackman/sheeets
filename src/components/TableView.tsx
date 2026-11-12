@@ -2,6 +2,7 @@
 
 import { memo, useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { Modal } from './Modal';
 import { AlertTriangle, Download, ExternalLink, Plus, Check, X, Users } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
 import { trackEventClick, trackTableExport, trackOutboundClick } from '@/lib/analytics';
@@ -107,22 +108,15 @@ function formatDistance(meters: number): string {
 
 /** Friends going modal for table view */
 function FriendsGoingModal({ eventName, friends, onClose }: { eventName: string; friends: FriendInfo[]; onClose: () => void }) {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
-
   return (
-    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60" />
-      <div className="relative bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose} labelledBy="table-friends-going-title" backdropClassName="bg-black/60" className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm">
+      <div>
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)]">
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-bold text-[var(--theme-text-primary)]">Friends Going</h3>
+            <h3 id="table-friends-going-title" className="text-sm font-bold text-[var(--theme-text-primary)]">Friends Going</h3>
             <p className="text-xs text-[var(--theme-text-secondary)] truncate">{eventName}</p>
           </div>
-          <button onClick={onClose} className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer shrink-0 ml-2" aria-label="Close">
+          <button onClick={onClose} className="inline-flex items-center justify-center min-h-11 min-w-11 -m-2.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer shrink-0 ml-2" aria-label="Close">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -137,7 +131,7 @@ function FriendsGoingModal({ eventName, friends, onClose }: { eventName: string;
           ))}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -246,16 +240,6 @@ export const TableView = memo(function TableView({
     const maxTags = Math.min(10, events.reduce((max, e) => Math.max(max, e.tags.length), 0));
     return maxTags * 24 + 24; // 24px per icon (20px + 4px gap) + 24px cell padding
   }, [events]);
-
-  // Close modal on Escape key
-  useEffect(() => {
-    if (!selectedEvent) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSelectedEvent(null);
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectedEvent]);
 
   // Reset to "Time" when groups change (e.g. filter change). Adjusted during
   // render rather than in an effect to avoid an extra commit.
@@ -597,12 +581,8 @@ function EventDetailModal({
   onOpenLightbox?: () => void;
 }) {
   return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-[var(--z-modal-backdrop)] bg-black/50" onClick={onClose} />
-      {/* Modal container */}
-      <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4 pointer-events-none">
-        <div className="relative w-full max-w-lg pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose} ariaLabel={event.name} className="relative w-full max-w-lg">
+      <div>
           <EventCard
             event={event}
             isInItinerary={isInItinerary}
@@ -620,9 +600,8 @@ function EventDetailModal({
           <div className="mt-1.5 text-right">
             <ClaimEventLink event={event} className="!text-white/70 hover:!text-white" />
           </div>
-        </div>
       </div>
-    </>
+    </Modal>
   );
 }
 
@@ -693,6 +672,13 @@ function FeaturedTableRow({
         const target = e.target as HTMLElement;
         if (target.closest('a, button')) return;
         onSelectEvent(event);
+      }}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
+          e.preventDefault();
+          onSelectEvent(event);
+        }
       }}
     >
       <td className="px-2 py-2">
@@ -830,6 +816,13 @@ function TableRow({
         const target = e.target as HTMLElement;
         if (target.closest('a, button')) return;
         onSelectEvent(event);
+      }}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
+          e.preventDefault();
+          onSelectEvent(event);
+        }
       }}
     >
       {/* Star (toggles itinerary) */}

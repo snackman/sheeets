@@ -207,7 +207,7 @@ export const FilterBar = memo(function FilterBar({
               <button
                 onClick={onSubmitEvent}
                 className="shrink-0 h-9 tap:h-11 flex items-center justify-center rounded-lg bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)] transition-colors cursor-pointer px-2 xl:px-3 gap-1.5"
-                aria-label="Submit event"
+                aria-label="Add Event"
               >
                 <Plus className="w-4 h-4" />
                 <span className="hidden xl:inline text-sm font-medium">Add Event</span>
@@ -229,7 +229,7 @@ export const FilterBar = memo(function FilterBar({
             onClick={() => setExpanded(!expanded)}
             aria-label="Filters"
             className={clsx(
-              'group shrink-0 flex items-center gap-1 px-2.5 h-9 tap:h-11 rounded-lg text-sm font-medium transition-colors cursor-pointer',
+              'group shrink-0 flex items-center gap-1 px-2.5 h-9 tap:h-11 tap:min-w-11 justify-center rounded-lg text-sm font-medium transition-colors cursor-pointer',
               expanded
                 ? 'text-[var(--theme-filter-active)] border border-[var(--theme-filter-active)]'
                 : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)]'
@@ -254,7 +254,7 @@ export const FilterBar = memo(function FilterBar({
             onClick={onItineraryToggle}
             aria-label={`Itinerary: ${itineraryCount} ${itineraryCount === 1 ? 'event' : 'events'}`}
             className={clsx(
-              'group shrink-0 flex items-center gap-1 px-2.5 h-9 tap:h-11 rounded-lg text-sm font-medium transition-colors cursor-pointer',
+              'group shrink-0 flex items-center gap-1 px-2.5 h-9 tap:h-11 tap:min-w-11 justify-center rounded-lg text-sm font-medium transition-colors cursor-pointer',
               isItineraryActive
                 ? 'text-[var(--theme-filter-active)] border border-[var(--theme-filter-active)]'
                 : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)]'
@@ -282,7 +282,7 @@ export const FilterBar = memo(function FilterBar({
             <button
               onClick={onSubmitEvent}
               className="shrink-0 w-9 h-9 tap:w-11 tap:h-11 flex items-center justify-center rounded-lg bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:text-[var(--theme-text-primary)] active:bg-[var(--theme-bg-tertiary)] border border-[var(--theme-filter-control-border)] transition-colors cursor-pointer"
-              aria-label="Submit event"
+              aria-label="Add Event"
             >
               <Plus className="w-4 h-4" />
             </button>
