@@ -28,7 +28,6 @@ export function resizedLumaCover(url: string | null | undefined, width = 600): s
  *
  *  - images.lumacdn.com  -> Cloudflare Image Resizing (/cdn-cgi/image/)
  *  - images.unsplash.com -> imgix params (w, auto=format, fit=crop)
- *  - img.evbuc.com       -> Eventbrite's imgix-style `w` param
  *  - *.imgix.net         -> imgix `w` + `auto=format`
  */
 export function thumbUrl(url: string | null | undefined, width = 320): string {
@@ -36,6 +35,8 @@ export function thumbUrl(url: string | null | undefined, width = 320): string {
   try {
     const u = new URL(url);
     const host = u.hostname;
+    // Signed URLs (`s=<hash>`, e.g. Eventbrite/imgix) 403 if any param changes.
+    if (u.searchParams.has('s')) return url;
     if (host === 'images.lumacdn.com') return resizedLumaCover(url, width);
     const w = String(Math.round(width));
     if (host === 'images.unsplash.com') {
@@ -43,10 +44,6 @@ export function thumbUrl(url: string | null | undefined, width = 320): string {
       u.searchParams.set('auto', 'format');
       u.searchParams.set('fit', 'crop');
       u.searchParams.set('q', '70');
-      return u.toString();
-    }
-    if (host === 'img.evbuc.com') {
-      u.searchParams.set('w', w);
       return u.toString();
     }
     if (host.endsWith('.imgix.net')) {

@@ -754,7 +754,7 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
           />
         </main>
       ) : viewMode === 'gallery' ? (
-        <main key="gallery" ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto bg-[var(--theme-bg-list)]">
+        <main key="gallery" ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto bg-[var(--theme-bg-list)] pb-[var(--safe-area-bottom)]">
           <GalleryView
             events={filteredEvents}
             totalCount={conferenceEventCount}
@@ -774,7 +774,7 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
           />
         </main>
       ) : (
-        <main key="list" ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto bg-[var(--theme-bg-list)] [overflow-anchor:none]">
+        <main key="list" ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto bg-[var(--theme-bg-list)] [overflow-anchor:none] pb-[var(--safe-area-bottom)]">
           <ListView
             events={filteredEvents}
             totalCount={conferenceEventCount}

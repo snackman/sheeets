@@ -126,7 +126,7 @@ export const MapViewWrapper = memo(function MapViewWrapper({
 
       {/* No-location drawer */}
       {count > 0 && (
-        <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-col pointer-events-none">
+        <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-col pointer-events-none pb-[var(--safe-area-bottom)]">
           {/* Scrollable event list */}
           {drawerOpen && (
             <div className="pointer-events-auto bg-[var(--theme-bg-primary)]/95 backdrop-blur-sm border-t border-[var(--theme-border-primary)] max-h-[45vh] overflow-y-auto">

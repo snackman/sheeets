@@ -27,9 +27,3 @@ export function getLabelVisibility(
     showTagIcons: showLabel && zoom >= TAG_ICON_MIN_ZOOM,
   };
 }
-
-/** True when the primary input is touch (phones/tablets). SSR-safe. */
-export function isTouchPrimary(): boolean {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-  return window.matchMedia('(pointer: coarse)').matches;
-}

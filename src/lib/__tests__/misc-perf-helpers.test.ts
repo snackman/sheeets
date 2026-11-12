@@ -11,8 +11,16 @@ describe('thumbUrl', () => {
     const un = thumbUrl('https://images.unsplash.com/photo-1?ixid=a', 320);
     expect(un).toContain('w=320');
     expect(un).toContain('ixid=a');
-    expect(thumbUrl('https://img.evbuc.com/abc?auto=format', 400)).toContain('w=400');
     expect(thumbUrl('https://partiful.imgix.net/x.png', 300)).toContain('w=300');
+  });
+  it('leaves signed URLs and Eventbrite untouched (changing w would 403)', () => {
+    const eb = 'https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1.jpg?w=512&auto=format&s=abc123';
+    expect(thumbUrl(eb, 320)).toBe(eb);
+    expect(thumbSrcSet(eb, [176, 320])).toBeUndefined();
+    const im = 'https://partiful.imgix.net/x.png?s=deadbeef';
+    expect(thumbUrl(im, 300)).toBe(im);
+    const plain = 'https://img.evbuc.com/abc?auto=format';
+    expect(thumbUrl(plain, 400)).toBe(plain);
   });
   it('leaves unknown hosts, junk and empty alone', () => {
     expect(thumbUrl('https://example.com/a.png')).toBe('https://example.com/a.png');

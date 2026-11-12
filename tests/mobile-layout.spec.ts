@@ -36,6 +36,7 @@ async function openConferenceWithEvents(page: Page): Promise<string | null> {
     Array.from(new Set(as.map((a) => a.getAttribute('href') || '')))
       .filter((h) => /^\/[a-z0-9]+$/i.test(h) && !['/ads', '/admin', '/submit'].includes(h)),
   );
+  test.skip(hrefs.length === 0, 'no active conferences on the home page');
   for (const href of hrefs.slice(0, 8)) {
     await page.goto(BASE_URL + href, { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: 'List view' }).click({ timeout: 15_000 }).catch(() => {});
@@ -79,7 +80,7 @@ for (const vp of VIEWPORTS) {
     test('event app: no overflow, page height == viewport, list virtualised, last event reachable', async ({ page }) => {
       await prime(page);
       const slug = await openConferenceWithEvents(page);
-      test.skip(!slug, 'no conference with events available');
+      expect(slug, 'no conference page rendered any events').not.toBeNull();
 
       const m = await page.evaluate(() => ({
         sw: document.documentElement.scrollWidth,
@@ -112,11 +113,14 @@ for (const vp of VIEWPORTS) {
           el.scrollTop = el.scrollHeight;
           return el.scrollHeight;
         });
-        await page.waitForTimeout(150);
+        await page.waitForFunction(() => new Promise<boolean>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(true)))));
         stable = h === prevH ? stable + 1 : 0;
         prevH = h;
       }
-      await page.waitForTimeout(400);
+      await page.waitForFunction(() => {
+        const rows = document.querySelectorAll('main [data-index]');
+        return rows.length > 0;
+      });
       const last = await page.evaluate(() => {
         const rows = Array.from(document.querySelectorAll('main [data-index]')) as HTMLElement[];
         const maxIdx = Math.max(...rows.map((r) => Number(r.dataset.index)));
@@ -131,17 +135,19 @@ for (const vp of VIEWPORTS) {
 
     test('list thumbnails are requested at <= 640px wide', async ({ page }) => {
       await prime(page);
-      const widths: number[] = [];
+      const widths: { url: string; w: number }[] = [];
       page.on('request', (req) => {
         if (req.resourceType() !== 'image') return;
-        const m = /cdn-cgi\/image\/[^/]*width=(\d+)/.exec(req.url());
-        if (m) widths.push(Number(m[1]));
+        const u = req.url();
+        // Luma (cdn-cgi width=N) and imgix-style (w=N) resized hosts.
+        const m = /cdn-cgi\/image\/[^/]*width=(\d+)/.exec(u) ?? /[?&]w=(\d+)/.exec(u);
+        if (m && /lumacdn\.com|unsplash\.com|imgix\.net/.test(u)) widths.push({ url: u, w: Number(m[1]) });
       });
       const slug = await openConferenceWithEvents(page);
-      test.skip(!slug, 'no conference with events available');
-      await page.waitForTimeout(3000);
-      test.skip(widths.length === 0, 'no Luma thumbnails requested in the first screen');
-      for (const w of widths) expect(w).toBeLessThanOrEqual(640);
+      expect(slug, 'no conference page rendered any events').not.toBeNull();
+      await expect.poll(() => widths.length, { timeout: 15_000 }).toBeGreaterThan(0).catch(() => {});
+      test.skip(widths.length === 0, 'no resizable thumbnails requested in the first screen');
+      for (const { url, w } of widths) expect(w, url).toBeLessThanOrEqual(640);
     });
   });
 }
@@ -152,7 +158,7 @@ test.describe('tablet 768', () => {
   test('search placeholder is not truncated', async ({ page }) => {
     await prime(page);
     const slug = await openConferenceWithEvents(page);
-    test.skip(!slug, 'no conference with events available');
+    expect(slug, 'no conference page rendered any events').not.toBeNull();
     const input = page.locator('input[placeholder^="Search events"]:visible').first();
     await expect(input).toBeVisible();
     const fits = await input.evaluate((el) => {
@@ -181,7 +187,7 @@ test.describe('map', () => {
   test('open popup closes when the filters panel opens', async ({ page }) => {
     await prime(page);
     const slug = await openConferenceWithEvents(page);
-    test.skip(!slug, 'no conference with events available');
+    expect(slug, 'no conference page rendered any events').not.toBeNull();
     await page.getByRole('button', { name: 'Map view' }).click();
     const marker = page.locator('button[aria-label^="Event"]').first();
     const hasMarker = await marker.waitFor({ state: 'visible', timeout: 25_000 }).then(() => true).catch(() => false);

@@ -17,7 +17,6 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { MapMarker } from './MapMarker';
 import { EventPopup, MultiEventPopup } from './EventPopup';
 import { POIMarker } from './POIMarker';
-import { isTouchPrimary } from '@/lib/map-labels';
 import { POIPopup } from './POIPopup';
 import { POISearchBar } from './POISearchBar';
 import { FriendMarker } from './FriendMarker';
@@ -94,9 +93,6 @@ export function MapView({
   onRsvp,
   filtersOpen,
 }: MapViewProps) {
-  // Touch devices: require two fingers to pan so a one-finger drag doesn't get
-  // trapped by the map. Mapbox reads this option at init only, so compute once.
-  const [cooperativeGestures] = useState(() => isTouchPrimary());
   const mapCenter = (getTabConfig(conference ?? '', conferenceTabs) ?? DEFAULT_TAB).center;
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -492,7 +488,6 @@ export function MapView({
       style={{ width: '100%', height: '100%' }}
       maxZoom={20}
       minZoom={9}
-      cooperativeGestures={cooperativeGestures}
     >
       <NavigationControl position="top-right" />
 
