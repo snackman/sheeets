@@ -724,6 +724,7 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
             liveEventIds={liveEventIds}
             getRsvpStatus={getRsvpStatus}
             onRsvp={handleRsvp}
+            filtersOpen={filtersExpanded}
           />
         </main>
       ) : viewMode === 'table' ? (
