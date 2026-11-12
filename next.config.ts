@@ -1,14 +1,25 @@
 import type { NextConfig } from "next";
 
-// Content-Security-Policy, currently shipped in REPORT-ONLY mode. Violations
-// are POSTed to /api/csp-report and logged as `[csp]` lines in Vercel logs.
-// Once a week or so of logs is clean, rename the header below to
-// `Content-Security-Policy` to enforce.
+// Content-Security-Policy.
 //
-// 'unsafe-inline' in script-src covers Next's inline bootstrap/RSC payload
-// scripts, the theme script + JSON-LD in layout.tsx, and the inline gtag
-// config. Moving to nonces would require a proxy (middleware) and dynamic
-// rendering for every page, so it is deliberately out of scope for now.
+// ENFORCED (`enforcedCsp`): the directives that never touch script/style
+// loading -- no plugins/objects, <base> pinned to self, framing limited to
+// same origin, form posts to self. These cannot break page scripts.
+//
+// REPORT-ONLY (`csp`): the full policy, including script-src. Violations are
+// POSTed to /api/csp-report and logged as `[csp]` lines in Vercel logs.
+// script-src still allows 'unsafe-inline' because Next's inline bootstrap /
+// RSC payload scripts on the statically generated (ISR) pages carry no nonce
+// and have per-page content (so no fixed hash). Dropping 'unsafe-inline'
+// needs a per-request nonce via a proxy, which forces every page to render
+// dynamically (losing static/ISR caching), so it is deferred.
+const enforcedCsp = [
+  "object-src 'none'",
+  "base-uri 'self'",
+  "frame-ancestors 'self'",
+  "form-action 'self'",
+].join('; ');
+
 const csp = [
   "default-src 'self'",
   [
@@ -102,6 +113,7 @@ const nextConfig: NextConfig = {
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'Permissions-Policy', value: 'geolocation=(self)' },
           { key: 'Reporting-Endpoints', value: 'csp-endpoint="/api/csp-report"' },
+          { key: 'Content-Security-Policy', value: enforcedCsp },
           { key: 'Content-Security-Policy-Report-Only', value: csp },
         ],
       },

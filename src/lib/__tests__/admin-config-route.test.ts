@@ -4,6 +4,9 @@ import { NextRequest } from 'next/server';
 vi.mock('@/lib/ledger-rate-limit', () => ({
   countLedgerAttempts: async () => 0,
   recordLedgerAttempt: async () => {},
+  reserveLedgerAttempt: async () => ({ id: null, count: 0 }),
+  releaseLedgerAttempt: async () => {},
+  countLedgerScope: async () => 0,
 }));
 
 const rows = [

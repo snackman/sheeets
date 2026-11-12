@@ -10,6 +10,7 @@ import { useEvents } from '@/hooks/useEvents';
 import { useItinerary } from '@/hooks/useItinerary';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { generateShareCode, isUniqueViolation } from '@/lib/share-code';
 import { formatDateLabel } from '@/lib/utils';
 import { createPrioritySort, parseTimeToMinutes, detectConflicts } from '@/lib/time-parse';
 import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryShareLink, trackItineraryReorder, trackItineraryView } from '@/lib/analytics';
@@ -42,15 +43,6 @@ const MapView = dynamic(
 );
 
 type ItineraryViewMode = 'list' | 'map';
-
-function generateShortCode(): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let code = '';
-  for (let i = 0; i < 8; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return code;
-}
 
 function CheckInToast({ result, onDismiss }: { result: { ok: boolean; message: string }; onDismiss: () => void }) {
   useEffect(() => {
@@ -226,15 +218,21 @@ function ItineraryPageContent() {
     if (itineraryEvents.length === 0) return;
     setShareStatus('sharing');
     try {
-      const shortCode = generateShortCode();
       const eventIds = itineraryEvents
         .filter((e) => !hiddenEvents.has(e.id))
         .map((e) => e.id);
-      const { error } = await supabase.from('shared_itineraries').insert({
-        short_code: shortCode,
-        event_ids: eventIds,
-        created_by: user?.id ?? null,
-      });
+      let shortCode = '';
+      let error: { code?: string } | null = null;
+      // Retry on the (unlikely) chance of a code collision.
+      for (let attempt = 0; attempt < 5; attempt++) {
+        shortCode = generateShareCode();
+        ({ error } = await supabase.from('shared_itineraries').insert({
+          short_code: shortCode,
+          event_ids: eventIds,
+          created_by: user?.id ?? null,
+        }));
+        if (!isUniqueViolation(error)) break;
+      }
       if (error) {
         console.error('Failed to create share link:', error);
         setShareStatus('idle');

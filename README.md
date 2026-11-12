@@ -34,3 +34,11 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Admin sessions
+
+Admin routes accept the `x-admin-password` header (scripts), a body `password` (ingest queue tooling), or the httpOnly `admin_session` cookie issued by `POST /api/admin/verify`. The admin UI only uses the cookie.
+
+- `ADMIN_SESSION_VERSION` (optional, default `1`): mixed into the cookie signing key. Change it and redeploy to invalidate every outstanding session.
+- `DELETE /api/admin/verify` (log out) also stores a "revoked before" timestamp in `admin_config` (`admin_session_revoked_before`), so sessions issued earlier are rejected server-side.
+- Password guesses are rate limited per IP and globally; a correct password refunds its attempt.

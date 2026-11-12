@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useSyncExternalStore } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Search, ArrowLeft } from 'lucide-react';
 import { fetchEvents } from '@/lib/fetch-events';
@@ -24,20 +24,6 @@ import ErrorsTab from '@/components/admin/ErrorsTab';
 import ClaimsTab from '@/components/admin/ClaimsTab';
 import IngestTab from '@/components/admin/IngestTab';
 import { useAdminConfigEditor } from '@/components/admin/hooks/useAdminConfigEditor';
-
-const SESSION_KEY = 'sheeets-admin-auth';
-
-const noopSubscribe = () => () => {};
-/** Admin password remembered for this tab (null during SSR/hydration). */
-function useSessionPassword(): string | null {
-  const saved = useSyncExternalStore(
-    noopSubscribe,
-    () => sessionStorage.getItem(SESSION_KEY),
-    () => null
-  );
-  // Legacy sessions stored the literal 'true' instead of the password.
-  return saved && saved !== 'true' ? saved : null;
-}
 
 type AdminTab = 'submissions' | 'featured' | 'conferences' | 'sponsors' | 'nativeAds' | 'upsell' | 'adInventory' | 'theme' | 'abTests' | 'adReports' | 'eventAnalytics' | 'sponsorData' | 'errors' | 'claims' | 'ingest';
 
@@ -63,10 +49,22 @@ export default function AdminPage() {
   const [typedPassword, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loggedIn, setAuthed] = useState(false);
-  // Restore the session (sessionStorage) after hydration, without an effect.
-  const sessionPassword = useSessionPassword();
-  const authed = loggedIn || sessionPassword !== null;
-  const password = loggedIn || sessionPassword === null ? typedPassword : sessionPassword;
+  // Auth lives only in the httpOnly session cookie; the password is never
+  // stored client-side. Tabs get an empty password so requests carry the cookie.
+  const authed = loggedIn;
+  const password = '';
+  // Restore an existing cookie session on load.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/admin/verify')
+      .then((res) => {
+        if (!cancelled && res.ok) setAuthed(true);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [events, setEvents] = useState<ETHDenverEvent[]>([]);
   // Events are loading while authed and the fetch hasn't settled yet.
   const [eventsSettled, setEventsSettled] = useState(false);
@@ -125,11 +123,11 @@ export default function AdminPage() {
     const res = await fetch('/api/admin/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ password: typedPassword }),
     }).catch(() => null);
     if (res?.ok) {
       setAuthed(true);
-      sessionStorage.setItem(SESSION_KEY, password);
+      setPassword('');
     } else {
       setLoginError('Wrong password');
     }
@@ -158,7 +156,7 @@ export default function AdminPage() {
           <h1 className="text-lg font-bold text-white mb-4">Admin Access</h1>
           <input
             type="password"
-            value={password}
+            value={typedPassword}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
             className="w-full bg-stone-950 border border-stone-600 rounded-lg text-white text-sm px-3 py-2 focus:border-amber-500 focus:outline-none placeholder:text-stone-500 mb-3"
@@ -193,6 +191,16 @@ export default function AdminPage() {
                 </span>
               )}
             </div>
+            <button
+              type="button"
+              onClick={async () => {
+                await fetch('/api/admin/verify', { method: 'DELETE' }).catch(() => null);
+                setAuthed(false);
+              }}
+              className="text-xs text-stone-400 hover:text-white cursor-pointer"
+            >
+              Log out
+            </button>
             {saveMessage && (
               <span className={`text-sm ${saveMessage.startsWith('Error') || saveMessage === 'Failed to save' ? 'text-red-400' : 'text-green-400'}`}>
                 {saveMessage}
