@@ -187,7 +187,7 @@ export function ItineraryPanel({
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-[60] bg-black/50 transition-opacity duration-300 ${
+        className={`fixed inset-0 z-[var(--z-drawer-backdrop)] bg-black/50 transition-opacity duration-300 ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
@@ -195,7 +195,7 @@ export function ItineraryPanel({
 
       {/* Panel */}
       <div
-        className={`fixed top-0 right-0 z-[70] h-full w-full max-w-md bg-[var(--theme-bg-primary)] border-l border-[var(--theme-border-primary)] shadow-2xl transition-transform duration-300 ease-in-out pt-[var(--safe-area-top)] ${
+        className={`fixed top-0 right-0 z-[var(--z-drawer)] h-full w-full max-w-md bg-[var(--theme-bg-primary)] border-l border-[var(--theme-border-primary)] shadow-2xl transition-transform duration-300 ease-in-out pt-[var(--safe-area-top)] ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >

@@ -145,7 +145,7 @@ export const FilterBar = memo(function FilterBar({
   }
 
   return (
-    <div className="relative bg-[var(--theme-bg-filter)] border-b border-[var(--theme-border-secondary)] z-30">
+    <div className="relative bg-[var(--theme-bg-filter)] border-b border-[var(--theme-border-secondary)] z-[var(--z-filter)]">
       <div className="px-2 sm:px-4 pt-3.5 pb-2 space-y-3">
         {/* Top row: Conference tabs + Filter toggle */}
         <div className="flex items-center gap-1.5 sm:gap-3 lg:justify-center">
@@ -170,9 +170,9 @@ export const FilterBar = memo(function FilterBar({
               </button>
               {confOpen && (
                 <>
-                  <div className="fixed inset-0 z-[60]" onClick={() => setConfOpen(false)} />
+                  <div className="fixed inset-0 z-[var(--z-dropdown-backdrop)]" onClick={() => setConfOpen(false)} />
                   <div
-                    className="fixed z-[70] bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl overflow-hidden min-w-[180px]"
+                    className="fixed z-[var(--z-dropdown)] bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl overflow-hidden min-w-[180px]"
                     style={{
                       top: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().bottom + 4 : 0,
                       left: confBtnRef.current ? confBtnRef.current.getBoundingClientRect().left : 16,

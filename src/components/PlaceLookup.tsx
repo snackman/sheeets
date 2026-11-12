@@ -106,7 +106,7 @@ export function PlaceLookup({ value, onChange, inputClass = '' }: PlaceLookupPro
       {loading && <p className="text-xs text-stone-500 mt-1">Searching...</p>}
 
       {open && suggestions.length > 0 && (
-        <ul className="absolute z-50 mt-1 w-full rounded-lg border border-stone-700 bg-stone-800 shadow-lg max-h-48 overflow-y-auto">
+        <ul className="absolute z-[var(--z-dropdown)] mt-1 w-full rounded-lg border border-stone-700 bg-stone-800 shadow-lg max-h-48 overflow-y-auto">
           {suggestions.map((s) => (
             <li
               key={s.mapbox_id}

@@ -860,7 +860,7 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
         />
       )}
       {friendCodeToast && (
-        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-opacity duration-300 ${
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[var(--z-toast)] px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-opacity duration-300 ${
           friendCodeToast.type === 'success'
             ? 'bg-green-600 text-white'
             : 'bg-red-600 text-white'

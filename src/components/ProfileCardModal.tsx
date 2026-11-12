@@ -226,7 +226,7 @@ export default function ProfileCardModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center"
+      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center"
       onClick={(e) => {
         e.stopPropagation();
         onClose();

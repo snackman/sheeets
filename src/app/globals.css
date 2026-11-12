@@ -14,7 +14,8 @@
   --z-filter: 30;          /* filter bar */
   --z-fab: 35;             /* floating check-in button */
   --z-header: 40;          /* sticky app header */
-  --z-dropdown: 50;        /* menus and popovers (above header) */
+  --z-dropdown-backdrop: 50; /* click-away layer behind menus */
+  --z-dropdown: 55;        /* menus and popovers (above header) */
   --z-drawer-backdrop: 60; /* side panels (itinerary, friends) */
   --z-drawer: 65;
   --z-modal-backdrop: 70;  /* dialogs */

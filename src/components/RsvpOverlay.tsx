@@ -106,7 +106,7 @@ export function RsvpOverlay({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-[var(--z-modal)] flex items-end sm:items-center justify-center"
       onClick={onClose}
     >
       {/* Dark backdrop */}

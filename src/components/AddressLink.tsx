@@ -187,8 +187,8 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
 
   return createPortal(
     <>
-      <div className="fixed inset-0 z-[80] bg-black/50" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 z-[90] bg-[var(--theme-bg-secondary)] border-t border-[var(--theme-border-primary)] rounded-t-2xl p-4 pb-8">
+      <div className="fixed inset-0 z-[var(--z-modal-backdrop)] bg-black/50" onClick={onClose} />
+      <div className="fixed bottom-0 left-0 right-0 z-[var(--z-modal)] bg-[var(--theme-bg-secondary)] border-t border-[var(--theme-border-primary)] rounded-t-2xl p-4 pb-8">
         <p className="text-[var(--theme-text-secondary)] text-xs mb-3 truncate px-1">{address}</p>
         <div className="space-y-1">
           <button

@@ -62,13 +62,13 @@ export function EmojiReactions({
         {showPicker && (
           <>
             <div
-              className="fixed inset-0 z-[40]"
+              className="fixed inset-0 z-[var(--z-dropdown-backdrop)]"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowPicker(false);
               }}
             />
-            <div className="absolute bottom-full left-0 mb-1 z-[41] bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl p-1.5 grid grid-cols-4 gap-1 min-w-[160px]">
+            <div className="absolute bottom-full left-0 mb-1 z-[var(--z-dropdown)] bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl p-1.5 grid grid-cols-4 gap-1 min-w-[160px]">
               {REACTION_EMOJIS.map((emoji) => (
                 <button
                   key={emoji}

@@ -114,7 +114,7 @@ function FriendsGoingModal({ eventName, friends, onClose }: { eventName: string;
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60" />
       <div className="relative bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)]">
@@ -430,7 +430,7 @@ export const TableView = memo(function TableView({
             <col style={{ width: `calc((100% - 36px - 44px - 100px - ${tagsColWidth}px) * 0.28)` }} />             {/* where */}
             <col style={{ width: tagsColWidth }} />                                                                {/* tags */}
           </colgroup>
-          <thead className="text-xs uppercase tracking-wider text-[var(--theme-table-header-text)] bg-[var(--theme-table-header-bg)] border-b border-[var(--theme-border-primary)] sticky top-0 z-20">
+          <thead className="text-xs uppercase tracking-wider text-[var(--theme-table-header-text)] bg-[var(--theme-table-header-bg)] border-b border-[var(--theme-border-primary)] sticky top-0 z-[var(--z-sticky)]">
             <tr>
               <th className="py-2.5"><div className="flex justify-center"><CalendarIcon className="w-5 h-5" /></div></th>
               <th className="px-1 py-2.5 text-center" title={!isSignedIn ? 'Sign in to add friends and see who\'s going' : 'Friends going'}><Users className="w-3.5 h-3.5 mx-auto" /></th>
@@ -599,9 +599,9 @@ function EventDetailModal({
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-[50] bg-black/50" onClick={onClose} />
+      <div className="fixed inset-0 z-[var(--z-modal-backdrop)] bg-black/50" onClick={onClose} />
       {/* Modal container */}
-      <div className="fixed inset-0 z-[55] flex items-center justify-center p-4 pointer-events-none">
+      <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center p-4 pointer-events-none">
         <div className="relative w-full max-w-lg pointer-events-auto" onClick={(e) => e.stopPropagation()}>
           <EventCard
             event={event}

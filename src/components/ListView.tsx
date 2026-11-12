@@ -364,7 +364,7 @@ export const ListView = memo(function ListView({
       {/* Overlay sticky date header. The sticky wrapper itself always renders
           at zero height so toggling the header inside it never shifts list
           layout (that shift was the root cause of the scroll-to-top flash). */}
-      <div className="sticky top-0 z-20 h-0">
+      <div className="sticky top-0 z-[var(--z-sticky)] h-0">
         {stickyHeader && (
           <div className="absolute top-0 left-0 w-full bg-[var(--theme-date-sep-bg)] py-2 -mx-2 px-2 sm:-mx-4 sm:px-4 border-b border-[var(--theme-date-sep-border)] rounded-lg">
             <div className="flex items-center justify-between">

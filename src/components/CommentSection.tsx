@@ -307,7 +307,7 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
         </button>
         {createPortal(
           <div
-            className="fixed inset-0 z-[80] flex flex-col justify-end"
+            className="fixed inset-0 z-[var(--z-modal)] flex flex-col justify-end"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Backdrop */}

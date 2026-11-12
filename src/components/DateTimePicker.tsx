@@ -73,7 +73,7 @@ export function Dropdown({
       {isOpen && (
         <div
           ref={listRef}
-          className="absolute top-full left-0 mt-1 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl max-h-52 overflow-y-auto z-50"
+          className="absolute top-full left-0 mt-1 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl max-h-52 overflow-y-auto z-[var(--z-dropdown)]"
           style={width ? { width } : undefined}
         >
           {options.map((v) => (
