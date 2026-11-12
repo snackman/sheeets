@@ -16,7 +16,7 @@ const VARIANTS: Record<ButtonVariant, string> = {
     'bg-transparent text-[var(--theme-text-secondary)] border border-[var(--theme-border-primary)] hover:bg-[var(--theme-bg-tertiary)] hover:text-[var(--theme-text-primary)]',
   ghost:
     'bg-transparent text-[var(--theme-text-secondary)] border border-transparent hover:bg-[var(--theme-bg-tertiary)] hover:text-[var(--theme-text-primary)]',
-  danger: 'bg-red-600 hover:bg-red-500 active:bg-red-500 text-white border border-transparent',
+  danger: 'bg-danger hover:bg-danger-hover active:bg-danger-hover text-danger-on border border-transparent',
 };
 
 // `sm` is compact on desktop (sm: breakpoint) but keeps a 44px touch target on mobile; `md` is 44px everywhere.

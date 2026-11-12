@@ -91,7 +91,7 @@ export function PlaceLookup({ value, onChange, inputClass = '' }: PlaceLookupPro
 
   return (
     <div ref={containerRef} className="relative">
-      <label className="block text-xs text-stone-400 mb-1">Conference Location</label>
+      <label className="block text-xs text-[var(--theme-text-muted)] mb-1">Conference Location</label>
       <input
         type="text"
         value={query || ''}
@@ -101,21 +101,21 @@ export function PlaceLookup({ value, onChange, inputClass = '' }: PlaceLookupPro
         className={inputClass}
       />
       {displayText && !query && (
-        <p className="text-xs text-stone-400 mt-1">{displayText}</p>
+        <p className="text-xs text-[var(--theme-text-muted)] mt-1">{displayText}</p>
       )}
-      {loading && <p className="text-xs text-stone-500 mt-1">Searching...</p>}
+      {loading && <p className="text-xs text-[var(--theme-text-muted)] mt-1">Searching...</p>}
 
       {open && suggestions.length > 0 && (
-        <ul className="absolute z-[var(--z-dropdown)] mt-1 w-full rounded-lg border border-stone-700 bg-stone-800 shadow-lg max-h-48 overflow-y-auto">
+        <ul className="absolute z-[var(--z-dropdown)] mt-1 w-full rounded-lg border border-[var(--theme-border-primary)] bg-[var(--theme-bg-secondary)] shadow-lg max-h-48 overflow-y-auto">
           {suggestions.map((s) => (
             <li
               key={s.mapbox_id}
               onClick={() => selectPlace(s)}
-              className="px-3 py-2 cursor-pointer hover:bg-stone-700 text-sm text-white"
+              className="px-3 py-2 cursor-pointer hover:bg-[var(--theme-bg-tertiary)] text-sm text-[var(--theme-text-primary)]"
             >
               <span className="font-medium">{s.name}</span>
               {s.place_formatted && (
-                <span className="text-stone-400 ml-1 text-xs">{s.place_formatted}</span>
+                <span className="text-[var(--theme-text-muted)] ml-1 text-xs">{s.place_formatted}</span>
               )}
             </li>
           ))}

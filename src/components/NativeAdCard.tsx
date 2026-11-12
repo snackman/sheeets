@@ -100,7 +100,7 @@ export default function NativeAdCard({ ad, conference, onImpression, onClick }: 
               <span className="text-sm font-semibold text-[var(--theme-text-primary)] truncate">
                 {ad.title}
               </span>
-              <span className="flex-shrink-0 text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--theme-accent-muted)] text-[var(--theme-accent)] border border-[var(--theme-accent-muted)]">
+              <span className="flex-shrink-0 text-2xs uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--theme-accent-muted)] text-[var(--theme-accent)] border border-[var(--theme-accent-muted)]">
                 Ad
               </span>
             </div>
@@ -110,7 +110,7 @@ export default function NativeAdCard({ ad, conference, onImpression, onClick }: 
               {SOCIAL_STATS.map(({ icon: Icon, label }) => (
                 <span
                   key={label}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--theme-bg-tertiary)] text-[10px] text-[var(--theme-text-secondary)] border border-[var(--theme-border-primary)]"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--theme-bg-tertiary)] text-2xs text-[var(--theme-text-secondary)] border border-[var(--theme-border-primary)]"
                 >
                   <Icon className="w-2.5 h-2.5" />
                   {label}

@@ -110,7 +110,7 @@ export default function FeaturedTab({ events, setEvents, loading, conference, se
               </div>
 
               {event.isFeatured && (
-                <span className="text-[10px] font-medium text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full shrink-0">
+                <span className="text-2xs font-medium text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full shrink-0">
                   FEATURED
                 </span>
               )}

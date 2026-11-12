@@ -87,7 +87,7 @@ function FriendCard({
               trackFriendRemove();
               onRemove();
             }}
-            className="flex items-center gap-1.5 text-xs text-[var(--theme-text-muted)] hover:text-red-400 transition-colors cursor-pointer mt-1"
+            className="flex items-center gap-1.5 text-xs text-[var(--theme-text-muted)] hover:text-danger-text transition-colors cursor-pointer mt-1"
           >
             <Trash2 className="w-3 h-3" />
             Remove friend

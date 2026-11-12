@@ -189,7 +189,7 @@ export default function IngestQueue({ allConferenceTabs, password }: Props) {
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
                 statusFilter === s ? 'bg-stone-800 text-white' : 'text-stone-400 hover:text-white'
               }`}
             >
@@ -222,7 +222,7 @@ export default function IngestQueue({ allConferenceTabs, password }: Props) {
             <button
               onClick={() => runAction(selectedIds, 'approve')}
               disabled={actionLoading !== null}
-              className="text-xs bg-green-600 hover:bg-green-700 text-white rounded-md px-2.5 py-1 cursor-pointer disabled:opacity-50"
+              className="text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg px-2.5 py-1 cursor-pointer disabled:opacity-50"
             >
               Approve selected
             </button>
@@ -234,7 +234,7 @@ export default function IngestQueue({ allConferenceTabs, password }: Props) {
             <button
               onClick={() => runAction(selectedIds, 'reject', { reason: 'off_theme' })}
               disabled={actionLoading !== null}
-              className="text-xs bg-red-600 hover:bg-red-700 text-white rounded-md px-2.5 py-1 cursor-pointer disabled:opacity-50"
+              className="text-xs bg-red-600 hover:bg-red-700 text-white rounded-lg px-2.5 py-1 cursor-pointer disabled:opacity-50"
             >
               Reject selected (off-theme)
             </button>
@@ -421,7 +421,7 @@ export default function IngestQueue({ allConferenceTabs, password }: Props) {
                     <button
                       key={r.value}
                       onClick={() => runAction([c.id], 'reject', { reason: r.value })}
-                      className="text-xs bg-stone-800 hover:bg-red-600 text-stone-300 hover:text-white px-2.5 py-1.5 rounded-md cursor-pointer"
+                      className="text-xs bg-stone-800 hover:bg-red-600 text-stone-300 hover:text-white px-2.5 py-1.5 rounded-lg cursor-pointer"
                     >
                       {r.label}
                     </button>

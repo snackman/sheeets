@@ -64,7 +64,7 @@ function FriendsGoingModal({
   title?: string;
   accentColor?: 'blue' | 'green';
 }) {
-  const avatarBg = accentColor === 'green' ? 'bg-green-500/20' : '';
+  const avatarBg = accentColor === 'green' ? 'bg-success-bg' : '';
   const avatarBgStyle = accentColor === 'green' ? undefined : { backgroundColor: 'color-mix(in srgb, var(--friend-blue) 20%, transparent)' };
 
   return (
@@ -96,7 +96,7 @@ function FriendsGoingModal({
               key={friend.userId}
               className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[var(--theme-bg-tertiary)] transition-colors"
             >
-              <div className={`w-8 h-8 rounded-full ${avatarBg} shrink-0 overflow-hidden ${accentColor === 'green' ? 'border-2 border-green-500/40' : ''}`} style={avatarBgStyle}>
+              <div className={`w-8 h-8 rounded-full ${avatarBg} shrink-0 overflow-hidden ${accentColor === 'green' ? 'border-2 border-success-border' : ''}`} style={avatarBgStyle}>
                 <UserAvatar
                   avatarUrl={friend.avatarUrl}
                   xHandle={friend.xHandle}
@@ -242,7 +242,7 @@ export const EventCard = memo(function EventCard({
               title="Copy link"
             >
               {copied ? (
-                <Check className="w-4 h-4 text-green-400" />
+                <Check className="w-4 h-4 text-success-text" />
               ) : (
                 <Link className="w-4 h-4" />
               )}
@@ -259,7 +259,7 @@ export const EventCard = memo(function EventCard({
           <div className="min-w-0">
             <h3 className={`font-semibold text-[var(--theme-text-primary)] ${compact ? 'text-sm' : 'text-sm sm:text-base'} leading-tight`}>
               {event.isFeatured && (
-                <span className="inline-block text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded mr-1.5 align-middle" style={{ color: 'var(--theme-popup-featured-border)', background: 'var(--theme-accent-muted)' }}>Featured</span>
+                <span className="inline-block text-2xs font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded mr-1.5 align-middle" style={{ color: 'var(--theme-popup-featured-border)', background: 'var(--theme-accent-muted)' }}>Featured</span>
               )}
               {isSafeHttpUrl(event.link) ? (
                 <a
@@ -308,16 +308,16 @@ export const EventCard = memo(function EventCard({
             <p className="text-[var(--theme-text-secondary)] text-sm flex items-center gap-1">
               {liveUrgency && (
                 <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${
-                  liveUrgency === 'red' ? 'bg-red-400' :
-                  liveUrgency === 'yellow' ? 'bg-yellow-400' :
-                  'bg-green-400'
+                  liveUrgency === 'red' ? 'bg-danger-dot' :
+                  liveUrgency === 'yellow' ? 'bg-warn-dot' :
+                  'bg-success-dot'
                 }`} title={liveUrgency === 'red' ? 'Ending soon' : liveUrgency === 'yellow' ? 'Less than 1hr left' : 'Live now'} />
               )}
               <Calendar className="w-3.5 h-3.5 shrink-0" />
               <span>{event.date} · {timeDisplay}</span>
             </p>
             {(checkInCount ?? 0) > 0 && (
-              <span className="absolute -top-1 -right-3 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-green-500 text-white text-[9px] font-bold px-0.5 pointer-events-none">
+              <span className="absolute -top-1 -right-3 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-success text-success-on text-2xs font-bold px-0.5 pointer-events-none">
                 {checkInCount}
               </span>
             )}
@@ -329,7 +329,7 @@ export const EventCard = memo(function EventCard({
                 onCheckIn(event.id);
               }}
               disabled={checkInLoading}
-              className="flex items-center gap-1 px-2 py-0.5 hit-44 rounded-md bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-[10px] font-medium transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2 py-0.5 hit-44 rounded-lg bg-success hover:bg-success-hover disabled:opacity-50 text-success-on text-2xs font-medium transition-colors cursor-pointer"
             >
               {checkInLoading ? (
                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -406,10 +406,10 @@ export const EventCard = memo(function EventCard({
                 trackFriendsCheckedInOpen(event.name);
                 setShowCheckedInModal(true);
               }}
-              className="flex items-center gap-1 px-1.5 py-0.5 hit-44 rounded-md hover:bg-[var(--theme-bg-tertiary)]/50 transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-1.5 py-0.5 hit-44 rounded-lg hover:bg-[var(--theme-bg-tertiary)]/50 transition-colors cursor-pointer"
             >
-              <MapPin className="w-3 h-3 text-green-400 shrink-0" />
-              <span className="text-[10px] text-green-400">
+              <MapPin className="w-3 h-3 text-success-text shrink-0" />
+              <span className="text-2xs text-success-text">
                 {checkedInFriends.length} here
               </span>
             </button>

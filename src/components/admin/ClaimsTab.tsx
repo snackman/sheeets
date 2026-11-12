@@ -152,7 +152,7 @@ export default function ClaimsTab({ allConferenceTabs, password }: Props) {
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                 statusFilter === s ? 'bg-stone-800 text-white' : 'text-stone-400 hover:text-white'
               }`}
             >

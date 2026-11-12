@@ -14,7 +14,7 @@ export function FriendAvatarStack({ friends, maxShow = 3, size = 'sm' }: FriendA
   const overflow = friends.length - maxShow;
   const dim = size === 'sm' ? 'w-6 h-6' : 'w-7 h-7';
   const avatarSize = size === 'sm' ? 'xs' as const : 'sm' as const;
-  const overflowTextSize = size === 'sm' ? 'text-[9px]' : 'text-[10px]';
+  const overflowTextSize = size === 'sm' ? 'text-2xs' : 'text-2xs';
   const ml = size === 'sm' ? '-ml-2' : '-ml-2.5';
 
   return (

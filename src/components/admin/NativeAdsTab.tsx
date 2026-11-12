@@ -229,9 +229,9 @@ export default function NativeAdsTab({ adminConfig, allConferenceTabs, configLoa
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-sm font-medium text-white truncate">{ad.title || '(untitled)'}</span>
                         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${ad.active ? 'bg-green-500' : 'bg-red-500'}`} />
-                        <span className="text-[10px] text-stone-500">{ad.active ? 'Active' : 'Inactive'}</span>
+                        <span className="text-2xs text-stone-500">{ad.active ? 'Active' : 'Inactive'}</span>
                         {ad.ab?.enabled && (
-                          <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase bg-purple-500/20 text-purple-400 rounded-full border border-purple-500/30">A/B</span>
+                          <span className="px-1.5 py-0.5 text-2xs font-bold uppercase bg-purple-500/20 text-purple-400 rounded-full border border-purple-500/30">A/B</span>
                         )}
                       </div>
                       <p className="text-xs text-stone-400 line-clamp-1">{ad.description || '(no description)'}</p>

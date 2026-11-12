@@ -66,7 +66,7 @@ export const Header = memo(function Header({
               <button
                 onClick={onBulkCheckIn}
                 disabled={checkInLoading}
-                className="p-1.5 tap:min-h-11 tap:min-w-11 inline-flex items-center justify-center rounded-lg bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white transition-colors cursor-pointer animate-pulse"
+                className="p-1.5 tap:min-h-11 tap:min-w-11 inline-flex items-center justify-center rounded-lg bg-success hover:bg-success-hover disabled:opacity-50 text-success-on transition-colors cursor-pointer animate-pulse"
                 aria-label="Check in to nearby events"
                 title="Check in to nearby events"
               >

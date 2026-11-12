@@ -492,10 +492,10 @@ export default function ConferencesTab({ conferences, setConferences, configLoad
                                   <div className="flex items-center gap-2">
                                     <p className="text-sm font-medium text-stone-400">{conf.name}</p>
                                     {past && (
-                                      <span className="text-[10px] font-bold uppercase bg-stone-700 text-stone-400 px-1.5 py-0.5 rounded-full">Past</span>
+                                      <span className="text-2xs font-bold uppercase bg-stone-700 text-stone-400 px-1.5 py-0.5 rounded-full">Past</span>
                                     )}
                                     {conf.hidden && (
-                                      <span className="text-[10px] font-bold uppercase bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full">Hidden</span>
+                                      <span className="text-2xs font-bold uppercase bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full">Hidden</span>
                                     )}
                                   </div>
                                   <p className="text-xs text-stone-500 mt-0.5">

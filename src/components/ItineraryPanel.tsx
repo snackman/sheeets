@@ -326,7 +326,7 @@ export function ItineraryPanel({
                             {hasConflict && (
                               <div className="flex items-center gap-1.5 mb-1 px-1 text-[var(--theme-accent-link)]">
                                 <AlertTriangle className="w-3 h-3" />
-                                <span className="text-[10px] font-medium uppercase tracking-wide">
+                                <span className="text-2xs font-medium uppercase tracking-wide">
                                   Schedule conflict
                                 </span>
                               </div>
@@ -385,7 +385,7 @@ export function ItineraryPanel({
 
                 {/* Footer in PNG */}
                 <div className="pt-3 pb-2 text-center">
-                  <span className="text-[10px] text-[var(--theme-text-faint)]">plan.wtf — side event guide</span>
+                  <span className="text-2xs text-[var(--theme-text-faint)]">plan.wtf — side event guide</span>
                 </div>
               </div>
 
@@ -400,7 +400,7 @@ export function ItineraryPanel({
                     </span>
                     <button
                       onClick={handleClear}
-                      className="px-3 py-1.5 bg-red-500 hover:bg-red-600 active:bg-red-600 text-[var(--theme-text-primary)] text-xs font-medium rounded transition-colors cursor-pointer"
+                      className="px-3 py-1.5 bg-danger hover:bg-danger-hover active:bg-danger-hover text-danger-on text-xs font-medium rounded transition-colors cursor-pointer"
                     >
                       Yes, clear
                     </button>

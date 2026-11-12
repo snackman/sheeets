@@ -166,8 +166,8 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
   const urls = buildNavUrls(address, lat, lng);
 
   const options = [
-    { label: 'Google Maps', url: urls.google, icon: <Navigation className="w-5 h-5" />, color: 'text-blue-400', provider: 'google_maps' },
-    { label: 'Lyft', url: urls.lyft, icon: <Car className="w-5 h-5" />, color: 'text-pink-400', provider: 'lyft' },
+    { label: 'Google Maps', url: urls.google, icon: <Navigation className="w-5 h-5" />, color: 'text-info-text', provider: 'google_maps' },
+    { label: 'Lyft', url: urls.lyft, icon: <Car className="w-5 h-5" />, color: 'text-[var(--tag-pink)]', provider: 'lyft' },
     { label: 'Uber', url: urls.uber, icon: <Car className="w-5 h-5" />, color: 'text-white', provider: 'uber' },
   ];
 
@@ -191,7 +191,7 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
             className="flex items-center gap-3 w-full px-4 py-3 text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)]/50 transition-colors rounded-lg cursor-pointer"
           >
             <span className="text-[var(--theme-text-secondary)]">
-              {copied ? <Check className="w-5 h-5 text-green-400" /> : <Copy className="w-5 h-5" />}
+              {copied ? <Check className="w-5 h-5 text-success-text" /> : <Copy className="w-5 h-5" />}
             </span>
             <span className="text-sm font-medium">{copied ? 'Copied!' : 'Copy Address'}</span>
           </button>
@@ -216,7 +216,7 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
             <button
               onClick={handleCheckIn}
               disabled={checkInLoading}
-              className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-success hover:bg-success-hover disabled:opacity-50 text-success-on rounded-lg text-sm font-medium transition-colors cursor-pointer"
             >
               {checkInLoading ? (
                 <>
@@ -239,7 +239,7 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
             <button
               onClick={handleCheckOut}
               disabled={checkInLoading}
-              className="flex items-center justify-center gap-2 w-full px-4 py-3 border border-[var(--theme-border-primary)] hover:border-red-500/50 hover:bg-red-500/10 text-[var(--theme-text-secondary)] hover:text-red-400 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-2 w-full px-4 py-3 border border-[var(--theme-border-primary)] hover:border-danger-border hover:bg-danger-hover/10 text-[var(--theme-text-secondary)] hover:text-danger-text rounded-lg text-sm font-medium transition-colors cursor-pointer"
             >
               {checkInLoading ? (
                 <>
@@ -278,7 +278,7 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
           <div
             className={`mt-2 flex items-center gap-2 text-sm rounded-lg px-3 py-2 ${
               checkInResult.ok
-                ? 'bg-green-900/40 text-green-300'
+                ? 'bg-success-bg text-success-text'
                 : 'bg-[var(--theme-bg-tertiary)]/60 text-[var(--theme-text-secondary)]'
             }`}
           >

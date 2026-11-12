@@ -214,7 +214,7 @@ export default function AdminPage() {
               <button
                 key={key}
                 onClick={() => selectTab(key)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                   activeTab === key
                     ? 'bg-stone-800 text-white'
                     : 'text-stone-400 hover:text-white'

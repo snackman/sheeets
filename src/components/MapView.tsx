@@ -22,6 +22,7 @@ import { POISearchBar } from './POISearchBar';
 import { FriendMarker } from './FriendMarker';
 import { VenueFriendMarker } from './VenueFriendMarker';
 import type { VenuePin } from '@/lib/venue-pins';
+import { isLightTheme } from '@/lib/themes';
 
 interface MapViewProps {
   events: ETHDenverEvent[];
@@ -96,7 +97,7 @@ export function MapView({
   const mapCenter = (getTabConfig(conference ?? '', conferenceTabs) ?? DEFAULT_TAB).center;
   const { user } = useAuth();
   const { theme } = useTheme();
-  const mapStyle = (theme === 'paper' || theme === 'light' || theme === 'light-blue')
+  const mapStyle = isLightTheme(theme)
     ? 'mapbox://styles/mapbox/streets-v12'
     : 'mapbox://styles/mapbox/dark-v11';
   const mapRef = useRef<MapRef>(null);
@@ -499,7 +500,7 @@ export function MapView({
           disabled={locating}
           className={`p-2 rounded-lg shadow-lg border transition-colors cursor-pointer ${
             userLocation
-              ? 'bg-blue-500 border-blue-400 text-white'
+              ? 'bg-info border-info-border text-info-on'
               : 'bg-[var(--theme-bg-secondary)] border-[var(--theme-border-primary)] text-[var(--theme-text-secondary)] hover:bg-[var(--theme-bg-tertiary)]'
           } disabled:opacity-50`}
           title="Show my location"
@@ -513,8 +514,8 @@ export function MapView({
       {userLocation && (
         <Marker latitude={userLocation.lat} longitude={userLocation.lng} anchor="center">
           <div className="relative">
-            <div className="w-4 h-4 bg-blue-500 border-2 border-white rounded-full shadow-lg" />
-            <div className="absolute inset-0 w-4 h-4 bg-blue-400 rounded-full animate-ping opacity-40" />
+            <div className="w-4 h-4 bg-info border-2 border-white rounded-full shadow-lg" />
+            <div className="absolute inset-0 w-4 h-4 bg-info-dot rounded-full animate-ping opacity-40" />
           </div>
         </Marker>
       )}

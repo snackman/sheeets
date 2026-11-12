@@ -195,7 +195,7 @@ export default function SponsorsTab({ adminConfig, configLoading, saving, saveCo
                         <p className="text-xs text-stone-500 truncate mt-0.5">{sponsor.url || '(no url)'}</p>
                       </div>
                       {sponsor.ab?.enabled && (
-                        <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase bg-purple-500/20 text-purple-400 rounded-full border border-purple-500/30">A/B</span>
+                        <span className="px-1.5 py-0.5 text-2xs font-bold uppercase bg-purple-500/20 text-purple-400 rounded-full border border-purple-500/30">A/B</span>
                       )}
                       <button
                         onClick={() => setEditingSponsorIndex(idx)}

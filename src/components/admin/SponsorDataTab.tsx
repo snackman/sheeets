@@ -327,7 +327,7 @@ export default function SponsorDataTab({ allConferenceTabs, password }: Props) {
           <button
             key={key}
             onClick={() => setSubView(key)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
               subView === key ? 'bg-stone-800 text-white' : 'text-stone-400 hover:text-white'
             }`}
           >

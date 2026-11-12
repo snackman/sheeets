@@ -46,9 +46,9 @@ export function GoogleCalendarButton({ events, timezone }: GoogleCalendarButtonP
       className={clsx(
         'px-2 py-1 tap:min-h-11 tap:px-3 text-xs font-medium rounded transition-colors cursor-pointer inline-flex items-center gap-1',
         status === 'success'
-          ? 'bg-emerald-500/20 text-emerald-400'
+          ? 'bg-success-bg text-success-text'
           : status === 'error'
-            ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+            ? 'bg-danger-bg text-danger-text hover:bg-danger-hover/30'
             : 'bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] hover:border-[var(--theme-border-primary)]'
       )}
       title={

@@ -36,7 +36,7 @@ export function VenueFriendMarker({ pin, zoom = 12, stackIndex = 0 }: VenueFrien
         aria-label={`${allNames} checked in at ${pin.eventName}`}
       >
         {showLabel && (
-          <div className="mb-1 px-1.5 py-0.5 rounded bg-green-600/95 text-white text-[10px] font-medium whitespace-nowrap max-w-[180px] truncate leading-tight shadow">
+          <div className="mb-1 px-1.5 py-0.5 rounded bg-success text-success-on text-2xs font-medium whitespace-nowrap max-w-[180px] truncate leading-tight shadow">
             {label}
           </div>
         )}
@@ -44,14 +44,14 @@ export function VenueFriendMarker({ pin, zoom = 12, stackIndex = 0 }: VenueFrien
           {shown.map((f, i) => (
             <div
               key={f.user_id}
-              className={`rounded-full border-2 border-green-400 shadow-lg overflow-hidden bg-[var(--theme-bg-secondary)] ${i > 0 ? '-ml-2' : ''}`}
+              className={`rounded-full border-2 border-success-dot shadow-lg overflow-hidden bg-[var(--theme-bg-secondary)] ${i > 0 ? '-ml-2' : ''}`}
               style={{ zIndex: MAX_AVATARS - i }}
             >
               <UserAvatar size="sm" avatarUrl={f.avatar_url} xHandle={f.x_handle} displayName={f.display_name} />
             </div>
           ))}
           {extra > 0 && (
-            <div className="-ml-2 min-w-[24px] h-6 px-1 rounded-full border-2 border-green-400 bg-green-600 text-white text-[10px] font-bold flex items-center justify-center shadow-lg">
+            <div className="-ml-2 min-w-[24px] h-6 px-1 rounded-full border-2 border-success-dot bg-success text-success-on text-2xs font-bold flex items-center justify-center shadow-lg">
               +{extra}
             </div>
           )}

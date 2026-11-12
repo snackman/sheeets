@@ -38,7 +38,7 @@ function AuthBadge({ auth }: { auth: 'Public' | 'API Key' | 'JWT' }) {
   };
   return (
     <span
-      className={`inline-block px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded border ${colors[auth]}`}
+      className={`inline-block px-2 py-0.5 text-2xs font-semibold uppercase tracking-wider rounded border ${colors[auth]}`}
     >
       {auth}
     </span>
@@ -107,7 +107,7 @@ function EndpointCard({
         </code>
         <AuthBadge auth={auth} />
         {scopes && (
-          <span className="text-[10px] text-stone-500 font-mono">
+          <span className="text-2xs text-stone-500 font-mono">
             {scopes}
           </span>
         )}

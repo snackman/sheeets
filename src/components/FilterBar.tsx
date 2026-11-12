@@ -239,7 +239,7 @@ export const FilterBar = memo(function FilterBar({
             <ListFilter className="w-4 h-4" />
             {activeFilterCount > 0 && (
               <span className={clsx(
-                'text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1 transition-colors',
+                'text-2xs font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1 transition-colors',
                 expanded
                   ? 'bg-[var(--theme-filter-active)] text-[var(--theme-bg-filter)] border border-[var(--theme-filter-active)]'
                   : 'bg-[var(--theme-filter-badge-bg)] text-[var(--theme-filter-badge-text)] border border-[var(--theme-filter-badge-border)] group-hover:text-[var(--theme-text-primary)] group-hover:border-[var(--theme-text-primary)] group-hover:bg-transparent'
@@ -264,7 +264,7 @@ export const FilterBar = memo(function FilterBar({
             <CalendarIcon className="w-5 h-5" />
             {itineraryCount > 0 && (
               <span className={clsx(
-                'text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1 transition-colors',
+                'text-2xs font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1 transition-colors',
                 isItineraryActive
                   ? 'bg-[var(--theme-filter-active)] text-[var(--theme-bg-filter)] border border-[var(--theme-filter-active)]'
                   : 'bg-[var(--theme-filter-badge-bg)] text-[var(--theme-filter-badge-text)] border border-[var(--theme-filter-badge-border)] group-hover:text-[var(--theme-text-primary)] group-hover:border-[var(--theme-text-primary)] group-hover:bg-transparent'
@@ -465,7 +465,7 @@ export const FilterBar = memo(function FilterBar({
                       className={clsx(
                         'shrink-0 flex items-center gap-1.5 px-3 py-1.5 tap:min-h-11 rounded-lg text-sm font-medium transition-colors cursor-pointer',
                         friendLinkCopied
-                          ? 'bg-green-500/20 text-green-400'
+                          ? 'bg-success-bg text-success-text'
                           : 'bg-[var(--theme-filter-control-bg)] text-[var(--theme-filter-text)] hover:text-[var(--theme-filter-active)] border border-[var(--theme-filter-control-border)]'
                       )}
                     >

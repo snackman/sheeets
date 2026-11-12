@@ -33,7 +33,7 @@ function ToggleRow({ id, icon, label, description, checked, disabled, onChange }
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={`relative shrink-0 w-9 h-5 rounded-full transition-colors cursor-pointer disabled:opacity-50 ${
-          checked ? 'bg-green-600' : 'bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)]'
+          checked ? 'bg-success' : 'bg-[var(--theme-bg-tertiary)] border border-[var(--theme-border-primary)]'
         }`}
       >
         <span

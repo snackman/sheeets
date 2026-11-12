@@ -118,7 +118,7 @@ export function OrgDropdown({ orgNames, orgEventCounts, selectedOrgs, onToggleOr
                         ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)]'
                         : 'border-[var(--theme-text-secondary)]'
                     )}>
-                      {isSelected && <span className="text-[10px] text-[var(--theme-accent-text)] font-bold">&#10003;</span>}
+                      {isSelected && <span className="text-2xs text-[var(--theme-accent-text)] font-bold">&#10003;</span>}
                     </div>
                     <span className="truncate">{name}</span>
                     {(orgEventCounts.get(name) ?? 0) > 0 && (

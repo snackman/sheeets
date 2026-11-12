@@ -117,7 +117,7 @@ function GalleryCard({
     >
       {/* Image or shimmer or placeholder */}
       {!loaded && !showPlaceholder && (
-        <div className="absolute inset-0 animate-pulse bg-stone-800/50" />
+        <div className="absolute inset-0 animate-pulse bg-[var(--theme-bg-tertiary)]/50" />
       )}
 
       {hasImage && (
@@ -186,7 +186,7 @@ function GalleryCard({
                     />
                   ) : (
                     <div
-                      className="w-full h-full flex items-center justify-center text-[8px] font-bold text-white"
+                      className="w-full h-full flex items-center justify-center text-2xs font-bold text-white"
                       style={{
                         backgroundColor: `hsl(${Math.abs(friend.userId.split('').reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0)) % 360}, 60%, 45%)`,
                       }}
@@ -198,7 +198,7 @@ function GalleryCard({
               ))}
             </div>
           )}
-          <div className="rounded-full bg-black/40 backdrop-blur-sm" style={{ '--theme-text-secondary': '#ffffff', '--theme-border-primary': 'rgba(255,255,255,0.6)', '--theme-accent': '#ffffff', '--theme-accent-muted': 'rgba(255,255,255,0.2)' } as React.CSSProperties}>
+          <div className="rounded-full bg-[var(--theme-scrim)] backdrop-blur-sm" style={{ '--theme-text-secondary': 'var(--theme-on-image)', '--theme-border-primary': 'var(--theme-on-image-border)', '--theme-accent': 'var(--theme-on-image)', '--theme-accent-muted': 'var(--theme-on-image-muted)' } as React.CSSProperties}>
             <StarButton
               eventId={event.id}
               isStarred={isInItinerary}
@@ -218,9 +218,9 @@ function GalleryCard({
           <span className="text-white/70 text-xs flex items-center gap-1">
             {liveUrgency && (
               <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${
-                liveUrgency === 'red' ? 'bg-red-400' :
-                liveUrgency === 'yellow' ? 'bg-yellow-400' :
-                'bg-green-400'
+                liveUrgency === 'red' ? 'bg-danger-dot' :
+                liveUrgency === 'yellow' ? 'bg-warn-dot' :
+                'bg-success-dot'
               }`} />
             )}
             {timeDisplay}

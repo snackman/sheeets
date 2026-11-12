@@ -182,7 +182,7 @@ function InventoryCard({ item }: { item: AdInventoryItem }) {
       }`}
     >
       {item.badge && (
-        <span className="absolute -top-2.5 right-4 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-500 text-stone-900 rounded-full">
+        <span className="absolute -top-2.5 right-4 px-2.5 py-0.5 text-2xs font-bold uppercase tracking-wider bg-amber-500 text-stone-900 rounded-full">
           {item.badge}
         </span>
       )}
@@ -242,7 +242,7 @@ function TierCard({ tier }: { tier: SponsorshipTier }) {
       }`}
     >
       {tier.highlighted && (
-        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 mb-2">
+        <span className="text-2xs font-bold uppercase tracking-wider text-amber-400 mb-2">
           Most Popular
         </span>
       )}
