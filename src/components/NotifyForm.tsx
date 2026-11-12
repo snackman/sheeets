@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Modal } from './Modal';
 
 interface NotifyFormProps {
   conferenceSlug: string;
@@ -60,19 +61,15 @@ export function NotifyForm({ conferenceSlug, conferenceName }: NotifyFormProps) 
       </button>
 
       {open && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
-        >
+        <Modal onClose={() => setOpen(false)} labelledBy="notify-title" backdropClassName="bg-black/60" className="w-full max-w-sm rounded-xl p-6 shadow-2xl">
           <div
-            className="w-full max-w-sm rounded-xl p-6 shadow-2xl"
             style={{
               backgroundColor: 'var(--theme-bg-secondary)',
               border: '1px solid var(--theme-border-primary)',
             }}
           >
             <h3
+              id="notify-title"
               className="text-lg font-semibold mb-1"
               style={{ color: 'var(--theme-text-primary)' }}
             >
@@ -128,7 +125,7 @@ export function NotifyForm({ conferenceSlug, conferenceName }: NotifyFormProps) 
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
     </>
   );

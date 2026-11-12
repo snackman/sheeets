@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
+import { Modal } from './Modal';
 import { X, Mail, LogOut, User, Check, Loader2, Users, Search, UserPlus, Clock, XCircle, CircleUser, Link2, ArrowRight, Send, Building2, Briefcase, Linkedin, Smartphone, Moon, Sun } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useHasOpened } from '@/hooks/useHasOpened';
@@ -138,17 +138,16 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   return (
     <>
-      <div className="fixed inset-0 z-[80] bg-black/50" onClick={handleClose} />
-      <div className="fixed inset-0 z-[90] flex items-center justify-center p-4" onClick={handleClose}>
-        <div className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+      <Modal onClose={handleClose} labelledBy="auth-modal-title" className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm">
+        <div>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)]">
-            <h2 className="text-base font-bold text-[var(--theme-text-primary)]">
+            <h2 id="auth-modal-title" className="text-base font-bold text-[var(--theme-text-primary)]">
               {step === 'email' && 'Sign in'}
               {step === 'code' && 'Enter code'}
               {step === 'success' && 'Signed in!'}
             </h2>
-            <button onClick={handleClose} className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer">
+            <button onClick={handleClose} aria-label="Close" className="inline-flex items-center justify-center min-h-11 min-w-11 -m-2.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -223,7 +222,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             )}
           </div>
         </div>
-      </div>
+      </Modal>
     </>
   );
 }
@@ -683,19 +682,20 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
         )}
       </button>
 
-      {open && createPortal(
-          <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-4" onClick={() => {
-            setOpen(false);
-            setSearchQuery('');
-          }}>
-            <div className="bg-[var(--theme-modal-bg)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+      {open && (
+          <Modal
+            onClose={() => { setOpen(false); setSearchQuery(''); }}
+            labelledBy="profile-modal-title"
+            className="bg-[var(--theme-modal-bg)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm"
+          >
+            <div>
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)] rounded-t-xl" style={{ backgroundColor: 'var(--theme-modal-header-bg)' }}>
-                <h2 className="text-base font-bold truncate" style={{ color: 'var(--theme-modal-header-text)' }}>{user.email}</h2>
+                <h2 id="profile-modal-title" className="text-base font-bold truncate" style={{ color: 'var(--theme-modal-header-text)' }}>{user.email}</h2>
                 <button onClick={() => {
                   setOpen(false);
                   setSearchQuery('');
-                }} className="p-1 hover:opacity-80 transition-colors cursor-pointer" style={{ color: 'var(--theme-modal-header-close)' }}>
+                }} aria-label="Close" className="inline-flex items-center justify-center min-h-11 min-w-11 -m-2.5 hover:opacity-80 transition-colors cursor-pointer" style={{ color: 'var(--theme-modal-header-close)' }}>
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -1043,8 +1043,7 @@ export function UserMenu({ events, itinerary, onOpenFriends, pendingIncomingCoun
                 })()}
               </div>
             </div>
-          </div>,
-          document.body
+          </Modal>
       )}
       {shareCardMounted && <ShareCardModal
         isOpen={showShareCard}

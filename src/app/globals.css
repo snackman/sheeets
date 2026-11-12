@@ -8,6 +8,21 @@
   --safe-area-right: env(safe-area-inset-right, 0px);
 }
 
+/* Z-index scale — use these instead of ad-hoc z-[60..9999] values */
+:root {
+  --z-sticky: 20;          /* sticky date separators, in-list overlays */
+  --z-filter: 30;          /* filter bar */
+  --z-fab: 35;             /* floating check-in button */
+  --z-header: 40;          /* sticky app header */
+  --z-dropdown: 50;        /* menus and popovers (above header) */
+  --z-drawer-backdrop: 60; /* side panels (itinerary, friends) */
+  --z-drawer: 65;
+  --z-modal-backdrop: 70;  /* dialogs */
+  --z-modal: 80;
+  --z-lightbox: 90;        /* full-screen image viewer */
+  --z-toast: 100;
+}
+
 /* ================================================================
    THEME SYSTEM — CSS Custom Properties
    Set data-theme="dark|paper|light" on <html> to switch themes.
@@ -644,4 +659,10 @@ input, select, textarea {
 @keyframes sponsors-scroll-left {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+}
+
+/* Visible keyboard focus for interactive elements that don't set their own ring */
+:where(button, [role="button"], a, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--theme-accent);
+  outline-offset: 2px;
 }

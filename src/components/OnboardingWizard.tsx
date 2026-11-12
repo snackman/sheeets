@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useIsClient } from '@/hooks/useIsClient';
-import { createPortal } from 'react-dom';
+import { Modal } from './Modal';
 import Image from 'next/image';
 import { X, CirclePlus, Clock, Users, Map, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { VIBE_COLORS, TYPE_TAGS } from '@/lib/constants';
@@ -180,17 +180,9 @@ export function OnboardingWizard({
     return `${months[m1 - 1]} ${d1} - ${months[m2 - 1]} ${d2}`;
   }
 
-  return createPortal(
+  return (
     <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-[100] bg-black/50" onClick={handleClose} />
-
-      {/* Modal */}
-      <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" onClick={handleClose}>
-        <div
-          className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col"
-          onClick={(e) => e.stopPropagation()}
-        >
+      <Modal onClose={handleClose} ariaLabel="Welcome to plan.wtf" className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
           {/* Header with close button */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)] shrink-0">
             <div className="w-8" /> {/* Spacer for centering */}
@@ -206,7 +198,7 @@ export function OnboardingWizard({
             </div>
             <button
               onClick={handleClose}
-              className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center min-h-11 min-w-11 -m-2.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
               aria-label="Close"
             >
               <X className="w-4 h-4" />
@@ -452,9 +444,7 @@ export function OnboardingWizard({
               />
             ))}
           </div>
-        </div>
-      </div>
-    </>,
-    document.body
+      </Modal>
+    </>
   );
 }

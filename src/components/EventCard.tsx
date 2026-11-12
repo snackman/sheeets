@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, memo } from 'react';
-import { createPortal } from 'react-dom';
+import { Modal } from './Modal';
 import { MapPin, Calendar, X, Link, Check, MapPinCheck, Loader2 } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
 import { trackEventClick, trackCopyEventLink, trackFriendsGoingOpen, trackFriendsCheckedInOpen, trackOutboundClick } from '@/lib/analytics';
@@ -64,39 +64,25 @@ function FriendsGoingModal({
   title?: string;
   accentColor?: 'blue' | 'green';
 }) {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
-
   const avatarBg = accentColor === 'green' ? 'bg-green-500/20' : '';
   const avatarBgStyle = accentColor === 'green' ? undefined : { backgroundColor: 'color-mix(in srgb, var(--friend-blue) 20%, transparent)' };
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
-      onClick={onClose}
+  return (
+    <Modal
+      onClose={onClose}
+      labelledBy="friends-going-title"
+      backdropClassName="bg-black/60"
+      className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm"
     >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60" />
-
-      {/* Modal */}
-      <div
-        className="relative bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm"
-        onClick={(e) => e.stopPropagation()}
-      >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)]">
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-bold text-[var(--theme-text-primary)]">{title}</h3>
+            <h3 id="friends-going-title" className="text-sm font-bold text-[var(--theme-text-primary)]">{title}</h3>
             <p className="text-xs text-[var(--theme-text-secondary)] truncate">{eventName}</p>
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer shrink-0 ml-2"
+            className="inline-flex items-center justify-center min-h-11 min-w-11 -m-2.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer shrink-0 ml-2"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -124,9 +110,7 @@ function FriendsGoingModal({
             </div>
           ))}
         </div>
-      </div>
-    </div>,
-    document.body
+    </Modal>
   );
 }
 

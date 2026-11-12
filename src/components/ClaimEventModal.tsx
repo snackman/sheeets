@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { Modal } from './Modal';
 import { X, Copy, Check, ExternalLink, Loader2, BadgeCheck, Clock } from 'lucide-react';
 import type { ETHDenverEvent } from '@/lib/types';
 import type { PublicClaim } from '@/lib/host-claims';
@@ -323,17 +323,14 @@ export function ClaimEventModal({ event, claim, onClaimChange, onClose }: ClaimE
     );
   }
 
-  return createPortal(
+  return (
     <>
-      <div className="fixed inset-0 z-[70] bg-black/60" onClick={onClose} />
-      <div className="fixed inset-0 z-[75] flex items-center justify-center p-4 pointer-events-none">
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="claim-event-title"
-          className="pointer-events-auto relative bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
-        >
+      <Modal
+        onClose={onClose}
+        labelledBy="claim-event-title"
+        backdropClassName="bg-black/60"
+        className="relative bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto"
+      >
           <div className="flex items-start justify-between px-4 py-3 border-b border-[var(--theme-border-primary)]">
             <div className="min-w-0">
               <h2 id="claim-event-title" className="text-base font-bold text-[var(--theme-text-primary)]">
@@ -343,7 +340,7 @@ export function ClaimEventModal({ event, claim, onClaimChange, onClose }: ClaimE
                 {event.name} · {event.conference}
               </p>
             </div>
-            <button onClick={onClose} className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] cursor-pointer shrink-0 ml-2" aria-label="Close">
+            <button onClick={onClose} className="inline-flex items-center justify-center min-h-11 min-w-11 -m-2.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] cursor-pointer shrink-0 ml-2" aria-label="Close">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -351,10 +348,8 @@ export function ClaimEventModal({ event, claim, onClaimChange, onClose }: ClaimE
             {body}
             {error && <p className="text-xs text-red-500 mt-3">{error}</p>}
           </div>
-        </div>
-      </div>
+      </Modal>
       <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />
-    </>,
-    document.body
+    </>
   );
 }
