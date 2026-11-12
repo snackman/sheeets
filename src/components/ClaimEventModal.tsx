@@ -180,7 +180,7 @@ export function ClaimEventModal({ event, claim, onClaimChange, onClose }: ClaimE
         {busy === 'manual' && <Loader2 className="w-4 h-4 animate-spin" />}
         {submitLabel}
       </button>
-      <p className="text-[11px] text-[var(--theme-text-muted)]">{REVIEW_PROMISE}</p>
+      <p className="text-xs text-[var(--theme-text-muted)]">{REVIEW_PROMISE}</p>
     </div>
   );
 
@@ -198,8 +198,8 @@ export function ClaimEventModal({ event, claim, onClaimChange, onClose }: ClaimE
     const hostWide = verifiedInfo?.hostWide || claim.matched_in === 'host_bio';
     body = (
       <div className="space-y-3">
-        <div className="flex items-start gap-2 rounded-lg bg-green-500/10 border border-green-500/30 px-3 py-2.5">
-          <BadgeCheck className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2 rounded-lg bg-success-bg border border-success-border px-3 py-2.5">
+          <BadgeCheck className="w-5 h-5 text-success-text shrink-0 mt-0.5" />
           <div className="text-sm text-[var(--theme-text-primary)]">
             <p className="font-medium">Verified — dashboard coming soon</p>
             <p className="text-xs text-[var(--theme-text-secondary)] mt-1">
@@ -226,8 +226,8 @@ export function ClaimEventModal({ event, claim, onClaimChange, onClose }: ClaimE
     body = (
       <div className="space-y-3">
         {underReview && (
-          <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2.5">
-            <Clock className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2 rounded-lg bg-warn-bg border border-warn-border px-3 py-2.5">
+            <Clock className="w-4 h-4 text-warn-text shrink-0 mt-0.5" />
             <p className="text-sm text-[var(--theme-text-primary)]">
               Under review. {REVIEW_PROMISE}
               {claim.verification_code ? ' You can still verify instantly with Luma below.' : ''}
@@ -244,7 +244,7 @@ export function ClaimEventModal({ event, claim, onClaimChange, onClose }: ClaimE
                 {claim.verification_code}
               </code>
               <button onClick={copyCode} className="p-2 rounded-lg border border-[var(--theme-border-primary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] cursor-pointer" aria-label="Copy code">
-                {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                {copied ? <Check className="w-4 h-4 text-success-text" /> : <Copy className="w-4 h-4" />}
               </button>
             </div>
             <ol start={2} className="text-sm text-[var(--theme-text-secondary)] space-y-1.5 list-decimal pl-4">
@@ -253,7 +253,7 @@ export function ClaimEventModal({ event, claim, onClaimChange, onClose }: ClaimE
               </li>
               <li>Click Verify. You can remove the code afterwards.</li>
             </ol>
-            <p className="text-[11px] text-[var(--theme-text-muted)]">
+            <p className="text-xs text-[var(--theme-text-muted)]">
               Using your profile bio also verifies you for other Luma events you host.
             </p>
             {lumaUrl && isSafeHttpUrl(lumaUrl) && (
@@ -338,7 +338,7 @@ export function ClaimEventModal({ event, claim, onClaimChange, onClose }: ClaimE
           </div>
           <div className="p-4">
             {body}
-            {error && <p className="text-xs text-red-500 mt-3">{error}</p>}
+            {error && <p className="text-xs text-danger-text mt-3">{error}</p>}
           </div>
       </Modal>
       <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />

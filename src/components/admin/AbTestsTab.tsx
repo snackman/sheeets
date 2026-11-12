@@ -379,7 +379,7 @@ export default function AbTestsTab({ adminConfig, allConferenceTabs, saving, sav
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <h3 className="text-sm font-bold text-white truncate">{test.name}</h3>
-                  <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border ${
+                  <span className={`px-2 py-0.5 text-2xs font-bold uppercase tracking-wider rounded-full border ${
                     test.status === 'running'
                       ? 'bg-green-500/20 text-green-400 border-green-500/30'
                       : test.status === 'paused'
@@ -391,14 +391,14 @@ export default function AbTestsTab({ adminConfig, allConferenceTabs, saving, sav
                     {test.status}
                   </span>
                   {test.winnerId && (
-                    <span className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase bg-amber-500/20 text-amber-400 rounded-full border border-amber-500/30">
+                    <span className="flex items-center gap-1 px-2 py-0.5 text-2xs font-bold uppercase bg-amber-500/20 text-amber-400 rounded-full border border-amber-500/30">
                       <Trophy className="w-3 h-3" />
                       {test.variants.find(v => v.id === test.winnerId)?.name || test.winnerId}
                     </span>
                   )}
                 </div>
                 <p className="text-xs text-stone-400 mb-1">{test.description}</p>
-                <div className="flex items-center gap-3 text-[11px] text-stone-500">
+                <div className="flex items-center gap-3 text-xs text-stone-500">
                   <span>Placement: {AB_PLACEMENTS.find(p => p.value === test.placement)?.label || test.placement}</span>
                   {test.conference && <span>Conference: {test.conference}</span>}
                   <span>{test.variants.length} variants</span>
@@ -408,7 +408,7 @@ export default function AbTestsTab({ adminConfig, allConferenceTabs, saving, sav
                 {/* Variant summary */}
                 <div className="flex gap-2 mt-2">
                   {test.variants.map(v => (
-                    <span key={v.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-stone-900/50 rounded text-[11px] text-stone-300">
+                    <span key={v.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-stone-900/50 rounded text-xs text-stone-300">
                       {v.name} <span className="text-stone-500">{v.weight}%</span>
                     </span>
                   ))}

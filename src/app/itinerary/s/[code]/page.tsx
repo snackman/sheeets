@@ -222,7 +222,7 @@ export default function SharedItineraryPage() {
               className={clsx(
                 'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
                 copyStatus === 'copied'
-                  ? 'bg-emerald-500/20 text-emerald-400'
+                  ? 'bg-success-bg text-success-text'
                   : 'bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)]'
               )}
             >
@@ -321,14 +321,14 @@ export default function SharedItineraryPage() {
                       <div className="flex items-center gap-1.5 mt-1.5">
                         {event.vibe && (
                           <span
-                            className="px-1.5 py-0.5 rounded text-[10px] font-semibold text-white"
+                            className="px-1.5 py-0.5 rounded text-2xs font-semibold text-white"
                             style={{ backgroundColor: vibeColor }}
                           >
                             {event.vibe}
                           </span>
                         )}
                         {event.isFree && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/20 text-emerald-400">
+                          <span className="px-1.5 py-0.5 rounded text-2xs font-medium bg-success-bg text-success-text">
                             FREE
                           </span>
                         )}
@@ -341,7 +341,7 @@ export default function SharedItineraryPage() {
           ))}
 
           <div className="pt-3 pb-2 text-center">
-            <span className="text-[10px] text-[var(--theme-text-faint)]">plan.wtf — side event guide</span>
+            <span className="text-2xs text-[var(--theme-text-faint)]">plan.wtf — side event guide</span>
           </div>
         </div>
       )}

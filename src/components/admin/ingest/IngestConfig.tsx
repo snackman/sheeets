@@ -501,7 +501,7 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
               <Plus className="w-4 h-4" /> Add account
             </button>
             {availability && !availability.x_account && (
-              <span className="text-[10px] uppercase tracking-wide bg-amber-900/60 text-amber-300 px-1.5 py-0.5 rounded whitespace-nowrap">
+              <span className="text-2xs uppercase tracking-wide bg-amber-900/60 text-amber-300 px-1.5 py-0.5 rounded whitespace-nowrap">
                 not configured
               </span>
             )}
@@ -524,7 +524,7 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
               <Plus className="w-4 h-4" /> Add search
             </button>
             {availability && !availability.meetup_search && (
-              <span className="text-[10px] uppercase tracking-wide bg-amber-900/60 text-amber-300 px-1.5 py-0.5 rounded whitespace-nowrap">
+              <span className="text-2xs uppercase tracking-wide bg-amber-900/60 text-amber-300 px-1.5 py-0.5 rounded whitespace-nowrap">
                 requires Meetup Pro
               </span>
             )}
@@ -609,7 +609,7 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-white truncate flex items-center gap-1.5">
                     {s.label || s.kind}
-                    <span className="text-[10px] uppercase tracking-wide bg-stone-700 text-stone-300 px-1.5 py-0.5 rounded">
+                    <span className="text-2xs uppercase tracking-wide bg-stone-700 text-stone-300 px-1.5 py-0.5 rounded">
                       {SOURCE_KIND_LABELS[s.kind] ?? s.kind}
                     </span>
                   </div>
@@ -627,15 +627,15 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
                 </div>
                 {s.kind !== 'host_submission' && (
                   <>
-                    <button onClick={() => runNow(s.id, true)} disabled={runningSourceId === s.id} title="Dry run" className="text-xs bg-stone-700 hover:bg-stone-600 text-white rounded-md px-2.5 py-1.5 cursor-pointer disabled:opacity-50">
+                    <button onClick={() => runNow(s.id, true)} disabled={runningSourceId === s.id} title="Dry run" className="text-xs bg-stone-700 hover:bg-stone-600 text-white rounded-lg px-2.5 py-1.5 cursor-pointer disabled:opacity-50">
                       Dry run
                     </button>
-                    <button onClick={() => runNow(s.id, false)} disabled={runningSourceId === s.id} title="Run now" className="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-2.5 py-1.5 cursor-pointer disabled:opacity-50 flex items-center gap-1 text-xs">
+                    <button onClick={() => runNow(s.id, false)} disabled={runningSourceId === s.id} title="Run now" className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-2.5 py-1.5 cursor-pointer disabled:opacity-50 flex items-center gap-1 text-xs">
                       {runningSourceId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />} Run now
                     </button>
                   </>
                 )}
-                <button onClick={() => toggleSource(s.id, !s.enabled)} className="text-xs bg-stone-700 hover:bg-stone-600 text-white rounded-md px-2.5 py-1.5 cursor-pointer">
+                <button onClick={() => toggleSource(s.id, !s.enabled)} className="text-xs bg-stone-700 hover:bg-stone-600 text-white rounded-lg px-2.5 py-1.5 cursor-pointer">
                   {s.enabled ? 'Disable' : 'Enable'}
                 </button>
                 <button onClick={() => removeSource(s.id)} className="text-stone-400 hover:text-red-400 cursor-pointer">
@@ -676,7 +676,7 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
                   onClick={() => decideProposal(p.id, 'accepted')}
                   disabled={decidingProposalId === p.id}
                   title="Accept — adds this as a curated Luma calendar source"
-                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-2.5 py-1.5 cursor-pointer disabled:opacity-50 flex items-center gap-1 text-xs"
+                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-2.5 py-1.5 cursor-pointer disabled:opacity-50 flex items-center gap-1 text-xs"
                 >
                   <Check className="w-3.5 h-3.5" /> Accept
                 </button>
@@ -684,7 +684,7 @@ export default function IngestConfig({ allConferenceTabs, password }: Props) {
                   onClick={() => decideProposal(p.id, 'dismissed')}
                   disabled={decidingProposalId === p.id}
                   title="Dismiss — never proposed again"
-                  className="text-xs bg-stone-700 hover:bg-stone-600 text-white rounded-md px-2.5 py-1.5 cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                  className="text-xs bg-stone-700 hover:bg-stone-600 text-white rounded-lg px-2.5 py-1.5 cursor-pointer disabled:opacity-50 flex items-center gap-1"
                 >
                   <X className="w-3.5 h-3.5" /> Dismiss
                 </button>

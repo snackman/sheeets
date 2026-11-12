@@ -53,7 +53,7 @@ function CheckInToast({ result, onDismiss }: { result: { ok: boolean; message: s
   return (
     <div className={`mx-4 mt-2 px-3 py-2 rounded-lg text-sm font-medium ${
       result.ok
-        ? 'bg-green-600 text-white'
+        ? 'bg-success text-success-on'
         : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] border border-[var(--theme-border-primary)]'
     }`}>
       {result.message}
@@ -335,7 +335,7 @@ function ItineraryPageContent() {
                   className={clsx(
                     'px-2 py-1 text-xs font-medium rounded transition-colors cursor-pointer',
                     shareStatus === 'copied'
-                      ? 'bg-emerald-500/20 text-emerald-400'
+                      ? 'bg-success-bg text-success-text'
                       : 'bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] hover:border-[var(--theme-border-primary)]'
                   )}
                   title="Share link"
@@ -429,7 +429,7 @@ function ItineraryPageContent() {
                         {hasConflict && (
                           <div className="flex items-center gap-1.5 mb-1 px-1 text-[var(--theme-accent)]">
                             <AlertTriangle className="w-3 h-3" />
-                            <span className="text-[10px] font-medium uppercase tracking-wide">
+                            <span className="text-2xs font-medium uppercase tracking-wide">
                               Schedule conflict
                             </span>
                           </div>
@@ -488,7 +488,7 @@ function ItineraryPageContent() {
             ))}
 
             <div className="pt-3 pb-2 text-center">
-              <span className="text-[10px] text-[var(--theme-text-faint)]">plan.wtf — side event guide</span>
+              <span className="text-2xs text-[var(--theme-text-faint)]">plan.wtf — side event guide</span>
             </div>
           </div>
 
@@ -499,7 +499,7 @@ function ItineraryPageContent() {
                 <span className="text-sm text-[var(--theme-text-secondary)]">Clear all events?</span>
                 <button
                   onClick={() => { trackItineraryClear(); clearItinerary(); setShowClearConfirm(false); }}
-                  className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded transition-colors cursor-pointer"
+                  className="px-3 py-1.5 bg-danger hover:bg-danger-hover text-danger-on text-xs font-medium rounded transition-colors cursor-pointer"
                 >
                   Yes, clear
                 </button>

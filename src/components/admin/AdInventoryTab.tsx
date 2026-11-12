@@ -538,7 +538,7 @@ export default function AdInventoryTab({ adminConfig, allConferenceTabs, configL
                           <span className="text-sm font-medium text-white truncate">{item.title || '(untitled)'}</span>
                           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${item.available ? 'bg-green-500' : 'bg-red-500'}`} />
                           {item.badge && (
-                            <span className="text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">{item.badge}</span>
+                            <span className="text-2xs text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">{item.badge}</span>
                           )}
                         </div>
                         <p className="text-xs text-stone-500 truncate">

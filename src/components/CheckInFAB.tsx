@@ -31,7 +31,7 @@ export function CheckInFAB({ liveItineraryCount, onCheckIn, loading, result }: C
         <div
           className={`px-3 py-2 rounded-lg text-sm font-medium shadow-lg max-w-[280px] ${
             result.ok
-              ? 'bg-green-600 text-white'
+              ? 'bg-success text-success-on'
               : 'bg-[var(--theme-bg-secondary)] text-[var(--theme-text-secondary)] border border-[var(--theme-border-primary)]'
           }`}
         >
@@ -43,7 +43,7 @@ export function CheckInFAB({ liveItineraryCount, onCheckIn, loading, result }: C
       <button
         onClick={onCheckIn}
         disabled={loading}
-        className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-full shadow-lg transition-colors cursor-pointer"
+        className="flex items-center gap-2 px-4 py-2.5 bg-success hover:bg-success-hover disabled:opacity-50 text-success-on rounded-full shadow-lg transition-colors cursor-pointer"
       >
         {loading ? (
           <Loader2 className="w-5 h-5 animate-spin" />
@@ -51,7 +51,7 @@ export function CheckInFAB({ liveItineraryCount, onCheckIn, loading, result }: C
           <MapPinCheck className="w-5 h-5" />
         )}
         <span className="font-medium text-sm">Check In</span>
-        <span className="bg-green-500 text-white text-xs font-bold rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1">
+        <span className="bg-success text-success-on text-xs font-bold rounded-full min-w-[20px] h-[20px] flex items-center justify-center px-1">
           {liveItineraryCount}
         </span>
       </button>

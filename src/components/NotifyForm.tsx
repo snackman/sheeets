@@ -99,7 +99,7 @@ export function NotifyForm({ conferenceSlug, conferenceName }: NotifyFormProps) 
               />
 
               {status === 'error' && (
-                <p className="text-xs text-red-400">Something went wrong. Please try again.</p>
+                <p className="text-xs text-danger-text">Something went wrong. Please try again.</p>
               )}
 
               <div className="flex gap-2 justify-end">

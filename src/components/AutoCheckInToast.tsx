@@ -21,7 +21,7 @@ export function AutoCheckInToast({ eventName, onUndo, onDismiss }: AutoCheckInTo
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-[calc(5rem+var(--safe-area-bottom))] left-1/2 -translate-x-1/2 z-[var(--z-toast)] w-[calc(100%-32px)] max-w-sm flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg bg-green-600 text-white text-sm"
+      className="fixed bottom-[calc(5rem+var(--safe-area-bottom))] left-1/2 -translate-x-1/2 z-[var(--z-toast)] w-[calc(100%-32px)] max-w-sm flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg bg-success text-success-on text-sm"
     >
       <MapPinCheck className="w-4 h-4 shrink-0" />
       <span className="flex-1 min-w-0">
@@ -29,11 +29,11 @@ export function AutoCheckInToast({ eventName, onUndo, onDismiss }: AutoCheckInTo
       </span>
       <button
         onClick={onUndo}
-        className="shrink-0 px-2 py-1 rounded font-semibold underline underline-offset-2 hover:bg-white/10 cursor-pointer"
+        className="shrink-0 px-2 py-1 rounded font-semibold underline underline-offset-2 hover:bg-success-on/10 cursor-pointer"
       >
         Undo
       </button>
-      <button onClick={onDismiss} aria-label="Dismiss" className="shrink-0 p-1 rounded hover:bg-white/10 cursor-pointer">
+      <button onClick={onDismiss} aria-label="Dismiss" className="shrink-0 p-1 rounded hover:bg-success-on/10 cursor-pointer">
         <X className="w-3.5 h-3.5" />
       </button>
     </div>

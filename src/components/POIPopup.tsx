@@ -38,7 +38,7 @@ export function POIPopup({ poi, onClose, onDelete, onUpdate, currentUserId, owne
               {poi.name}
             </h3>
             <span
-              className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-white/90"
+              className="inline-block mt-1 px-1.5 py-0.5 rounded text-2xs font-medium text-white/90"
               style={{ backgroundColor: cat.color + '33', color: cat.color }}
             >
               {cat.label}
@@ -98,7 +98,7 @@ export function POIPopup({ poi, onClose, onDelete, onUpdate, currentUserId, owne
             {/* Delete button */}
             <button
               onClick={() => onDelete(poi.id)}
-              className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 active:text-red-300 transition-colors cursor-pointer mt-2"
+              className="flex items-center gap-1 text-xs text-danger-text hover:text-danger-text active:text-danger-text transition-colors cursor-pointer mt-2"
             >
               <Trash2 className="w-3 h-3" />
               Remove pin

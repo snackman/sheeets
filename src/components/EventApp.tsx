@@ -30,7 +30,7 @@ import { deriveVenuePins, excludeFriendsAtVenues } from '@/lib/venue-pins';
 import { useFriendCode } from '@/hooks/useFriendCode';
 import { useHasOpened } from '@/hooks/useHasOpened';
 import { useTheme } from '@/contexts/ThemeContext';
-import { ThemeId, DEFAULT_THEME, THEME_OPTIONS } from '@/lib/themes';
+import { ThemeId, THEME_OPTIONS } from '@/lib/themes';
 import type { ABTest, ETHDenverEvent } from '@/lib/types';
 import { resolveItemVariants, getVisitorId } from '@/lib/ab-testing';
 import { Header } from './Header';
@@ -360,21 +360,15 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
   }, [authUser, toggleBool]);
 
   // Theme: read from admin config per-conference and apply
-  const { setTheme } = useTheme();
+  // (not persisted: the user's own pick and the OS colour scheme decide when there is none)
+  const { setConfigTheme } = useTheme();
   useEffect(() => {
-    if (!config || !filters.conference) {
-      setTheme(DEFAULT_THEME);
-      return;
-    }
-    const configKey = `theme:${filters.conference}`;
-    const configTheme = (config as Record<string, unknown>)[configKey] as string | undefined;
+    const configTheme = config && filters.conference
+      ? ((config as Record<string, unknown>)[`theme:${filters.conference}`] as string | undefined)
+      : undefined;
     const validIds = THEME_OPTIONS.map(t => t.id) as string[];
-    if (configTheme && validIds.includes(configTheme)) {
-      setTheme(configTheme as ThemeId);
-    } else {
-      setTheme(DEFAULT_THEME);
-    }
-  }, [config, filters.conference, setTheme]);
+    setConfigTheme(configTheme && validIds.includes(configTheme) ? (configTheme as ThemeId) : null);
+  }, [config, filters.conference, setConfigTheme]);
 
   // Filters in the URL (?start&end&time&tags&q&view): read once on load, then
   // mirrored back with replaceState (no history entries). Invalid params are
@@ -899,8 +893,8 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
       {friendCodeToast && (
         <div className={`fixed bottom-[calc(1.5rem+var(--safe-area-bottom))] left-1/2 -translate-x-1/2 z-[var(--z-toast)] px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-opacity duration-300 ${
           friendCodeToast.type === 'success'
-            ? 'bg-green-600 text-white'
-            : 'bg-red-600 text-white'
+            ? 'bg-success text-success-on'
+            : 'bg-danger text-success-on'
         }`}>
           {friendCodeToast.message}
         </div>

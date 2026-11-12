@@ -428,7 +428,7 @@ export function LockScreenModal({
               disabled={!previewUrl || copyStatus === 'copying'}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                 copyStatus === 'copied'
-                  ? 'bg-green-600 text-white'
+                  ? 'bg-success text-success-on'
                   : 'bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)]'
               }`}
             >

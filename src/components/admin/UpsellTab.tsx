@@ -80,7 +80,7 @@ export default function UpsellTab({ adminConfig, configLoading, saving, saveConf
           <div className="bg-stone-900 rounded-xl p-4 border border-stone-700">
             <h3 className="text-sm font-semibold text-white mb-3">Preview</h3>
             <div className="max-w-md mx-auto">
-              <div className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-500/10 border border-amber-500/30">
+              <div className="p-4 rounded-xl bg-warn-bg border border-warn-border">
                 <h4 className="text-sm font-semibold text-amber-300 mb-1">
                   {upsellCopy.heading || 'Heading...'}
                 </h4>

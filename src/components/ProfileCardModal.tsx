@@ -165,7 +165,7 @@ export default function ProfileCardModal({
       return (
         <button
           disabled
-          className="w-full py-2 px-4 rounded-lg text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/30 cursor-not-allowed flex items-center justify-center gap-1.5"
+          className="w-full py-2 px-4 rounded-lg text-xs font-medium bg-success-bg text-success-text border border-success-border cursor-not-allowed flex items-center justify-center gap-1.5"
         >
           <Check className="w-3.5 h-3.5" />
           Friends

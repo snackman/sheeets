@@ -102,7 +102,7 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <button
-                      className="text-[11px] font-medium text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] transition-colors cursor-pointer"
+                      className="text-xs font-medium text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] transition-colors cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedProfile({
@@ -119,15 +119,15 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
                     >
                       {name}
                     </button>
-                    <span className="text-[10px] text-[var(--theme-text-faint)]">{timeAgo(comment.created_at)}</span>
+                    <span className="text-2xs text-[var(--theme-text-faint)]">{timeAgo(comment.created_at)}</span>
                     {comment.visibility === 'friends' && (
-                      <span className="text-[9px] rounded px-1" style={{ color: 'var(--friend-blue)', opacity: 0.6, borderWidth: '1px', borderColor: 'color-mix(in srgb, var(--friend-blue) 30%, transparent)' }}>friends</span>
+                      <span className="text-2xs rounded px-1" style={{ color: 'var(--friend-blue)', opacity: 0.6, borderWidth: '1px', borderColor: 'color-mix(in srgb, var(--friend-blue) 30%, transparent)' }}>friends</span>
                     )}
                     {user && comment.user_id === user.id && (
                       <button
                         onClick={() => { trackCommentDelete(eventId); deleteComment(comment.id); }}
                         aria-label="Delete comment"
-                        className="opacity-0 group-hover/comment:opacity-100 focus-visible:opacity-100 p-0.5 text-[var(--theme-text-faint)] hover:text-red-400 transition-all cursor-pointer"
+                        className="opacity-0 group-hover/comment:opacity-100 focus-visible:opacity-100 p-0.5 text-[var(--theme-text-faint)] hover:text-danger-text transition-all cursor-pointer"
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>
@@ -191,11 +191,11 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
           }}
           placeholder="Add a comment..."
           maxLength={500}
-          className="flex-1 bg-transparent text-xs text-[var(--theme-text-primary)] placeholder-slate-500 outline-none min-w-0"
+          className="flex-1 bg-transparent text-xs text-[var(--theme-text-primary)] placeholder-[var(--theme-text-muted)] outline-none min-w-0"
         />
         <button
           onClick={() => { const next = visibility === 'public' ? 'friends' : 'public'; trackCommentVisibilityToggle(next); setVisibility(next); }}
-          className={`text-[9px] px-1.5 py-0.5 rounded border shrink-0 cursor-pointer transition-colors ${
+          className={`text-2xs px-1.5 py-0.5 rounded border shrink-0 cursor-pointer transition-colors ${
             visibility === 'friends'
               ? ''
               : 'border-[var(--theme-border-primary)] text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)]'
@@ -244,7 +244,7 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
             }
           }}
           placeholder="Enter your email..."
-          className="flex-1 bg-[var(--theme-bg-tertiary)]/50 border border-[var(--theme-border-primary)] rounded-lg px-3 py-2 text-sm text-[var(--theme-text-primary)] placeholder-slate-500 outline-none min-w-0"
+          className="flex-1 bg-[var(--theme-bg-tertiary)]/50 border border-[var(--theme-border-primary)] rounded-lg px-3 py-2 text-sm text-[var(--theme-text-primary)] placeholder-[var(--theme-text-muted)] outline-none min-w-0"
           autoFocus
         />
         <button
@@ -256,7 +256,7 @@ export function CommentSection({ eventId, commentCount = 0, eventName }: Comment
         </button>
       </div>
       {emailError && (
-        <p className="text-xs text-red-400">{emailError}</p>
+        <p className="text-xs text-danger-text">{emailError}</p>
       )}
     </div>
   ) : (

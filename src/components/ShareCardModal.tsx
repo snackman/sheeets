@@ -272,7 +272,7 @@ export function ShareCardModal({
                       onChange={(e) => setShowPastEvents(e.target.checked)}
                       className="w-3.5 h-3.5 rounded border-[var(--theme-border-primary)] bg-[var(--theme-bg-primary)] accent-[var(--theme-accent)] cursor-pointer"
                     />
-                    <span className="text-[11px] text-[var(--theme-text-muted)]">
+                    <span className="text-xs text-[var(--theme-text-muted)]">
                       Show past ({pastEventIds.size})
                     </span>
                   </label>
@@ -282,7 +282,7 @@ export function ShareCardModal({
                 {dateGroups.map((group) => (
                   <div key={group.dateISO}>
                     <div className="px-3 py-1.5 bg-[var(--theme-bg-secondary)]/50 sticky top-0">
-                      <span className="text-[10px] font-bold text-[var(--theme-text-muted)] uppercase tracking-wider">
+                      <span className="text-2xs font-bold text-[var(--theme-text-muted)] uppercase tracking-wider">
                         {group.label}
                       </span>
                     </div>
@@ -306,7 +306,7 @@ export function ShareCardModal({
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               {timeDisplay && (
-                                <span className="text-[11px] text-[var(--theme-text-muted)] shrink-0">
+                                <span className="text-xs text-[var(--theme-text-muted)] shrink-0">
                                   {timeDisplay}
                                 </span>
                               )}
@@ -331,7 +331,7 @@ export function ShareCardModal({
               disabled={selectedEvents.length === 0 || copyStatus === 'copying'}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                 copyStatus === 'copied'
-                  ? 'bg-green-600 text-white'
+                  ? 'bg-success text-success-on'
                   : 'bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)]'
               }`}
             >

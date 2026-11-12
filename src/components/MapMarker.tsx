@@ -26,10 +26,10 @@ interface MapMarkerProps {
 
 /** Get wedge color based on start hour: white (day), dark accent (evening) */
 function getPinColor(startMinutes: number | null | undefined): string {
-  if (startMinutes == null) return '#FFFFFF';
+  if (startMinutes == null) return 'var(--theme-marker-day)';
   const hour = startMinutes / 60;
   if (hour >= 18) return 'var(--theme-map-pin-night)';
-  return '#FFFFFF';
+  return 'var(--theme-marker-day)';
 }
 
 /** SVG clock-face pin with a black wedge representing the event time */
@@ -57,10 +57,10 @@ function ClockPin({
         <circle cx={cx} cy={cy} r={ir} fill="var(--theme-map-pin)" />
         <circle cx={cx} cy={cy} r={ir} fill="none" stroke="var(--theme-map-pin-night)" strokeWidth={1.5} strokeOpacity={0.8} />
         {/* Clock tick marks at 12, 3, 6, 9 */}
-        <line x1={cx} y1={cy - ir} x2={cx} y2={cy - ir + 3} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
-        <line x1={cx + ir} y1={cy} x2={cx + ir - 3} y2={cy} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
-        <line x1={cx} y1={cy + ir} x2={cx} y2={cy + ir - 3} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
-        <line x1={cx - ir} y1={cy} x2={cx - ir + 3} y2={cy} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
+        <line x1={cx} y1={cy - ir} x2={cx} y2={cy - ir + 3} stroke="var(--theme-marker-tick)" strokeWidth={1} strokeOpacity={0.7} />
+        <line x1={cx + ir} y1={cy} x2={cx + ir - 3} y2={cy} stroke="var(--theme-marker-tick)" strokeWidth={1} strokeOpacity={0.7} />
+        <line x1={cx} y1={cy + ir} x2={cx} y2={cy + ir - 3} stroke="var(--theme-marker-tick)" strokeWidth={1} strokeOpacity={0.7} />
+        <line x1={cx - ir} y1={cy} x2={cx - ir + 3} y2={cy} stroke="var(--theme-marker-tick)" strokeWidth={1} strokeOpacity={0.7} />
       </svg>
     );
   }
@@ -92,10 +92,10 @@ function ClockPin({
       <path d={wedgePath} fill={color} />
       <circle cx={cx} cy={cy} r={ir} fill="none" stroke="var(--theme-map-pin-night)" strokeWidth={1.5} strokeOpacity={0.8} />
       {/* Clock tick marks at 12, 3, 6, 9 */}
-      <line x1={cx} y1={cy - ir} x2={cx} y2={cy - ir + 3} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
-      <line x1={cx + ir} y1={cy} x2={cx + ir - 3} y2={cy} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
-      <line x1={cx} y1={cy + ir} x2={cx} y2={cy + ir - 3} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
-      <line x1={cx - ir} y1={cy} x2={cx - ir + 3} y2={cy} stroke="white" strokeWidth={1} strokeOpacity={0.7} />
+      <line x1={cx} y1={cy - ir} x2={cx} y2={cy - ir + 3} stroke="var(--theme-marker-tick)" strokeWidth={1} strokeOpacity={0.7} />
+      <line x1={cx + ir} y1={cy} x2={cx + ir - 3} y2={cy} stroke="var(--theme-marker-tick)" strokeWidth={1} strokeOpacity={0.7} />
+      <line x1={cx} y1={cy + ir} x2={cx} y2={cy + ir - 3} stroke="var(--theme-marker-tick)" strokeWidth={1} strokeOpacity={0.7} />
+      <line x1={cx - ir} y1={cy} x2={cx - ir + 3} y2={cy} stroke="var(--theme-marker-tick)" strokeWidth={1} strokeOpacity={0.7} />
     </svg>
   );
 }
@@ -153,14 +153,14 @@ export function MapMarker({
             {/* Badge: itinerary stop number or multi-event count */}
             {isNumbered ? (
               <span
-                className="absolute -top-1.5 -right-3 bg-white text-gray-900 text-[9px] font-bold rounded-full flex items-center justify-center"
+                className="absolute -top-1.5 -right-3 bg-[var(--theme-marker-badge-bg)] text-[var(--theme-marker-badge-text)] text-2xs font-bold rounded-full flex items-center justify-center"
                 style={{ minWidth: 20, height: 18, padding: '0 3px' }}
               >
                 #{orderNumber}
               </span>
             ) : eventCount > 1 ? (
               <span
-                className="absolute -top-1 -right-2 bg-white text-gray-900 text-[9px] font-bold rounded-full flex items-center justify-center"
+                className="absolute -top-1 -right-2 bg-[var(--theme-marker-badge-bg)] text-[var(--theme-marker-badge-text)] text-2xs font-bold rounded-full flex items-center justify-center"
                 style={{ width: 16, height: 16 }}
               >
                 {eventCount}
@@ -180,7 +180,7 @@ export function MapMarker({
               y1={0}
               x2={labelOffsetX}
               y2={labelOffsetY}
-              stroke="rgba(255,255,255,0.35)"
+              stroke="var(--theme-marker-tick)" strokeOpacity={0.35}
               strokeWidth={1}
             />
           </svg>
@@ -197,7 +197,7 @@ export function MapMarker({
             }}
             onClick={handleClick}
           >
-            <div className={`px-2 py-0.5 rounded text-[10px] max-w-[140px] leading-tight transition-colors shadow-md border ${
+            <div className={`px-2 py-0.5 rounded text-2xs max-w-[140px] leading-tight transition-colors shadow-md border ${
               isFeatured
                 ? 'bg-[var(--theme-bg-secondary)] border-[var(--theme-accent)]/50 group-hover:bg-[var(--theme-bg-tertiary)] group-hover:border-[var(--theme-accent)]/70 text-[var(--theme-text-primary)] border-2'
                 : 'bg-[var(--theme-bg-secondary)] border-[var(--theme-border-primary)] group-hover:bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-primary)]'

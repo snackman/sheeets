@@ -18,7 +18,7 @@ export function ClaimEventLink({ event, className = '' }: { event: ETHDenverEven
   if (claim?.status === 'verified') {
     label = (
       <span className="inline-flex items-center gap-1">
-        <BadgeCheck className="w-3.5 h-3.5 text-green-500" /> Verified host · dashboard coming soon
+        <BadgeCheck className="w-3.5 h-3.5 text-success-text" /> Verified host · dashboard coming soon
       </span>
     );
   } else if (claim?.status === 'pending') {
@@ -33,7 +33,7 @@ export function ClaimEventLink({ event, className = '' }: { event: ETHDenverEven
           e.stopPropagation();
           setOpen(true);
         }}
-        className={`inline-flex items-center hit-44 text-[11px] text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] underline-offset-2 hover:underline cursor-pointer transition-colors ${className}`}
+        className={`inline-flex items-center hit-44 text-xs text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] underline-offset-2 hover:underline cursor-pointer transition-colors ${className}`}
       >
         {label}
       </button>

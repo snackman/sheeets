@@ -47,7 +47,7 @@ export function ViewToggle({ viewMode, onViewChange }: ViewToggleProps) {
               'flex items-center justify-center gap-1.5 h-8 tap:h-11 tap:min-w-11 px-2.5 sm:px-3 text-sm font-medium transition-colors cursor-pointer border-l first:border-l-0 border-[var(--theme-border-primary)]',
               'focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--theme-accent)]',
               active
-                ? 'text-[var(--theme-accent)]'
+                ? 'text-[var(--theme-accent-link)]'
                 : 'text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] active:text-[var(--theme-text-primary)]'
             )}
             style={{ backgroundColor: active ? 'var(--theme-accent-muted)' : 'var(--theme-bg-primary)' }}

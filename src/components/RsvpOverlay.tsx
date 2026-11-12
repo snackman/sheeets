@@ -47,7 +47,7 @@ function CopyField({ icon, value }: { icon: React.ReactNode; value: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="flex items-center gap-2 min-w-0 flex-1 rounded-md px-1.5 py-1 hover:bg-[var(--theme-bg-secondary)] transition-colors cursor-pointer text-left"
+      className="flex items-center gap-2 min-w-0 flex-1 rounded-lg px-1.5 py-1 hover:bg-[var(--theme-bg-secondary)] transition-colors cursor-pointer text-left"
       aria-label={`Copy ${value}`}
     >
       <span className="shrink-0 text-[var(--theme-text-muted)]">
@@ -58,7 +58,7 @@ function CopyField({ icon, value }: { icon: React.ReactNode; value: string }) {
       </span>
       <span className="shrink-0">
         {copied ? (
-          <Check className="w-3.5 h-3.5 text-green-400" />
+          <Check className="w-3.5 h-3.5 text-success-text" />
         ) : (
           <Copy className="w-3.5 h-3.5 text-[var(--theme-text-secondary)]" />
         )}
@@ -164,7 +164,7 @@ export function RsvpOverlay({
             </button>
             <button
               onClick={onConfirm}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition-colors cursor-pointer"
+              className="flex-1 px-4 py-2.5 rounded-lg bg-success hover:bg-success-hover text-success-on text-sm font-semibold transition-colors cursor-pointer"
             >
               Done — I RSVP&apos;d
             </button>

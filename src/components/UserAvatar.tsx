@@ -3,18 +3,7 @@
 import { useState } from 'react';
 import { getDisplayInitial } from '@/lib/user-display';
 
-const AVATAR_COLORS = [
-  '#e63946', // red
-  '#f4a261', // orange
-  '#e9c46a', // gold
-  '#2a9d8f', // teal
-  '#264653', // dark teal
-  '#7b2cbf', // purple
-  '#3a86ff', // blue
-  '#06d6a0', // green
-  '#ef476f', // pink
-  '#118ab2', // ocean
-];
+const AVATAR_COLORS = Array.from({ length: 10 }, (_, i) => `var(--theme-avatar-${i + 1})`);
 
 function hashToColor(id: string): string {
   let hash = 0;
@@ -35,7 +24,7 @@ interface UserAvatarProps {
 }
 
 const sizeClasses = {
-  xs: 'w-6 h-6 text-[10px]',
+  xs: 'w-6 h-6 text-2xs',
   sm: 'w-8 h-8 text-xs',
   md: 'w-10 h-10 text-sm',
   lg: 'w-16 h-16 text-xl',
@@ -88,7 +77,7 @@ export default function UserAvatar({
   const bgColor = userId ? hashToColor(userId) : undefined;
   return (
     <div
-      className={`${sizeClass} rounded-full flex items-center justify-center font-bold text-white shrink-0 ${className}`}
+      className={`${sizeClass} rounded-full flex items-center justify-center font-bold text-[var(--theme-avatar-text)] shrink-0 ${className}`}
       style={{ backgroundColor: bgColor || 'var(--theme-bg-tertiary)' }}
     >
       {initial}

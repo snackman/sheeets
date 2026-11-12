@@ -74,7 +74,7 @@ function DayBadge({ dateISO, label }: { dateISO: string; label: string }) {
 
   return (
     <>
-      <span className="sm:hidden inline-flex items-center gap-0.5 text-xs text-white">
+      <span className="sm:hidden inline-flex items-center gap-0.5 text-xs">
         <span className="font-bold">{abbr}</span>
         <span>{label.replace(/^\w+\s/, '')}</span>
       </span>
@@ -424,17 +424,17 @@ export const TableView = memo(function TableView({
                 ) : (
                   <span className="text-[var(--theme-table-header-text)] font-semibold">
                     <span className="hidden sm:inline">{currentDateLabel.toUpperCase()}</span>
-                    <span className="sm:hidden flex flex-col leading-tight text-white">
+                    <span className="sm:hidden flex flex-col leading-tight">
                       {(() => {
                         const g = groups.find(gr => formatDateHeader(gr.dateISO) === currentDateLabel);
-                        if (!g) return <span className="text-[11px]">{currentDateLabel.toUpperCase()}</span>;
+                        if (!g) return <span className="text-xs">{currentDateLabel.toUpperCase()}</span>;
                         const [y, m, d] = g.dateISO.split('-').map(Number);
                         const date = new Date(y, m - 1, d);
                         const dow = date.getDay();
                         return (
                           <>
-                            <span className="text-[11px] font-bold">{DAY_ABBR[dow]}</span>
-                            <span className="text-[10px]">{currentDateLabel.replace(/^\w+\s/, '').toUpperCase()}</span>
+                            <span className="text-xs font-bold">{DAY_ABBR[dow]}</span>
+                            <span className="text-2xs">{currentDateLabel.replace(/^\w+\s/, '').toUpperCase()}</span>
                           </>
                         );
                       })()}
@@ -719,28 +719,28 @@ function FeaturedTableRow({
       </td>
       <td className="px-3 py-2 text-[var(--theme-text-secondary)] sm:whitespace-nowrap">
         <div className="flex items-start sm:items-center gap-1.5">
-          {(() => { const u = liveEventIds?.get(event.id); return u ? <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 mt-1.5 sm:mt-0 ${u === 'red' ? 'bg-red-400' : u === 'yellow' ? 'bg-yellow-400' : 'bg-green-400'}`} title={u === 'red' ? 'Ending soon' : u === 'yellow' ? 'Less than 1hr left' : 'Live now'} /> : null; })()}
+          {(() => { const u = liveEventIds?.get(event.id); return u ? <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 mt-1.5 sm:mt-0 ${u === 'red' ? 'bg-danger-dot' : u === 'yellow' ? 'bg-warn-dot' : 'bg-success-dot'}`} title={u === 'red' ? 'Ending soon' : u === 'yellow' ? 'Less than 1hr left' : 'Live now'} /> : null; })()}
           <span className="relative inline-block">
             <span className="sm:inline hidden">{event.startTime}{event.endTime ? `-${event.endTime}` : ''}</span>
             <span className="sm:hidden flex flex-col leading-tight">
               <span>{event.startTime}</span>
-              {event.endTime && <span className="text-[10px] text-[var(--theme-text-muted)]">{event.endTime}</span>}
+              {event.endTime && <span className="text-2xs text-[var(--theme-text-muted)]">{event.endTime}</span>}
             </span>
             {(checkInCounts?.get(event.id) ?? 0) > 0 && (
-              <span className="absolute -top-1.5 -right-3 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-green-500 text-white text-[8px] font-bold px-0.5 pointer-events-none">
+              <span className="absolute -top-1.5 -right-3 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-success text-success-on text-2xs font-bold px-0.5 pointer-events-none">
                 {checkInCounts!.get(event.id)}
               </span>
             )}
           </span>
           {userLocation && event.lat && event.lng && (
-            <span className="text-[10px] text-[var(--theme-text-muted)]">{formatDistance(distanceMeters(userLocation.lat, userLocation.lng, event.lat, event.lng))}</span>
+            <span className="text-2xs text-[var(--theme-text-muted)]">{formatDistance(distanceMeters(userLocation.lat, userLocation.lng, event.lat, event.lng))}</span>
           )}
         </div>
       </td>
       <td className="px-3 py-2 text-[var(--theme-text-secondary)] truncate hidden sm:table-cell" title={event.organizer}>{event.organizer}</td>
       <td className="px-3 py-2 font-medium text-[var(--theme-text-primary)] overflow-hidden truncate max-w-[25ch] sm:max-w-none" title={event.name}>
         <span className="inline-flex items-center gap-1.5 max-w-full truncate">
-          <span className="shrink-0 text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ color: 'var(--theme-popup-featured-border)', background: 'var(--theme-accent-muted)' }}>Featured</span>
+          <span className="shrink-0 text-2xs font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ color: 'var(--theme-popup-featured-border)', background: 'var(--theme-accent-muted)' }}>Featured</span>
           {isSafeHttpUrl(event.link) ? (
             <a href={event.link} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--theme-accent)] transition-colors truncate"
               onClick={() => { trackEventClick(event.name, event.link!); trackEvent({ event_id: event.id, event_name: event.name, event_type: 'click', conference, url: event.link!, source: 'table' }); }}>
@@ -811,7 +811,7 @@ function TableRow({
   return (
     <tr
       ref={rowRef}
-      className={`hover:bg-[var(--theme-bg-secondary)]/70 transition-colors cursor-pointer ${event.isDuplicate ? 'bg-red-950/30' : 'bg-[var(--theme-bg-primary)]'}`}
+      className={`hover:bg-[var(--theme-bg-secondary)]/70 transition-colors cursor-pointer ${event.isDuplicate ? 'bg-danger-bg' : 'bg-[var(--theme-bg-primary)]'}`}
       style={event.isFeatured && !event.isDuplicate ? { outline: '2px solid var(--theme-popup-featured-border)', outlineOffset: '-2px' } : undefined}
       title={event.isDuplicate ? 'Possible duplicate — same name, date, and time as another event' : undefined}
       onClick={(e) => {
@@ -870,7 +870,7 @@ function TableRow({
       {/* Time */}
       <td className="px-3 py-2 text-[var(--theme-text-secondary)] sm:whitespace-nowrap">
         <div className="flex items-start sm:items-center gap-1.5">
-          {(() => { const u = liveEventIds?.get(event.id); return u ? <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 mt-1.5 sm:mt-0 ${u === 'red' ? 'bg-red-400' : u === 'yellow' ? 'bg-yellow-400' : 'bg-green-400'}`} title={u === 'red' ? 'Ending soon' : u === 'yellow' ? 'Less than 1hr left' : 'Live now'} /> : null; })()}
+          {(() => { const u = liveEventIds?.get(event.id); return u ? <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 mt-1.5 sm:mt-0 ${u === 'red' ? 'bg-danger-dot' : u === 'yellow' ? 'bg-warn-dot' : 'bg-success-dot'}`} title={u === 'red' ? 'Ending soon' : u === 'yellow' ? 'Less than 1hr left' : 'Live now'} /> : null; })()}
           <span className="relative inline-block">
             <span className="sm:inline hidden">
               {event.startTime}
@@ -878,16 +878,16 @@ function TableRow({
             </span>
             <span className="sm:hidden flex flex-col leading-tight">
               <span>{event.startTime}</span>
-              {event.endTime && <span className="text-[10px] text-[var(--theme-text-muted)]">{event.endTime}</span>}
+              {event.endTime && <span className="text-2xs text-[var(--theme-text-muted)]">{event.endTime}</span>}
             </span>
             {(checkInCounts?.get(event.id) ?? 0) > 0 && (
-              <span className="absolute -top-1.5 -right-3 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-green-500 text-white text-[8px] font-bold px-0.5 pointer-events-none">
+              <span className="absolute -top-1.5 -right-3 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-success text-success-on text-2xs font-bold px-0.5 pointer-events-none">
                 {checkInCounts!.get(event.id)}
               </span>
             )}
           </span>
           {userLocation && event.lat && event.lng && (
-            <span className="text-[10px] text-[var(--theme-text-muted)]">{formatDistance(distanceMeters(userLocation.lat, userLocation.lng, event.lat, event.lng))}</span>
+            <span className="text-2xs text-[var(--theme-text-muted)]">{formatDistance(distanceMeters(userLocation.lat, userLocation.lng, event.lat, event.lng))}</span>
           )}
         </div>
       </td>
@@ -901,7 +901,7 @@ function TableRow({
       <td className="px-3 py-2 font-medium text-[var(--theme-text-primary)] overflow-hidden truncate max-w-[25ch] sm:max-w-none" title={event.name}>
         <span className="inline-flex items-center gap-1 max-w-full truncate">
           {event.isDuplicate && (
-            <span title="Duplicate entry in sheet"><AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" /></span>
+            <span title="Duplicate entry in sheet"><AlertTriangle className="w-3.5 h-3.5 text-danger-text shrink-0" /></span>
           )}
           {isSafeHttpUrl(event.link) ? (
             <a

@@ -285,7 +285,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                   />
                 </div>
 
-                {fetchError && <p className="text-red-400 text-xs">{fetchError}</p>}
+                {fetchError && <p className="text-danger-text text-xs">{fetchError}</p>}
 
                 {fetchLoading ? (
                   <div className="flex items-center justify-center gap-2 py-2.5 text-[var(--theme-text-secondary)] text-sm">
@@ -333,7 +333,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                 {/* Event name */}
                 <div>
                   <label className="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1">
-                    Event Name <span className="text-red-400">*</span>
+                    Event Name <span className="text-danger-text">*</span>
                   </label>
                   <input
                     type="text"
@@ -348,7 +348,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                 <div className="flex items-end gap-3">
                   <div>
                     <label className="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1">
-                      Date <span className="text-red-400">*</span>
+                      Date <span className="text-danger-text">*</span>
                     </label>
                     <input
                       type="date"
@@ -517,7 +517,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                 </div>
 
                 <TurnstileWidget onToken={setTurnstileToken} resetKey={turnstileReset} />
-                {submitError && <p className="text-red-400 text-xs">{submitError}</p>}
+                {submitError && <p className="text-danger-text text-xs">{submitError}</p>}
 
                 <button
                   onClick={handleSubmit}
@@ -546,8 +546,8 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
             {/* Step 3: Success */}
             {step === 'success' && (
               <div className="text-center py-4">
-                <div className="w-12 h-12 rounded-full bg-green-600/20 flex items-center justify-center mx-auto mb-3">
-                  <Check className="w-6 h-6 text-green-400" />
+                <div className="w-12 h-12 rounded-full bg-success-bg flex items-center justify-center mx-auto mb-3">
+                  <Check className="w-6 h-6 text-success-text" />
                 </div>
                 <p className="text-[var(--theme-text-primary)] font-medium">Event submitted!</p>
                 <p className="text-[var(--theme-text-secondary)] text-sm mt-1">
@@ -555,7 +555,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
                 </p>
 
                 {upsellCopy && (
-                  <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-[var(--theme-accent-muted)] to-[var(--theme-accent-muted)] border border-[var(--theme-accent)]/30 text-left">
+                  <div className="mt-4 p-4 rounded-xl bg-[var(--theme-accent-muted)] border border-[var(--theme-accent)]/30 text-left">
                     <h4 className="text-sm font-semibold text-[var(--theme-accent-link)] mb-1">{upsellCopy.heading}</h4>
                     <p className="text-xs text-[var(--theme-text-secondary)] mb-3">{upsellCopy.body}</p>
                     <a href={isSafeHttpUrl(upsellCopy.cta_url) ? upsellCopy.cta_url : undefined} target="_blank" rel="noopener noreferrer"

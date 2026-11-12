@@ -85,7 +85,7 @@ export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox, isInItinerary, 
     <>
       <div
         ref={ref}
-        className="shrink-0 w-[88px] sm:w-[106px] rounded-lg overflow-hidden bg-stone-800/30 self-center cursor-pointer"
+        className="shrink-0 w-[88px] sm:w-[106px] rounded-lg overflow-hidden bg-[var(--theme-bg-tertiary)]/50 self-center cursor-pointer"
         onClick={(e) => {
           e.stopPropagation();
           if (!imageUrl) return;
@@ -112,7 +112,7 @@ export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox, isInItinerary, 
           />
         )}
         {!loaded && (
-          <div className="w-full h-[88px] sm:h-[106px] animate-pulse bg-stone-800/50" />
+          <div className="w-full h-[88px] sm:h-[106px] animate-pulse bg-[var(--theme-bg-tertiary)]/50" />
         )}
       </div>
 
@@ -166,7 +166,7 @@ export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox, isInItinerary, 
                         <img src={friend.avatarUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       ) : (
                         <div
-                          className="w-full h-full flex items-center justify-center text-[9px] font-bold text-white"
+                          className="w-full h-full flex items-center justify-center text-2xs font-bold text-white"
                           style={{ backgroundColor: `hsl(${Math.abs(friend.userId.split('').reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0)) % 360}, 60%, 45%)` }}
                         >
                           {(friend.displayName || '?')[0].toUpperCase()}
@@ -284,7 +284,7 @@ export function FlyerLightbox({ imageUrl, rsvpUrl, onClose, onPrev, onNext, even
                     <img src={friend.avatarUrl} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   ) : (
                     <div
-                      className="w-full h-full flex items-center justify-center text-[9px] font-bold text-white"
+                      className="w-full h-full flex items-center justify-center text-2xs font-bold text-white"
                       style={{ backgroundColor: `hsl(${Math.abs(friend.userId.split('').reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0)) % 360}, 60%, 45%)` }}
                     >
                       {(friend.displayName || '?')[0].toUpperCase()}
