@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkAdminPassword, setAdminSessionCookie, clearAdminSessionCookie, hasValidAdminSession } from '@/lib/admin-guard';
+import { checkAdminPassword, setAdminSessionCookie, clearAdminSessionCookie, hasValidAdminSession, revokeAllAdminSessions } from '@/lib/admin-guard';
 
 /**
  * Password login. On success also issues a signed, httpOnly, Secure,
@@ -23,13 +23,17 @@ export async function POST(req: NextRequest) {
 
 /** Is the caller's session cookie still valid? */
 export async function GET(req: NextRequest) {
-  return hasValidAdminSession(req)
+  return (await hasValidAdminSession(req))
     ? NextResponse.json({ ok: true })
     : NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 }
 
-/** Log out: clear the session cookie. */
-export async function DELETE() {
+/**
+ * Log out: clear the session cookie and, if the caller held a valid session,
+ * revoke every session issued so far (server-side "revoked before" marker).
+ */
+export async function DELETE(req: NextRequest) {
+  if (await hasValidAdminSession(req)) await revokeAllAdminSessions();
   const res = NextResponse.json({ ok: true });
   clearAdminSessionCookie(res);
   return res;

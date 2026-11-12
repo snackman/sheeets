@@ -13,6 +13,9 @@ vi.mock('@/lib/google-sheets', () => ({
 }));
 vi.mock('@/lib/ledger-rate-limit', () => ({
   recordLedgerAttempt: async () => {},
+  reserveLedgerAttempt: async () => ({ id: null, count: 0 }),
+  releaseLedgerAttempt: async () => {},
+  countLedgerScope: async () => 0,
   countLedgerAttempts: async () => 0,
 }));
 vi.mock('@/lib/get-conferences', () => ({

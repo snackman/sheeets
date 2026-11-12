@@ -2,7 +2,12 @@ import { createHash } from 'node:crypto';
 import type { NextRequest } from 'next/server';
 import { getClientIp } from '@/lib/rate-limit';
 import { bucketIp } from '@/lib/ip-bucket';
-import { recordSubmissionAttempt, countRecentSubmissionAttempts } from '@/lib/ingest/db';
+import {
+  recordSubmissionAttempt,
+  countRecentSubmissionAttempts,
+  deleteSubmissionAttempt,
+  countRecentAttemptsByTag,
+} from '@/lib/ingest/db';
 
 /**
  * Thin wrapper that reuses the Supabase `ingest_submission_attempts` ledger
@@ -36,5 +41,48 @@ export async function countLedgerAttempts(scope: string, req: NextRequest, windo
   } catch (err) {
     console.error(`[ledger-rate-limit] count failed (${scope}):`, err);
     return 0;
+  }
+}
+
+/**
+ * Reserve one attempt: insert FIRST, then count. Every request's insert is
+ * committed before its own count runs, so at most `max` concurrent requests
+ * can observe a count <= max and the limit holds under parallelism. Returns
+ * the row id (to refund later) and the count including this attempt; both
+ * are null if the ledger is unreachable.
+ */
+export async function reserveLedgerAttempt(
+  scope: string,
+  req: NextRequest,
+  windowMs: number
+): Promise<{ id: string | null; count: number | null }> {
+  try {
+    const key = ledgerKey(scope, req);
+    const id = await recordSubmissionAttempt(key, `sec:${scope}`);
+    const count = await countRecentSubmissionAttempts(key, windowMs);
+    return { id, count };
+  } catch (err) {
+    console.error(`[ledger-rate-limit] reserve failed (${scope}):`, err);
+    return { id: null, count: null };
+  }
+}
+
+/** Refund a reservation made by `reserveLedgerAttempt`. */
+export async function releaseLedgerAttempt(id: string | null): Promise<void> {
+  if (!id) return;
+  try {
+    await deleteSubmissionAttempt(id);
+  } catch (err) {
+    console.error('[ledger-rate-limit] release failed:', err);
+  }
+}
+
+/** Attempts across ALL clients for `scope` within `windowMs`; null if the ledger is unreachable. */
+export async function countLedgerScope(scope: string, windowMs: number): Promise<number | null> {
+  try {
+    return await countRecentAttemptsByTag(`sec:${scope}`, windowMs);
+  } catch (err) {
+    console.error(`[ledger-rate-limit] scope count failed (${scope}):`, err);
+    return null;
   }
 }
