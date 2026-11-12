@@ -589,8 +589,6 @@ body {
   background: var(--theme-bg-primary);
   color: var(--theme-text-primary);
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
-  padding-top: var(--safe-area-top);
-  padding-bottom: var(--safe-area-bottom);
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
