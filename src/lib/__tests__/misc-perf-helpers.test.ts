@@ -1,5 +1,37 @@
 import { describe, it, expect } from 'vitest';
-import { resizedLumaCover } from '@/lib/image-url';
+import { resizedLumaCover, thumbUrl, thumbSrcSet } from '@/lib/image-url';
+
+describe('thumbUrl', () => {
+  it('uses Cloudflare resizing for Luma', () => {
+    expect(thumbUrl('https://images.lumacdn.com/event-covers/ab/x.png', 320)).toBe(
+      'https://images.lumacdn.com/cdn-cgi/image/format=auto,fit=cover,width=320/event-covers/ab/x.png'
+    );
+  });
+  it('adds width params for unsplash, eventbrite, imgix', () => {
+    const un = thumbUrl('https://images.unsplash.com/photo-1?ixid=a', 320);
+    expect(un).toContain('w=320');
+    expect(un).toContain('ixid=a');
+    expect(thumbUrl('https://img.evbuc.com/abc?auto=format', 400)).toContain('w=400');
+    expect(thumbUrl('https://partiful.imgix.net/x.png', 300)).toContain('w=300');
+  });
+  it('leaves unknown hosts, junk and empty alone', () => {
+    expect(thumbUrl('https://example.com/a.png')).toBe('https://example.com/a.png');
+    expect(thumbUrl('nope')).toBe('nope');
+    expect(thumbUrl(undefined)).toBe('');
+  });
+});
+
+describe('thumbSrcSet', () => {
+  it('builds a w-descriptor srcset for resizable hosts', () => {
+    const s = thumbSrcSet('https://images.lumacdn.com/event-covers/ab/x.png', [176, 320]);
+    expect(s).toContain('width=176/event-covers/ab/x.png 176w');
+    expect(s).toContain('width=320/event-covers/ab/x.png 320w');
+  });
+  it('returns undefined for non-resizable hosts or empty', () => {
+    expect(thumbSrcSet('https://example.com/a.png', [176, 320])).toBeUndefined();
+    expect(thumbSrcSet(null, [176])).toBeUndefined();
+  });
+});
 import { ogCacheHeaders } from '@/lib/og-cache';
 import { DEFAULT_MIN_INTERVAL_MS } from '@/lib/ingest/publish';
 
