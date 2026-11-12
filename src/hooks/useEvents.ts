@@ -154,5 +154,17 @@ export function useEvents(initialEvents?: ETHDenverEvent[], conference?: string)
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [conference, loadConference]);
 
-  return { events, loading, error, loadAll };
+  /** Retry after a failed initial load, in place (no page reload; filters/state are kept). */
+  const reload = useCallback(async () => {
+    setError(null);
+    setLoading(true);
+    allLoaded.current = false;
+    try {
+      await loadAll();
+    } finally {
+      setLoading(false);
+    }
+  }, [loadAll]);
+
+  return { events, loading, error, loadAll, reload };
 }

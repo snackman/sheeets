@@ -8,6 +8,9 @@
   --safe-area-right: env(safe-area-inset-right, 0px);
 }
 
+/* Touch/mobile variant: coarse pointers or phone-width viewports. Use for >= 44px hit areas. */
+@custom-variant tap (@media (pointer: coarse), (max-width: 639.98px));
+
 /* Z-index scale — use these instead of ad-hoc z-[60..9999] values */
 :root {
   --z-sticky: 20;          /* sticky date separators, in-list overlays */

@@ -44,7 +44,7 @@ export function ViewToggle({ viewMode, onViewChange }: ViewToggleProps) {
             aria-label={`${label} view`}
             title={`${label} view`}
             className={clsx(
-              'flex items-center gap-1.5 h-8 px-2.5 sm:px-3 text-sm font-medium transition-colors cursor-pointer border-l first:border-l-0 border-[var(--theme-border-primary)]',
+              'flex items-center justify-center gap-1.5 h-8 tap:h-11 tap:min-w-11 px-2.5 sm:px-3 text-sm font-medium transition-colors cursor-pointer border-l first:border-l-0 border-[var(--theme-border-primary)]',
               'focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--theme-accent)]',
               active
                 ? 'text-[var(--theme-accent)]'

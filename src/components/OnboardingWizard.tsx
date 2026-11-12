@@ -25,6 +25,8 @@ interface OnboardingWizardProps {
   events: ETHDenverEvent[];
   onOpenAuth: () => void;
   conferenceTabs?: TabConfig[];
+  /** Called once the user reaches a step that needs every conference's events. */
+  onNeedData?: () => void;
 }
 
 type StepId = 'welcome' | 'conference' | 'interests' | 'tips' | 'signin';
@@ -73,6 +75,7 @@ export function OnboardingWizard({
   events,
   onOpenAuth,
   conferenceTabs = [],
+  onNeedData,
 }: OnboardingWizardProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedConference, setSelectedConference] = useState(conferenceTabs[0]?.name || availableConferences[0] || '');
@@ -81,9 +84,14 @@ export function OnboardingWizard({
 
   useEffect(() => {
     if (isOpen) {
+      setCurrentStep(0); // reopened from the header help button: start at the beginning
       trackOnboardingStart();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen && currentStep >= 1) onNeedData?.();
+  }, [isOpen, currentStep, onNeedData]);
 
   // Events for selected conference
   const conferenceEvents = useMemo(

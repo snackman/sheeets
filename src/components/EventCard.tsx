@@ -237,7 +237,7 @@ export const EventCard = memo(function EventCard({
           {event.link && (
             <button
               onClick={handleCopyLink}
-              className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
+              className="p-1 tap:min-h-11 tap:min-w-11 inline-flex items-center justify-center text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
               aria-label="Copy event link"
               title="Copy link"
             >
@@ -329,7 +329,7 @@ export const EventCard = memo(function EventCard({
                 onCheckIn(event.id);
               }}
               disabled={checkInLoading}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-[10px] font-medium transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2 py-0.5 tap:min-h-11 tap:px-3 rounded-md bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-[10px] tap:text-xs font-medium transition-colors cursor-pointer"
             >
               {checkInLoading ? (
                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -380,10 +380,14 @@ export const EventCard = memo(function EventCard({
                 trackFriendsGoingOpen(event.name);
                 setShowFriendsModal(true);
               }}
-              className="cursor-pointer hover:opacity-80 transition-opacity shrink-0"
+              className="flex items-center gap-1.5 tap:min-h-11 cursor-pointer hover:opacity-80 transition-opacity shrink-0"
               title={formatFriendsText(friendsGoing)}
+              aria-label={`${friendsGoing.length} friend${friendsGoing.length !== 1 ? 's' : ''} going: ${formatFriendsText(friendsGoing)}`}
             >
               <FriendAvatarStack friends={friendsGoing} maxShow={2} size="sm" />
+              <span className="text-xs text-[var(--theme-text-secondary)] whitespace-nowrap">
+                {friendsGoing.length} friend{friendsGoing.length !== 1 ? 's' : ''} going
+              </span>
             </button>
           )}
           {onToggleReaction && (
@@ -402,7 +406,7 @@ export const EventCard = memo(function EventCard({
                 trackFriendsCheckedInOpen(event.name);
                 setShowCheckedInModal(true);
               }}
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded-md hover:bg-[var(--theme-bg-tertiary)]/50 transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-1.5 py-0.5 tap:min-h-11 rounded-md hover:bg-[var(--theme-bg-tertiary)]/50 transition-colors cursor-pointer"
             >
               <MapPin className="w-3 h-3 text-green-400 shrink-0" />
               <span className="text-[10px] text-green-400">

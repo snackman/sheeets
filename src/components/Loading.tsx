@@ -1,12 +1,14 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
+import { EventCardSkeleton } from './EventCardSkeleton';
 
 export function Loading() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-      <Loader2 className="w-10 h-10 animate-spin" style={{ color: 'var(--theme-accent)' }} />
-      <p className="text-[var(--theme-text-secondary)] text-sm">Loading events...</p>
+    <div role="status" aria-busy="true" aria-live="polite" className="max-w-3xl mx-auto px-2 sm:px-4 py-4 space-y-3">
+      <span className="sr-only">Loading events...</span>
+      {Array.from({ length: 5 }, (_, i) => (
+        <EventCardSkeleton key={i} />
+      ))}
     </div>
   );
 }

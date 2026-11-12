@@ -365,7 +365,7 @@ function ItineraryPageContent() {
           <CalendarX className="w-12 h-12 text-[var(--theme-text-faint)] mb-4" />
           <p className="text-[var(--theme-text-secondary)] font-medium mb-2">No events in your itinerary yet</p>
           <p className="text-[var(--theme-text-muted)] text-sm max-w-xs mb-4">
-            Star events from the main page to build your schedule!
+            Tap + on any event on the main page to add it to your plan!
           </p>
           <Link
             href="/"

@@ -698,8 +698,10 @@ function FeaturedTableRow({
       <td className="px-2 py-2">
         <button
           onClick={() => onItineraryToggle?.(event.id)}
-          className="cursor-pointer p-0.5"
-          title={isInItinerary ? 'Remove from itinerary' : 'Add to itinerary'}
+          className="cursor-pointer p-0.5 tap:min-h-11 tap:min-w-11 inline-flex items-center justify-center"
+          aria-label="Add to plan"
+          aria-pressed={isInItinerary}
+          title={isInItinerary ? 'Remove from plan' : 'Add to plan'}
         >
           <span className={`w-6 h-6 flex items-center justify-center rounded-full border transition-colors ${
             isInItinerary
@@ -834,8 +836,10 @@ function TableRow({
       <td className="px-2 py-2">
         <button
           onClick={() => onItineraryToggle?.(event.id)}
-          className="cursor-pointer p-0.5"
-          title={isInItinerary ? 'Remove from itinerary' : 'Add to itinerary'}
+          className="cursor-pointer p-0.5 tap:min-h-11 tap:min-w-11 inline-flex items-center justify-center"
+          aria-label="Add to plan"
+          aria-pressed={isInItinerary}
+          title={isInItinerary ? 'Remove from plan' : 'Add to plan'}
         >
           <span className={`w-6 h-6 flex items-center justify-center rounded-full border transition-colors ${
             isInItinerary

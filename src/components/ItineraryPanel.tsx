@@ -8,6 +8,7 @@ import { formatDateLabel } from '@/lib/utils';
 import { createPrioritySort, parseTimeToMinutes, detectConflicts } from '@/lib/time-parse';
 import { useDragReorder } from '@/hooks/useDragReorder';
 import { useProfile } from '@/hooks/useProfile';
+import { EmptyState } from './EmptyState';
 import { trackItineraryClear, trackItineraryConferenceTab, trackItineraryReorder } from '@/lib/analytics';
 import dynamic from 'next/dynamic';
 import { useHasOpened } from '@/hooks/useHasOpened';
@@ -262,15 +263,12 @@ export function ItineraryPanel({
         <div className={`overflow-y-auto ${conferences.length > 0 ? 'h-[calc(100%-95px)]' : 'h-[calc(100%-57px)]'} px-4 pb-4`}>
           {itineraryEvents.length === 0 ? (
             /* Empty state */
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <CalendarX className="w-12 h-12 text-[var(--theme-text-faint)] mb-4" />
-              <p className="text-[var(--theme-text-secondary)] font-medium mb-2">
-                No events in your itinerary yet
-              </p>
-              <p className="text-[var(--theme-text-muted)] text-sm max-w-xs">
-                Tap + on any event to add it to your plan!
-              </p>
-            </div>
+            <EmptyState
+              size="panel"
+              icon={CalendarX}
+              title="No events in your plan yet"
+              description="Tap + on any event to add it to your plan."
+            />
           ) : (
             <>
               {/* Capturable content for PNG export */}

@@ -1,5 +1,6 @@
 'use client';
 
+import { EmptyState } from './EmptyState';
 import { useState } from 'react';
 import { X, Trash2, ExternalLink, Users, ChevronRight, Mail } from 'lucide-react';
 import type { Friend } from '@/lib/types';
@@ -139,13 +140,12 @@ export function FriendsPanel({
         {/* Content */}
         <div className="overflow-y-auto h-[calc(100%-57px)] px-4 pb-4">
           {friends.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <Users className="w-12 h-12 text-[var(--theme-text-faint)] mb-4" />
-              <p className="text-[var(--theme-text-secondary)] font-medium mb-2">No friends yet</p>
-              <p className="text-[var(--theme-text-muted)] text-sm max-w-xs">
-                Share a friend link from your profile to connect!
-              </p>
-            </div>
+            <EmptyState
+              size="panel"
+              icon={Users}
+              title="No friends yet"
+              description="Share a friend link from your profile to connect!"
+            />
           ) : (
             <div className="space-y-2 mt-3">
               {friends.map((friend) => (

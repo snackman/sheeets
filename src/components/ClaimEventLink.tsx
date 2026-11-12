@@ -33,7 +33,7 @@ export function ClaimEventLink({ event, className = '' }: { event: ETHDenverEven
           e.stopPropagation();
           setOpen(true);
         }}
-        className={`text-[11px] text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] underline-offset-2 hover:underline cursor-pointer transition-colors ${className}`}
+        className={`inline-flex items-center tap:min-h-11 text-[11px] text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] underline-offset-2 hover:underline cursor-pointer transition-colors ${className}`}
       >
         {label}
       </button>

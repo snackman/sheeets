@@ -25,7 +25,7 @@ export const ViewToolbar = memo(function ViewToolbar({ viewMode, onViewChange, e
           {eventCount === 1 ? 'event' : 'events'}
         </p>
         {timeZoneLabel && (
-          <p className="text-[11px] leading-tight text-[var(--theme-text-muted)] truncate" title={`Event times are shown in ${timeZoneLabel}`}>
+          <p className="text-xs leading-snug text-[var(--theme-text-secondary)] break-words" title={`Event times are shown in ${timeZoneLabel}`}>
             All times {timeZoneLabel}
           </p>
         )}

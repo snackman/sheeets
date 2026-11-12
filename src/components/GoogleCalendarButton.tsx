@@ -41,8 +41,10 @@ export function GoogleCalendarButton({ events, timezone }: GoogleCalendarButtonP
     <button
       onClick={handleClick}
       disabled={isLoading}
+      aria-label={status === 'idle' ? 'Add all events to Google Calendar' : undefined}
+      aria-busy={isLoading}
       className={clsx(
-        'px-2 py-1 text-xs font-medium rounded transition-colors cursor-pointer inline-flex items-center gap-1',
+        'px-2 py-1 tap:min-h-11 tap:px-3 text-xs font-medium rounded transition-colors cursor-pointer inline-flex items-center gap-1',
         status === 'success'
           ? 'bg-emerald-500/20 text-emerald-400'
           : status === 'error'
@@ -84,7 +86,7 @@ export function GoogleCalendarButton({ events, timezone }: GoogleCalendarButtonP
       )}
       {status === 'idle' && (
         <>
-          <CalendarPlus className="w-3 h-3" />
+          <CalendarPlus className="w-3 h-3" aria-hidden="true" />
           <span className="hidden sm:inline">Google Cal</span>
         </>
       )}
