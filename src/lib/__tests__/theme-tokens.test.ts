@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import path from 'path';
+import { readdirSync, statSync } from 'fs';
 import { THEME_OPTIONS } from '../themes';
 
 const css = readFileSync(path.resolve(__dirname, '../../app/globals.css'), 'utf8');
@@ -13,7 +14,7 @@ function parseThemes(): Record<string, Record<string, string>> {
   let m: RegExpExecArray | null;
   while ((m = re.exec(css))) {
     const selectors = m[1].replace(/\/\*[\s\S]*?\*\//g, '').trim();
-    const ids = selectors.split(',').map((x) => x.trim()).map((x) => (x === ':root' || x === ':root:not([data-theme])' ? 'root' : x.match(/^\[data-theme="([\w-]+)"\]$/)?.[1] ?? '')).filter(Boolean);
+    const ids = selectors.split(',').map((x) => x.trim()).map((x) => (x === ':root' ? 'root' : x === ':root:not([data-theme])' ? 'light-blue' : x.match(/^\[data-theme="([\w-]+)"\]$/)?.[1] ?? '')).filter(Boolean);
     if (!ids.length) continue;
     const decls: Record<string, string> = {};
     for (const d of m[2].replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) decls[d[1]] = d[2].trim();
@@ -129,6 +130,30 @@ describe('theme tokens', () => {
           expect(ratio(k[fg], k[bg], k[under])).toBeGreaterThanOrEqual(min);
         });
       }
+    });
+  }
+});
+
+describe('every --theme-* token referenced in src resolves in every theme', () => {
+  const SRC = path.resolve(__dirname, '../..');
+  function walk(dir: string, out: string[] = []): string[] {
+    for (const f of readdirSync(dir)) {
+      const p = path.join(dir, f);
+      if (statSync(p).isDirectory()) { if (f !== '__tests__') walk(p, out); }
+      else if (/\.(tsx?|css)$/.test(f) && !/\.test\./.test(f)) out.push(p);
+    }
+    return out;
+  }
+  const used = new Map<string, string>();
+  for (const f of walk(SRC)) {
+    for (const m of readFileSync(f, 'utf8').matchAll(/var\((--theme-[\w-]*[a-z0-9])(?![\w$-])/g)) if (!used.has(m[1])) used.set(m[1], path.relative(SRC, f));
+  }
+  it('finds referenced tokens', () => expect(used.size).toBeGreaterThan(50));
+  for (const t of THEMES) {
+    it(`${t}: no undefined or unresolved tokens`, () => {
+      const k = resolve(t);
+      const missing = [...used].filter(([n]) => !k[n] || k[n].includes('var(')).map(([n, f]) => `${n} (${f})`);
+      expect(missing).toEqual([]);
     });
   }
 });

@@ -105,3 +105,36 @@ test.describe('theme default and prefers-color-scheme', () => {
     await ctx.close();
   });
 });
+
+const ALL_THEMES = ['dark', 'paper', 'light', 'light-blue', 'sxsw', 'sxsw2', 'gdc', 'ethcc'];
+for (const theme of ALL_THEMES) {
+  test(`header and AuthModal panel backgrounds are opaque-or-tinted (not transparent) in ${theme}`, async ({ page }) => {
+    await page.addInitScript((t) => {
+      localStorage.setItem('sheeets-onboarding-done', '1');
+      localStorage.setItem('plan-theme-choice', t);
+    }, theme);
+    await page.goto(`${BASE_URL}/breakpoint2026`, { waitUntil: 'networkidle' });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    const alpha = (c: string) => {
+      const m = c.match(/(?:rgba?|color)\(([^)]+)\)/);
+      if (!m) return 0; // color-mix / unparsable / transparent keyword
+      const p = m[1].split(/[\s,/]+/).filter(Boolean);
+      return c.startsWith('color(') ? (p.length > 4 ? Number(p[4]) : 1) : p.length > 3 ? Number(p[3]) : 1;
+    };
+    const header = await page.locator('header').first().evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(alpha(header), `header bg ${header}`).toBeGreaterThan(0.5);
+    await page.getByRole('button', { name: /sign in|account|profile/i }).first().click();
+    const dialog = page.getByRole('dialog').first();
+    await expect(dialog).toBeVisible();
+    const panel = await dialog.evaluate((el) => {
+      // the panel itself, or the first descendant that paints a background
+      const nodes = [el, ...Array.from(el.querySelectorAll('*'))].slice(0, 12);
+      for (const n of nodes) {
+        const c = getComputedStyle(n).backgroundColor;
+        if (c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') return c;
+      }
+      return 'transparent';
+    });
+    expect(alpha(panel), `modal panel bg ${panel}`).toBeGreaterThan(0.5);
+  });
+}

@@ -64,6 +64,51 @@
 
 /* Theme-independent tokens (identical in every theme) */
 :root {
+  --theme-modal-header-bg: transparent;
+  /* Aliases: resolve against whichever theme's own base tokens are active (a theme may override any of them). */
+  --theme-header-bg: var(--theme-bg-primary);
+  --theme-header-border: var(--theme-border-secondary);
+  --theme-header-logo-filter: var(--theme-logo-filter);
+  --theme-header-text: var(--theme-text-secondary);
+  --theme-header-text-hover: var(--theme-text-primary);
+  --theme-header-control-bg: var(--theme-bg-secondary);
+  --theme-header-control-bg-hover: var(--theme-bg-tertiary);
+  --theme-header-control-border: var(--theme-border-primary);
+  --theme-header-accent: var(--theme-accent);
+  --theme-header-accent-muted: var(--theme-accent-muted);
+  --theme-header-badge-bg: var(--theme-accent);
+  --theme-header-badge-text: var(--theme-accent-text);
+  --theme-header-badge-border: var(--theme-accent);
+  --theme-bg-list: var(--theme-bg-primary);
+  --theme-bg-filter: var(--theme-bg-primary);
+  --theme-filter-text: var(--theme-text-secondary);
+  --theme-filter-control-bg: var(--theme-bg-secondary);
+  --theme-filter-control-border: var(--theme-border-primary);
+  --theme-filter-active: var(--theme-accent);
+  --theme-filter-active-bg: var(--theme-accent-muted);
+  --theme-filter-badge-bg: var(--theme-text-secondary);
+  --theme-filter-badge-text: var(--theme-bg-primary);
+  --theme-filter-badge-border: var(--theme-text-secondary);
+  --theme-table-header-bg: var(--theme-bg-secondary);
+  --theme-table-header-text: var(--theme-text-secondary);
+  --theme-landing-card-bg: var(--theme-bg-card);
+  --theme-landing-card-text: var(--theme-text-primary);
+  --theme-landing-card-secondary: var(--theme-text-secondary);
+  --theme-landing-card-muted: var(--theme-text-muted);
+  --theme-landing-card-accent: var(--theme-accent);
+  --theme-landing-card-border: var(--theme-border-primary);
+  --theme-modal-header-text: var(--theme-text-primary);
+  --theme-modal-header-close: var(--theme-text-secondary);
+  --theme-modal-bg: var(--theme-bg-secondary);
+  --theme-date-sep-bg: var(--theme-bg-primary);
+  --theme-date-sep-text: var(--theme-text-primary);
+  --theme-date-sep-muted: var(--theme-text-muted);
+  --theme-date-sep-border: var(--theme-border-secondary);
+  --theme-ticker-bg: var(--theme-bg-primary);
+  --theme-ticker-text: var(--theme-text-secondary);
+  --theme-ticker-link: var(--theme-text-primary);
+  --theme-ticker-border: var(--theme-border-secondary);
+
   /* Map marker chrome (shared by all themes; light themes inherit these) */
   --theme-marker-day: #ffffff;        /* clock-face wedge for daytime events */
   --theme-marker-tick: #ffffff;       /* clock tick marks */
@@ -167,41 +212,8 @@
 
   --theme-logo-filter: invert(1);
 
-  --theme-header-bg: var(--theme-bg-primary);
-  --theme-header-border: var(--theme-border-secondary);
-  --theme-header-logo-filter: var(--theme-logo-filter);
-  --theme-header-text: var(--theme-text-secondary);
-  --theme-header-text-hover: var(--theme-text-primary);
-  --theme-header-control-bg: var(--theme-bg-secondary);
-  --theme-header-control-bg-hover: var(--theme-bg-tertiary);
-  --theme-header-control-border: var(--theme-border-primary);
-  --theme-header-accent: var(--theme-accent);
-  --theme-header-accent-muted: var(--theme-accent-muted);
-  --theme-header-badge-bg: var(--theme-accent);
-  --theme-header-badge-text: var(--theme-accent-text);
-  --theme-header-badge-border: var(--theme-accent);
-
   --theme-map-pin: #1c1917;
   --theme-map-pin-night: rgba(255,255,255,0.4);
-
-  --theme-bg-list: var(--theme-bg-primary);
-  --theme-bg-filter: var(--theme-bg-primary);
-  --theme-filter-text: var(--theme-text-secondary);
-  --theme-filter-control-bg: var(--theme-bg-secondary);
-  --theme-filter-control-border: var(--theme-border-primary);
-  --theme-filter-active: var(--theme-accent);
-  --theme-filter-active-bg: var(--theme-accent-muted);
-  --theme-filter-badge-bg: var(--theme-text-secondary);
-  --theme-filter-badge-text: var(--theme-bg-primary);
-  --theme-filter-badge-border: var(--theme-text-secondary);
-  --theme-table-header-bg: var(--theme-bg-secondary);
-  --theme-table-header-text: var(--theme-text-secondary);
-  --theme-landing-card-bg: var(--theme-bg-card);
-  --theme-landing-card-text: var(--theme-text-primary);
-  --theme-landing-card-secondary: var(--theme-text-secondary);
-  --theme-landing-card-muted: var(--theme-text-muted);
-  --theme-landing-card-accent: var(--theme-accent);
-  --theme-landing-card-border: var(--theme-border-primary);
 
   --theme-scrollbar-track: #0c0a09;
   --theme-scrollbar-thumb: #292524;
@@ -222,19 +234,8 @@
   --friend-blue: #3B82F6;
 
   --theme-modal-header-bg: transparent;
-  --theme-modal-header-text: var(--theme-text-primary);
-  --theme-modal-header-close: var(--theme-text-secondary);
-  --theme-modal-bg: var(--theme-bg-secondary);
 
-  --theme-date-sep-bg: var(--theme-bg-primary);
-  --theme-date-sep-text: var(--theme-text-primary);
-  --theme-date-sep-muted: var(--theme-text-muted);
-  --theme-date-sep-border: var(--theme-border-secondary);
 
-  --theme-ticker-bg: var(--theme-bg-primary);
-  --theme-ticker-text: var(--theme-text-secondary);
-  --theme-ticker-link: var(--theme-text-primary);
-  --theme-ticker-border: var(--theme-border-secondary);
 }
 
 /* --- Paper theme — warm parchment/cream aesthetic --- */
@@ -563,6 +564,8 @@
 
 /* --- SXSW theme — neon lime on dark forest green --- */
 [data-theme="sxsw"] {
+  --theme-map-pin: #1c1917;
+  --theme-map-pin-night: rgba(255,255,255,0.4);
   --background: #0a1410;
   --foreground: #f0fdf4;
   --card: #111f18;

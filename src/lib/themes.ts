@@ -51,6 +51,6 @@ export function prefersDarkScheme(): boolean {
  */
 export const THEME_INIT_SCRIPT =
   `(function(){var d=document.documentElement,t=null;` +
-  `try{localStorage.removeItem('${LEGACY_THEME_STORAGE_KEY}');t=localStorage.getItem('${THEME_STORAGE_KEY}')}catch(e){}` +
+  `try{localStorage.removeItem('${LEGACY_THEME_STORAGE_KEY}');t=localStorage.getItem('${THEME_STORAGE_KEY}');if(${JSON.stringify(THEME_OPTIONS.map((o) => o.id))}.indexOf(t)<0)t=null}catch(e){}` +
   `if(!t){try{if(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)t='${DEFAULT_DARK_THEME}'}catch(e){}}` +
   `if(t)d.setAttribute('data-theme',t)})()`;
