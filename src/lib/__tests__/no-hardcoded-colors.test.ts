@@ -24,13 +24,15 @@ const ALLOW: RegExp[] = [
 
 const PALETTE =
   /\b(?:bg|text|border|ring|from|to|via|divide|fill|stroke|outline|decoration|shadow|accent|caret|placeholder)-(?:red|green|amber|blue|purple|emerald|yellow|orange|pink|rose|teal|cyan|indigo|violet|sky|lime|fuchsia|stone|slate|gray|zinc|neutral)-\d{2,3}\b/;
-const HEX = /#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b(?![\w-])/;
+// 3/4/6/8-digit hex, not followed by more word chars (so ids like #abc-def or #12345 are not caught)
+const HEX = /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})(?![\w-])/;
+const RGB = /\brgba?\(\s*\d/;
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const f of readdirSync(dir)) {
     const p = path.join(dir, f);
     if (statSync(p).isDirectory()) walk(p, out);
-    else if (/\.tsx$/.test(f)) out.push(p);
+    else if (/\.tsx?$/.test(f) && !/\.d\.ts$/.test(f)) out.push(p);
   }
   return out;
 }
@@ -44,12 +46,12 @@ describe('no hardcoded colours in themed UI', () => {
     expect(files.length).toBeGreaterThan(30);
   });
 
-  it('has no Tailwind palette colour classes or raw hex values', () => {
+  it('has no Tailwind palette colour classes, raw hex or rgb() values', () => {
     const offenders: string[] = [];
     for (const { p, rel } of files) {
       readFileSync(p, 'utf8').split('\n').forEach((line, i) => {
-        if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;
-        if (PALETTE.test(line) || HEX.test(line)) offenders.push(`${rel}:${i + 1}: ${line.trim().slice(0, 100)}`);
+        if (/^\s*(\/\/|\/\*|\* )/.test(line) || /^\s*\*\/?\s*$/.test(line)) return;
+        if (PALETTE.test(line) || HEX.test(line) || RGB.test(line)) offenders.push(`${rel}:${i + 1}: ${line.trim().slice(0, 100)}`);
       });
     }
     expect(offenders).toEqual([]);

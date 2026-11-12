@@ -6,7 +6,12 @@ export const DEFAULT_THEME: ThemeId = 'light-blue';
 /** Theme used instead of DEFAULT_THEME when the OS prefers a dark colour scheme. */
 export const DEFAULT_DARK_THEME: ThemeId = 'dark';
 
-export const THEME_STORAGE_KEY = 'user-theme-override';
+/**
+ * Written ONLY by the explicit user toggle. The old key `user-theme-override` was written by
+ * EventApp on every load, so existing values are not real choices: it is ignored and deleted.
+ */
+export const THEME_STORAGE_KEY = 'plan-theme-choice';
+export const LEGACY_THEME_STORAGE_KEY = 'user-theme-override';
 
 export const THEME_OPTIONS: { id: ThemeId; label: string; isLight: boolean }[] = [
   { id: 'dark', label: 'Dark', isLight: false },
@@ -46,6 +51,6 @@ export function prefersDarkScheme(): boolean {
  */
 export const THEME_INIT_SCRIPT =
   `(function(){var d=document.documentElement,t=null;` +
-  `try{t=localStorage.getItem('${THEME_STORAGE_KEY}')}catch(e){}` +
+  `try{localStorage.removeItem('${LEGACY_THEME_STORAGE_KEY}');t=localStorage.getItem('${THEME_STORAGE_KEY}')}catch(e){}` +
   `if(!t){try{if(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)t='${DEFAULT_DARK_THEME}'}catch(e){}}` +
   `if(t)d.setAttribute('data-theme',t)})()`;

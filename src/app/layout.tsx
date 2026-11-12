@@ -52,7 +52,7 @@ export default function RootLayout({
   const websiteJsonLd = buildWebSiteJsonLd();
 
   return (
-    <html lang="en" data-theme={DEFAULT_THEME}>
+    <html lang="en" data-theme={DEFAULT_THEME} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}

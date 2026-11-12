@@ -13,7 +13,7 @@ function parseThemes(): Record<string, Record<string, string>> {
   let m: RegExpExecArray | null;
   while ((m = re.exec(css))) {
     const selectors = m[1].replace(/\/\*[\s\S]*?\*\//g, '').trim();
-    const ids = selectors.split(',').map((x) => x.trim()).map((x) => (x === ':root' ? 'root' : x.match(/^\[data-theme="([\w-]+)"\]$/)?.[1] ?? '')).filter(Boolean);
+    const ids = selectors.split(',').map((x) => x.trim()).map((x) => (x === ':root' || x === ':root:not([data-theme])' ? 'root' : x.match(/^\[data-theme="([\w-]+)"\]$/)?.[1] ?? '')).filter(Boolean);
     if (!ids.length) continue;
     const decls: Record<string, string> = {};
     for (const d of m[2].replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) decls[d[1]] = d[2].trim();
@@ -106,7 +106,7 @@ describe('theme tokens', () => {
     describe(`${t} contrast`, () => {
       const k = resolve(t);
       const pairs: [string, string, string, number][] = [];
-      for (const bg of ['bg-primary', 'bg-secondary', 'bg-card']) {
+      for (const bg of ['bg-primary', 'bg-secondary', 'bg-tertiary', 'bg-card']) {
         for (const fg of ['text-primary', 'text-secondary', 'text-muted', 'text-faint', 'accent-link']) {
           pairs.push([`--theme-${fg}`, `--theme-${bg}`, '--theme-bg-primary', 4.5]);
         }
@@ -114,7 +114,6 @@ describe('theme tokens', () => {
       pairs.push(['--theme-accent-text', '--theme-accent', '--theme-bg-primary', 4.5]);
       pairs.push(['--theme-accent-link', '--theme-accent-muted', '--theme-bg-primary', 4.5]);
       pairs.push(['--theme-accent', '--theme-bg-primary', '--theme-bg-primary', 3]);
-      pairs.push(['--theme-avatar-text', '--theme-avatar-1', '--theme-bg-primary', 4.5]);
       for (const s of STATUS) {
         pairs.push([`--theme-${s}-on`, `--theme-${s}`, '--theme-bg-primary', 4.5]);
         pairs.push([`--theme-${s}-on`, `--theme-${s}-hover`, '--theme-bg-primary', 4.5]);

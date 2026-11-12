@@ -62,15 +62,46 @@
   --z-toast: 100;
 }
 
+/* Theme-independent tokens (identical in every theme) */
+:root {
+  /* Map marker chrome (shared by all themes; light themes inherit these) */
+  --theme-marker-day: #ffffff;        /* clock-face wedge for daytime events */
+  --theme-marker-tick: #ffffff;       /* clock tick marks */
+  --theme-marker-badge-bg: #ffffff;   /* numbered/count badge */
+  --theme-marker-badge-text: #111827;
+
+  /* Controls drawn on top of event photos (gallery cards): fixed white-on-scrim in every theme */
+  --theme-scrim: rgba(0, 0, 0, 0.4);
+  --theme-on-image: #ffffff;
+  --theme-on-image-border: rgba(255, 255, 255, 0.6);
+  --theme-on-image-muted: rgba(255, 255, 255, 0.2);
+
+  /* Initial-letter avatar fills; each meets 4.5:1 against --theme-avatar-text */
+  --theme-avatar-text: #ffffff;
+  --theme-avatar-1: #c62839;
+  --theme-avatar-2: #b45309;
+  --theme-avatar-3: #8a6100;
+  --theme-avatar-4: #1f7a6f;
+  --theme-avatar-5: #264653;
+  --theme-avatar-6: #7b2cbf;
+  --theme-avatar-7: #2563eb;
+  --theme-avatar-8: #15803d;
+  --theme-avatar-9: #c2185b;
+  --theme-avatar-10: #0e7490;
+}
+
 /* ================================================================
    THEME SYSTEM — CSS Custom Properties
    Set data-theme="dark|paper|light" on <html> to switch themes.
-   Default (:root) matches the dark theme.
+   Default (:root) matches the light-blue theme (DEFAULT_THEME).
    ================================================================ */
 
 /* --- Dark theme (default) --- */
-:root,
-[data-theme="dark"] {
+/* Dark base. sxsw2/gdc/ethcc only override part of it, so they inherit from here. */
+[data-theme="dark"],
+[data-theme="sxsw2"],
+[data-theme="gdc"],
+[data-theme="ethcc"] {
   --background: #0c0a09;
   --foreground: #fafaf9;
   --card: #1c1917;
@@ -91,7 +122,7 @@
   --theme-text-primary: #fafaf9;
   --theme-text-secondary: #a8a29e;
   --theme-text-muted: #9a938d;
-  --theme-text-faint: #8f8983;
+  --theme-text-faint: #99928c;
 
   --theme-accent: #f59e0b;
   --theme-accent-hover: #d97706;
@@ -152,31 +183,6 @@
 
   --theme-map-pin: #1c1917;
   --theme-map-pin-night: rgba(255,255,255,0.4);
-
-  /* Map marker chrome (shared by all themes; light themes inherit these) */
-  --theme-marker-day: #ffffff;        /* clock-face wedge for daytime events */
-  --theme-marker-tick: #ffffff;       /* clock tick marks */
-  --theme-marker-badge-bg: #ffffff;   /* numbered/count badge */
-  --theme-marker-badge-text: #111827;
-
-  /* Controls drawn on top of event photos (gallery cards): fixed white-on-scrim in every theme */
-  --theme-scrim: rgba(0, 0, 0, 0.4);
-  --theme-on-image: #ffffff;
-  --theme-on-image-border: rgba(255, 255, 255, 0.6);
-  --theme-on-image-muted: rgba(255, 255, 255, 0.2);
-
-  /* Initial-letter avatar fills; each meets 4.5:1 against --theme-avatar-text */
-  --theme-avatar-text: #ffffff;
-  --theme-avatar-1: #c62839;
-  --theme-avatar-2: #b45309;
-  --theme-avatar-3: #8a6100;
-  --theme-avatar-4: #1f7a6f;
-  --theme-avatar-5: #264653;
-  --theme-avatar-6: #7b2cbf;
-  --theme-avatar-7: #2563eb;
-  --theme-avatar-8: #15803d;
-  --theme-avatar-9: #c2185b;
-  --theme-avatar-10: #0e7490;
 
   --theme-bg-list: var(--theme-bg-primary);
   --theme-bg-filter: var(--theme-bg-primary);
@@ -253,13 +259,13 @@
   --theme-text-primary: #2c2418;
   --theme-text-secondary: #5a4d40;
   --theme-text-muted: #66584a;
-  --theme-text-faint: #706253;
+  --theme-text-faint: #6a5c4d;
 
   --theme-accent: #a8631f;
   --theme-accent-hover: #8f5413;
   --theme-accent-text: #ffffff;
   --theme-accent-muted: rgba(168, 99, 31, 0.12);
-  --theme-accent-link: #8f5413;
+  --theme-accent-link: #7f4a10;
 
   --theme-star-active: #d4a32c;
   --theme-star-inactive: #c4b9a8;
@@ -342,7 +348,7 @@
   --theme-text-primary: #1a1a1a;
   --theme-text-secondary: #525252;
   --theme-text-muted: #636363;
-  --theme-text-faint: #6b6b6b;
+  --theme-text-faint: #666666;
 
   --theme-accent: #dc2626;
   --theme-accent-hover: #b91c1c;
@@ -410,6 +416,7 @@
 }
 
 /* --- Light Blue theme — clean modern white with dark blue accent --- */
+:root:not([data-theme]),
 [data-theme="light-blue"] {
   --background: #fafafa;
   --foreground: #1a1a1a;
@@ -431,7 +438,7 @@
   --theme-text-primary: #1a1a1a;
   --theme-text-secondary: #525252;
   --theme-text-muted: #636363;
-  --theme-text-faint: #6b6b6b;
+  --theme-text-faint: #666666;
 
   --theme-accent: #1c4586;
   --theme-accent-hover: #153a73;
@@ -718,7 +725,7 @@
   --theme-text-primary: #f0f2f8;
   --theme-text-secondary: #8ca8c0;
   --theme-text-muted: #7f9bbb;
-  --theme-text-faint: #7690b0;
+  --theme-text-faint: #8099b8;
 
   --theme-accent: #E80000;
   --theme-accent-hover: #cc0000;
@@ -763,7 +770,7 @@
 
   --theme-bg-primary: #152066;
   --theme-bg-secondary: #0e1548;
-  --theme-bg-tertiary: #3568c1;
+  --theme-bg-tertiary: #223a8c;
   --theme-bg-card: #0e1548;
   --theme-bg-card-hover: #3568c1;
   --theme-bg-input: #0e1548;
@@ -774,7 +781,7 @@
   --theme-text-primary: #e8ecf8;
   --theme-text-secondary: #c0cdee;
   --theme-text-muted: #9fb2e0;
-  --theme-text-faint: #8fa4d8;
+  --theme-text-faint: #9aaee0;
 
   --theme-accent: #6b9de8;
   --theme-accent-hover: #5588d0;

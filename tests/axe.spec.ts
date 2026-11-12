@@ -25,7 +25,7 @@ for (const vp of [
       test(`${theme} / ${view} view has no axe violations`, async ({ page }) => {
         await page.addInitScript((t) => {
           localStorage.setItem('sheeets-onboarding-done', '1');
-          localStorage.setItem('user-theme-override', t);
+          localStorage.setItem('plan-theme-choice', t);
         }, theme);
         await page.goto(`${BASE_URL}/breakpoint2026`, { waitUntil: 'networkidle' });
         await page.getByRole('button', { name: `${view} view` }).click();

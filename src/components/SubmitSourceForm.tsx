@@ -144,7 +144,7 @@ export function SubmitSourceForm({ conferenceTabs }: Props) {
       </div>
 
       {status === 'done' ? (
-        <div className="rounded-xl border border-[var(--theme-border-primary)] bg-[color:rgba(255,255,255,0.03)] p-6 flex items-start gap-3">
+        <div className="rounded-xl border border-[var(--theme-border-primary)] bg-[var(--theme-bg-card)] p-6 flex items-start gap-3">
           <Check className="w-5 h-5 text-success-text shrink-0 mt-0.5" />
           <div>
             <p className="text-[var(--theme-text-primary)] font-medium">Submitted</p>

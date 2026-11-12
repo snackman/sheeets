@@ -894,7 +894,7 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
         <div className={`fixed bottom-[calc(1.5rem+var(--safe-area-bottom))] left-1/2 -translate-x-1/2 z-[var(--z-toast)] px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-opacity duration-300 ${
           friendCodeToast.type === 'success'
             ? 'bg-success text-success-on'
-            : 'bg-danger text-success-on'
+            : 'bg-danger text-danger-on'
         }`}>
           {friendCodeToast.message}
         </div>

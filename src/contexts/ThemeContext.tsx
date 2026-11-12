@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
-import { ThemeId, DEFAULT_THEME, THEME_OPTIONS, THEME_STORAGE_KEY as STORAGE_KEY, defaultThemeFor, prefersDarkScheme } from '@/lib/themes';
+import { ThemeId, DEFAULT_THEME, THEME_OPTIONS, THEME_STORAGE_KEY as STORAGE_KEY, LEGACY_THEME_STORAGE_KEY, defaultThemeFor, prefersDarkScheme } from '@/lib/themes';
 const validIds = THEME_OPTIONS.map(t => t.id) as string[];
 
 interface ThemeContextValue {
@@ -30,6 +30,7 @@ interface ThemeProviderProps {
 
 function readStoredTheme(): ThemeId | null {
   try {
+    localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored && validIds.includes(stored)) return stored as ThemeId;
   } catch {}
