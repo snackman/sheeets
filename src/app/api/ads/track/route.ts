@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRateLimiter, getClientIp } from '@/lib/rate-limit';
 
 // Per-IP limit on tracking writes (batches are sent every few seconds at most).
-const limiter = createRateLimiter(60, 60 * 1000);
+const limiter = createRateLimiter(300, 60 * 1000);
 import { AdTrackSchema, parseBatchBody } from '@/lib/api-validation';
 
 function getSupabase() {

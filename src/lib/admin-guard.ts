@@ -3,7 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminPassword } from '@/lib/admin-auth';
 import { getClientIp } from '@/lib/rate-limit';
-import { reserveLedgerAttempt, releaseLedgerAttempt, countLedgerScope } from '@/lib/ledger-rate-limit';
+import { reserveLedgerAttempt, releaseLedgerAttempt, countLedgerScope, countLedgerAttempts } from '@/lib/ledger-rate-limit';
+import { sendAlert } from '@/lib/alert';
 
 /**
  * Shared guard for every admin route.
@@ -25,31 +26,50 @@ export const ADMIN_COOKIE = 'admin_session';
 export const ADMIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 export const ADMIN_MAX_FAILURES = 10;
 export const ADMIN_FAILURE_WINDOW_MS = 15 * 60 * 1000;
-/** Ceiling on guesses across ALL clients per window; once hit, every password
- *  credential is refused until the window drains (session cookies still work). */
-export const ADMIN_GLOBAL_MAX_FAILURES = 100;
+/** Non-blocking signal: failed attempts across ALL clients per window above
+ *  this log a warning (and ping ALERT_WEBHOOK_URL when set). It never blocks. */
+export const ADMIN_GLOBAL_ALERT_THRESHOLD = 100;
 
 const SCOPE = 'admin';
 
-// In-memory counters (per instance; reset on cold start). Each attempt is
-// reserved (counted) BEFORE the password is compared and refunded on success,
-// so parallel requests cannot all slip past a read-then-check gap.
+// In-memory per-IP counters (per instance; reset on cold start). A slot is
+// reserved synchronously BEFORE the password is compared and refunded on
+// success, so parallel requests cannot all slip past a read-then-check gap.
 const memBlocked = new Map<string, { count: number; windowStart: number }>();
-let memGlobal = { count: 0, windowStart: 0 };
+const MEM_SWEEP_SIZE = 500;
 
-function memReserve(ip: string): { ip: number; global: number } {
+function memSweep(now: number) {
+  if (memBlocked.size < MEM_SWEEP_SIZE) return;
+  for (const [k, v] of memBlocked) {
+    if (now - v.windowStart >= ADMIN_FAILURE_WINDOW_MS) memBlocked.delete(k);
+  }
+}
+
+/** Reserve a slot for `ip`; false (and nothing recorded) if the IP is already at its limit. */
+function memTryReserve(ip: string): boolean {
   const now = Date.now();
+  memSweep(now);
   const b = memBlocked.get(ip);
-  if (!b || now - b.windowStart >= ADMIN_FAILURE_WINDOW_MS) memBlocked.set(ip, { count: 1, windowStart: now });
-  else b.count += 1;
-  if (now - memGlobal.windowStart >= ADMIN_FAILURE_WINDOW_MS) memGlobal = { count: 1, windowStart: now };
-  else memGlobal.count += 1;
-  return { ip: memBlocked.get(ip)!.count, global: memGlobal.count };
+  if (!b || now - b.windowStart >= ADMIN_FAILURE_WINDOW_MS) {
+    memBlocked.set(ip, { count: 1, windowStart: now });
+    return true;
+  }
+  if (b.count >= ADMIN_MAX_FAILURES) return false;
+  b.count += 1;
+  return true;
 }
 function memRefund(ip: string) {
   const b = memBlocked.get(ip);
   if (b && b.count > 0) b.count -= 1;
-  if (memGlobal.count > 0) memGlobal.count -= 1;
+}
+
+// Global failure tracking for the non-blocking alert only.
+let memGlobal = { count: 0, windowStart: 0 };
+function memGlobalFailure(): number {
+  const now = Date.now();
+  if (now - memGlobal.windowStart >= ADMIN_FAILURE_WINDOW_MS) memGlobal = { count: 1, windowStart: now };
+  else memGlobal.count += 1;
+  return memGlobal.count;
 }
 
 /** Exposed for tests. */
@@ -57,6 +77,7 @@ export function _resetAdminGuardForTests() {
   memBlocked.clear();
   memGlobal = { count: 0, windowStart: 0 };
   revokedCache = null;
+  revokedErrorUntil = 0;
 }
 
 /**
@@ -77,7 +98,12 @@ function sessionKey(): Buffer | null {
 }
 
 const REVOKED_KEY = 'admin_session_revoked_before';
+const REVOKED_TTL_MS = 10_000;
+const REVOKED_ERROR_BACKOFF_MS = 5_000;
+// Last successfully read value; kept across read errors so a brief DB blip
+// does not log the admin out. Null only if there has never been a good read.
 let revokedCache: { at: number; value: number } | null = null;
+let revokedErrorUntil = 0;
 
 function revocationClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -86,19 +112,21 @@ function revocationClient() {
   return createClient(url, key);
 }
 
-/** Epoch ms before which sessions are revoked; null if it cannot be determined. */
+/** Epoch ms before which sessions are revoked; null only if never successfully read. */
 async function getRevokedBefore(now = Date.now()): Promise<number | null> {
-  if (revokedCache && now - revokedCache.at < 10_000) return revokedCache.value;
+  if (revokedCache && now - revokedCache.at < REVOKED_TTL_MS) return revokedCache.value;
+  if (now < revokedErrorUntil) return revokedCache?.value ?? null;
   const supabase = revocationClient();
-  if (!supabase) return null;
+  if (!supabase) return revokedCache?.value ?? null;
   try {
     const { data, error } = await supabase.from('admin_config').select('value').eq('key', REVOKED_KEY).maybeSingle();
-    if (error) return null;
+    if (error) throw new Error(error.message);
     const v = Number((data?.value as { ts?: number } | null)?.ts ?? 0);
     revokedCache = { at: now, value: Number.isFinite(v) ? v : 0 };
     return revokedCache.value;
   } catch {
-    return null;
+    revokedErrorUntil = now + REVOKED_ERROR_BACKOFF_MS;
+    return revokedCache?.value ?? null;
   }
 }
 
@@ -175,30 +203,54 @@ export async function hasValidAdminSession(req: NextRequest): Promise<boolean> {
  * Check a password credential with brute-force protection. Returns
  * `'ok' | 'denied' | 'limited'`.
  *
- * The attempt is reserved (memory counter + ledger insert) BEFORE the
- * password is compared, then counted; concurrent requests therefore cannot
- * all pass the limit check. A correct password refunds its reservation.
- * A global ceiling across all IPs applies in addition to the per-IP limit.
+ * Per-IP only: a client already over its limit is refused WITHOUT recording
+ * anything, so one noisy IP cannot affect another IP's login. Otherwise the
+ * attempt is reserved (memory slot + ledger insert, then count) BEFORE the
+ * password is compared, so concurrent requests cannot all pass the check; a
+ * correct password refunds its reservation. There is deliberately no global
+ * blocking ceiling; mass failures only raise a warning/alert.
  */
 export async function checkAdminPassword(req: NextRequest, password: unknown): Promise<'ok' | 'denied' | 'limited'> {
   const ip = getClientIp(req);
-  const mem = memReserve(ip);
-  const ledger = await reserveLedgerAttempt(SCOPE, req, ADMIN_FAILURE_WINDOW_MS);
-  const ledgerGlobal = await countLedgerScope(SCOPE, ADMIN_FAILURE_WINDOW_MS);
+  if (!memTryReserve(ip)) return 'limited';
 
-  const limited =
-    mem.ip > ADMIN_MAX_FAILURES ||
-    mem.global > ADMIN_GLOBAL_MAX_FAILURES ||
-    (ledger.count !== null && ledger.count > ADMIN_MAX_FAILURES) ||
-    (ledgerGlobal !== null && ledgerGlobal > ADMIN_GLOBAL_MAX_FAILURES);
-  if (limited) return 'limited';
+  // Already over the persistent limit: refuse without inserting a row.
+  if ((await countLedgerAttempts(SCOPE, req, ADMIN_FAILURE_WINDOW_MS)) >= ADMIN_MAX_FAILURES) {
+    memRefund(ip);
+    return 'limited';
+  }
+
+  const ledger = await reserveLedgerAttempt(SCOPE, req, ADMIN_FAILURE_WINDOW_MS);
+  if (ledger.count !== null && ledger.count > ADMIN_MAX_FAILURES) {
+    // Lost a race against concurrent attempts: give the row back.
+    memRefund(ip);
+    await releaseLedgerAttempt(ledger.id);
+    return 'limited';
+  }
 
   if (isAdminPassword(password)) {
     memRefund(ip);
     await releaseLedgerAttempt(ledger.id);
     return 'ok';
   }
+
+  void noteFailure();
   return 'denied';
+}
+
+/** Non-blocking: warn / alert when failures across all clients spike. */
+async function noteFailure(): Promise<void> {
+  try {
+    const mem = memGlobalFailure();
+    if (mem < ADMIN_GLOBAL_ALERT_THRESHOLD) return;
+    const ledger = await countLedgerScope(SCOPE, ADMIN_FAILURE_WINDOW_MS);
+    const total = Math.max(mem, ledger ?? 0);
+    const msg = `admin login: ${total} failed attempts in 15 min across clients`;
+    console.warn(`[admin-guard] ${msg}`);
+    await sendAlert('admin_login_failures', msg);
+  } catch {
+    // never affects the login result
+  }
 }
 
 function tooMany() {

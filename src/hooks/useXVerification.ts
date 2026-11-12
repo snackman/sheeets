@@ -35,6 +35,17 @@ export function useXVerification() {
         .single();
 
       if (data) {
+        const stillLinked = user!.identities?.some((id) => id.provider === 'twitter');
+        if (data.x_verified && !stillLinked) {
+          // X was unlinked elsewhere: have the server confirm and clear the badge.
+          const res = await callXVerify('DELETE').catch(() => null);
+          if (res?.ok) {
+            setIsXVerified(false);
+            setXHandle(data.x_handle ?? null);
+            setLoading(false);
+            return;
+          }
+        }
         setIsXVerified(data.x_verified ?? false);
         setXHandle(data.x_handle ?? null);
       }

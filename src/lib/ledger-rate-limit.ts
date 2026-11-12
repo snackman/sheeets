@@ -56,14 +56,16 @@ export async function reserveLedgerAttempt(
   req: NextRequest,
   windowMs: number
 ): Promise<{ id: string | null; count: number | null }> {
+  const key = ledgerKey(scope, req);
+  let id: string | null = null;
   try {
-    const key = ledgerKey(scope, req);
-    const id = await recordSubmissionAttempt(key, `sec:${scope}`);
+    id = await recordSubmissionAttempt(key, `sec:${scope}`);
     const count = await countRecentSubmissionAttempts(key, windowMs);
     return { id, count };
   } catch (err) {
     console.error(`[ledger-rate-limit] reserve failed (${scope}):`, err);
-    return { id: null, count: null };
+    // Keep the id (if the insert succeeded) so the caller can still refund it.
+    return { id, count: null };
   }
 }
 

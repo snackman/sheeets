@@ -4,7 +4,7 @@ import { MAX_ERROR_BATCH, MAX_ERROR_BODY_BYTES, isNoiseError } from '@/lib/error
 import { recordAppErrors } from '@/lib/error-store';
 import { createRateLimiter, getClientIp } from '@/lib/rate-limit';
 
-const limiter = createRateLimiter(30, 60 * 1000);
+const limiter = createRateLimiter(60, 60 * 1000);
 
 /**
  * Client error reports from src/lib/error-reporter.ts.

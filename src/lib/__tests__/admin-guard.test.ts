@@ -7,6 +7,7 @@ let nextId = 1;
 let ledgerDown = false;
 let revokedBefore = 0;
 let revocationReadFails = false;
+const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 vi.mock('@/lib/ledger-rate-limit', () => ({
   reserveLedgerAttempt: async (_scope: string, req: NextRequest) => {
     if (ledgerDown) return { id: null, count: null };
@@ -19,6 +20,11 @@ vi.mock('@/lib/ledger-rate-limit', () => ({
   releaseLedgerAttempt: async (id: string | null) => {
     const i = ledgerRows.findIndex((r) => String(r.id) === id);
     if (i >= 0) ledgerRows.splice(i, 1);
+  },
+  countLedgerAttempts: async (_scope: string, req: NextRequest) => {
+    if (ledgerDown) return 0;
+    const key = req.headers.get('x-real-ip') ?? '';
+    return ledgerRows.filter((r) => r.key === key).length;
   },
   countLedgerScope: async () => (ledgerDown ? null : ledgerRows.length),
 }));
@@ -46,7 +52,7 @@ import {
   setAdminSessionCookie,
   ADMIN_COOKIE,
   ADMIN_MAX_FAILURES,
-  ADMIN_GLOBAL_MAX_FAILURES,
+  ADMIN_GLOBAL_ALERT_THRESHOLD,
   hasValidAdminSession,
   revokeAllAdminSessions,
   _resetAdminGuardForTests,
@@ -173,14 +179,22 @@ describe('requireAdmin', () => {
     expect(passedGate).toBeLessThanOrEqual(ADMIN_MAX_FAILURES);
   });
 
-  it('enforces a global ceiling across many IPs', async () => {
-    for (let i = 0; i < ADMIN_GLOBAL_MAX_FAILURES; i++) {
-      expect((await requireAdmin(req({ header: 'bad', ip: `10.0.${Math.floor(i / 250)}.${i % 250}` })))?.status).toBe(401);
+  it('one IP spraying cannot affect another IP, and limited requests insert nothing', async () => {
+    for (let i = 0; i < ADMIN_MAX_FAILURES; i++) await requireAdmin(req({ header: 'bad', ip: '3.3.3.3' }));
+    const rowsAfterLimit = ledgerRows.length;
+    for (let i = 0; i < 20; i++) expect((await requireAdmin(req({ header: 'bad', ip: '3.3.3.3' })))?.status).toBe(429);
+    expect(ledgerRows.length).toBe(rowsAfterLimit);
+    expect(await requireAdmin(req({ header: PW, ip: '4.4.4.4' }))).toBeNull();
+  });
+
+  it('many IPs failing never blocks a correct login (no global lockout), but warns', async () => {
+    warnSpy.mockClear();
+    for (let i = 0; i < ADMIN_GLOBAL_ALERT_THRESHOLD + 5; i++) {
+      await requireAdmin(req({ header: 'bad', ip: `10.0.${Math.floor(i / 250)}.${i % 250}` }));
     }
-    // A brand-new IP, even with the right password, is now refused.
-    expect((await requireAdmin(req({ header: PW, ip: '9.9.9.9' })))?.status).toBe(429);
-    // Session cookies keep working during the cooldown.
-    expect(await requireAdmin(req({ cookie: createAdminSessionToken()!, ip: '9.9.9.9' }))).toBeNull();
+    expect(await requireAdmin(req({ header: PW, ip: '9.9.9.9' }))).toBeNull();
+    await new Promise((r) => setTimeout(r, 10));
+    expect(warnSpy).toHaveBeenCalled();
   });
 
   it('still limits per IP in memory when the ledger is down', async () => {
@@ -210,10 +224,24 @@ describe('session version and revocation', () => {
     expect(await hasValidAdminSession(req({ cookie: fresh }) )).toBe(true);
   });
 
-  it('fails closed for cookies when the revocation state is unreadable, header still works', async () => {
+  it('fails closed for cookies only if revocation state was never read; header still works', async () => {
     revocationReadFails = true;
     expect((await requireAdmin(req({ cookie: createAdminSessionToken()! })))?.status).toBe(401);
     expect(await requireAdmin(req({ header: PW }))).toBeNull();
+  });
+
+  it('keeps using the last good revocation value when a later read errors', async () => {
+    const token = createAdminSessionToken()!;
+    expect(await requireAdmin(req({ cookie: token }))).toBeNull(); // good read cached
+    revocationReadFails = true;
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.now() + 60_000); // cache expired, read now errors
+    try {
+      const fresh = createAdminSessionToken()!;
+      expect(await requireAdmin(req({ cookie: fresh }))).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

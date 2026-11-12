@@ -56,15 +56,15 @@ describe('per-IP rate limits on public endpoints', () => {
     );
   });
   it('/api/errors', async () => {
-    await expectLimited((ip) => errorsPost(post('/api/errors', ip, { message: 'x' })), 30, '11.0.0.3');
+    await expectLimited((ip) => errorsPost(post('/api/errors', ip, { message: 'x' })), 60, '11.0.0.3');
   });
   it('/api/events/track', async () => {
-    await expectLimited((ip) => eventsTrackPost(post('/api/events/track', ip)), 60, '11.0.0.4');
+    await expectLimited((ip) => eventsTrackPost(post('/api/events/track', ip)), 300, '11.0.0.4');
   });
   it('/api/ads/track', async () => {
-    await expectLimited((ip) => adsTrackPost(post('/api/ads/track', ip)), 60, '11.0.0.5');
+    await expectLimited((ip) => adsTrackPost(post('/api/ads/track', ip)), 300, '11.0.0.5');
   });
   it('/api/ab/track', async () => {
-    await expectLimited((ip) => abTrackPost(post('/api/ab/track', ip)), 60, '11.0.0.6');
+    await expectLimited((ip) => abTrackPost(post('/api/ab/track', ip)), 300, '11.0.0.6');
   });
 });
