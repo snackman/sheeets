@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ClientErrorSchema, parseBatch } from '@/lib/api-validation';
 import { MAX_ERROR_BATCH, MAX_ERROR_BODY_BYTES, isNoiseError } from '@/lib/error-monitoring';
 import { recordAppErrors } from '@/lib/error-store';
+import { createRateLimiter, getClientIp } from '@/lib/rate-limit';
+
+const limiter = createRateLimiter(30, 60 * 1000);
 
 /**
  * Client error reports from src/lib/error-reporter.ts.
@@ -13,6 +16,9 @@ import { recordAppErrors } from '@/lib/error-store';
  * If the table/function isn't deployed yet, responds 202 and warns.
  */
 export async function POST(req: NextRequest) {
+  if (!limiter.check(getClientIp(req))) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
   const declared = Number(req.headers.get('content-length') || 0);
   if (declared > MAX_ERROR_BODY_BYTES) {
     return NextResponse.json({ error: 'Payload too large' }, { status: 413 });

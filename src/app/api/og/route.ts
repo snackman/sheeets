@@ -4,6 +4,11 @@ import { parseBody, OgBatchSchema } from '@/lib/api-validation';
 import { safeFetch } from '@/lib/safe-fetch';
 import { getEventLinkById } from '@/lib/fetch-events-cached';
 import { ogCacheHeaders } from '@/lib/og-cache';
+import { createRateLimiter, getClientIp } from '@/lib/rate-limit';
+
+// Per-IP limit for the arbitrary-URL path (no verified eventId), which makes
+// outbound fetches on behalf of the caller.
+const arbitraryUrlLimiter = createRateLimiter(30, 60 * 1000);
 
 // safeFetch relies on node:http/node:dns for SSRF protection
 export const runtime = 'nodejs';
@@ -332,6 +337,10 @@ export async function GET(request: NextRequest) {
   const memCached = memoryCache.get(url);
   if (memCached && Date.now() - memCached.ts < MEMORY_CACHE_TTL) {
     return NextResponse.json({ imageUrl: memCached.imageUrl }, { headers: ogCacheHeaders(memCached.imageUrl) });
+  }
+
+  if (!persist && !arbitraryUrlLimiter.check(getClientIp(request))) {
+    return NextResponse.json({ imageUrl: null }, { status: 429 });
   }
 
   // 4. Resolve the image URL from source

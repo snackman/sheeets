@@ -1,5 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { createRateLimiter, getClientIp } from '@/lib/rate-limit';
+
+// Per-IP limit on tracking writes (batches are sent every few seconds at most).
+const limiter = createRateLimiter(60, 60 * 1000);
 import { parseBody, ABTrackEventSchema } from '@/lib/api-validation';
 
 function getSupabase() {
@@ -10,6 +14,9 @@ function getSupabase() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!limiter.check(getClientIp(req))) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
   const { data, error: parseError } = await parseBody(req, ABTrackEventSchema);
   if (parseError) return parseError;
 
