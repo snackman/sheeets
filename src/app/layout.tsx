@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
+import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/themes";
 import { buildWebSiteJsonLd, serializeJsonLd } from "@/lib/json-ld";
 
 const inter = Inter({
@@ -51,10 +52,10 @@ export default function RootLayout({
   const websiteJsonLd = buildWebSiteJsonLd();
 
   return (
-    <html lang="en" data-theme="light-blue">
+    <html lang="en" data-theme={DEFAULT_THEME}>
       <head>
         <script
-          dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('user-theme-override');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}})()` }}
+          dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}
         />
         <script
           type="application/ld+json"
