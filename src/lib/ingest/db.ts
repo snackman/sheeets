@@ -351,6 +351,27 @@ export async function countConferenceRecentSubmissionAttempts(conference: string
   return count ?? 0;
 }
 
+/** Delete one attempt row (used to refund a reservation, e.g. after a
+ *  successful admin login). */
+export async function deleteSubmissionAttempt(attemptId: string): Promise<void> {
+  const supabase = getIngestSupabase();
+  const { error } = await supabase.from('ingest_submission_attempts').delete().eq('id', attemptId);
+  if (error) throw new Error(`Failed to delete submission attempt: ${error.message}`);
+}
+
+/** Count of attempts (all clients) tagged with exactly `conference` in the last `windowMs`. */
+export async function countRecentAttemptsByTag(conference: string, windowMs: number): Promise<number> {
+  const supabase = getIngestSupabase();
+  const since = new Date(Date.now() - windowMs).toISOString();
+  const { count, error } = await supabase
+    .from('ingest_submission_attempts')
+    .select('id', { count: 'exact', head: true })
+    .eq('conference', conference)
+    .gte('created_at', since);
+  if (error) throw new Error(`Failed to count tagged attempts: ${error.message}`);
+  return count ?? 0;
+}
+
 /** Mark an attempt as `rejected` — called when ITS OWN per-IP (or, after
  *  that, global/per-conference) check fails, so the global/per-conference
  *  counts above exclude it from here on (re-review finding A). */

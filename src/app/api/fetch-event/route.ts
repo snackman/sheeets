@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseBody, FetchEventSchema } from '@/lib/api-validation';
 import { SafeFetchError } from '@/lib/safe-fetch';
+import { createRateLimiter, getClientIp } from '@/lib/rate-limit';
 import {
   detectPlatform,
   parseLuma,
@@ -16,7 +17,13 @@ import {
 // safeFetch relies on node:http/node:dns for SSRF protection
 export const runtime = 'nodejs';
 
+// Per-IP limit: this route fetches arbitrary user-supplied URLs server-side.
+const limiter = createRateLimiter(20, 10 * 60 * 1000);
+
 export async function POST(request: NextRequest) {
+  if (!limiter.check(getClientIp(request))) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
   try {
     const { data, error } = await parseBody(request, FetchEventSchema);
     if (error) return error;

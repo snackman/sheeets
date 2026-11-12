@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * fetch() wrapper for admin UI calls. Sends the admin password via the
+ * fetch() wrapper for admin UI calls. Sends the admin password (when one is given) via the
  * `x-admin-password` header instead of a `?password=` query string, which
  * routinely ends up in server/proxy access logs and browser history.
  *
@@ -12,9 +12,11 @@
 export function adminFetch(url: string, password: string, init: RequestInit = {}): Promise<Response> {
   return fetch(url, {
     ...init,
+    credentials: 'same-origin',
     headers: {
       ...(init.headers || {}),
-      'x-admin-password': password,
+      // An empty password means "use the httpOnly session cookie".
+      ...(password ? { 'x-admin-password': password } : {}),
     },
   });
 }

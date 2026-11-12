@@ -5,7 +5,6 @@ import Script from 'next/script';
 import Link from 'next/link';
 import { adminFetch } from '@/lib/admin-fetch';
 
-const SESSION_KEY = 'sheeets-admin-auth';
 
 interface Audience {
   displayName?: string;
@@ -72,6 +71,7 @@ function formatPercent(rate: number): string {
 
 export default function AnalyticsPage() {
   const [authed, setAuthed] = useState(false);
+  // Typed only for the login form; auth afterwards is the httpOnly session cookie.
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<AnalyticsData | null>(null);
@@ -88,11 +88,11 @@ export default function AnalyticsPage() {
   const devicesChartRef = useRef<any>(null);
 
   useEffect(() => {
-    const saved = sessionStorage.getItem(SESSION_KEY);
-    if (saved && saved !== 'true') {
-      setAuthed(true);
-      setPassword(saved);
-    }
+    fetch('/api/admin/verify')
+      .then((res) => {
+        if (res.ok) setAuthed(true);
+      })
+      .catch(() => {});
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -100,8 +100,8 @@ export default function AnalyticsPage() {
     setError(null);
     try {
       const [analyticsRes, eventsRes] = await Promise.all([
-        adminFetch('/api/admin/analytics', password),
-        adminFetch('/api/events/report', password),
+        adminFetch('/api/admin/analytics', ''),
+        adminFetch('/api/events/report', ''),
       ]);
       if (!analyticsRes.ok) {
         const err = await analyticsRes.json();
@@ -119,7 +119,7 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }, [password]);
+  }, []);
 
   useEffect(() => {
     if (authed) {
@@ -261,7 +261,7 @@ export default function AnalyticsPage() {
     }).catch(() => null);
     if (res?.ok) {
       setAuthed(true);
-      sessionStorage.setItem(SESSION_KEY, password);
+      setPassword('');
     } else {
       setError('Wrong password');
     }
