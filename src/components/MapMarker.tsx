@@ -3,6 +3,7 @@
 import { useCallback } from 'react';
 import { Marker } from 'react-map-gl/mapbox';
 import { TagBadge } from './TagBadge';
+import { getLabelVisibility } from '@/lib/map-labels';
 
 interface MapMarkerProps {
   latitude: number;
@@ -125,10 +126,8 @@ export function MapMarker({
     [onClick]
   );
 
-  const showLabel = !!label && zoom >= 11.5;
+  const { showLabel, showOrganizer, showTagIcons } = getLabelVisibility(zoom, { hasLabel: !!label, isFeatured });
   const isNumbered = orderNumber != null;
-  const showOrganizer = zoom >= 14.4;
-  const showTagIcons = zoom >= 15;
 
   return (
     <Marker latitude={latitude} longitude={longitude}>

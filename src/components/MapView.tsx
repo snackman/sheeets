@@ -52,6 +52,8 @@ interface MapViewProps {
   liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
   getRsvpStatus?: (eventId: string) => 'idle' | 'confirmed';
   onRsvp?: (eventId: string, lumaUrl: string, eventName: string) => void;
+  /** True while the filters panel is expanded; any open popup is closed when it opens. */
+  filtersOpen?: boolean;
 }
 
 /**
@@ -89,6 +91,7 @@ export function MapView({
   liveEventIds,
   getRsvpStatus,
   onRsvp,
+  filtersOpen,
 }: MapViewProps) {
   const mapCenter = (getTabConfig(conference ?? '', conferenceTabs) ?? DEFAULT_TAB).center;
   const { user } = useAuth();
@@ -430,6 +433,12 @@ export function MapView({
     setPopupCoords(null);
     setSelectedPOI(null);
   }, []);
+
+  // Close any open popup when the filters panel opens (it would otherwise sit
+  // on top of / behind the panel).
+  useEffect(() => {
+    if (filtersOpen) handlePopupClose();
+  }, [filtersOpen, handlePopupClose]);
 
 
   const handlePOISelect = useCallback((poi: POI) => {

@@ -40,7 +40,7 @@ export const Header = memo(function Header({
 
   return (
     <>
-      <header className="sticky top-0 shrink-0 z-[var(--z-header)] backdrop-blur-sm border-b border-[var(--theme-header-border)]" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-header-bg) 95%, transparent)' }}>
+      <header className="sticky top-0 shrink-0 z-[var(--z-header)] backdrop-blur-sm border-b border-[var(--theme-header-border)]" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-header-bg) 95%, transparent)', paddingTop: 'var(--safe-area-top)' }}>
         <div className="px-2 sm:px-4 py-3 flex items-center justify-between gap-4">
           {/* Left: Branding */}
           <div className="flex items-center min-w-0">

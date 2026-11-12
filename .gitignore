@@ -62,5 +62,6 @@ next-env.d.ts
 # local Claude Code settings (may contain secrets)
 .claude/
 
+# playwright output
 /test-results
 /playwright-report
