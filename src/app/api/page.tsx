@@ -184,7 +184,7 @@ export default function ApiDocsPage() {
   return (
     <div className="min-h-screen bg-stone-950">
       {/* Nav bar */}
-      <header className="sticky top-0 z-50 bg-stone-950/95 backdrop-blur-sm border-b border-stone-800">
+      <header className="sticky top-0 z-[var(--z-header)] bg-stone-950/95 backdrop-blur-sm border-b border-stone-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <Link
             href="/"

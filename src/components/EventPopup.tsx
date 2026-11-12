@@ -138,7 +138,7 @@ export function MultiEventPopup({
           </h3>
           <button
             onClick={onClose}
-            className="shrink-0 p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] active:text-[var(--theme-text-primary)] transition-colors"
+            className="shrink-0 p-1 hit-44 inline-flex items-center justify-center text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] active:text-[var(--theme-text-primary)] transition-colors"
             aria-label="Close popup"
           >
             <X size={14} />

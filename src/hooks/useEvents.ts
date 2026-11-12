@@ -63,6 +63,8 @@ export function useEvents(initialEvents?: ETHDenverEvent[], conference?: string)
   const [events, setEvents] = useState<ETHDenverEvent[]>(initialEvents ?? []);
   const [loading, setLoading] = useState(!initialEvents);
   const [error, setError] = useState<string | null>(null);
+  /** Conference whose on-demand fetch failed (so the UI can offer a retry). */
+  const [failedConference, setFailedConference] = useState<string | null>(null);
 
   // Tracks which conferences we hold fresh-enough data for (name -> fetched at).
   const loadedAt = useRef<Map<string, number>>(new Map());
@@ -112,8 +114,10 @@ export function useEvents(initialEvents?: ETHDenverEvent[], conference?: string)
       const data = await fetchJson(`/api/events?conference=${encodeURIComponent(conf)}`);
       loadedAt.current.set(conf, Date.now());
       setEvents((prev) => mergeConference(prev, conf, data));
+      setFailedConference((prev) => (prev === conf ? null : prev));
     } catch (e) {
       console.warn(`Failed to load events for ${conf}:`, e);
+      setFailedConference(conf);
     } finally {
       inFlight.current.delete(conf);
     }
@@ -154,5 +158,17 @@ export function useEvents(initialEvents?: ETHDenverEvent[], conference?: string)
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [conference, loadConference]);
 
-  return { events, loading, error, loadAll };
+  /** Retry after a failed initial load, in place (no page reload; filters/state are kept). */
+  const reload = useCallback(async () => {
+    setError(null);
+    setLoading(true);
+    allLoaded.current = false;
+    try {
+      await loadAll();
+    } finally {
+      setLoading(false);
+    }
+  }, [loadAll]);
+
+  return { events, loading, error, loadAll, reload, failedConference, retryConference: loadConference };
 }

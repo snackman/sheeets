@@ -2,6 +2,7 @@
 
 import { useMemo, useCallback } from 'react';
 import clsx from 'clsx';
+import { zonedDateISO } from '@/lib/zoned-time';
 
 const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -18,7 +19,7 @@ export function MiniCalendar({ dates, startDateTime, endDateTime, onChange, time
   const endDate = endDateTime.split('T')[0];
 
   const today = useMemo(() => {
-    return new Date().toLocaleDateString('en-CA', { timeZone: timezone || 'America/New_York' });
+    return zonedDateISO(timezone || 'America/New_York');
   }, [timezone]);
 
   const grid = useMemo(() => {
@@ -72,7 +73,7 @@ export function MiniCalendar({ dates, startDateTime, endDateTime, onChange, time
       {/* Day-of-week header row */}
       <div className="grid grid-cols-7 gap-x-1 px-3 pt-2 pb-2 bg-[var(--theme-filter-control-bg)]" style={{ backgroundImage: 'linear-gradient(var(--theme-filter-control-bg), var(--theme-filter-control-bg))', backgroundColor: 'var(--theme-bg-filter)' }}>
         {DAY_LETTERS.map((letter, i) => (
-          <div key={i} className="w-9 h-6 flex items-center justify-center text-xs font-bold text-white select-none">
+          <div key={i} aria-hidden="true" className="w-9 tap:w-11 h-6 flex items-center justify-center text-xs font-bold text-white select-none">
             {letter}
           </div>
         ))}
@@ -81,7 +82,7 @@ export function MiniCalendar({ dates, startDateTime, endDateTime, onChange, time
       {/* Date cells */}
       <div className="grid grid-cols-7 gap-x-1 px-3 py-2">
         {grid.map((date, i) => {
-          if (!date) return <div key={`e${i}`} className="w-9 h-9" />;
+          if (!date) return <div key={`e${i}`} className="w-9 h-9 tap:w-11 tap:h-11" />;
 
           const inRange = date >= startDate && date <= endDate;
           const isStart = date === startDate;
@@ -94,8 +95,10 @@ export function MiniCalendar({ dates, startDateTime, endDateTime, onChange, time
               key={date}
               type="button"
               onClick={() => handleDateTap(date)}
+              aria-label={new Date(`${date}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              aria-pressed={inRange}
               className={clsx(
-                'w-9 h-9 flex items-center justify-center text-sm font-medium transition-all cursor-pointer select-none',
+                'w-9 h-9 tap:w-11 tap:h-11 flex items-center justify-center text-sm font-medium transition-all cursor-pointer select-none',
                 isPast && 'line-through opacity-50',
                 isEndpoint && 'text-[var(--theme-accent-text)]',
                 isEndpoint && isSingleDay && 'rounded-full',

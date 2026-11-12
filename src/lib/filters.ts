@@ -2,6 +2,7 @@ import type { ETHDenverEvent, FilterState } from './types';
 import { getTabConfig, DEFAULT_TAB } from './conferences';
 import { parseTimeToMinutes } from './time-parse';
 import { TAG_ALIASES } from './tags';
+import { zonedWallClockDate } from './zoned-time';
 
 // Re-export so existing consumers of `parseTimeToMinutes` from filters.ts still work
 export { parseTimeToMinutes } from './time-parse';
@@ -9,7 +10,7 @@ export { parseTimeToMinutes } from './time-parse';
 /** Get current time in conference timezone */
 export function getConferenceNow(conference?: string): Date {
   const tz = (getTabConfig(conference ?? '') ?? DEFAULT_TAB).timezone;
-  return new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
+  return zonedWallClockDate(tz);
 }
 
 /** Build a Date range from an event's dateISO + time strings */

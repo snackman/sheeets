@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { createPortal } from 'react-dom';
+import { Modal } from './Modal';
 import { X, Download, Copy, Check, Loader2, ChevronDown } from 'lucide-react';
 import { trackLockScreenOpen, trackLockScreenCopy, trackLockScreenDownload } from '@/lib/analytics';
 import type { SocialLink } from '@/lib/social-urls';
@@ -280,26 +280,15 @@ export function LockScreenModal({
 
   if (!isOpen) return null;
 
-  return createPortal(
+  return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-[100] bg-black/50"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-        <div
-          className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm max-h-[90vh] flex flex-col"
-          onClick={(e) => e.stopPropagation()}
-        >
+      <Modal onClose={onClose} labelledBy="lock-screen-title" className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm max-h-[90vh] flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)] shrink-0">
-            <h2 className="text-base font-bold text-[var(--theme-text-primary)]">Generate Lock Screen</h2>
+            <h2 id="lock-screen-title" className="text-base font-bold text-[var(--theme-text-primary)]">Generate Lock Screen</h2>
             <button
               onClick={onClose}
-              className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
+              aria-label="Close" className="inline-flex items-center justify-center min-h-11 min-w-11 -m-2.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -469,8 +458,7 @@ export function LockScreenModal({
               Save Image
             </button>
           </div>
-        </div>
-      </div>
+      </Modal>
 
       {/* Offscreen template for image generation */}
       <LockScreenTemplate
@@ -484,7 +472,6 @@ export function LockScreenModal({
         screenHeight={screenDims.height}
         logoDataUrl={logoDataUrl ?? undefined}
       />
-    </>,
-    document.body
+    </>
   );
 }

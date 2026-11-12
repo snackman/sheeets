@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { createPortal } from 'react-dom';
+import { Modal } from './Modal';
 import { X, Loader2, Check, Link as LinkIcon, ExternalLink } from 'lucide-react';
 import { VIBE_COLORS, TYPE_TAGS, SHEET_ID, getTabConfig, DEFAULT_TAB } from '@/lib/constants';
 import type { TabConfig } from '@/lib/conferences';
@@ -240,27 +240,19 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
 
   const sheetUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`;
 
-  return createPortal(
+  return (
     <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-[100] bg-black/50" onClick={handleClose} />
-
-      {/* Modal */}
-      <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-        <div
-          className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col"
-          onClick={(e) => e.stopPropagation()}
-        >
+      <Modal onClose={handleClose} labelledBy="submit-event-title" className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)] shrink-0">
-            <h2 className="text-base font-bold text-[var(--theme-text-primary)]">
+            <h2 id="submit-event-title" className="text-base font-bold text-[var(--theme-text-primary)]">
               {step === 'input' && 'Submit Event'}
               {step === 'form' && 'Event Details'}
               {step === 'success' && 'Submitted!'}
             </h2>
             <button
               onClick={handleClose}
-              className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
+              aria-label="Close" className="inline-flex items-center justify-center min-h-11 min-w-11 -m-2.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -597,9 +589,7 @@ export function SubmitEventModal({ isOpen, onClose, upsellCopy, initialConferenc
               </a>
             </div>
           )}
-        </div>
-      </div>
-    </>,
-    document.body
+      </Modal>
+    </>
   );
 }

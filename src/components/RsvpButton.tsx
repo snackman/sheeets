@@ -15,7 +15,7 @@ export function RsvpButton({ eventLink, status, onClick }: RsvpButtonProps) {
   if (status === 'confirmed') {
     return (
       <div
-        className="p-1 text-green-400"
+        className="p-1 hit-44 inline-flex items-center justify-center text-green-400"
         title="RSVP'd"
         aria-label="RSVP'd"
       >
@@ -27,7 +27,7 @@ export function RsvpButton({ eventLink, status, onClick }: RsvpButtonProps) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); e.preventDefault(); onClick(); }}
-      className="p-1 text-[var(--theme-text-muted)] hover:text-orange-400 transition-colors cursor-pointer"
+      className="p-1 hit-44 inline-flex items-center justify-center text-[var(--theme-text-muted)] hover:text-orange-400 transition-colors cursor-pointer"
       title="RSVP"
       aria-label="RSVP"
     >

@@ -1,5 +1,6 @@
 'use client';
 
+import { EmptyState } from './EmptyState';
 import { useState } from 'react';
 import { X, Trash2, ExternalLink, Users, ChevronRight, Mail } from 'lucide-react';
 import type { Friend } from '@/lib/types';
@@ -107,7 +108,7 @@ export function FriendsPanel({
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-[60] bg-black/50 transition-opacity duration-300 ${
+        className={`fixed inset-0 z-[var(--z-drawer-backdrop)] bg-black/50 transition-opacity duration-300 ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => { trackModalDismiss('friends_panel'); onClose(); }}
@@ -115,7 +116,7 @@ export function FriendsPanel({
 
       {/* Panel */}
       <div
-        className={`fixed top-0 right-0 z-[70] h-full w-full max-w-sm bg-[var(--theme-bg-primary)] border-l border-[var(--theme-border-primary)] shadow-2xl transition-transform duration-300 ease-in-out pt-[var(--safe-area-top)] ${
+        className={`fixed top-0 right-0 z-[var(--z-drawer)] h-full w-full max-w-sm bg-[var(--theme-bg-primary)] border-l border-[var(--theme-border-primary)] shadow-2xl transition-transform duration-300 ease-in-out pt-[var(--safe-area-top)] ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -139,13 +140,12 @@ export function FriendsPanel({
         {/* Content */}
         <div className="overflow-y-auto h-[calc(100%-57px)] px-4 pb-4">
           {friends.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <Users className="w-12 h-12 text-[var(--theme-text-faint)] mb-4" />
-              <p className="text-[var(--theme-text-secondary)] font-medium mb-2">No friends yet</p>
-              <p className="text-[var(--theme-text-muted)] text-sm max-w-xs">
-                Share a friend link from your profile to connect!
-              </p>
-            </div>
+            <EmptyState
+              size="panel"
+              icon={Users}
+              title="No friends yet"
+              description="Share a friend link from your profile to connect!"
+            />
           ) : (
             <div className="space-y-2 mt-3">
               {friends.map((friend) => (

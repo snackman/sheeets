@@ -119,7 +119,7 @@ export function OGImage({ url, eventId, rsvpUrl, onOpenLightbox, isInItinerary, 
       {/* Built-in lightbox (used when no external lightbox handler) */}
       {lightboxOpen && imageUrl && !onOpenLightbox && createPortal(
         <div
-          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90"
+          className="fixed inset-0 z-[var(--z-lightbox)] flex items-center justify-center bg-black/90"
           onClick={() => setLightboxOpen(false)}
         >
           <button
@@ -219,7 +219,7 @@ export function FlyerLightbox({ imageUrl, rsvpUrl, onClose, onPrev, onNext, even
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90"
+      className="fixed inset-0 z-[var(--z-lightbox)] flex items-center justify-center bg-black/90"
       onClick={onClose}
     >
       <button

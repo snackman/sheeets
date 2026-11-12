@@ -259,7 +259,7 @@ function ItineraryPageContent() {
   return (
     <div className={viewMode === 'map' ? 'h-screen flex flex-col bg-[var(--theme-bg-primary)]' : 'min-h-screen bg-[var(--theme-bg-primary)]'}>
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-[var(--theme-bg-primary)]/95 backdrop-blur-sm border-b border-[var(--theme-border-secondary)]">
+      <header className="sticky top-0 z-[var(--z-header)] bg-[var(--theme-bg-primary)]/95 backdrop-blur-sm border-b border-[var(--theme-border-secondary)]">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
@@ -363,7 +363,7 @@ function ItineraryPageContent() {
           <CalendarX className="w-12 h-12 text-[var(--theme-text-faint)] mb-4" />
           <p className="text-[var(--theme-text-secondary)] font-medium mb-2">No events in your itinerary yet</p>
           <p className="text-[var(--theme-text-muted)] text-sm max-w-xs mb-4">
-            Star events from the main page to build your schedule!
+            Tap + on any event on the main page to add it to your plan!
           </p>
           <Link
             href="/"

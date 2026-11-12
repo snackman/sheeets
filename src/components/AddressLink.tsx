@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
+import { Modal } from './Modal';
 import { Navigation, Car, X, MapPinCheck, MapPinOff, Loader2, LogIn, Copy, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -78,15 +78,6 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
 
     fetchActiveCheckIn();
   }, [isOpen, isPrivatePin, user]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, [isOpen, onClose]);
 
   const handleCheckIn = useCallback(async () => {
     if (!user || !eventId) return;
@@ -185,10 +176,14 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
   const showCheckOut = !!isPrivatePin && !!user && !!activeCheckIn && !loadingActiveCheckIn;
   const showSignInHint = (!!eventId || !!isPrivatePin) && !user;
 
-  return createPortal(
-    <>
-      <div className="fixed inset-0 z-[80] bg-black/50" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 z-[90] bg-[var(--theme-bg-secondary)] border-t border-[var(--theme-border-primary)] rounded-t-2xl p-4 pb-8">
+  return (
+    <Modal
+      onClose={onClose}
+      ariaLabel="Directions"
+      containerClassName="items-end"
+      className="w-full bg-[var(--theme-bg-secondary)] border-t border-[var(--theme-border-primary)] rounded-t-2xl p-4 pb-8"
+    >
+      <>
         <p className="text-[var(--theme-text-secondary)] text-xs mb-3 truncate px-1">{address}</p>
         <div className="space-y-1">
           <button
@@ -302,9 +297,8 @@ function NavigationSheet({ isOpen, onClose, address, lat, lng, eventId, eventNam
         >
           Cancel
         </button>
-      </div>
-    </>,
-    document.body
+      </>
+    </Modal>
   );
 }
 

@@ -27,7 +27,7 @@ export function EmojiReactions({
 }: EmojiReactionsProps) {
   const [showPicker, setShowPicker] = useState(false);
 
-  const gap = compact ? 'gap-1' : 'gap-1.5';
+  const gap = compact ? 'gap-1 tap:gap-6' : 'gap-1.5 tap:gap-6';
 
   return (
     <div className={`flex flex-wrap items-center ${gap}`}>
@@ -39,7 +39,9 @@ export function EmojiReactions({
             trackReactionToggle(eventId, r.emoji, !r.reacted);
             onToggle(eventId, r.emoji);
           }}
-          className="py-0.5 transition-colors cursor-pointer inline-flex items-center gap-0.5"
+          aria-pressed={r.reacted}
+          aria-label={`${r.emoji} ${r.count}`}
+          className="py-0.5 hit-44 transition-colors cursor-pointer inline-flex items-center gap-0.5"
         >
           <span className="text-[18px] leading-none">{r.emoji}</span>
           <span className={`text-xs ${r.reacted ? 'text-[var(--theme-accent)]' : 'text-[var(--theme-text-muted)]'}`}>{r.count}</span>
@@ -54,21 +56,23 @@ export function EmojiReactions({
             if (!showPicker) trackReactionPickerOpen();
             setShowPicker(!showPicker);
           }}
-          className="text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer inline-flex items-center"
+          aria-label="Add reaction"
+          aria-expanded={showPicker}
+          className="hit-44 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer inline-flex items-center"
         >
-          <ThumbsUp className="w-5 h-5 translate-y-[3px]" />
+          <ThumbsUp className="w-5 h-5 translate-y-[3px]" aria-hidden="true" />
         </button>
 
         {showPicker && (
           <>
             <div
-              className="fixed inset-0 z-[40]"
+              className="fixed inset-0 z-[var(--z-dropdown-backdrop)]"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowPicker(false);
               }}
             />
-            <div className="absolute bottom-full left-0 mb-1 z-[41] bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl p-1.5 grid grid-cols-4 gap-1 min-w-[160px]">
+            <div className="absolute bottom-full left-0 mb-1 z-[var(--z-dropdown)] bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-lg shadow-xl p-1.5 grid grid-cols-4 gap-1 min-w-[160px]">
               {REACTION_EMOJIS.map((emoji) => (
                 <button
                   key={emoji}
@@ -78,6 +82,7 @@ export function EmojiReactions({
                     onToggle(eventId, emoji as ReactionEmoji);
                     setShowPicker(false);
                   }}
+                  aria-label={`React with ${emoji}`}
                   className="p-1.5 rounded hover:bg-[var(--theme-bg-tertiary)] transition-colors cursor-pointer text-base"
                 >
                   {emoji}

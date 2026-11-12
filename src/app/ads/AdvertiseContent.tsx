@@ -386,8 +386,8 @@ export function AdvertiseContent() {
               </button>
               {confOpen && (
                 <>
-                  <div className="fixed inset-0 z-[60]" onClick={() => setConfOpen(false)} />
-                  <div className="absolute left-0 top-full mt-1 bg-stone-900 border border-stone-700 rounded-lg shadow-xl overflow-hidden min-w-[180px] z-[70]">
+                  <div className="fixed inset-0 z-[var(--z-dropdown-backdrop)]" onClick={() => setConfOpen(false)} />
+                  <div className="absolute left-0 top-full mt-1 bg-stone-900 border border-stone-700 rounded-lg shadow-xl overflow-hidden min-w-[180px] z-[var(--z-dropdown)]">
                     {EVENT_TABS.map((tab) => (
                       <button
                         key={tab.gid}

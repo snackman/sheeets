@@ -4,14 +4,12 @@ import { useState, useCallback, useMemo } from 'react';
 import type { FilterState } from '@/lib/types';
 import { DEFAULT_TAB, getTabConfig } from '@/lib/constants';
 import type { TabConfig } from '@/lib/conferences';
+import { zonedSlotISO } from '@/lib/zoned-time';
 
 export function getDateTimeRangeForConference(conference: string, tabs?: TabConfig[]): { startDateTime: string; endDateTime: string } {
   const tab = getTabConfig(conference, tabs) ?? DEFAULT_TAB;
   const dates = tab.dates;
-  const now = new Date(new Date().toLocaleString('en-US', { timeZone: tab.timezone }));
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const mins = now.getMinutes() < 30 ? 0 : 30;
-  const nowISO = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(mins)}`;
+  const nowISO = zonedSlotISO(tab.timezone);
 
   const firstEventStart = `${dates[0]}T00:00`;
   const lastEventEnd = `${dates[dates.length - 1]}T23:30`;
@@ -91,13 +89,8 @@ export function useFilters(initialConference?: string, conferenceTabs?: TabConfi
     []
   );
 
-  const cycleTimeMode = useCallback(() => {
-    setFilters((prev) => {
-      const order: FilterState['timeMode'][] = ['off', 'now', 'today', 'tomorrow'];
-      const idx = order.indexOf(prev.timeMode);
-      const next = order[(idx + 1) % order.length];
-      return { ...prev, timeMode: next };
-    });
+  const setTimeMode = useCallback((timeMode: FilterState['timeMode']) => {
+    setFilters((prev) => ({ ...prev, timeMode }));
   }, []);
 
   const toggleTagMatchAll = useCallback(() => {
@@ -134,7 +127,7 @@ export function useFilters(initialConference?: string, conferenceTabs?: TabConfi
     toggleVibe,
     toggleFriend,
     toggleBool,
-    cycleTimeMode,
+    setTimeMode,
     toggleTagMatchAll,
     clearFilters,
     activeFilterCount,

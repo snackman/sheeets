@@ -86,7 +86,7 @@ export default async function OrgsPage() {
 
   return (
     <div className="min-h-screen bg-[var(--theme-bg-primary)]">
-      <header className="sticky top-0 z-50 flex items-center gap-3 px-4 py-3 bg-[var(--theme-bg-primary)] border-b border-[var(--theme-border-primary)]">
+      <header className="sticky top-0 z-[var(--z-header)] flex items-center gap-3 px-4 py-3 bg-[var(--theme-bg-primary)] border-b border-[var(--theme-border-primary)]">
         <Link href="/" className="flex items-center gap-2">
           <Image src="/logo.png" alt="plan.wtf" width={28} height={28} />
         </Link>

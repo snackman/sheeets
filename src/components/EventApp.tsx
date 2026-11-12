@@ -1,7 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
 import dynamic from 'next/dynamic';
+import { WifiOff } from 'lucide-react';
+import { EmptyState } from './EmptyState';
+import { Button } from './Button';
+import { ActiveFiltersContext } from './ActiveFiltersContext';
+import { describeActiveFilters } from '@/lib/active-filters';
 import { useEvents } from '@/hooks/useEvents';
 import { useFilters, getDateTimeRangeForConference } from '@/hooks/useFilters';
 import { useItinerary } from '@/hooks/useItinerary';
@@ -74,6 +79,15 @@ const RsvpOverlay = dynamic(
   { ssr: false }
 );
 
+const subscribeNoop = () => () => {};
+function readOnboardingPending(): boolean {
+  try {
+    return !localStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETED);
+  } catch {
+    return false;
+  }
+}
+
 export function EventApp({ initialConference, initialEvents, initialConferenceTabs }: { initialConference?: string; initialEvents?: ETHDenverEvent[]; initialConferenceTabs?: TabConfig[] }) {
   const { config } = useAdminConfig();
   const { tabs: conferenceTabs } = useConferenceTabs(initialConferenceTabs);
@@ -85,13 +99,13 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
     toggleVibe,
     toggleFriend,
     toggleBool,
-    cycleTimeMode,
+    setTimeMode,
     toggleTagMatchAll,
     clearFilters,
     activeFilterCount,
     toggleOrg,
   } = useFilters(initialConference, conferenceTabs);
-  const { events, loading, error, loadAll: loadAllEvents } = useEvents(initialEvents, filters.conference);
+  const { events, loading, error, loadAll: loadAllEvents, reload: reloadEvents, failedConference, retryConference } = useEvents(initialEvents, filters.conference);
 
   // Re-apply conference date range once dynamic tabs load
   // (fixes dates for conferences not in FALLBACK_TABS, e.g. Toronto Tech Week)
@@ -546,7 +560,12 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
   // Lazy-loaded modals mount on first open, then stay mounted
   const submitEventMounted = useHasOpened(showSubmitEvent);
   const friendsMounted = useHasOpened(showFriends);
-  const handleOnboardingAuth = useCallback(() => { setShowOnboarding(false); setShowSignIn(true); }, []);
+  const handleOnboardingAuth = useCallback(() => { setOnboardingOverride(false); setShowSignIn(true); }, []);
+
+  const activeFilterSummary = useMemo(
+    () => describeActiveFilters(filters, getDateTimeRangeForConference(filters.conference, conferenceTabs)),
+    [filters, conferenceTabs]
+  );
 
   // Memoized derived value
   const filteredItineraryCount = useMemo(
@@ -555,17 +574,20 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
   );
 
   // Onboarding wizard for first-time users
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  // Decided during the commit that hydrates the page (useSyncExternalStore re-renders
+  // synchronously before paint), so there is no flash of the page-then-wizard.
+  const onboardingPending = useSyncExternalStore(
+    subscribeNoop,
+    readOnboardingPending,
+    () => false,
+  );
+  const [onboardingOverride, setOnboardingOverride] = useState<boolean | null>(null);
+  const showOnboarding = onboardingOverride ?? onboardingPending;
+  const setShowOnboarding = setOnboardingOverride;
   const onboardingMounted = useHasOpened(showOnboarding);
-  useEffect(() => {
-    if (!localStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETED)) {
-      setShowOnboarding(true);
-    }
-  }, []);
-  // Onboarding lets the user pick any conference, so it needs every event.
-  useEffect(() => {
-    if (showOnboarding) loadAllEvents();
-  }, [showOnboarding, loadAllEvents]);
+  const handleOpenIntro = useCallback(() => setOnboardingOverride(true), []);
+  // The conference/interest steps need every conference's events; the welcome step doesn't.
+  const handleOnboardingNeedsData = loadAllEvents;
 
   const handleOnboardingComplete = useCallback(
     (config: { conference: string; selectedTags: string[] }) => {
@@ -578,13 +600,13 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
         toggleVibe(tag);
       }
     },
-    [setConference, toggleVibe]
+    [setConference, toggleVibe, setShowOnboarding]
   );
 
   const handleOnboardingDismiss = useCallback(() => {
     localStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETED, '1');
     setShowOnboarding(false);
-  }, []);
+  }, [setShowOnboarding]);
 
   const conferenceEventCounts = useMemo(
     () => events.reduce<Record<string, number>>((acc, e) => {
@@ -620,22 +642,27 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
           refreshFriends={refreshFriends}
         />
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-4">
-          <div className="text-red-400 text-lg font-medium">Failed to load events</div>
-          <p className="text-[var(--theme-text-muted)] text-sm text-center max-w-md">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-2 px-4 py-2 bg-[var(--theme-accent)] hover:bg-[var(--theme-accent-hover)] active:bg-[var(--theme-accent-hover)] text-[var(--theme-accent-text)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
-          >
-            Retry
-          </button>
+          <div role="alert" className="flex flex-col items-center">
+            <EmptyState
+              icon={WifiOff}
+              title="We couldn't load events"
+              description="Check your connection and try again. Your filters are saved."
+            >
+              <Button type="button" onClick={() => { reloadEvents(); }} className="mt-4">
+                Try again
+              </Button>
+            </EmptyState>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
+    <ActiveFiltersContext.Provider value={activeFilterSummary}>
     <div className="h-dvh flex flex-col bg-[var(--theme-bg-primary)] overflow-hidden">
       <Header
+        onOpenIntro={handleOpenIntro}
         events={events}
         itinerary={itinerary}
         onOpenFriends={handleOpenFriends}
@@ -664,7 +691,7 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
           onSetConference={setConference}
           onSetDateTimeRange={setDateTimeRange}
           onToggleVibe={toggleVibe}
-          onCycleTimeMode={cycleTimeMode}
+          onSetTimeMode={setTimeMode}
           onToggleTagMatchAll={toggleTagMatchAll}
           onClearFilters={clearFilters}
           activeFilterCount={activeFilterCount}
@@ -692,6 +719,14 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
           orgEventCount={orgEventCount}
         />
         <ViewToolbar viewMode={viewMode} onViewChange={setViewMode} eventCount={filteredEvents.length} timeZoneLabel={timeZoneLabel} />
+        {failedConference && failedConference === filters.conference && (
+          <div role="alert" className="flex items-center justify-between gap-3 px-3 sm:px-4 py-2 text-sm bg-[var(--theme-bg-secondary)] border-b border-[var(--theme-border-secondary)] text-[var(--theme-text-secondary)]">
+            <span>We couldn&apos;t load events for {failedConference}. Check your connection.</span>
+            <Button type="button" size="sm" variant="secondary" onClick={() => { retryConference(failedConference); }}>
+              Try again
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Main content area */}
@@ -835,6 +870,7 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
           conferenceEventCounts={conferenceEventCounts}
           events={events}
           onOpenAuth={handleOnboardingAuth}
+          onNeedData={handleOnboardingNeedsData}
           conferenceTabs={conferenceTabs}
         />
       )}
@@ -861,7 +897,7 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
         />
       )}
       {friendCodeToast && (
-        <div className={`fixed bottom-[calc(1.5rem+var(--safe-area-bottom))] left-1/2 -translate-x-1/2 z-[9999] px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-opacity duration-300 ${
+        <div className={`fixed bottom-[calc(1.5rem+var(--safe-area-bottom))] left-1/2 -translate-x-1/2 z-[var(--z-toast)] px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-opacity duration-300 ${
           friendCodeToast.type === 'success'
             ? 'bg-green-600 text-white'
             : 'bg-red-600 text-white'
@@ -870,5 +906,6 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
         </div>
       )}
     </div>
+    </ActiveFiltersContext.Provider>
   );
 }

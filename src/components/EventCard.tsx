@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, memo } from 'react';
-import { createPortal } from 'react-dom';
+import { Modal } from './Modal';
 import { MapPin, Calendar, X, Link, Check, MapPinCheck, Loader2 } from 'lucide-react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
 import { trackEventClick, trackCopyEventLink, trackFriendsGoingOpen, trackFriendsCheckedInOpen, trackOutboundClick } from '@/lib/analytics';
@@ -64,39 +64,25 @@ function FriendsGoingModal({
   title?: string;
   accentColor?: 'blue' | 'green';
 }) {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
-
   const avatarBg = accentColor === 'green' ? 'bg-green-500/20' : '';
   const avatarBgStyle = accentColor === 'green' ? undefined : { backgroundColor: 'color-mix(in srgb, var(--friend-blue) 20%, transparent)' };
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
-      onClick={onClose}
+  return (
+    <Modal
+      onClose={onClose}
+      labelledBy="friends-going-title"
+      backdropClassName="bg-black/60"
+      className="bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm"
     >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60" />
-
-      {/* Modal */}
-      <div
-        className="relative bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-xl shadow-2xl w-full max-w-sm"
-        onClick={(e) => e.stopPropagation()}
-      >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)]">
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-bold text-[var(--theme-text-primary)]">{title}</h3>
+            <h3 id="friends-going-title" className="text-sm font-bold text-[var(--theme-text-primary)]">{title}</h3>
             <p className="text-xs text-[var(--theme-text-secondary)] truncate">{eventName}</p>
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer shrink-0 ml-2"
+            className="inline-flex items-center justify-center min-h-11 min-w-11 -m-2.5 text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer shrink-0 ml-2"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -124,9 +110,7 @@ function FriendsGoingModal({
             </div>
           ))}
         </div>
-      </div>
-    </div>,
-    document.body
+    </Modal>
   );
 }
 
@@ -237,7 +221,7 @@ export const EventCard = memo(function EventCard({
     >
       {/* Left column: action buttons + cover image */}
       <div className="flex items-center shrink-0 gap-1">
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex flex-col items-center gap-1 tap:gap-5">
           {onItineraryToggle && (
             <StarButton
               eventId={event.id}
@@ -253,7 +237,7 @@ export const EventCard = memo(function EventCard({
           {event.link && (
             <button
               onClick={handleCopyLink}
-              className="p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
+              className="p-1 hit-44 inline-flex items-center justify-center text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)] transition-colors cursor-pointer"
               aria-label="Copy event link"
               title="Copy link"
             >
@@ -345,7 +329,7 @@ export const EventCard = memo(function EventCard({
                 onCheckIn(event.id);
               }}
               disabled={checkInLoading}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-[10px] font-medium transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2 py-0.5 hit-44 rounded-md bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-[10px] font-medium transition-colors cursor-pointer"
             >
               {checkInLoading ? (
                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -388,7 +372,7 @@ export const EventCard = memo(function EventCard({
         )}
 
         {/* Bottom row: friends + reactions + checked-in indicator */}
-        <div className="flex items-center gap-2 mt-2">
+        <div className="flex items-center gap-2 tap:gap-6 mt-2">
           {friendsGoing && friendsGoing.length > 0 && (
             <button
               onClick={(e) => {
@@ -396,10 +380,14 @@ export const EventCard = memo(function EventCard({
                 trackFriendsGoingOpen(event.name);
                 setShowFriendsModal(true);
               }}
-              className="cursor-pointer hover:opacity-80 transition-opacity shrink-0"
+              className="flex items-center gap-1.5 hit-44 cursor-pointer hover:opacity-80 transition-opacity shrink-0"
               title={formatFriendsText(friendsGoing)}
+              aria-label={`${friendsGoing.length} friend${friendsGoing.length !== 1 ? 's' : ''} going: ${formatFriendsText(friendsGoing)}`}
             >
               <FriendAvatarStack friends={friendsGoing} maxShow={2} size="sm" />
+              <span className="text-xs text-[var(--theme-text-secondary)] whitespace-nowrap">
+                {friendsGoing.length} friend{friendsGoing.length !== 1 ? 's' : ''} going
+              </span>
             </button>
           )}
           {onToggleReaction && (
@@ -418,7 +406,7 @@ export const EventCard = memo(function EventCard({
                 trackFriendsCheckedInOpen(event.name);
                 setShowCheckedInModal(true);
               }}
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded-md hover:bg-[var(--theme-bg-tertiary)]/50 transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-1.5 py-0.5 hit-44 rounded-md hover:bg-[var(--theme-bg-tertiary)]/50 transition-colors cursor-pointer"
             >
               <MapPin className="w-3 h-3 text-green-400 shrink-0" />
               <span className="text-[10px] text-green-400">

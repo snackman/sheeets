@@ -114,10 +114,6 @@ function GalleryCard({
     <div
       ref={cardRef}
       className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
-      onClick={onClick}
-      role="button"
-      tabIndex={0}
-      aria-label={`View flyer for ${event.name}`}
     >
       {/* Image or shimmer or placeholder */}
       {!loaded && !showPlaceholder && (
@@ -159,6 +155,14 @@ function GalleryCard({
           </span>
         </div>
       )}
+
+      {/* Whole-tile flyer button (a sibling of the star button, not its ancestor) */}
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={`View flyer for ${event.name}`}
+        className="absolute inset-0 z-[1] cursor-pointer"
+      />
 
       {/* StarButton + friend avatars overlay — top-right */}
       {onItineraryToggle && (
@@ -206,7 +210,7 @@ function GalleryCard({
       )}
 
       {/* Bottom overlay bar — gradient + name + time */}
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent pt-8 pb-1.5 px-2">
+      <div className="absolute inset-x-0 bottom-0 pointer-events-none bg-gradient-to-t from-black/70 to-transparent pt-8 pb-1.5 px-2">
         <div className="flex flex-col">
           <span className="text-white text-sm font-medium line-clamp-1">
             {event.name}
@@ -363,7 +367,7 @@ export function GalleryView({
         return (
           <div key={group.dateISO}>
             {/* Date header */}
-            <div className={`sticky top-0 z-20 bg-[var(--theme-date-sep-bg)] px-3 sm:px-4 py-2 border-b border-[var(--theme-date-sep-border)] rounded-lg ${groupIdx > 0 ? 'mt-6' : ''}`}>
+            <div className={`sticky top-0 z-[var(--z-sticky)] bg-[var(--theme-date-sep-bg)] px-3 sm:px-4 py-2 border-b border-[var(--theme-date-sep-border)] rounded-lg ${groupIdx > 0 ? 'mt-6' : ''}`}>
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-bold text-[var(--theme-date-sep-text)]">
                   {group.label}

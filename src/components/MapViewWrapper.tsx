@@ -150,9 +150,10 @@ export const MapViewWrapper = memo(function MapViewWrapper({
           {/* Toggle tab */}
           <button
             onClick={() => setDrawerOpen(!drawerOpen)}
-            className="pointer-events-auto self-center mb-2 flex items-center gap-1.5 px-3 py-1.5 bg-[var(--theme-bg-secondary)]/90 backdrop-blur-sm border border-[var(--theme-border-primary)] rounded-full text-xs text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:bg-[var(--theme-bg-tertiary)] transition-colors cursor-pointer shadow-lg"
+            aria-expanded={drawerOpen}
+            className="pointer-events-auto self-center mb-2 flex items-center gap-1.5 px-3 py-1.5 tap:min-h-11 bg-[var(--theme-bg-secondary)]/90 backdrop-blur-sm border border-[var(--theme-border-primary)] rounded-full text-xs text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-tertiary)] active:bg-[var(--theme-bg-tertiary)] transition-colors cursor-pointer shadow-lg"
           >
-            <MapPinOff className="w-3.5 h-3.5" />
+            <MapPinOff className="w-3.5 h-3.5" aria-hidden="true" />
             {count} without location
             {drawerOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
           </button>
