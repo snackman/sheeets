@@ -4,6 +4,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 
+/** Ask the server to (re)evaluate X verification for the signed-in user. */
+async function callXVerify(method: 'POST' | 'DELETE'): Promise<Response | null> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return null;
+  return fetch('/api/profile/x-verify', { method, headers: { Authorization: `Bearer ${token}` } });
+}
+
 export function useXVerification() {
   const { user } = useAuth();
   const [isXVerified, setIsXVerified] = useState(false);
@@ -46,24 +54,19 @@ export function useXVerification() {
 
     if (twitterIdentity) {
       const handle = twitterIdentity.identity_data?.user_name;
-      const avatarUrl = twitterIdentity.identity_data?.avatar_url;
       const oauthId = twitterIdentity.id;
 
       if (handle && oauthId) {
-        // Update profile with verified X data
-        supabase
-          .from('profiles')
-          .update({
-            x_handle: handle,
-            x_verified: true,
-            x_oauth_id: oauthId,
-            x_avatar_url: avatarUrl || null,
+        // The server re-checks the linked identity with the caller's token and
+        // writes the verified columns itself; the client cannot.
+        callXVerify('POST')
+          .then((res) => {
+            if (res?.ok) {
+              setIsXVerified(true);
+              setXHandle(handle);
+            }
           })
-          .eq('user_id', user.id)
-          .then(() => {
-            setIsXVerified(true);
-            setXHandle(handle);
-          });
+          .catch(() => {});
       }
     }
   }, [user, isXVerified]);
@@ -88,16 +91,8 @@ export function useXVerification() {
 
     if (twitterIdentity) {
       await supabase.auth.unlinkIdentity(twitterIdentity);
-      await supabase
-        .from('profiles')
-        .update({
-          x_verified: false,
-          x_oauth_id: null,
-          x_avatar_url: null,
-        })
-        .eq('user_id', user.id);
-
-      setIsXVerified(false);
+      const res = await callXVerify('DELETE').catch(() => null);
+      if (res?.ok) setIsXVerified(false);
     }
   }, [user]);
 
