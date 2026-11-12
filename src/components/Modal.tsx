@@ -130,6 +130,7 @@ export function Modal({
     <div
       className={`fixed inset-0 z-[var(--z-modal)] flex ${backdropClassName} ${containerClassName}`}
       onClick={(e) => {
+        e.stopPropagation(); // portals bubble through the React tree (e.g. into clickable table rows)
         if (closeOnBackdrop && e.target === e.currentTarget) onClose();
       }}
       data-modal-backdrop

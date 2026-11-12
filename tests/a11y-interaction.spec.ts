@@ -24,6 +24,34 @@ async function expectTapTarget(loc: Locator, label: string, min = 44) {
   expect(box!.height, `${label} height ${box!.height}`).toBeGreaterThanOrEqual(min - 0.5);
 }
 
+/** Effective hit area: the element must own the points 21px out from its centre in all four directions. */
+// skipBottom: list cards currently overlap by ~13px (virtualizer row estimates, mobile-perf branch), so the
+// bottom edge of controls in the card's last row is covered by the next card.
+async function expectHitArea(loc: Locator, label: string, opts: { skipBottom?: boolean } = {}, min = 44) {
+  const el = loc.first();
+  await expect(el, `${label} visible`).toBeVisible();
+  const r = await el.evaluate((node, half) => {
+    const b = node.getBoundingClientRect();
+    const cx = b.left + b.width / 2;
+    const cy = b.top + b.height / 2;
+    const dx = Math.max(b.width / 2, half) - 1;
+    const dy = Math.max(b.height / 2, half) - 1;
+    const owns = ([x, y]: number[]) => {
+      const hit = document.elementFromPoint(x, y);
+      return !!hit && node.contains(hit);
+    };
+    return {
+      w: b.width,
+      h: b.height,
+      left: owns([cx - dx, cy]),
+      right: owns([cx + dx, cy]),
+      top: owns([cx, cy - dy]),
+      bottom: owns([cx, cy + dy]),
+    };
+  }, min / 2);
+  expect(JSON.stringify(r), `${label} hit area (${r.w}x${r.h}) must reach ${min / 2}px from centre in every direction`).toMatch(opts.skipBottom ? /"left":true,"right":true,"top":true/ : /"left":true,"right":true,"top":true,"bottom":true/);
+}
+
 for (const vp of VIEWPORTS) {
   test.describe(vp.name, () => {
     test.use({ viewport: { width: vp.width, height: vp.height } });
@@ -167,9 +195,11 @@ test.describe('tap targets >= 44px on mobile', () => {
     for (const v of ['Map', 'List', 'Table', 'Gallery']) {
       await expectTapTarget(page.getByRole('button', { name: `${v} view` }), `${v} view`);
     }
-    await expectTapTarget(page.getByRole('button', { name: 'Add to plan' }), 'add to plan');
-    await expectTapTarget(page.getByRole('button', { name: 'Copy event link' }), 'copy link');
-    await expectTapTarget(page.getByRole('button', { name: 'RSVP' }), 'rsvp');
+    await expectHitArea(page.getByRole('button', { name: 'Add to plan' }), 'add to plan');
+    await expectHitArea(page.getByRole('button', { name: 'Copy event link' }), 'copy link');
+    await expectHitArea(page.getByRole('button', { name: 'RSVP' }), 'rsvp');
+    await expectHitArea(page.getByRole('button', { name: 'Add reaction' }), 'add reaction', { skipBottom: true });
+    await expectHitArea(page.getByRole('button', { name: /^Comments/ }), 'comments', { skipBottom: true });
   });
 
   test('expanded filters: vibe chips and calendar days', async ({ page }) => {
@@ -181,5 +211,56 @@ test.describe('tap targets >= 44px on mobile', () => {
     const day = page.getByRole('button', { name: /^\w+day, \w+ \d+$/ }).first();
     await expect(day).toBeVisible();
     await expectTapTarget(day, 'calendar day');
+  });
+
+  test('card height has not grown vs the live (master) site', async ({ page, browser }) => {
+    await open(page, 'list');
+    const first = page.locator('h3').filter({ has: page.locator('a') }).first();
+    const name = (await first.innerText()).trim();
+    const localH = await first.evaluate((h) => (h.closest('div.rounded-lg') as HTMLElement).getBoundingClientRect().height);
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const live = await ctx.newPage();
+    await live.addInitScript(() => localStorage.setItem('sheeets-onboarding-done', '1'));
+    await live.goto('https://plan.wtf/breakpoint2026', { waitUntil: 'networkidle' });
+    await live.getByRole('button', { name: 'List view' }).click();
+    const liveCard = live.locator('h3', { hasText: name }).first();
+    if ((await liveCard.count()) === 0) test.skip(true, 'same event not on live page');
+    const liveH = await liveCard.evaluate((h) => (h.closest('div.rounded-lg') as HTMLElement).getBoundingClientRect().height);
+    await ctx.close();
+    console.log(`CARD HEIGHT local=${localH} live=${liveH}`);
+    expect(localH).toBeLessThanOrEqual(liveH + 4);
+  });
+});
+
+test.describe('stacked overlays', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('table detail -> comments sheet: Tab stays in the sheet, Escape closes only the sheet', async ({ page }) => {
+    await open(page, 'table');
+    const row = page.locator('table tbody tr[tabindex="0"]').first();
+    await row.focus();
+    await page.keyboard.press('Enter');
+    const detail = page.getByRole('dialog').first();
+    await expect(detail).toBeVisible();
+    await detail.getByRole('button', { name: /^Comments/ }).click();
+    const sheet = page.getByRole('dialog', { name: /Comment/ });
+    await expect(sheet).toBeVisible();
+    const seen = new Set<string>();
+    for (let i = 0; i < 10; i++) {
+      await page.keyboard.press('Tab');
+      const info = await page.evaluate(() => {
+        const a = document.activeElement as HTMLElement | null;
+        const d = a?.closest('[role="dialog"]');
+        return { label: d?.getAttribute('aria-labelledby') ?? d?.getAttribute('aria-label') ?? 'none', text: (a?.getAttribute('aria-label') || a?.textContent || a?.tagName || '').trim().slice(0, 30) };
+      });
+      seen.add(info.text);
+      expect(info.label, `focus stays in comments sheet (Tab ${i + 1}: ${info.text})`).toBe('comments-sheet-title');
+    }
+    expect(seen.size, 'Tab moves between several controls inside the sheet').toBeGreaterThan(1);
+    await page.keyboard.press('Escape');
+    await expect(sheet).toBeHidden();
+    await expect(detail).toBeVisible(); // only the topmost closed
+    await page.keyboard.press('Escape');
+    await expect(detail).toBeHidden();
   });
 });

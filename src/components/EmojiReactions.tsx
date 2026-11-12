@@ -27,7 +27,7 @@ export function EmojiReactions({
 }: EmojiReactionsProps) {
   const [showPicker, setShowPicker] = useState(false);
 
-  const gap = compact ? 'gap-1' : 'gap-1.5';
+  const gap = compact ? 'gap-1 tap:gap-6' : 'gap-1.5 tap:gap-6';
 
   return (
     <div className={`flex flex-wrap items-center ${gap}`}>
@@ -41,7 +41,7 @@ export function EmojiReactions({
           }}
           aria-pressed={r.reacted}
           aria-label={`${r.emoji} ${r.count}`}
-          className="py-0.5 tap:min-h-11 tap:min-w-11 justify-center transition-colors cursor-pointer inline-flex items-center gap-0.5"
+          className="py-0.5 hit-44 transition-colors cursor-pointer inline-flex items-center gap-0.5"
         >
           <span className="text-[18px] leading-none">{r.emoji}</span>
           <span className={`text-xs ${r.reacted ? 'text-[var(--theme-accent)]' : 'text-[var(--theme-text-muted)]'}`}>{r.count}</span>
@@ -58,7 +58,7 @@ export function EmojiReactions({
           }}
           aria-label="Add reaction"
           aria-expanded={showPicker}
-          className="tap:min-h-11 tap:min-w-11 justify-center text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer inline-flex items-center"
+          className="hit-44 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer inline-flex items-center"
         >
           <ThumbsUp className="w-5 h-5 translate-y-[3px]" aria-hidden="true" />
         </button>
@@ -83,7 +83,7 @@ export function EmojiReactions({
                     setShowPicker(false);
                   }}
                   aria-label={`React with ${emoji}`}
-                  className="p-1.5 tap:min-h-11 tap:min-w-11 rounded hover:bg-[var(--theme-bg-tertiary)] transition-colors cursor-pointer text-base"
+                  className="p-1.5 rounded hover:bg-[var(--theme-bg-tertiary)] transition-colors cursor-pointer text-base"
                 >
                   {emoji}
                 </button>

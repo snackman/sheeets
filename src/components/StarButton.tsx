@@ -30,8 +30,8 @@ export function StarButton({
         e.stopPropagation();
         onToggle(eventId);
       }}
-      // The button itself is a >= 44px touch target on touch/mobile; the visible circle stays small.
-      className="group/star relative shrink-0 cursor-pointer flex items-center justify-center tap:min-h-11 tap:min-w-11 rounded-full"
+      // Visible circle stays small; hit-44 adds an invisible >= 44px touch target on touch/mobile.
+      className="group/star hit-44 shrink-0 cursor-pointer flex items-center justify-center rounded-full"
       aria-label="Add to plan"
       aria-pressed={isStarred}
       title={friendsCount > 0 ? `${friendsLabel} · ${isStarred ? 'In your plan' : 'Add to plan'}` : isStarred ? 'Remove from plan' : 'Add to plan'}

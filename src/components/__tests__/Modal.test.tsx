@@ -124,6 +124,27 @@ describe('Modal', () => {
     expect(outer).not.toHaveBeenCalled();
   });
 
+  it('Tab inside a stacked (topmost) modal never moves focus into the lower modal', async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <Modal ariaLabel="outer" onClose={() => {}}>
+          <button>outer-a</button>
+          <button>outer-b</button>
+        </Modal>
+        <Modal ariaLabel="inner" onClose={() => {}}>
+          <button>inner-a</button>
+          <button>inner-b</button>
+        </Modal>
+      </>,
+    );
+    expect(screen.getByText('inner-a')).toHaveFocus();
+    for (let i = 0; i < 5; i++) {
+      await user.tab();
+      expect(document.activeElement?.textContent).toMatch(/^inner-/);
+    }
+  });
+
   it('keeps scroll locked until the last stacked modal closes', () => {
     const a = render(<Modal ariaLabel="a" onClose={() => {}}><button>a</button></Modal>);
     const b = render(<Modal ariaLabel="b" onClose={() => {}}><button>b</button></Modal>);

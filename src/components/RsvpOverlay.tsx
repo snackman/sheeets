@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { createPortal } from 'react-dom';
+import { Modal } from './Modal';
 import { X, Copy, Check, User, Mail, Send, Building2, Briefcase, Linkedin, ExternalLink } from 'lucide-react';
 import { isSafeHttpUrl } from '@/lib/utils';
 
@@ -82,42 +82,20 @@ export function RsvpOverlay({
 }: RsvpOverlayProps) {
   const slug = getLumaSlug(lumaUrl);
 
-  // Close on Escape key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
-
-  // Lock body scroll
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, []);
-
   if (!slug) return null;
 
   const hasCopyFields = userName || userEmail || userXHandle || userTelegram || userCompany || userLinkedin || userJobTitle;
   const embedUrl = `https://lu.ma/embed/event/${slug}/simple`;
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[var(--z-modal)] flex items-end sm:items-center justify-center"
-      onClick={onClose}
+  return (
+    <Modal
+      onClose={onClose}
+      labelledBy="rsvp-overlay-title"
+      backdropClassName="bg-black/60"
+      containerClassName="items-end sm:items-center justify-center"
+      className="relative w-full sm:max-w-lg bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col h-[85vh] max-h-[85vh] sm:h-[80vh] sm:max-h-[80vh]"
     >
-      {/* Dark backdrop */}
-      <div className="absolute inset-0 bg-black/60" />
-
-      {/* Modal container: bottom-sheet on mobile, centered on desktop */}
-      <div
-        className="relative w-full sm:max-w-lg bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-t-2xl sm:rounded-xl shadow-2xl flex flex-col"
-        style={{ height: '85vh', maxHeight: '85vh' }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="contents">
         {/* Use a CSS media query workaround via Tailwind for desktop height */}
         <style>{`
           @media (min-width: 640px) {
@@ -131,7 +109,7 @@ export function RsvpOverlay({
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--theme-border-primary)] shrink-0">
             <div className="min-w-0 flex-1">
-              <h2 className="text-sm font-bold text-[var(--theme-text-primary)] truncate">
+              <h2 id="rsvp-overlay-title" className="text-sm font-bold text-[var(--theme-text-primary)] truncate">
                 RSVP
               </h2>
               <a
@@ -193,7 +171,6 @@ export function RsvpOverlay({
           </div>
         </div>
       </div>
-    </div>,
-    document.body
+    </Modal>
   );
 }

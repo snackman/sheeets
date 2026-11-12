@@ -674,6 +674,8 @@ function FeaturedTableRow({
         onSelectEvent(event);
       }}
       tabIndex={0}
+      aria-label={`${event.name}, ${event.date} ${event.startTime}`}
+      aria-haspopup="dialog"
       onKeyDown={(e) => {
         if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
           e.preventDefault();
@@ -684,7 +686,7 @@ function FeaturedTableRow({
       <td className="px-2 py-2">
         <button
           onClick={() => onItineraryToggle?.(event.id)}
-          className="cursor-pointer p-0.5 tap:min-h-11 tap:min-w-11 inline-flex items-center justify-center"
+          className="cursor-pointer p-0.5 hit-44 inline-flex items-center justify-center"
           aria-label="Add to plan"
           aria-pressed={isInItinerary}
           title={isInItinerary ? 'Remove from plan' : 'Add to plan'}
@@ -818,6 +820,8 @@ function TableRow({
         onSelectEvent(event);
       }}
       tabIndex={0}
+      aria-label={`${event.name}, ${event.date} ${event.startTime}`}
+      aria-haspopup="dialog"
       onKeyDown={(e) => {
         if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
           e.preventDefault();
@@ -829,7 +833,7 @@ function TableRow({
       <td className="px-2 py-2">
         <button
           onClick={() => onItineraryToggle?.(event.id)}
-          className="cursor-pointer p-0.5 tap:min-h-11 tap:min-w-11 inline-flex items-center justify-center"
+          className="cursor-pointer p-0.5 hit-44 inline-flex items-center justify-center"
           aria-label="Add to plan"
           aria-pressed={isInItinerary}
           title={isInItinerary ? 'Remove from plan' : 'Add to plan'}

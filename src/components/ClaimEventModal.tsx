@@ -50,14 +50,6 @@ export function ClaimEventModal({ event, claim, onClaimChange, onClose }: ClaimE
   const isLuma = !!getValidLumaSlug(event.link);
   const lumaUrl = claim?.luma_url ?? (isLumaUrl(event.link) ? event.link : null);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !showAuth) onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose, showAuth]);
-
   useEffect(() => () => {
     if (timerRef.current) clearInterval(timerRef.current);
   }, []);

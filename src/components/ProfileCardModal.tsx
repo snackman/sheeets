@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { Modal } from './Modal';
 import { X, ExternalLink, UserPlus, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -50,24 +50,6 @@ export default function ProfileCardModal({
         : 'loading';
   const [incomingRequestId, setIncomingRequestId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-
-  // Escape key listener
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  // Body scroll lock
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = ''; };
-    }
-  }, [isOpen]);
 
   // Fetch friend status
   useEffect(() => {
@@ -224,26 +206,19 @@ export default function ProfileCardModal({
     );
   };
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center"
-      onClick={(e) => {
-        e.stopPropagation();
-        onClose();
-      }}
+  return (
+    <Modal
+      onClose={onClose}
+      ariaLabel={`${displayName} profile`}
+      backdropClassName="bg-black/60"
+      containerClassName="items-center justify-center"
+      className="relative bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-2xl shadow-2xl w-[300px] max-w-[90vw] p-5"
     >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60" />
-
-      {/* Modal content */}
-      <div
-        className="relative bg-[var(--theme-bg-secondary)] border border-[var(--theme-border-primary)] rounded-2xl shadow-2xl w-[300px] max-w-[90vw] p-5"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <>
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
+          className="absolute top-1 right-1 inline-flex items-center justify-center min-h-11 min-w-11 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] transition-colors cursor-pointer"
           aria-label="Close"
         >
           <X className="w-4 h-4" />
@@ -315,8 +290,7 @@ export default function ProfileCardModal({
             {renderFriendButton()}
           </div>
         </div>
-      </div>
-    </div>,
-    document.body
+      </>
+    </Modal>
   );
 }

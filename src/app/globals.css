@@ -18,6 +18,34 @@
   }
 }
 
+/* Invisible >= 44px hit area for small controls on touch/mobile, without changing layout.
+   Adds a centred ::after at least 44x44 over the element. */
+@utility hit-44 {
+  position: relative;
+  @media (pointer: coarse) {
+    &::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      transform: translate(-50%, -50%);
+    }
+  }
+  @media (max-width: 639.98px) {
+    &::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      transform: translate(-50%, -50%);
+    }
+  }
+}
+
 /* Z-index scale — use these instead of ad-hoc z-[60..9999] values */
 :root {
   --z-sticky: 20;          /* sticky date separators, in-list overlays */
