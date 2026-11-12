@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { Loader2, Pencil, Save, X, Trash2, BarChart3, List, BookOpen, FileText, Search, Database } from 'lucide-react';
 import type { EventSponsor, SponsorDataSummary, SponsorCrawlLogEntry } from '@/lib/types';
 import { adminFetch } from '@/lib/admin-fetch';
+import { isSafeHttpUrl } from '@/lib/utils';
 
 interface TabConfig {
   gid: number;
@@ -661,7 +662,7 @@ export default function SponsorDataTab({ allConferenceTabs, password }: Props) {
                       </td>
                       <td className="py-2 text-xs max-w-[150px] truncate">
                         {d.sponsor_url ? (
-                          <a href={d.sponsor_url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                          <a href={isSafeHttpUrl(d.sponsor_url) ? d.sponsor_url : undefined} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
                             {d.sponsor_url}
                           </a>
                         ) : (
@@ -761,7 +762,7 @@ export default function SponsorDataTab({ allConferenceTabs, password }: Props) {
                     <tr key={i} className="border-b border-stone-800 text-white">
                       <td className="py-2 pr-4 text-xs max-w-[250px] truncate">
                         <a
-                          href={entry.event_url}
+                          href={isSafeHttpUrl(entry.event_url) ? entry.event_url : undefined}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-400 hover:underline"
