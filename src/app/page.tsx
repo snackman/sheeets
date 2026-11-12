@@ -206,14 +206,14 @@ export default async function Home() {
 
       {/* Active conferences */}
       {tabs.length > 0 && (
-        <div className="w-full max-w-3xl mb-16">
+        <div className="w-full max-w-5xl mb-16">
           <h2
             className="text-sm font-semibold uppercase tracking-wider mb-4"
             style={{ color: 'var(--theme-text-muted)' }}
           >
             Browse Events
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 15rem), 1fr))" }}>
             {tabs.map((tab) => {
               const city = getCity(tab.center, tab.timezone, tab.city);
               const dateRange = formatDateRange(tab.dates);

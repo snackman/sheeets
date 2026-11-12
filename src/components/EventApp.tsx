@@ -759,6 +759,7 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
             liveEventIds={liveEventIds}
             getRsvpStatus={getRsvpStatus}
             onRsvp={handleRsvp}
+            filtersOpen={filtersExpanded}
           />
         </main>
       ) : viewMode === 'table' ? (
@@ -788,7 +789,7 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
           />
         </main>
       ) : viewMode === 'gallery' ? (
-        <main key="gallery" ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto bg-[var(--theme-bg-list)]">
+        <main key="gallery" ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto bg-[var(--theme-bg-list)] pb-[var(--safe-area-bottom)]">
           <GalleryView
             events={filteredEvents}
             totalCount={conferenceEventCount}
@@ -808,7 +809,7 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
           />
         </main>
       ) : (
-        <main key="list" ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto bg-[var(--theme-bg-list)] [overflow-anchor:none]">
+        <main key="list" ref={listMainRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto bg-[var(--theme-bg-list)] [overflow-anchor:none] pb-[var(--safe-area-bottom)]">
           <ListView
             events={filteredEvents}
             totalCount={conferenceEventCount}
@@ -896,7 +897,7 @@ export function EventApp({ initialConference, initialEvents, initialConferenceTa
         />
       )}
       {friendCodeToast && (
-        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[var(--z-toast)] px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-opacity duration-300 ${
+        <div className={`fixed bottom-[calc(1.5rem+var(--safe-area-bottom))] left-1/2 -translate-x-1/2 z-[var(--z-toast)] px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-opacity duration-300 ${
           friendCodeToast.type === 'success'
             ? 'bg-green-600 text-white'
             : 'bg-red-600 text-white'

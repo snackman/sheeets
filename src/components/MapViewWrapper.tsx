@@ -49,6 +49,7 @@ interface MapViewWrapperProps {
   liveEventIds?: Map<string, 'green' | 'yellow' | 'red'>;
   getRsvpStatus?: (eventId: string) => 'idle' | 'confirmed';
   onRsvp?: (eventId: string, lumaUrl: string, eventName: string) => void;
+  filtersOpen?: boolean;
 }
 
 export const MapViewWrapper = memo(function MapViewWrapper({
@@ -79,6 +80,7 @@ export const MapViewWrapper = memo(function MapViewWrapper({
   liveEventIds,
   getRsvpStatus,
   onRsvp,
+  filtersOpen,
 }: MapViewWrapperProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -119,11 +121,12 @@ export const MapViewWrapper = memo(function MapViewWrapper({
         liveEventIds={liveEventIds}
         getRsvpStatus={getRsvpStatus}
         onRsvp={onRsvp}
+        filtersOpen={filtersOpen}
       />
 
       {/* No-location drawer */}
       {count > 0 && (
-        <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-col pointer-events-none">
+        <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-col pointer-events-none pb-[var(--safe-area-bottom)]">
           {/* Scrollable event list */}
           {drawerOpen && (
             <div className="pointer-events-auto bg-[var(--theme-bg-primary)]/95 backdrop-blur-sm border-t border-[var(--theme-border-primary)] max-h-[45vh] overflow-y-auto">

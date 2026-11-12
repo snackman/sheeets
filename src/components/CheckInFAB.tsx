@@ -25,7 +25,7 @@ export function CheckInFAB({ liveItineraryCount, onCheckIn, loading, result }: C
   if (liveItineraryCount <= 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[var(--z-fab)] flex flex-col items-end gap-2">
+    <div className="fixed bottom-[calc(1rem+var(--safe-area-bottom))] right-4 z-[var(--z-fab)] flex flex-col items-end gap-2">
       {/* Result toast */}
       {showResult && result && (
         <div

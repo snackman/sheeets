@@ -7,7 +7,7 @@
 // rather than guaranteeing exactly-once -- good enough for ops pings.)
 // Callers must pass non-secret text only; never include tokens/passwords.
 
-export type AlertKind = 'cron_errors' | 'budget_cap' | 'kill_switch' | 'reap_failure';
+export type AlertKind = 'cron_errors' | 'budget_cap' | 'kill_switch' | 'reap_failure' | 'admin_login_failures';
 
 export const ALERT_DEDUPE_MS = 60 * 60 * 1000;
 

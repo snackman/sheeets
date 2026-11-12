@@ -15,7 +15,7 @@ function getSupabase() {
 export async function GET(req: NextRequest) {
   // Full config only for an authenticated admin (header password or session
   // cookie); a wrong password header is a 401, no credential is the public view.
-  const wantsAdmin = !!req.headers.get('x-admin-password') || hasValidAdminSession(req);
+  const wantsAdmin = !!req.headers.get('x-admin-password') || (await hasValidAdminSession(req));
   if (wantsAdmin) {
     const denied = await requireAdmin(req);
     if (denied) return denied;

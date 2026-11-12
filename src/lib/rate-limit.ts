@@ -39,11 +39,15 @@ interface Bucket {
  */
 export function createRateLimiter(max: number, windowMs: number) {
   const buckets = new Map<string, Bucket>();
+  const SWEEP_SIZE = 1000;
 
   return {
     /** Returns true if `key` is still within its limit for this window (and records the attempt); false if it should be rejected. */
     check(key: string): boolean {
       const now = Date.now();
+      if (buckets.size >= SWEEP_SIZE) {
+        for (const [k, b] of buckets) if (now - b.windowStart >= windowMs) buckets.delete(k);
+      }
       const bucket = buckets.get(key);
 
       if (!bucket || now - bucket.windowStart >= windowMs) {
