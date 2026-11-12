@@ -82,9 +82,15 @@ export function OnboardingWizard({
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const mounted = useIsClient();
 
+  // Reopened from the header help button: start at the beginning.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) setCurrentStep(0);
+  }
+
   useEffect(() => {
     if (isOpen) {
-      setCurrentStep(0); // reopened from the header help button: start at the beginning
       trackOnboardingStart();
     }
   }, [isOpen]);
