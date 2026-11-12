@@ -199,7 +199,7 @@ export const FilterBar = memo(function FilterBar({
           )}
 
           {/* Desktop: inline search bar between conference dropdown and Now */}
-          <div className="hidden md:flex items-center gap-2 flex-1">
+          <div className="hidden md:flex items-center gap-2 flex-1 min-w-0">
             <SearchBar value={searchQuery} onChange={onSearchChange} />
             {onSubmitEvent && (
               <button
@@ -214,7 +214,7 @@ export const FilterBar = memo(function FilterBar({
           </div>
 
           {/* Spacer pushes Now + Filters to the right */}
-          <div className="flex-1 lg:hidden" />
+          <div className="flex-1 md:hidden" />
 
           {/* Time mode cycle button */}
           <button

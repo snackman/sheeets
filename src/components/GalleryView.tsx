@@ -1,6 +1,6 @@
 'use client';
 
-import { resizedLumaCover } from '@/lib/image-url';
+import { thumbUrl, thumbSrcSet } from '@/lib/image-url';
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import type { ETHDenverEvent, ReactionEmoji, FriendInfo } from '@/lib/types';
 import { formatDateLabel } from '@/lib/utils';
@@ -126,7 +126,9 @@ function GalleryCard({
 
       {hasImage && (
         <img
-          src={resizedLumaCover(imageUrl, 600)}
+          src={thumbUrl(imageUrl, 600)}
+          srcSet={thumbSrcSet(imageUrl, [320, 480, 640])}
+          sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
           alt=""
           width={600}
           height={600}
